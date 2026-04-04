@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@keyframes phase-flash {
+  0%   { background-color: rgba(245, 158, 11, 0.7); border-color: rgba(245, 158, 11, 1); }
+  60%  { background-color: rgba(245, 158, 11, 0.7); border-color: rgba(245, 158, 11, 1); }
+  100% { background-color: rgba(217, 119, 6, 0.25); border-color: rgba(245, 158, 11, 0.6); }
+}
+
+.phase-tracker-flash {
+  animation: phase-flash 0.6s ease-out forwards;
+}
+
 body {
   margin: 0;
   background: #111827;

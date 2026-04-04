@@ -1,6 +1,6 @@
 import Card from './Card.jsx';
 
-export default function Hand({ player, resources, isActive, selectedCard, onPlayCard }) {
+export default function Hand({ player, resources, isActive, canPlay, selectedCard, onPlayCard }) {
   if (!isActive) {
     // Opponent face-down count
     return (
@@ -14,14 +14,14 @@ export default function Hand({ player, resources, isActive, selectedCard, onPlay
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5 justify-center py-2 px-1 min-h-[80px]">
+    <div className={`flex flex-wrap gap-1.5 justify-center py-2 px-1 min-h-[80px] ${!canPlay ? 'opacity-60' : ''}`}>
       {player.hand.map(card => (
         <Card
           key={card.uid}
           card={card}
-          isSelected={selectedCard === card.uid}
-          isPlayable={resources >= card.cost}
-          onClick={() => onPlayCard(card.uid)}
+          isSelected={canPlay && selectedCard === card.uid}
+          isPlayable={canPlay && resources >= card.cost}
+          onClick={canPlay ? () => onPlayCard(card.uid) : undefined}
         />
       ))}
       {player.hand.length === 0 && (

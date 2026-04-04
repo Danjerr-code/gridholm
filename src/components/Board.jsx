@@ -19,6 +19,16 @@ export default function Board({
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
 
+  // Enemy-occupied tiles that are valid move targets (show red)
+  const enemyMoveSet = new Set(
+    unitMoveTiles
+      .filter(([r, c]) =>
+        units.some(u => u.owner !== activePlayer && u.row === r && u.col === c) ||
+        champions.some(ch => ch.owner !== activePlayer && ch.row === r && ch.col === c)
+      )
+      .map(([r, c]) => `${r},${c}`)
+  );
+
   function handleCellClick(row, col) {
     if (!isP1Turn) return;
     const key = `${row},${col}`;
@@ -78,7 +88,8 @@ export default function Board({
                 isCenter={row === 2 && col === 2}
                 isChampionMoveTile={champMoveSet.has(key)}
                 isSummonTile={summonSet.has(key)}
-                isUnitMoveTile={unitMoveSet.has(key)}
+                isUnitMoveTile={unitMoveSet.has(key) && !enemyMoveSet.has(key)}
+                isEnemyMoveTile={enemyMoveSet.has(key)}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isArcherTarget={isArcherTarget}

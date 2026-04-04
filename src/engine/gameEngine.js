@@ -61,8 +61,8 @@ export function createInitialState() {
     winner: null,
     p2DiscardPending: true, // P2 must discard down to 5 at end of turn 1
     players: [
-      { id: 0, name: 'Player 1', resources: 0, hand: p1Hand, deck: p1Deck, discard: [] },
-      { id: 1, name: 'AI',       resources: 0, hand: p2Hand, deck: p2Deck, discard: [] },
+      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [] },
+      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [] },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -107,8 +107,11 @@ function doDrawPhase(state) {
 
 function doResourcePhase(state) {
   const p = state.players[state.activePlayer];
-  p.resources = Math.min(10, p.resources + 1);
-  addLog(state, `${p.name} gains 1 resource (now ${p.resources}).`);
+  p.turnCount = (p.turnCount || 0) + 1;
+  // P2 going-second bonus: first turn grants 2 resources instead of 1
+  const bonus = state.activePlayer === 1 ? 1 : 0;
+  p.resources = Math.min(p.turnCount + bonus, 10);
+  addLog(state, `${p.name} receives ${p.resources} resource${p.resources !== 1 ? 's' : ''} (turn ${p.turnCount}).`);
   state.phase = 'champion_move';
   return state;
 }

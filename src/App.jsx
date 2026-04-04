@@ -3,6 +3,7 @@ import StatusBar from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
 import Log from './components/Log.jsx';
+import PhaseTracker from './components/PhaseTracker.jsx';
 
 const PHASE_GUIDANCE = {
   draw: 'Drawing card…',
@@ -81,6 +82,12 @@ export default function App() {
 
       {/* Main layout */}
       <div className="flex gap-2 flex-1">
+        {/* Phase tracker (far left) */}
+        <PhaseTracker
+          phase={phase}
+          phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
+        />
+
         {/* Board + hands + controls */}
         <div className="flex flex-col gap-2 flex-1 min-w-0">
           {/* AI hand (face down) */}
@@ -152,7 +159,8 @@ export default function App() {
             <Hand
               player={p1}
               resources={p1.resources}
-              isActive={isP1Turn && phase === 'summon_cast'}
+              isActive={true}
+              canPlay={isP1Turn && phase === 'summon_cast'}
               selectedCard={selectedCard}
               onPlayCard={handlers.handlePlayCard}
             />

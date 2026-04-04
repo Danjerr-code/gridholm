@@ -7,6 +7,7 @@ export default function Cell({
   isChampionMoveTile,
   isSummonTile,
   isUnitMoveTile,
+  isEnemyMoveTile,
   isSelected,
   isSpellTarget,
   isArcherTarget,
@@ -19,6 +20,8 @@ export default function Cell({
     ? 'bg-blue-800/60 ring-1 ring-blue-400'
     : isSummonTile
     ? 'bg-green-800/60 ring-1 ring-green-400'
+    : isEnemyMoveTile
+    ? 'bg-red-800/60 ring-1 ring-red-400'
     : isUnitMoveTile
     ? 'bg-blue-800/60 ring-1 ring-blue-400'
     : '';
