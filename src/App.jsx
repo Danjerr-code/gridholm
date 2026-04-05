@@ -13,7 +13,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App() {
+export default function App({ onBackToLobby } = {}) {
   const {
     state,
     selectedCard,
@@ -71,12 +71,22 @@ export default function App() {
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <h1 className="text-lg font-bold text-amber-400 tracking-wide">GRIDHOLM</h1>
-        <button
-          className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
-          onClick={handlers.handleNewGame}
-        >
-          New Game
-        </button>
+        <div className="flex gap-2">
+          {onBackToLobby && (
+            <button
+              className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
+              onClick={onBackToLobby}
+            >
+              ← Lobby
+            </button>
+          )}
+          <button
+            className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
+            onClick={handlers.handleNewGame}
+          >
+            New Game
+          </button>
+        </div>
       </div>
 
       {/* Status Bar */}
