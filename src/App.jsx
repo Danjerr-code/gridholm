@@ -233,7 +233,7 @@ function CardDetailPanel({ inspectedItem, state }) {
         </div>
         <div className="text-amber-700 text-[10px] font-semibold">Terrain</div>
         <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
-          End your turn with your champion here to deal 4 damage to the enemy champion.
+          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
         </div>
       </div>
     );

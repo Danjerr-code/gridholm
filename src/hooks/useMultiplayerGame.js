@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
+import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
 const DISCONNECT_TIMEOUT_MS = 60_000;
 
@@ -156,6 +157,29 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId);
   }, [session, gameId]);
 
+  const playAgain = useCallback(async () => {
+    if (!session || !supabase) return;
+    const s = createInitialState();
+    s.players[0].name = 'Player 1';
+    s.players[1].name = 'Player 2';
+    const initialState = autoAdvancePhase(s);
+
+    const { data: updated } = await supabase
+      .from('game_sessions')
+      .update({
+        game_state: initialState,
+        active_player: session.player1_id,
+        status: 'active',
+        winner: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .select()
+      .single();
+
+    if (updated) setSession(updated);
+  }, [session, gameId]);
+
   const myPlayerIndex = session
     ? (session.player1_id === guestId ? 0
       : session.player2_id === guestId ? 1
@@ -175,5 +199,6 @@ export function useMultiplayerGame(gameId) {
     guestId,
     opponentDisconnected,
     abandonGame,
+    playAgain,
   };
 }

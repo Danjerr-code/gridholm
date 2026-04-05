@@ -124,6 +124,7 @@ export default function Board({
                 isSpellTarget={isSpellTarget}
                 isArcherTarget={isArcherTarget}
                 auraBonus={unitAuraBonus}
+                myPlayerIndex={myPlayerIndex}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => {

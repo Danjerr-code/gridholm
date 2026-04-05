@@ -12,6 +12,7 @@ export default function Cell({
   isSpellTarget,
   isArcherTarget,
   auraBonus = 0,
+  myPlayerIndex,
   onClick,
   onUnitClick,
   onChampionClick,
@@ -45,12 +46,16 @@ export default function Cell({
       {champion && (
         <div
           className={`absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none
-            ${champion.owner === 0 ? 'bg-blue-700 ring-2 ring-blue-300' : 'bg-red-700 ring-2 ring-red-300'}`}
+            ${champion.owner === 0 ? 'bg-blue-700 ring-2 ring-blue-300' : 'bg-red-700 ring-2 ring-red-300'}
+            ${myPlayerIndex !== undefined && champion.owner === myPlayerIndex ? 'ring-4' : ''}`}
           onClick={e => { e.stopPropagation(); onChampionClick && onChampionClick(); }}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
         >
           <span className="text-xs font-bold leading-none">♛</span>
           <span className="text-[9px]">{champion.hp}</span>
+          {myPlayerIndex !== undefined && champion.owner === myPlayerIndex && (
+            <span className="text-[7px] font-bold leading-none text-white/80">YOU</span>
+          )}
         </div>
       )}
 

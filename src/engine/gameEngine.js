@@ -567,11 +567,17 @@ export function endTurn(state) {
   const p = s.players[s.activePlayer];
   const champ = s.champions[s.activePlayer];
 
-  // Throne check: if champion on (2,2), opponent takes 4 damage
+  // Throne check: if champion on (2,2), opponent takes up to 4 damage (cannot reduce below 1 HP)
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - s.activePlayer;
-    s.champions[oppIdx].hp -= 4;
-    addLog(s, `${p.name}'s champion controls the Throne! ${s.players[oppIdx].name}'s champion takes 4 damage.`);
+    const maxDamage = Math.max(0, s.champions[oppIdx].hp - 1);
+    const actualDamage = Math.min(4, maxDamage);
+    if (actualDamage > 0) {
+      s.champions[oppIdx].hp -= actualDamage;
+      addLog(s, `${p.name}'s champion controls the Throne! ${s.players[oppIdx].name}'s champion takes ${actualDamage} damage.`);
+    } else {
+      addLog(s, `${p.name}'s champion controls the Throne, but the enemy champion is protected at 1 HP.`);
+    }
     checkWinner(s);
     if (s.winner) return s;
   }

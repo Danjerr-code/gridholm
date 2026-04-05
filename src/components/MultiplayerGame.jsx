@@ -17,10 +17,8 @@ import {
   discardCard,
   getSpellTargets,
   getArcherShootTargets,
-  createInitialState,
-  autoAdvancePhase,
 } from '../engine/gameEngine.js';
-import { supabase, getGuestId } from '../supabase.js';
+import { getGuestId } from '../supabase.js';
 import StatusBar from './StatusBar.jsx';
 import Board from './Board.jsx';
 import Hand from './Hand.jsx';
@@ -34,14 +32,6 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-function generateGameId() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = '';
-  for (let i = 0; i < 6; i++) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return id;
-}
 
 export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const {
@@ -55,6 +45,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     guestId,
     opponentDisconnected,
     abandonGame,
+    playAgain,
   } = useMultiplayerGame(gameId);
 
   // Local UI selection state
@@ -64,8 +55,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [inspectedItem, setInspectedItem] = useState(null);
   const [mobileModalItem, setMobileModalItem] = useState(null);
   const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
-  const [playAgainId, setPlayAgainId] = useState(null);
-  const [creatingPlayAgain, setCreatingPlayAgain] = useState(false);
+  const [playAgainLoading, setPlayAgainLoading] = useState(false);
 
   const clearSelection = useCallback(() => {
     setSelectedCard(null);
@@ -204,25 +194,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, [mobilePrimedCard, handlePlayCard, isMyTurn, gameState]);
 
   const handlePlayAgain = useCallback(async () => {
-    if (!supabase || creatingPlayAgain) return;
-    setCreatingPlayAgain(true);
-    const newId = generateGameId();
-    const s = createInitialState();
-    s.players[0].name = 'Player 1';
-    s.players[1].name = 'Player 2';
-    const initialState = autoAdvancePhase(s);
-
-    const { error } = await supabase.from('game_sessions').insert({
-      id: newId,
-      player1_id: guestId,
-      game_state: initialState,
-      active_player: guestId,
-      status: 'waiting',
-    });
-
-    setCreatingPlayAgain(false);
-    if (!error) setPlayAgainId(newId);
-  }, [guestId, creatingPlayAgain]);
+    if (playAgainLoading) return;
+    setPlayAgainLoading(true);
+    await playAgain();
+    setPlayAgainLoading(false);
+  }, [playAgain, playAgainLoading]);
 
   // ── Loading / Error states ────────────────────────────────────────────
 
@@ -385,34 +361,21 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <div className="text-4xl mb-4">🏆</div>
             <h2 className="text-2xl font-bold text-yellow-400 mb-2">{winner} wins!</h2>
             <p className="text-gray-300 mb-6">The champion has fallen.</p>
-            {playAgainId ? (
-              <div className="flex flex-col gap-2 items-center">
-                <p className="text-gray-300 text-sm">New game created! Share this ID with your opponent:</p>
-                <div className="text-2xl font-mono font-bold text-amber-400 tracking-widest">{playAgainId}</div>
-                <button
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg text-sm"
-                  onClick={() => { window.location.hash = `/game/${playAgainId}`; }}
-                >
-                  Go to New Game
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-3 justify-center flex-wrap">
-                <button
-                  className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-lg"
-                  onClick={handlePlayAgain}
-                  disabled={creatingPlayAgain}
-                >
-                  {creatingPlayAgain ? 'Creating…' : 'Play Again'}
-                </button>
-                <button
-                  className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg"
-                  onClick={onBackToLobby}
-                >
-                  Back to Lobby
-                </button>
-              </div>
-            )}
+            <div className="flex gap-3 justify-center flex-wrap">
+              <button
+                className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-lg"
+                onClick={handlePlayAgain}
+                disabled={playAgainLoading}
+              >
+                {playAgainLoading ? 'Resetting…' : 'Play Again'}
+              </button>
+              <button
+                className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg"
+                onClick={onBackToLobby}
+              >
+                Back to Lobby
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -462,6 +425,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             Lobby
           </button>
         </div>
+      </div>
+
+      {/* Player identity indicator */}
+      <div className={`text-xs font-semibold px-2 py-0.5 rounded text-center flex-shrink-0 ${myPlayerIndex === 0 ? 'text-blue-300 bg-blue-950/60 border border-blue-800' : 'text-red-300 bg-red-950/60 border border-red-800'}`}>
+        You are {myPlayerIndex === 0 ? 'Player 1' : 'Player 2'}
       </div>
 
       {/* Status Bar */}
@@ -636,7 +604,7 @@ function CardDetailContent({ inspectedItem, state, large = false }) {
         <span className={nameClass}>Throne</span>
         <div className={`text-amber-700 font-semibold ${large ? 'text-xs' : 'text-[10px]'}`}>Terrain</div>
         <div className={rulesClass}>
-          End your turn with your champion here to deal 4 damage to the enemy champion.
+          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
         </div>
       </div>
     );

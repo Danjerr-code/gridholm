@@ -32,14 +32,14 @@ export const CARD_DB = {
   ironthorns:   { id: 'ironthorns',   name: 'Iron Thorns',  type: 'spell', cost: 2, effect: 'ironthorns',   rules: 'Give your champion a shield absorbing up to 3 damage from the next attack. The attacking unit takes 3 damage.' },
 };
 
-// Total: 40 cards
+// Total: 30 cards
 const DECK_RECIPE = [
   ['footsoldier', 2], ['knight', 2], ['crossbowman', 1], ['captain', 1],
-  ['wolf', 2], ['sabretooth', 1], ['pip', 1], ['eagerbeaver', 2], ['mastodon', 1],
-  ['elfscout', 1], ['elfblade', 1], ['elfelder', 1], ['elfranger', 2], ['elfarcher', 1], ['sistersiofra', 1],
-  ['hellhound', 1], ['brutedemon', 1], ['shadowfiend', 2], ['demonlord', 1], ['imptimebomb', 1], ['zmore', 1],
+  ['wolf', 2], ['sabretooth', 1], ['pip', 1], ['eagerbeaver', 1], ['mastodon', 1],
+  ['elfscout', 1], ['elfelder', 1], ['elfranger', 2], ['elfarcher', 1], ['sistersiofra', 1],
+  ['brutedemon', 1], ['shadowfiend', 2], ['demonlord', 1], ['zmore', 1],
   ['aendor', 1],
-  ['smite', 2], ['mendallies', 2], ['forgeweapon', 2], ['ironshield', 2], ['crownshatter', 1], ['recall', 1], ['rallyingcry', 1], ['ironthorns', 1],
+  ['smite', 2], ['mendallies', 1], ['forgeweapon', 1], ['ironshield', 1], ['ironthorns', 1],
 ];
 
 export function buildDeck() {
@@ -53,7 +53,7 @@ export function buildDeck() {
 }
 
 const _deckTotal = DECK_RECIPE.reduce((sum, [, count]) => sum + count, 0);
-console.assert(_deckTotal === 40, 'Deck must be 40 cards, got ' + _deckTotal);
+console.assert(_deckTotal === 30, 'Deck must be 30 cards, got ' + _deckTotal);
 
 export function shuffle(arr) {
   const a = [...arr];
