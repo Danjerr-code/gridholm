@@ -1,4 +1,5 @@
 import { useGameState } from './hooks/useGameState.js';
+import { getAuraAtkBonus } from './engine/gameEngine.js';
 import StatusBar from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
@@ -187,6 +188,8 @@ function CardDetailPanel({ inspectedItem, state }) {
     if (unit) {
       const ownerLabel = unit.owner === 0 ? 'Friendly' : 'Enemy';
       const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+      const auraBonus = getAuraAtkBonus(state, unit);
+      const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
       content = (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-start">
@@ -195,7 +198,9 @@ function CardDetailPanel({ inspectedItem, state }) {
           </div>
           {unit.unitType && <div className="text-gray-400 text-[10px]">{unit.unitType}</div>}
           <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
-            <span className="text-red-400">⚔ {unit.atk + (unit.atkBonus || 0)}</span>
+            <span className="text-red-400">
+              ⚔ {displayAtk}{auraBonus > 0 && <span className="text-teal-400"> (Aura +{auraBonus})</span>}
+            </span>
             <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
             <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
           </div>

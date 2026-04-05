@@ -32,11 +32,38 @@ function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
 function getPlayer(state) { return state.players[state.activePlayer]; }
 
+// Returns the total ATK aura bonus applied to a unit from all friendly aura units on the board.
+export function getAuraAtkBonus(state, unit) {
+  let bonus = 0;
+  for (const other of state.units) {
+    if (other.owner !== unit.owner || other.uid === unit.uid) continue;
+    if (!other.aura || other.aura.stat !== 'atk') continue;
+    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+      bonus += other.aura.value;
+    }
+  }
+  return bonus;
+}
+
+// HP aura stub — no HP aura cards exist yet, but follows the same pattern for future use.
+export function getAuraHpBonus(/* state, unit */) {
+  // Future: scan state.units for aura.stat === 'hp' and sum bonuses within range.
+  return 0;
+}
+
+// SPD aura stub — no SPD aura cards exist yet, follows same pattern for future use.
+export function getAuraSpdBonus(/* state, unit */) {
+  // Future: scan state.units for aura.stat === 'spd' and sum bonuses within range.
+  return 0;
+}
+
 function effectiveAtk(state, unit) {
-  // Captain aura: friendly units adjacent to captain gain +1 ATK
-  const captains = state.units.filter(u => u.owner === unit.owner && u.id === 'captain' && u.uid !== unit.uid);
-  const auraBonus = captains.some(c => manhattan([c.row, c.col], [unit.row, unit.col]) === 1) ? 1 : 0;
-  return unit.atk + (unit.atkBonus || 0) + auraBonus;
+  return unit.atk + (unit.atkBonus || 0) + getAuraAtkBonus(state, unit);
+}
+
+// Exported variant for UI components that need the resolved ATK value.
+export function getEffectiveAtk(state, unit) {
+  return effectiveAtk(state, unit);
 }
 
 // Deep-clone state

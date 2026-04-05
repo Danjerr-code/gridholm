@@ -2,7 +2,7 @@ export const CARD_DB = {
   footsoldier: { id: 'footsoldier', name: 'Footsoldier', type: 'unit', cost: 1, atk: 2, hp: 1, spd: 1, unitType: 'Human', rules: '' },
   knight:       { id: 'knight',       name: 'Knight',       type: 'unit', cost: 3, atk: 3, hp: 4, spd: 1, unitType: 'Human', rules: '' },
   crossbowman:  { id: 'crossbowman',  name: 'Crossbowman',  type: 'unit', cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Human', rules: 'When this unit destroys an enemy unit, draw 1 card.' },
-  captain:      { id: 'captain',      name: 'Captain',      type: 'unit', cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human', rules: 'Friendly units adjacent to this unit gain +1 ATK.' },
+  captain:      { id: 'captain',      name: 'Captain',      type: 'unit', cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human', rules: 'Aura 1: Friendly units within 1 tile gain +1 ATK.', aura: { range: 1, stat: 'atk', value: 1 } },
   wolf:         { id: 'wolf',         name: 'Wolf',         type: 'unit', cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Beast', rules: '' },
   sabretooth:   { id: 'sabretooth',   name: 'Sabretooth',   type: 'unit', cost: 5, atk: 4, hp: 5, spd: 2, unitType: 'Beast', rules: '' },
   elfscout:     { id: 'elfscout',     name: 'Elf Scout',    type: 'unit', cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Elf',   rules: '' },

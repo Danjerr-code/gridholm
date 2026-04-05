@@ -1,4 +1,4 @@
-export default function UnitToken({ unit, isSelected, isSpellTarget, isArcherTarget, onClick }) {
+export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarget, isArcherTarget, onClick }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const border = isSelected
@@ -15,7 +15,7 @@ export default function UnitToken({ unit, isSelected, isSpellTarget, isArcherTar
 
   const bg = isP1 ? 'bg-blue-900' : 'bg-red-900';
   const abbr = unit.name.split(' ').map(w => w[0]).join('').slice(0, 3);
-  const effectiveAtk = unit.atk + (unit.atkBonus || 0);
+  const effectiveAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
   const hpColor = unit.hp <= unit.maxHp / 2 ? 'text-red-400' : 'text-gray-300';
 
   return (
@@ -35,6 +35,7 @@ export default function UnitToken({ unit, isSelected, isSpellTarget, isArcherTar
         {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
         {unit.shield > 0 && <Badge label={`🛡${unit.shield}`} color="cyan" title="Shield" />}
         {(unit.atkBonus || 0) > 0 && <Badge label={`+${unit.atkBonus}A`} color="green" title="ATK bonus" />}
+        {auraBonus > 0 && <Badge label="Aura" color="teal" title={`Aura +${auraBonus} ATK`} />}
         {(unit.speedBonus || 0) > 0 && <Badge label={`+${unit.speedBonus}S`} color="purple" title="Speed bonus" />}
         {unit.id === 'pip' && <Badge label="↑" color="amber" title="Growing each turn" />}
       </div>
@@ -50,6 +51,7 @@ function Badge({ label, color, title }) {
     green: 'bg-green-700 text-green-100',
     purple: 'bg-purple-700 text-purple-100',
     amber: 'bg-amber-600 text-amber-100',
+    teal: 'bg-teal-700 text-teal-100',
   };
   return (
     <span className={`text-[8px] px-0.5 rounded leading-none ${colors[color]}`} title={title}>

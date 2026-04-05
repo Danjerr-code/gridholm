@@ -40,6 +40,13 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {card.type === 'spell' && (
           <div className="text-purple-400 text-[9px] mt-auto">Spell</div>
         )}
+        {card.aura && (
+          <div className="mt-0.5">
+            <span className="text-[8px] bg-teal-800 text-teal-200 px-1 rounded leading-none font-semibold">
+              Aura {card.aura.range}
+            </span>
+          </div>
+        )}
         {card.rules && (
           <div className="text-[8px] text-gray-400 mt-0.5 leading-tight line-clamp-2">{card.rules}</div>
         )}
@@ -78,6 +85,15 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         )}
         {card.type === 'spell' && (
           <div className="text-purple-400 text-[9px] mb-0.5">Spell</div>
+        )}
+
+        {/* Keyword badges (Aura, etc.) */}
+        {card.aura && (
+          <div className="mb-0.5">
+            <span className="text-[8px] bg-teal-800 text-teal-200 px-1 rounded leading-none font-semibold">
+              Aura {card.aura.range}
+            </span>
+          </div>
         )}
 
         {/* Rules text: 2 lines max with ellipsis */}
