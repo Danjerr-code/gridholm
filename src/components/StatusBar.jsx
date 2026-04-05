@@ -6,12 +6,9 @@ export default function StatusBar({ state }) {
   const activePlayerName = state.players[state.activePlayer].name;
 
   const PHASE_LABELS = {
-    draw: 'Draw',
-    resource: 'Resource',
-    champion_move: 'Champion Move',
-    summon_cast: 'Summon / Cast',
-    unit_move: 'Unit Move',
-    end: 'End Turn',
+    'begin-turn': 'Begin Turn',
+    action: 'Action',
+    'end-turn': 'End Turn',
   };
 
   return (

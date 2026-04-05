@@ -1,7 +1,7 @@
 import { buildDeck, shuffle } from './cards.js';
 
 // Phases in order
-export const PHASES = ['draw', 'resource', 'action', 'end'];
+export const PHASES = ['begin-turn', 'action', 'end-turn'];
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ export function createInitialState() {
   return {
     turn: 1,
     activePlayer: 0, // 0 = P1, 1 = P2
-    phase: 'draw',
+    phase: 'begin-turn',
     phaseStep: 0, // for auto-phases
     winner: null,
     pendingDiscard: false,
@@ -87,37 +87,37 @@ function addLog(state, msg) {
 
 export function autoAdvancePhase(state) {
   const s = cloneState(state);
-  if (s.phase === 'draw') return doDrawPhase(s);
-  if (s.phase === 'resource') return doResourcePhase(s);
+  if (s.phase === 'begin-turn') return doBeginTurnPhase(s);
   return s;
 }
 
-function doDrawPhase(state) {
-  // P1 skips draw on turn 1
-  if (state.turn === 1 && state.activePlayer === 0) {
-    addLog(state, `${state.players[0].name} skips draw phase (turn 1 rule).`);
-    state.phase = 'resource';
-    return state;
-  }
+function doBeginTurnPhase(state) {
   const p = state.players[state.activePlayer];
-  const card = p.deck.shift();
-  if (card) {
-    p.hand.push(card);
-    addLog(state, `${p.name} draws ${card.name}.`);
-  } else {
-    addLog(state, `${p.name} has no cards left to draw.`);
-  }
-  state.phase = 'resource';
-  return state;
-}
 
-function doResourcePhase(state) {
-  const p = state.players[state.activePlayer];
+  // Draw: P1 skips draw on turn 1
+  let drawnCard = null;
+  const skipDraw = state.turn === 1 && state.activePlayer === 0;
+  if (!skipDraw) {
+    drawnCard = p.deck.shift() || null;
+    if (drawnCard) p.hand.push(drawnCard);
+  }
+
+  // Gain resources
   p.turnCount = (p.turnCount || 0) + 1;
   // P2 going-second bonus: first turn grants 2 resources instead of 1
   const bonus = state.activePlayer === 1 ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
-  addLog(state, `${p.name} receives ${p.resources} resource${p.resources !== 1 ? 's' : ''} (turn ${p.turnCount}).`);
+
+  // Combined begin-turn log entry
+  const drawnPart = skipDraw
+    ? 'Skipped draw (turn 1 rule).'
+    : drawnCard
+      ? `Drew ${drawnCard.name}.`
+      : 'No cards left to draw.';
+  addLog(state, `${p.name} begins turn ${p.turnCount}. ${drawnPart} Resources: ${p.resources}/10.`);
+
+  // BEGIN TURN TRIGGERS - card abilities fire here
+
   state.phase = 'action';
   return state;
 }
@@ -268,7 +268,7 @@ export function endActionPhase(state) {
   const s = cloneState(state);
   s.pendingSpell = null;
   s.pendingSummon = null;
-  s.phase = 'end';
+  s.phase = 'end-turn';
   return s;
 }
 
@@ -471,15 +471,17 @@ function completeTurnAdvance(state) {
   // Reset champion moved state
   champ.moved = false;
 
+  // END TURN TRIGGERS - card abilities fire here
+
   // Advance turn
   const nextPlayer = 1 - s.activePlayer;
   s.activePlayer = nextPlayer;
   if (nextPlayer === 0) s.turn++;
 
-  s.phase = 'draw';
+  s.phase = 'begin-turn';
   addLog(s, `--- Turn ${s.turn}: ${s.players[nextPlayer].name}'s turn ---`);
 
-  return autoAdvancePhase(autoAdvancePhase(s)); // auto draw + resource
+  return autoAdvancePhase(s); // auto begin-turn (draw + resource + advance to action)
 }
 
 export function discardCard(state, cardUid) {

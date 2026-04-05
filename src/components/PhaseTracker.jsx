@@ -1,8 +1,7 @@
 const PHASES = [
-  { key: 'draw',     label: 'Draw',     auto: true  },
-  { key: 'resource', label: 'Resource', auto: true  },
-  { key: 'action',   label: 'Action',   auto: false },
-  { key: 'end',      label: 'End Turn', auto: true  },
+  { key: 'begin-turn', label: 'Begin Turn', auto: true  },
+  { key: 'action',     label: 'Action',     auto: false },
+  { key: 'end-turn',   label: 'End Turn',   auto: true  },
 ];
 
 // phaseChangeId changes every time the game advances to a new phase,

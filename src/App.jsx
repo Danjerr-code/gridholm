@@ -6,10 +6,9 @@ import Log from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 
 const PHASE_GUIDANCE = {
-  draw: 'Drawing card…',
-  resource: 'Gaining resource…',
+  'begin-turn': 'Beginning turn…',
   action: 'Move your champion, play cards, and move units in any order. Click End Phase when done.',
-  end: 'Click "End Turn" to pass to opponent.',
+  'end-turn': 'Click "End Turn" to pass to opponent.',
   discard: 'You have too many cards. Click a card to discard.',
 };
 
@@ -144,7 +143,7 @@ export default function App() {
               <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" fullWidth />
             )}
 
-            {phase === 'end' && !pendingDiscard && (
+            {phase === 'end-turn' && !pendingDiscard && (
               <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" fullWidth />
             )}
             {pendingDiscard && (

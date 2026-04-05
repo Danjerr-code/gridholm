@@ -25,7 +25,7 @@ const AI_PLAYER = 1;
 export function useGameState() {
   const [state, setState] = useState(() => {
     const s = createInitialState();
-    return autoAdvancePhase(autoAdvancePhase(s));
+    return autoAdvancePhase(s);
   });
 
   // Selected card uid (for summon/spell targeting)
@@ -180,7 +180,7 @@ export function useGameState() {
 
   const handleNewGame = useCallback(() => {
     const s = createInitialState();
-    setState(autoAdvancePhase(autoAdvancePhase(s)));
+    setState(autoAdvancePhase(s));
     clearSelection();
   }, [clearSelection]);
 
