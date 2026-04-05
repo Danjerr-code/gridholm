@@ -12,15 +12,18 @@ export default function UnitToken({ unit, isSelected, isSpellTarget, isArcherTar
 
   const bg = isP1 ? 'bg-blue-900' : 'bg-red-900';
   const abbr = unit.name.split(' ').map(w => w[0]).join('').slice(0, 3);
+  const effectiveAtk = unit.atk + (unit.atkBonus || 0);
+  const hpColor = unit.hp <= unit.maxHp / 2 ? 'text-red-400' : 'text-gray-300';
 
   return (
     <div
       className={`w-full h-full flex flex-col items-center justify-center rounded cursor-pointer ${bg} ${border} select-none`}
       onClick={onClick}
-      title={`${unit.name} | ATK:${unit.atk + (unit.atkBonus || 0)} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}`}
+      title={`${unit.name} | ATK:${effectiveAtk} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}`}
     >
       <div className="text-xs font-bold leading-none">{abbr}</div>
-      <div className="text-[10px] text-gray-300 leading-none">{unit.hp}/{unit.maxHp}</div>
+      <div className="text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
+      <div className={`text-[9px] leading-none ${hpColor}`}>HP {unit.hp}</div>
       <div className="flex gap-0.5 mt-0.5">
         {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
         {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
