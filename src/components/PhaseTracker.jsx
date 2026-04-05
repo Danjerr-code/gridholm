@@ -1,10 +1,8 @@
 const PHASES = [
-  { key: 'draw',          label: 'Draw',           auto: true  },
-  { key: 'resource',      label: 'Resource',        auto: true  },
-  { key: 'champion_move', label: 'Champion Move',   auto: false },
-  { key: 'summon_cast',   label: 'Summon / Cast',   auto: false },
-  { key: 'unit_move',     label: 'Units Move',      auto: false },
-  { key: 'end',           label: 'End Turn',        auto: true  },
+  { key: 'draw',     label: 'Draw',     auto: true  },
+  { key: 'resource', label: 'Resource', auto: true  },
+  { key: 'action',   label: 'Action',   auto: false },
+  { key: 'end',      label: 'End Turn', auto: true  },
 ];
 
 // phaseChangeId changes every time the game advances to a new phase,

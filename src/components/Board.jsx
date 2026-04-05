@@ -46,7 +46,7 @@ export default function Board({
 
     if (!isP1Turn) return;
     const key = `${row},${col}`;
-    if (phase === 'champion_move' && champMoveSet.has(key)) {
+    if (phase === 'action' && champMoveSet.has(key)) {
       handlers.handleChampionMoveTile(row, col);
     } else if (selectMode === 'summon' && summonSet.has(key)) {
       handlers.handleSummonOnTile(row, col);
@@ -72,7 +72,7 @@ export default function Board({
       }
       return;
     }
-    if (phase === 'unit_move') {
+    if (phase === 'action') {
       // Enemy unit on a valid move tile — treat as move-to (combat)
       if (selectMode === 'unit_move' && unit.owner !== activePlayer) {
         const key = `${unit.row},${unit.col}`;

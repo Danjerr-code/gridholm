@@ -4,18 +4,15 @@ import {
   autoAdvancePhase,
   getChampionMoveTiles,
   moveChampion,
-  skipChampionMove,
-  endChampionMovePhase,
   getSummonTiles,
   playCard,
   summonUnit,
   resolveSpell,
   cancelSpell,
-  endSummonCastPhase,
+  endActionPhase,
   getUnitMoveTiles,
   moveUnit,
   archerShoot,
-  endUnitMovePhase,
   endTurn,
   discardCard,
   getSpellTargets,
@@ -77,21 +74,7 @@ export function useGameState() {
   // ── Phase helpers ─────────────────────────────────────────────────────
 
   const handleChampionMoveTile = useCallback((row, col) => {
-    setState(prev => {
-      const s = moveChampion(prev, row, col);
-      s.phase = 'summon_cast';
-      return s;
-    });
-    clearSelection();
-  }, [clearSelection]);
-
-  const handleSkipChampionMove = useCallback(() => {
-    setState(prev => skipChampionMove(prev));
-    clearSelection();
-  }, [clearSelection]);
-
-  const handleEndChampionMove = useCallback(() => {
-    setState(prev => endChampionMovePhase(prev));
+    setState(prev => moveChampion(prev, row, col));
     clearSelection();
   }, [clearSelection]);
 
@@ -129,14 +112,14 @@ export function useGameState() {
     clearSelection();
   }, [clearSelection]);
 
-  const handleEndSummonCast = useCallback(() => {
-    setState(prev => endSummonCastPhase(prev));
+  const handleEndAction = useCallback(() => {
+    setState(prev => endActionPhase(prev));
     clearSelection();
   }, [clearSelection]);
 
   const handleSelectUnit = useCallback((unitUid) => {
     setState(prev => {
-      if (prev.phase !== 'unit_move' || prev.activePlayer === AI_PLAYER) return prev;
+      if (prev.phase !== 'action' || prev.activePlayer === AI_PLAYER) return prev;
       const unit = prev.units.find(u => u.uid === unitUid);
       if (!unit || unit.owner !== prev.activePlayer || unit.summoned || unit.moved) return prev;
       setSelectedUnit(unitUid);
@@ -162,11 +145,6 @@ export function useGameState() {
     clearSelection();
   }, [selectedUnit, clearSelection]);
 
-  const handleEndUnitMove = useCallback(() => {
-    setState(prev => endUnitMovePhase(prev));
-    clearSelection();
-  }, [clearSelection]);
-
   const handleEndTurn = useCallback(() => {
     setState(prev => {
       const s = endTurn(prev);
@@ -174,7 +152,6 @@ export function useGameState() {
     });
     clearSelection();
     if (state.activePlayer !== AI_PLAYER) {
-      // After end turn, check if now AI's turn
       setTimeout(() => {
         setState(prev => {
           if (prev.activePlayer === AI_PLAYER && !prev.winner) {
@@ -191,7 +168,6 @@ export function useGameState() {
       const s = discardCard(prev, cardUid);
       return s;
     });
-    // After discard, if turn advanced to AI, trigger AI
     setTimeout(() => {
       setState(prev => {
         if (prev.activePlayer === AI_PLAYER && !prev.winner && !prev.pendingDiscard) {
@@ -210,7 +186,7 @@ export function useGameState() {
 
   // ── Derived highlight data ─────────────────────────────────────────────
 
-  const championMoveTiles = state.phase === 'champion_move' && state.activePlayer === 0
+  const championMoveTiles = state.phase === 'action' && state.activePlayer === 0
     ? getChampionMoveTiles(state)
     : [];
 
@@ -246,18 +222,15 @@ export function useGameState() {
     archerShootTargets,
     handlers: {
       handleChampionMoveTile,
-      handleSkipChampionMove,
-      handleEndChampionMove,
       handlePlayCard,
       handleSummonOnTile,
       handleSpellTarget,
       handleCancelSpell,
-      handleEndSummonCast,
+      handleEndAction,
       handleSelectUnit,
       handleMoveUnit,
       handleArcherSelectTarget,
       handleArcherShoot,
-      handleEndUnitMove,
       handleEndTurn,
       handleDiscardCard,
       handleNewGame,

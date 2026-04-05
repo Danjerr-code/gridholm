@@ -8,9 +8,7 @@ import PhaseTracker from './components/PhaseTracker.jsx';
 const PHASE_GUIDANCE = {
   draw: 'Drawing card…',
   resource: 'Gaining resource…',
-  champion_move: 'Move your champion (click a blue tile) or skip.',
-  summon_cast: 'Play cards from your hand, then click "End Phase".',
-  unit_move: 'Select a unit, then click its destination. Click "End Phase" when done.',
+  action: 'Move your champion, play cards, and move units in any order. Click End Phase when done.',
   end: 'Click "End Turn" to pass to opponent.',
   discard: 'You have too many cards. Click a card to discard.',
 };
@@ -48,6 +46,7 @@ export default function App() {
     && !selectedUnitObj.moved
     && !selectedUnitObj.summoned
     && selectMode === 'unit_move'
+    && phase === 'action'
     && isP1Turn;
 
   return (
@@ -125,32 +124,24 @@ export default function App() {
 
         {isP1Turn && (
           <>
-            {phase === 'champion_move' && (
-              <ActionBtn onClick={handlers.handleSkipChampionMove} label="Skip Champion Move" />
-            )}
-
-            {phase === 'summon_cast' && selectMode === 'summon' && (
+            {phase === 'action' && selectMode === 'summon' && (
               <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
             )}
-            {phase === 'summon_cast' && selectMode === 'spell' && (
+            {phase === 'action' && selectMode === 'spell' && (
               <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
             )}
-            {phase === 'summon_cast' && (
-              <ActionBtn onClick={handlers.handleEndSummonCast} label="End Phase →" />
-            )}
-
-            {phase === 'unit_move' && showArcherShoot && (
+            {phase === 'action' && showArcherShoot && (
               <ActionBtn
                 onClick={() => handlers.handleArcherSelectTarget(selectedUnit)}
                 label="Archer: Shoot"
                 variant="pink"
               />
             )}
-            {phase === 'unit_move' && selectedUnit && (
+            {phase === 'action' && selectedUnit && (
               <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="gray" />
             )}
-            {phase === 'unit_move' && (
-              <ActionBtn onClick={handlers.handleEndUnitMove} label="End Phase →" />
+            {phase === 'action' && (
+              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" />
             )}
 
             {phase === 'end' && !pendingDiscard && (
@@ -167,14 +158,14 @@ export default function App() {
       <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
         <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
           {p1.name} — {p1.resources}/10 💎
-          {phase === 'summon_cast' && isP1Turn ? '  (click cards to play)' : ''}
+          {phase === 'action' && isP1Turn ? '  (click cards to play)' : ''}
           {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
         </div>
         <Hand
           player={p1}
           resources={p1.resources}
           isActive={true}
-          canPlay={isP1Turn && phase === 'summon_cast'}
+          canPlay={isP1Turn && phase === 'action'}
           pendingDiscard={pendingDiscard && isP1Turn}
           selectedCard={selectedCard}
           onPlayCard={handlers.handlePlayCard}

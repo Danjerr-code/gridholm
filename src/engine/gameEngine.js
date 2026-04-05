@@ -1,7 +1,7 @@
 import { buildDeck, shuffle } from './cards.js';
 
 // Phases in order
-export const PHASES = ['draw', 'resource', 'champion_move', 'summon_cast', 'unit_move', 'end'];
+export const PHASES = ['draw', 'resource', 'action', 'end'];
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -118,7 +118,7 @@ function doResourcePhase(state) {
   const bonus = state.activePlayer === 1 ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
   addLog(state, `${p.name} receives ${p.resources} resource${p.resources !== 1 ? 's' : ''} (turn ${p.turnCount}).`);
-  state.phase = 'champion_move';
+  state.phase = 'action';
   return state;
 }
 
@@ -126,6 +126,7 @@ function doResourcePhase(state) {
 
 export function getChampionMoveTiles(state) {
   const champ = state.champions[state.activePlayer];
+  if (champ.moved) return [];
   return cardinalNeighbors(champ.row, champ.col)
     .filter(([r, c]) => !isTileOccupied(state, r, c));
 }
@@ -137,20 +138,6 @@ export function moveChampion(state, row, col) {
   champ.col = col;
   champ.moved = true;
   addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
-  return s;
-}
-
-export function skipChampionMove(state) {
-  const s = cloneState(state);
-  s.champions[s.activePlayer].moved = true;
-  addLog(s, `${getPlayer(s).name} skips champion move.`);
-  s.phase = 'summon_cast';
-  return s;
-}
-
-export function endChampionMovePhase(state) {
-  const s = cloneState(state);
-  s.phase = 'summon_cast';
   return s;
 }
 
@@ -277,11 +264,11 @@ export function cancelSpell(state) {
   return s;
 }
 
-export function endSummonCastPhase(state) {
+export function endActionPhase(state) {
   const s = cloneState(state);
   s.pendingSpell = null;
   s.pendingSummon = null;
-  s.phase = 'unit_move';
+  s.phase = 'end';
   return s;
 }
 
@@ -423,12 +410,6 @@ export function archerShoot(state, archerUid, targetUid) {
   s.archerShot.push(archerUid);
   applyDamageToUnit(s, target, 2, archer.name);
   addLog(s, `Elf Archer fires at ${target.name}!`);
-  return s;
-}
-
-export function endUnitMovePhase(state) {
-  const s = cloneState(state);
-  s.phase = 'end';
   return s;
 }
 
