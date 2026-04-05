@@ -80,7 +80,7 @@ export function createInitialState() {
 // ── log helper ─────────────────────────────────────────────────────────────
 
 function addLog(state, msg) {
-  state.log = [msg, ...state.log].slice(0, 50);
+  state.log = [...state.log, msg].slice(-50);
 }
 
 // ── phase auto-advance ─────────────────────────────────────────────────────
