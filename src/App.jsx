@@ -119,7 +119,7 @@ export default function App() {
 
       {/* Bottom bar: guidance + action buttons */}
       <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0">
-        <span className="text-xs text-gray-300 sm:flex-1">{guidance}</span>
+        <span className="hidden sm:inline text-xs text-gray-300 sm:flex-1">{guidance}</span>
 
         {isP1Turn && (
           <>
@@ -157,8 +157,10 @@ export default function App() {
       <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
         <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
           {p1.name} — {p1.resources}/10 💎
-          {phase === 'action' && isP1Turn ? '  (click cards to play)' : ''}
-          {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
+          <span className="hidden sm:inline">
+            {phase === 'action' && isP1Turn ? '  (click cards to play)' : ''}
+            {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
+          </span>
         </div>
         <Hand
           player={p1}
@@ -273,7 +275,7 @@ function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
   };
   return (
     <button
-      className={`text-xs font-semibold px-3 py-1.5 rounded ${colors[variant]} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
+      className={`text-xs font-semibold px-3 py-3 sm:py-1.5 rounded ${colors[variant]} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
       onClick={onClick}
     >
       {label}
