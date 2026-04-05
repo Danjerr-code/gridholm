@@ -17,6 +17,7 @@ import {
   archerShoot,
   endUnitMovePhase,
   endTurn,
+  discardCard,
   getSpellTargets,
   getArcherShootTargets,
 } from '../engine/gameEngine.js';
@@ -181,6 +182,22 @@ export function useGameState() {
     }
   }, [state.activePlayer, clearSelection]);
 
+  const handleDiscardCard = useCallback((cardUid) => {
+    setState(prev => {
+      const s = discardCard(prev, cardUid);
+      return s;
+    });
+    // After discard, if turn advanced to AI, trigger AI
+    setTimeout(() => {
+      setState(prev => {
+        if (prev.activePlayer === AI_PLAYER && !prev.winner && !prev.pendingDiscard) {
+          return runAITurn(prev);
+        }
+        return prev;
+      });
+    }, 600);
+  }, []);
+
   const handleNewGame = useCallback(() => {
     const s = createInitialState();
     setState(autoAdvancePhase(autoAdvancePhase(s)));
@@ -238,6 +255,7 @@ export function useGameState() {
       handleArcherShoot,
       handleEndUnitMove,
       handleEndTurn,
+      handleDiscardCard,
       handleNewGame,
       clearSelection,
       handleInspectUnit,

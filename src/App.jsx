@@ -12,6 +12,7 @@ const PHASE_GUIDANCE = {
   summon_cast: 'Play cards from your hand, then click "End Phase".',
   unit_move: 'Select a unit, then click its destination. Click "End Phase" when done.',
   end: 'Click "End Turn" to pass to opponent.',
+  discard: 'You have too many cards. Click a card to discard.',
 };
 
 export default function App() {
@@ -30,12 +31,13 @@ export default function App() {
   } = useGameState();
 
   const isP1Turn = state.activePlayer === 0;
-  const { phase, winner } = state;
+  const { phase, winner, pendingDiscard } = state;
 
   const p1 = state.players[0];
   const p2 = state.players[1];
 
   let guidance = isP1Turn ? (PHASE_GUIDANCE[phase] || '') : 'AI is thinking…';
+  if (pendingDiscard && isP1Turn) guidance = PHASE_GUIDANCE.discard;
   if (selectMode === 'summon') guidance = 'Click a green tile to summon the unit.';
   if (selectMode === 'spell') guidance = 'Click a highlighted unit to target the spell.';
   if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
@@ -143,26 +145,32 @@ export default function App() {
                   <ActionBtn onClick={handlers.handleEndUnitMove} label="End Phase →" />
                 )}
 
-                {phase === 'end' && (
+                {phase === 'end' && !pendingDiscard && (
                   <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" />
+                )}
+                {pendingDiscard && (
+                  <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
                 )}
               </>
             )}
           </div>
 
           {/* P1 hand */}
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg">
+          <div className={`bg-gray-800/50 border rounded-lg ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
             <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
               {p1.name} — {p1.resources}/10 💎
               {phase === 'summon_cast' && isP1Turn ? '  (click cards to play)' : ''}
+              {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
             </div>
             <Hand
               player={p1}
               resources={p1.resources}
               isActive={true}
               canPlay={isP1Turn && phase === 'summon_cast'}
+              pendingDiscard={pendingDiscard && isP1Turn}
               selectedCard={selectedCard}
               onPlayCard={handlers.handlePlayCard}
+              onDiscardCard={handlers.handleDiscardCard}
               onInspectCard={handlers.handleInspectCard}
             />
           </div>

@@ -50,8 +50,8 @@ export function createInitialState() {
   const p1Deck = shuffle(buildDeck());
   const p2Deck = shuffle(buildDeck());
 
-  const p1Hand = p1Deck.splice(0, 5);
-  const p2Hand = p2Deck.splice(0, 6); // P2 gets 6 cards
+  const p1Hand = p1Deck.splice(0, 6);
+  const p2Hand = p2Deck.splice(0, 7); // P2 gets 7 cards (going-second bonus)
 
   return {
     turn: 1,
@@ -59,7 +59,7 @@ export function createInitialState() {
     phase: 'draw',
     phaseStep: 0, // for auto-phases
     winner: null,
-    p2DiscardPending: true, // P2 must discard down to 5 at end of turn 1
+    pendingDiscard: false,
     players: [
       { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [] },
       { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [] },
@@ -69,7 +69,7 @@ export function createInitialState() {
       { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false },
     ],
     units: [],
-    log: ['Game started. P1 goes first.', 'P2 drew an extra card (going-second bonus).'],
+    log: ['Game started. P1 goes first.', 'P2 drew an extra card (going-second bonus, hand limit 6).'],
     // Pending spell state
     pendingSpell: null, // { cardUid, effect, playerIdx }
     // Archer shot tracking: set of unit UIDs that used skip-to-shoot this turn
@@ -432,17 +432,32 @@ export function endTurn(state) {
     if (s.winner) return s;
   }
 
-  // Discard to hand limit (5)
-  while (p.hand.length > 5) {
-    const discarded = p.hand.pop();
-    p.discard.push(discarded);
-    addLog(s, `${p.name} discards ${discarded.name} (hand limit).`);
+  // Hand limit: 6
+  if (p.hand.length > 6) {
+    if (s.activePlayer === 1) {
+      // AI: auto-discard lowest cost card(s)
+      while (p.hand.length > 6) {
+        const lowestIdx = p.hand.reduce((minIdx, c, i, arr) => c.cost < arr[minIdx].cost ? i : minIdx, 0);
+        const [discarded] = p.hand.splice(lowestIdx, 1);
+        p.discard.push(discarded);
+        addLog(s, `${p.name} discards ${discarded.name} (hand limit).`);
+      }
+    } else {
+      // Human: enter pending discard state — turn does not advance yet
+      s.pendingDiscard = true;
+      addLog(s, `${p.name} has too many cards. Click a card to discard.`);
+      return s;
+    }
   }
 
-  // P2 discard pending (turn 1 end only for P2)
-  if (s.activePlayer === 1 && s.p2DiscardPending) {
-    s.p2DiscardPending = false;
-  }
+  return completeTurnAdvance(s);
+}
+
+function completeTurnAdvance(state) {
+  const s = state; // already cloned by caller
+  const champ = s.champions[s.activePlayer];
+
+  s.pendingDiscard = false;
 
   // Clear summoning sickness and speed bonuses for active player's units
   s.units.forEach(u => {
@@ -468,6 +483,23 @@ export function endTurn(state) {
   addLog(s, `--- Turn ${s.turn}: ${s.players[nextPlayer].name}'s turn ---`);
 
   return autoAdvancePhase(autoAdvancePhase(s)); // auto draw + resource
+}
+
+export function discardCard(state, cardUid) {
+  const s = cloneState(state);
+  const p = s.players[s.activePlayer];
+  const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
+  if (cardIdx === -1) return s;
+
+  const [discarded] = p.hand.splice(cardIdx, 1);
+  p.discard.push(discarded);
+  addLog(s, `${p.name} discards ${discarded.name}.`);
+
+  if (p.hand.length <= 6) {
+    return completeTurnAdvance(s);
+  }
+
+  return s; // still over limit, keep pendingDiscard: true
 }
 
 function checkWinner(state) {
