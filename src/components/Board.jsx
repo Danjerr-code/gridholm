@@ -51,14 +51,14 @@ export default function Board({
 
     if (!canInteract) return;
     const key = `${row},${col}`;
-    if (phase === 'action' && champMoveSet.has(key)) {
+    if (phase === 'action' && selectMode === 'champion_move' && champMoveSet.has(key)) {
       handlers.handleChampionMoveTile(row, col);
     } else if (selectMode === 'summon' && summonSet.has(key)) {
       handlers.handleSummonOnTile(row, col);
     } else if (selectMode === 'unit_move' && unitMoveSet.has(key)) {
       handlers.handleMoveUnit(row, col);
-    } else if (selectMode === 'unit_move' && !cellUnit && !cellChamp) {
-      // Clicking an empty non-move tile deselects the current unit and clears highlights.
+    } else if ((selectMode === 'unit_move' || selectMode === 'champion_move') && !cellUnit && !cellChamp) {
+      // Clicking an empty non-move tile deselects the current selection and clears highlights.
       handlers.clearSelection();
     }
   }
@@ -129,7 +129,14 @@ export default function Board({
                 onChampionClick={() => {
                   if (selectMode === 'unit_move' && champion && champion.owner !== activePlayer) {
                     const key = `${row},${col}`;
-                    if (unitMoveSet.has(key)) handlers.handleMoveUnit(row, col);
+                    if (unitMoveSet.has(key)) {
+                      handlers.handleMoveUnit(row, col);
+                      return;
+                    }
+                  }
+                  if (!canInteract) return;
+                  if (phase === 'action' && champion && champion.owner === activePlayer && handlers.handleSelectChampion) {
+                    handlers.handleSelectChampion();
                   }
                 }}
               />

@@ -124,6 +124,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     await dispatch(endActionPhase(gameState));
   }, [gameState, dispatch]);
 
+  const handleSelectChampion = useCallback(() => {
+    setSelectedUnit(null);
+    setSelectedCard(null);
+    setSelectMode('champion_move');
+  }, []);
+
   const handleSelectUnit = useCallback((unitUid) => {
     setSelectedUnit(unitUid);
     setSelectMode('unit_move');
@@ -324,8 +330,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     && phase === 'action'
     && isActiveTurn;
 
-  // Derived highlight data (only valid when it's my turn)
-  const championMoveTiles = phase === 'action' && isActiveTurn
+  // Derived highlight data (only valid when it's my turn and champion is explicitly selected)
+  const championMoveTiles = phase === 'action' && isActiveTurn && selectMode === 'champion_move'
     ? getChampionMoveTiles(state)
     : [];
 
@@ -355,6 +361,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleSpellTarget,
     handleCancelSpell,
     handleEndAction,
+    handleSelectChampion,
     handleSelectUnit,
     handleMoveUnit,
     handleArcherSelectTarget,

@@ -120,6 +120,12 @@ export function useGameState() {
     clearSelection();
   }, [clearSelection]);
 
+  const handleSelectChampion = useCallback(() => {
+    setSelectedUnit(null);
+    setSelectedCard(null);
+    setSelectMode('champion_move');
+  }, []);
+
   const handleSelectUnit = useCallback((unitUid) => {
     // Clear previous selection immediately before setting new one, ensuring
     // old unit's move tiles are not shown alongside the new unit's tiles.
@@ -185,7 +191,7 @@ export function useGameState() {
 
   // ── Derived highlight data ─────────────────────────────────────────────
 
-  const championMoveTiles = state.phase === 'action' && state.activePlayer === 0
+  const championMoveTiles = state.phase === 'action' && state.activePlayer === 0 && selectMode === 'champion_move'
     ? getChampionMoveTiles(state)
     : [];
 
@@ -226,6 +232,7 @@ export function useGameState() {
       handleSpellTarget,
       handleCancelSpell,
       handleEndAction,
+      handleSelectChampion,
       handleSelectUnit,
       handleMoveUnit,
       handleArcherSelectTarget,
