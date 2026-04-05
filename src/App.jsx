@@ -118,7 +118,7 @@ export default function App() {
       </div>
 
       {/* Bottom bar: guidance + action buttons */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs">
         <span className="hidden sm:inline text-xs text-gray-300 sm:flex-1">{guidance}</span>
 
         {isP1Turn && (
