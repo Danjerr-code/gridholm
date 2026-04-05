@@ -83,20 +83,17 @@ export default function App() {
 
       {/* Main layout */}
       <div className="flex gap-2 flex-1">
-        {/* Phase tracker (far left) */}
-        <PhaseTracker
-          phase={phase}
-          phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
-        />
+        {/* Left column: phase tracker + card detail */}
+        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ width: 140, minHeight: 0 }}>
+          <PhaseTracker
+            phase={phase}
+            phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
+          />
+          <CardDetailPanel inspectedItem={inspectedItem} state={state} />
+        </div>
 
         {/* Board + hands + controls */}
         <div className="flex flex-col gap-2 flex-1 min-w-0">
-          {/* AI hand (face down) */}
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg">
-            <div className="text-xs text-red-400 px-2 pt-1 font-semibold">AI — {p2.hand.length} cards</div>
-            <Hand player={p2} resources={p2.resources} isActive={false} selectedCard={null} onPlayCard={() => {}} />
-          </div>
-
           {/* Board */}
           <Board
             state={state}
@@ -171,15 +168,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right sidebar: card detail panel + game log (hidden on small screens) */}
+        {/* Right sidebar: game log */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
-          {/* Card detail panel — top 40% */}
-          <CardDetailPanel inspectedItem={inspectedItem} state={state} />
-          {/* Game log — bottom 60% */}
-          <div className="flex flex-col" style={{ flex: '0 0 60%', minHeight: 0 }}>
-            <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
-            <Log entries={state.log} />
-          </div>
+          <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
+          <Log entries={state.log} />
         </div>
       </div>
     </div>
@@ -248,7 +240,7 @@ function CardDetailPanel({ inspectedItem, state }) {
   return (
     <div
       className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
-      style={{ flex: '0 0 40%', minHeight: 0 }}
+      style={{ flex: 1, minHeight: 0 }}
     >
       <div className="text-xs text-gray-400 mb-1.5 px-0 font-semibold">Card Detail</div>
       <div className="flex-1 overflow-y-auto">
