@@ -54,25 +54,25 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
       {/* === DESKTOP LAYOUT (hidden on mobile, shown on md+) === */}
       <div className="hidden md:flex md:flex-col md:h-full">
-        {/* Cost: pinned top-right */}
-        <span className="absolute top-1.5 right-1.5 text-yellow-400 font-bold text-[10px] leading-none">{card.cost}</span>
+        {/* Name + Cost row: name top-left, cost top-right */}
+        <div className="flex items-start mb-1 gap-0.5">
+          <div
+            className="font-bold text-white text-[10px] leading-tight overflow-hidden whitespace-nowrap flex-1"
+            style={{ textOverflow: 'ellipsis' }}
+          >
+            {card.legendary && <span className="text-amber-400 mr-0.5">♛</span>}
+            {card.name}
+          </div>
+          <span className="text-yellow-400 font-bold text-[10px] leading-none flex-shrink-0 ml-auto">{card.cost}</span>
+        </div>
 
-        {/* Art placeholder: top 40% of card height (~56px) */}
+        {/* Art placeholder: ~40% of card height (~56px) */}
         <div
           className="flex items-center justify-center rounded mb-1 flex-shrink-0"
           style={{ height: '56px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
           data-art-slot="true"
         >
           <span className="text-gray-500 text-xs">{artTypeChar}</span>
-        </div>
-
-        {/* Card name: truncated, max-width 70% */}
-        <div
-          className="font-bold text-white text-[10px] leading-tight mb-0.5 overflow-hidden whitespace-nowrap"
-          style={{ textOverflow: 'ellipsis', maxWidth: '70%' }}
-        >
-          {card.legendary && <span className="text-amber-400 mr-0.5">♛</span>}
-          {card.name}
         </div>
 
         {/* Stats row */}
