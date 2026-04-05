@@ -12,6 +12,7 @@ export default function Board({
   handlers,
   onInspectUnit,
   onClearInspect,
+  onInspectTerrain,
 }) {
   const { phase, activePlayer, units, champions } = state;
 
@@ -32,10 +33,16 @@ export default function Board({
   );
 
   function handleCellClick(row, col) {
-    // Clicking an empty cell clears the detail panel
+    const isThrone = row === 2 && col === 2;
     const cellUnit = units.find(u => u.row === row && u.col === col);
     const cellChamp = champions.find(c => c.row === row && c.col === col);
-    if (!cellUnit && !cellChamp && onClearInspect) onClearInspect();
+
+    // Throne tile always shows terrain detail; other empty cells clear the panel
+    if (isThrone && onInspectTerrain) {
+      onInspectTerrain();
+    } else if (!cellUnit && !cellChamp && onClearInspect) {
+      onClearInspect();
+    }
 
     if (!isP1Turn) return;
     const key = `${row},${col}`;

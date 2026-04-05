@@ -109,6 +109,7 @@ export default function App() {
             handlers={handlers}
             onInspectUnit={handlers.handleInspectUnit}
             onClearInspect={handlers.handleClearInspect}
+            onInspectTerrain={handlers.handleInspectTerrain}
           />
 
           {/* Guidance + action buttons */}
@@ -218,6 +219,18 @@ function CardDetailPanel({ inspectedItem, state }) {
         </div>
       );
     }
+  } else if (inspectedItem?.type === 'terrain') {
+    content = (
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between items-start">
+          <span className="font-bold text-white text-xs leading-tight">Throne</span>
+        </div>
+        <div className="text-amber-700 text-[10px] font-semibold">Terrain</div>
+        <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+          End your turn with your champion here to deal 4 damage to the enemy champion.
+        </div>
+      </div>
+    );
   } else if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
     content = (

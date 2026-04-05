@@ -28,8 +28,9 @@ export default function Cell({
 
   return (
     <div
-      className={`relative w-full aspect-square border border-gray-700 ${bgBase} ${highlight} transition-colors`}
+      className={`relative w-full aspect-square border border-gray-700 ${bgBase} ${highlight} transition-colors${isCenter ? ' cursor-pointer' : ''}`}
       style={{ minWidth: 0 }}
+      title={isCenter ? 'Throne — click to inspect' : undefined}
       onClick={onClick}
     >
       {/* Center marker */}
