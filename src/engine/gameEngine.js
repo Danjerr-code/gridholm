@@ -50,8 +50,8 @@ export function createInitialState() {
   const p1Deck = shuffle(buildDeck());
   const p2Deck = shuffle(buildDeck());
 
-  const p1Hand = p1Deck.splice(0, 6);
-  const p2Hand = p2Deck.splice(0, 7); // P2 gets 7 cards (going-second bonus)
+  const p1Hand = p1Deck.splice(0, 5);
+  const p2Hand = p2Deck.splice(0, 5);
 
   return {
     turn: 1,
@@ -69,7 +69,7 @@ export function createInitialState() {
       { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false },
     ],
     units: [],
-    log: ['Game started. P1 goes first.', 'P2 drew an extra card (going-second bonus, hand limit 6).'],
+    log: ['Game started. P1 goes first. Both players start with 5 cards. P1 skips draw on turn 1.'],
     // Pending spell state
     pendingSpell: null, // { cardUid, effect, playerIdx }
     // Archer shot tracking: set of unit UIDs that used skip-to-shoot this turn
@@ -93,6 +93,12 @@ export function autoAdvancePhase(state) {
 }
 
 function doDrawPhase(state) {
+  // P1 skips draw on turn 1
+  if (state.turn === 1 && state.activePlayer === 0) {
+    addLog(state, `${state.players[0].name} skips draw phase (turn 1 rule).`);
+    state.phase = 'resource';
+    return state;
+  }
   const p = state.players[state.activePlayer];
   const card = p.deck.shift();
   if (card) {
