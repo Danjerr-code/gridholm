@@ -62,6 +62,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectMode, setSelectMode] = useState(null);
   const [inspectedItem, setInspectedItem] = useState(null);
+  const [mobileModalItem, setMobileModalItem] = useState(null);
+  const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
   const [playAgainId, setPlayAgainId] = useState(null);
   const [creatingPlayAgain, setCreatingPlayAgain] = useState(false);
 
@@ -154,7 +156,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleInspectUnit = useCallback((unit) => {
     setInspectedItem({ type: 'unit', uid: unit.uid });
-  }, []);
+    if (window.innerWidth < 768 && gameState) {
+      const isMoveable = unit.owner === myPlayerIndex && !unit.moved && !unit.summoned;
+      if (selectedUnit === unit.uid || !isMoveable || !isMyTurn || gameState.phase !== 'action') {
+        setMobileModalItem({ type: 'unit', uid: unit.uid });
+      }
+    }
+  }, [selectedUnit, myPlayerIndex, isMyTurn, gameState]);
 
   const handleInspectCard = useCallback((card) => {
     setInspectedItem({ type: 'card', card });
@@ -166,7 +174,28 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleInspectTerrain = useCallback(() => {
     setInspectedItem({ type: 'terrain', name: 'Throne' });
+    if (window.innerWidth < 768) {
+      setMobileModalItem({ type: 'terrain', name: 'Throne' });
+    }
   }, []);
+
+  const handleMobileModalDismiss = useCallback(() => {
+    if (mobileModalItem?.type === 'card') {
+      setMobilePrimedCard(mobileModalItem.card.uid);
+    }
+    setMobileModalItem(null);
+  }, [mobileModalItem]);
+
+  const handleMobileHandCardTap = useCallback((card) => {
+    const canPlayNow = isMyTurn && gameState?.phase === 'action';
+    if (mobilePrimedCard === card.uid && canPlayNow) {
+      setMobilePrimedCard(null);
+      handlePlayCard(card.uid);
+    } else {
+      setMobilePrimedCard(null);
+      setMobileModalItem({ type: 'card', card });
+    }
+  }, [mobilePrimedCard, handlePlayCard, isMyTurn, gameState]);
 
   const handlePlayAgain = useCallback(async () => {
     if (!supabase || creatingPlayAgain) return;
@@ -539,84 +568,96 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           onPlayCard={handlePlayCard}
           onDiscardCard={handleDiscardCard}
           onInspectCard={handleInspectCard}
+          isMobile={window.innerWidth < 768}
+          onMobileTap={handleMobileHandCardTap}
         />
       </div>
+      {/* Mobile card detail modal */}
+      {mobileModalItem && (
+        <CardDetailModal
+          inspectedItem={mobileModalItem}
+          state={state}
+          onClose={handleMobileModalDismiss}
+        />
+      )}
     </div>
   );
 }
 
-function CardDetailPanel({ inspectedItem, state }) {
-  let content = null;
+function CardDetailContent({ inspectedItem, state, large = false }) {
+  const nameClass = large ? 'font-bold text-white text-sm leading-tight' : 'font-bold text-white text-xs leading-tight';
+  const typeClass = large ? 'text-gray-400 text-xs' : 'text-gray-400 text-[10px]';
+  const statsClass = large ? 'grid grid-cols-3 gap-x-1 text-xs mt-0.5' : 'grid grid-cols-3 gap-x-1 text-[10px] mt-0.5';
+  const rulesClass = large
+    ? 'text-gray-400 text-xs leading-tight mt-1 border-t border-gray-700 pt-1'
+    : 'text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1';
 
   if (inspectedItem?.type === 'unit') {
     const unit = state.units.find(u => u.uid === inspectedItem.uid);
-    if (unit) {
-      const ownerLabel = unit.owner === 0 ? 'P1' : 'P2';
-      const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
-      const auraBonus = getAuraAtkBonus(state, unit);
-      const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
-      content = (
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-start">
-            <span className="font-bold text-white text-xs leading-tight">{unit.name}</span>
-            <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
-          </div>
-          {unit.unitType && <div className="text-gray-400 text-[10px]">{unit.unitType}</div>}
-          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
-            <span className="text-red-400">
-              ⚔ {displayAtk}{auraBonus > 0 && <span className="text-teal-400"> (+{auraBonus})</span>}
-            </span>
-            <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
-            <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
-          </div>
-          {unit.shield > 0 && (
-            <div className="text-cyan-400 text-[10px]">🛡 Shield: {unit.shield}</div>
-          )}
-          {unit.rules && (
-            <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
-              {unit.rules}
-            </div>
-          )}
-        </div>
-      );
-    }
-  } else if (inspectedItem?.type === 'terrain') {
-    content = (
+    if (!unit) return null;
+    const ownerLabel = unit.owner === 0 ? 'P1' : 'P2';
+    const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+    const auraBonus = getAuraAtkBonus(state, unit);
+    const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
+    return (
       <div className="flex flex-col gap-1">
-        <span className="font-bold text-white text-xs">Throne</span>
-        <div className="text-amber-700 text-[10px] font-semibold">Terrain</div>
-        <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+        <div className="flex justify-between items-start">
+          <span className={nameClass}>{unit.name}</span>
+          <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+        </div>
+        {unit.unitType && <div className={typeClass}>{unit.unitType}</div>}
+        <div className={statsClass}>
+          <span className="text-red-400">
+            ⚔ {displayAtk}{auraBonus > 0 && <span className="text-teal-400"> (+{auraBonus})</span>}
+          </span>
+          <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
+          <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
+        </div>
+        {unit.shield > 0 && (
+          <div className={`text-cyan-400 ${large ? 'text-xs' : 'text-[10px]'}`}>🛡 Shield: {unit.shield}</div>
+        )}
+        {unit.rules && <div className={rulesClass}>{unit.rules}</div>}
+      </div>
+    );
+  }
+
+  if (inspectedItem?.type === 'terrain') {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className={nameClass}>Throne</span>
+        <div className={`text-amber-700 font-semibold ${large ? 'text-xs' : 'text-[10px]'}`}>Terrain</div>
+        <div className={rulesClass}>
           End your turn with your champion here to deal 4 damage to the enemy champion.
         </div>
       </div>
     );
-  } else if (inspectedItem?.type === 'card') {
+  }
+
+  if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
-    content = (
+    return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
-          <span className="font-bold text-white text-xs leading-tight">{card.name}</span>
-          <span className="text-yellow-400 font-bold text-xs">{card.cost}💎</span>
+          <span className={nameClass}>{card.name}</span>
+          <span className={`text-yellow-400 font-bold ${large ? 'text-sm' : 'text-xs'}`}>{card.cost}💎</span>
         </div>
-        <div className="text-gray-400 text-[10px]">
-          {card.type === 'spell' ? 'Spell' : card.unitType}
-        </div>
+        <div className={typeClass}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
         {card.type === 'unit' && (
-          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
+          <div className={statsClass}>
             <span className="text-red-400">⚔ {card.atk}</span>
             <span className="text-green-400">♥ {card.hp}</span>
             <span className="text-blue-400">⚡ {card.spd}</span>
           </div>
         )}
-        {card.rules && (
-          <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
-            {card.rules}
-          </div>
-        )}
+        {card.rules && <div className={rulesClass}>{card.rules}</div>}
       </div>
     );
   }
 
+  return null;
+}
+
+function CardDetailPanel({ inspectedItem, state }) {
   return (
     <div
       className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
@@ -624,11 +665,40 @@ function CardDetailPanel({ inspectedItem, state }) {
     >
       <div className="text-xs text-gray-400 mb-1.5 font-semibold">Card Detail</div>
       <div className="flex-1 overflow-y-auto">
-        {content || (
+        {inspectedItem ? (
+          <CardDetailContent inspectedItem={inspectedItem} state={state} />
+        ) : (
           <div className="text-gray-600 text-[10px] italic leading-snug">
             Click a card or unit to inspect
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CardDetailModal({ inspectedItem, state, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.7)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-gray-900 border-2 border-amber-500 rounded-xl p-4"
+        style={{ width: 280 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white text-sm"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ✕
+        </button>
+        <div className="pr-6">
+          <CardDetailContent inspectedItem={inspectedItem} state={state} large />
+        </div>
       </div>
     </div>
   );
