@@ -52,6 +52,9 @@ export default function Board({
       handlers.handleSummonOnTile(row, col);
     } else if (selectMode === 'unit_move' && unitMoveSet.has(key)) {
       handlers.handleMoveUnit(row, col);
+    } else if (selectMode === 'unit_move' && !cellUnit && !cellChamp) {
+      // Clicking an empty non-move tile deselects the current unit and clears highlights.
+      handlers.clearSelection();
     }
   }
 

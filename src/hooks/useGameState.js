@@ -79,6 +79,9 @@ export function useGameState() {
   }, [clearSelection]);
 
   const handlePlayCard = useCallback((cardUid) => {
+    // Clear any selected unit so its move highlights don't persist while playing a card.
+    setSelectedUnit(null);
+    setSelectMode(null);
     setState(prev => {
       const s = playCard(prev, cardUid);
       if (s.pendingSummon) {
@@ -118,14 +121,10 @@ export function useGameState() {
   }, [clearSelection]);
 
   const handleSelectUnit = useCallback((unitUid) => {
-    setState(prev => {
-      if (prev.phase !== 'action' || prev.activePlayer === AI_PLAYER) return prev;
-      const unit = prev.units.find(u => u.uid === unitUid);
-      if (!unit || unit.owner !== prev.activePlayer || unit.summoned || unit.moved) return prev;
-      setSelectedUnit(unitUid);
-      setSelectMode('unit_move');
-      return prev;
-    });
+    // Clear previous selection immediately before setting new one, ensuring
+    // old unit's move tiles are not shown alongside the new unit's tiles.
+    setSelectedUnit(unitUid);
+    setSelectMode('unit_move');
   }, []);
 
   const handleMoveUnit = useCallback((row, col) => {
