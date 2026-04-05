@@ -18,51 +18,12 @@ export function useMultiplayerGame(gameId) {
       return;
     }
 
-    let channel;
-
-    async function init() {
-      const { data, error: fetchError } = await supabase
-        .from('game_sessions')
-        .select('*')
-        .eq('id', gameId)
-        .single();
-
-      if (fetchError || !data) {
-        setError('Game not found. Check the code and try again.');
-        setLoading(false);
-        return;
-      }
-
-      // Join as player2 if the slot is open and we're not player1
-      if (!data.player2_id && data.player1_id !== guestId) {
-        const { data: joined, error: joinError } = await supabase
-          .from('game_sessions')
-          .update({ player2_id: guestId, status: 'active' })
-          .eq('id', gameId)
-          .select()
-          .single();
-
-        if (joinError) {
-          setError('Failed to join the game. It may have already started.');
-          setLoading(false);
-          return;
-        }
-        setSession(joined);
-      } else {
-        setSession(data);
-      }
-
-      setLoading(false);
-    }
-
-    init();
-
-    // Subscribe to real-time updates for this game session
-    channel = supabase
-      .channel(`game:${gameId}`)
+    // Subscribe to realtime BEFORE fetching session so we never miss an update
+    const channel = supabase
+      .channel('game-' + gameId)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${gameId}` },
+        { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: 'id=eq.' + gameId },
         (payload) => {
           setSession(payload.new);
           setOpponentDisconnected(false);
@@ -74,8 +35,66 @@ export function useMultiplayerGame(gameId) {
       )
       .subscribe();
 
+    async function init() {
+      const { data: sessionData, error: fetchError } = await supabase
+        .from('game_sessions')
+        .select('*')
+        .eq('id', gameId)
+        .single();
+
+      if (fetchError || !sessionData) {
+        setError('Game not found. Check the code and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Reconnecting as player 1
+      if (sessionData.player1_id === guestId) {
+        setSession(sessionData);
+        setLoading(false);
+        return;
+      }
+
+      // Reconnecting as player 2
+      if (sessionData.player2_id === guestId) {
+        setSession(sessionData);
+        setLoading(false);
+        return;
+      }
+
+      // Join as player 2 if slot is open
+      if (sessionData.status === 'waiting' && !sessionData.player2_id) {
+        const { data: joined, error: joinError } = await supabase
+          .from('game_sessions')
+          .update({
+            player2_id: guestId,
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', gameId)
+          .select()
+          .single();
+
+        if (joinError) {
+          setError('Failed to join the game. It may have already started.');
+          setLoading(false);
+          return;
+        }
+
+        setSession(joined);
+        setLoading(false);
+        return;
+      }
+
+      // Game is full or complete — show session so the UI can render the appropriate message
+      setSession(sessionData);
+      setLoading(false);
+    }
+
+    init();
+
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
   }, [gameId, guestId]);
@@ -107,7 +126,6 @@ export function useMultiplayerGame(gameId) {
     const isComplete = !!newGameState.winner;
     let winnerGuestId = null;
     if (isComplete) {
-      // Determine winner guest ID from which champion survived
       const losingChamp = newGameState.champions.find(c => c.hp <= 0);
       if (losingChamp) {
         winnerGuestId = losingChamp.owner === 0 ? session.player2_id : session.player1_id;
