@@ -17,6 +17,5 @@ export function getGuestId() {
     id = crypto.randomUUID();
     localStorage.setItem('gridholm_guest_id', id);
   }
-  console.log('GUEST ID - generated or retrieved:', id);
   return id;
 }

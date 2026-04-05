@@ -486,6 +486,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}
             onInspectTerrain={handleInspectTerrain}
+            isMyTurn={isActiveTurn}
+            myPlayerIndex={myPlayerIndex}
           />
         </div>
 

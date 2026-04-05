@@ -19,14 +19,12 @@ export function useMultiplayerGame(gameId) {
     }
 
     // Subscribe to realtime BEFORE fetching session so we never miss an update
-    console.log('REALTIME - subscribing to game:', gameId);
     const channel = supabase
       .channel('game-' + gameId)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: 'id=eq.' + gameId },
         (payload) => {
-          console.log('REALTIME - event received:', payload);
           setSession(payload.new);
           setOpponentDisconnected(false);
           if (disconnectTimerRef.current) {
@@ -38,22 +36,17 @@ export function useMultiplayerGame(gameId) {
       .subscribe();
 
     async function init() {
-      console.log('SESSION FETCH - gameId:', gameId);
       const { data: sessionData, error: fetchError } = await supabase
         .from('game_sessions')
         .select('*')
         .eq('id', gameId)
         .single();
 
-      console.log('SESSION FETCH - result:', sessionData, fetchError);
-
       if (fetchError || !sessionData) {
         setError('Game not found. Check the code and try again.');
         setLoading(false);
         return;
       }
-
-      console.log('JOIN BRANCH - player1_id:', sessionData.player1_id, 'player2_id:', sessionData.player2_id, 'status:', sessionData.status, 'guestId:', guestId);
 
       // Reconnecting as player 1
       if (sessionData.player1_id === guestId) {

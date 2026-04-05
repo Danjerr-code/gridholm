@@ -55,7 +55,6 @@ export default function Lobby({ onNavigate }) {
   }
 
   function handleJoinGame(e) {
-    console.log('JOIN BUTTON CLICKED - gameId input value:', joinInput);
     e.preventDefault();
     const id = joinInput.trim().toUpperCase();
     if (id.length !== 6) {
@@ -66,7 +65,6 @@ export default function Lobby({ onNavigate }) {
     onNavigate(`/game/${id}`);
   }
 
-  console.log('LOBBY RENDERED');
   return (
     <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col gap-6">

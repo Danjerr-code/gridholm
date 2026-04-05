@@ -14,10 +14,14 @@ export default function Board({
   onInspectUnit,
   onClearInspect,
   onInspectTerrain,
+  isMyTurn,
+  myPlayerIndex = 0,
 }) {
   const { phase, activePlayer, units, champions } = state;
 
-  const isP1Turn = activePlayer === 0;
+  // In single-player, default to checking if it's P1's turn (local player is always P1).
+  // In multiplayer, isMyTurn is passed explicitly from the parent component.
+  const canInteract = isMyTurn !== undefined ? isMyTurn : activePlayer === 0;
 
   const champMoveSet = new Set(championMoveTiles.map(([r, c]) => `${r},${c}`));
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
@@ -45,7 +49,7 @@ export default function Board({
       onClearInspect();
     }
 
-    if (!isP1Turn) return;
+    if (!canInteract) return;
     const key = `${row},${col}`;
     if (phase === 'action' && champMoveSet.has(key)) {
       handlers.handleChampionMoveTile(row, col);
@@ -63,7 +67,7 @@ export default function Board({
     // Always inspect the clicked unit in the detail panel
     if (onInspectUnit) onInspectUnit(unit);
 
-    if (!isP1Turn) return;
+    if (!canInteract) return;
     if (selectMode === 'spell') {
       if (spellTargetUids.includes(unit.uid)) {
         handlers.handleSpellTarget(unit.uid);
@@ -85,7 +89,7 @@ export default function Board({
           return;
         }
       }
-      if (unit.owner === 0 && !unit.summoned && !unit.moved) {
+      if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved) {
         handlers.handleSelectUnit(unit.uid);
       }
     }
