@@ -21,9 +21,9 @@ export default function UnitToken({ unit, isSelected, isSpellTarget, isArcherTar
       onClick={onClick}
       title={`${unit.name} | ATK:${effectiveAtk} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}`}
     >
-      <div className="text-xs font-bold leading-none">{abbr}</div>
-      <div className="text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
-      <div className={`text-[9px] leading-none ${hpColor}`}>HP {unit.hp}</div>
+      <div className="text-[8px] sm:text-xs font-bold leading-none">{abbr}</div>
+      <div className="text-[7px] sm:text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
+      <div className={`text-[7px] sm:text-[9px] leading-none ${hpColor}`}>HP {unit.hp}</div>
       <div className="flex gap-0.5 mt-0.5">
         {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
         {unit.moved && <Badge label="M" color="gray" title="Already moved" />}

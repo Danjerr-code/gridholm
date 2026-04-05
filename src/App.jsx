@@ -119,8 +119,8 @@ export default function App() {
       </div>
 
       {/* Bottom bar: guidance + action buttons */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center flex-shrink-0">
-        <span className="text-xs text-gray-300 flex-1">{guidance}</span>
+      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0">
+        <span className="text-xs text-gray-300 sm:flex-1">{guidance}</span>
 
         {isP1Turn && (
           <>
@@ -141,11 +141,11 @@ export default function App() {
               <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="gray" />
             )}
             {phase === 'action' && (
-              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" />
+              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" fullWidth />
             )}
 
             {phase === 'end' && !pendingDiscard && (
-              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" />
+              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" fullWidth />
             )}
             {pendingDiscard && (
               <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
@@ -265,7 +265,7 @@ function CardDetailPanel({ inspectedItem, state }) {
   );
 }
 
-function ActionBtn({ onClick, label, variant = 'blue' }) {
+function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
   const colors = {
     blue: 'bg-blue-600 hover:bg-blue-500 text-white',
     green: 'bg-green-600 hover:bg-green-500 text-white',
@@ -274,7 +274,7 @@ function ActionBtn({ onClick, label, variant = 'blue' }) {
   };
   return (
     <button
-      className={`text-xs font-semibold px-3 py-1.5 rounded ${colors[variant]}`}
+      className={`text-xs font-semibold px-3 py-1.5 rounded ${colors[variant]} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
       onClick={onClick}
     >
       {label}

@@ -16,7 +16,7 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
   const dimmed = !canPlay && !pendingDiscard;
 
   return (
-    <div className={`flex flex-wrap gap-1.5 justify-center py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''}`}>
+    <div className={`flex flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-x-visible gap-1.5 sm:justify-center py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''}`}>
       {player.hand.map(card => (
         <div key={card.uid} className={pendingDiscard ? 'relative' : ''}>
           <Card
