@@ -37,9 +37,17 @@ export function getAuraAtkBonus(state, unit) {
   let bonus = 0;
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
-    if (!other.aura || other.aura.stat !== 'atk') continue;
+    if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
     if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
       bonus += other.aura.value;
+    }
+  }
+  // Enemy debuff auras (e.g. Aendor): enemy units with aura.target === 'enemy' reduce this unit's ATK
+  for (const other of state.units) {
+    if (other.owner === unit.owner) continue;
+    if (!other.aura || other.aura.stat !== 'atk' || other.aura.target !== 'enemy') continue;
+    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+      bonus -= Math.abs(other.aura.value);
     }
   }
   return bonus;
@@ -58,7 +66,7 @@ export function getAuraSpdBonus(/* state, unit */) {
 }
 
 function effectiveAtk(state, unit) {
-  return unit.atk + (unit.atkBonus || 0) + getAuraAtkBonus(state, unit);
+  return Math.max(0, unit.atk + (unit.atkBonus || 0) + getAuraAtkBonus(state, unit));
 }
 
 // Exported variant for UI components that need the resolved ATK value.
@@ -101,6 +109,8 @@ export function createInitialState() {
     pendingSpell: null, // { cardUid, effect, playerIdx }
     // Archer shot tracking: set of unit UIDs that used skip-to-shoot this turn
     archerShot: [],
+    // Recall tracking: card IDs recalled this turn cannot be replayed
+    recalledThisTurn: [],
   };
 }
 
@@ -158,6 +168,21 @@ function doBeginTurnPhase(state) {
   // Remove units killed by the explosion
   state.units = state.units.filter(u => u.hp > 0);
 
+  // Zmore, Sleeping Ash: deal 1 damage to all enemy units at beginning of owner's turn
+  const zmores = state.units.filter(u => u.owner === state.activePlayer && u.id === 'zmore');
+  for (const zmore of zmores) {
+    const enemies = state.units.filter(u => u.owner !== state.activePlayer);
+    for (const enemy of enemies) {
+      enemy.hp -= 1;
+    }
+    addLog(state, `Zmore, Sleeping Ash awakens! All enemy units take 1 damage.`);
+  }
+  // Remove units killed by Zmore
+  state.units = state.units.filter(u => u.hp > 0);
+
+  // Clear recalled-this-turn at the start of each turn
+  state.recalledThisTurn = [];
+
   state.phase = 'action';
   return state;
 }
@@ -198,6 +223,8 @@ export function playCard(state, cardUid) {
   if (p.resources < card.cost) return s;
 
   if (card.type === 'unit') {
+    // Recalled units cannot be played the turn they were recalled
+    if ((s.recalledThisTurn || []).includes(card.id)) return s;
     // Unit summon — needs a target tile; return state with pendingSummon marker
     s.pendingSummon = { cardUid, card };
     return s;
@@ -216,6 +243,43 @@ export function playCard(state, cardUid) {
         }
       });
       addLog(s, `${p.name} casts Mend Allies. All friendly units restored 2 HP.`);
+    } else if (card.effect === 'rallyingcry') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      // All friendly units gain +1 SPD this turn
+      s.units.forEach(u => {
+        if (u.owner === s.activePlayer) {
+          u.speedBonus = (u.speedBonus || 0) + 1;
+        }
+      });
+      addLog(s, `${p.name} casts Rallying Cry. All friendly units gain +1 SPD this turn.`);
+    } else if (card.effect === 'crownshatter') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      // Deal 3 damage to all units within 2 tiles of the Throne (row 2, col 2)
+      const throneRow = 2, throneCol = 2;
+      const hit = s.units.filter(u => manhattan([u.row, u.col], [throneRow, throneCol]) <= 2);
+      for (const u of hit) {
+        u.hp -= 3;
+        addLog(s, `Crownshatter hits ${u.name} for 3 damage (${u.hp}/${u.maxHp} HP).`);
+      }
+      const destroyed = hit.filter(u => u.hp <= 0);
+      for (const u of destroyed) {
+        addLog(s, `${u.name} is destroyed.`);
+        onFriendlyUnitDestroyed(s, u);
+      }
+      s.units = s.units.filter(u => u.hp > 0);
+      addLog(s, `${p.name} casts Crownshatter! ${hit.length} unit(s) hit.`);
+    } else if (card.effect === 'ironthorns') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      // Give the active player's champion a thorn shield
+      const champ = s.champions[s.activePlayer];
+      champ.thornShield = { absorb: 3, thornDamage: 3 };
+      addLog(s, `${p.name} casts Iron Thorns. Champion gains a thorn shield (absorb 3, thorn 3).`);
     } else {
       // Needs target — set pendingSpell
       s.pendingSpell = { cardUid, effect: card.effect, playerIdx: s.activePlayer };
@@ -244,14 +308,14 @@ export function summonUnit(state, cardUid, row, col) {
     owner: s.activePlayer,
     row, col,
     maxHp: card.hp,
-    summoned: true, // summoning sickness
+    summoned: card.rush ? false : true, // Rush units can move immediately
     moved: false,
     atkBonus: 0,
     shield: 0,
     speedBonus: 0,
   };
   s.units.push(unit);
-  addLog(s, `${p.name} summons ${card.name} at (${row},${col}).`);
+  addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
 
   // Elf Elder on-summon: restore 2 HP to champion
   if (card.id === 'elfelder') {
@@ -289,9 +353,19 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   } else if (card.effect === 'ironshield' && target) {
     target.shield = (target.shield || 0) + 5;
     addLog(s, `${p.name} gives Iron Shield to ${target.name}.`);
-  } else if (card.effect === 'swiftstep' && target) {
-    target.speedBonus = (target.speedBonus || 0) + 1;
-    addLog(s, `${p.name} casts Swift Step on ${target.name}. +1 speed this turn.`);
+  } else if (card.effect === 'recall' && target) {
+    // Return the unit to the owner's hand, restored to base stats
+    const { owner: _o, row: _r, col: _c, maxHp: _mh, summoned: _s, moved: _mv,
+            atkBonus: _ab, shield: _sh, speedBonus: _sb, ...baseFields } = target;
+    const recalledCard = {
+      ...baseFields,
+      hp: target.maxHp, // restore to full HP
+      uid: `${target.id}_${Math.random().toString(36).slice(2)}`,
+    };
+    s.units = s.units.filter(u => u.uid !== target.uid);
+    p.hand.push(recalledCard);
+    s.recalledThisTurn = [...(s.recalledThisTurn || []), recalledCard.id];
+    addLog(s, `${target.name} recalled to hand. Cannot be played this turn.`);
   }
 
   return s;
@@ -415,9 +489,20 @@ export function moveUnit(state, unitUid, row, col) {
       unit.col = mc;
     }
     // If dist === 1 the unit is already adjacent; stays where it is.
-    enemyChamp.hp -= attackerAtk;
-    addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${attackerAtk} damage from (${unit.row},${unit.col}).`);
-    unit.moved = true;
+    let champDmg = attackerAtk;
+    if (enemyChamp.thornShield) {
+      const absorbed = Math.min(enemyChamp.thornShield.absorb, champDmg);
+      champDmg -= absorbed;
+      const thornDmg = enemyChamp.thornShield.thornDamage;
+      addLog(s, `Iron Thorns absorbs ${absorbed} damage. Attacker takes ${thornDmg} damage.`);
+      applyDamageToUnit(s, unit, thornDmg, 'Iron Thorns');
+      enemyChamp.thornShield = null;
+    }
+    enemyChamp.hp -= champDmg;
+    addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage from (${unit.row},${unit.col}).`);
+    // unit may have been destroyed by thorn — re-check
+    const unitAfterThorn = s.units.find(u => u.uid === unitUid);
+    if (unitAfterThorn) unitAfterThorn.moved = true;
     checkWinner(s);
   } else {
     // Regular move
@@ -445,7 +530,18 @@ function applyDamageToUnit(state, unit, dmg, sourceName) {
   if (unit.hp <= 0) {
     addLog(state, `${unit.name} is destroyed.`);
     state.units = state.units.filter(u => u.uid !== unit.uid);
+    // Sister Siofra: restore 2 HP to owner's champion when a friendly unit is destroyed
+    onFriendlyUnitDestroyed(state, unit);
   }
+}
+
+function onFriendlyUnitDestroyed(state, destroyedUnit) {
+  const siofra = state.units.find(u => u.owner === destroyedUnit.owner && u.id === 'sistersiofra');
+  if (!siofra || destroyedUnit.id === 'sistersiofra') return;
+  const champ = state.champions[destroyedUnit.owner];
+  const healed = Math.min(2, champ.maxHp - champ.hp);
+  champ.hp = Math.min(champ.maxHp, champ.hp + 2);
+  addLog(state, `Sister Siofra mourns. Champion restored ${healed} HP.`);
 }
 
 // Elf Archer ranged shot — player opts to skip move
@@ -518,6 +614,8 @@ function completeTurnAdvance(state) {
 
   // Reset archer shot list
   s.archerShot = [];
+  // Recalled cards can be played again next turn
+  s.recalledThisTurn = [];
 
   // Reset champion moved state
   champ.moved = false;
@@ -583,7 +681,7 @@ export function getSpellTargets(state, effect) {
         .map(u => u.uid);
     case 'forgeweapon':
     case 'ironshield':
-    case 'swiftstep':
+    case 'recall':
       return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
     default:
       return [];
