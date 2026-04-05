@@ -20,6 +20,7 @@ function parseHash() {
 export default function Root() {
   console.log('RENDER - current route/hash:', window.location.hash);
   const [route, setRoute] = useState(parseHash);
+  console.log('APP STATE - current view:', route?.view, 'hash:', window.location.hash);
 
   useEffect(() => {
     function handleHashChange() {
