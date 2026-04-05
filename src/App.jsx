@@ -83,7 +83,7 @@ export default function App() {
       {/* Status Bar */}
       <StatusBar state={state} />
 
-      {/* Main layout */}
+      {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
         {/* Left column: phase tracker + card detail */}
         <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ width: 140, minHeight: 0 }}>
@@ -94,9 +94,8 @@ export default function App() {
           <CardDetailPanel inspectedItem={inspectedItem} state={state} />
         </div>
 
-        {/* Board + hands + controls */}
-        <div className="flex flex-col gap-2 flex-1 min-w-0 min-h-0">
-          {/* Board */}
+        {/* Center: board only */}
+        <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <Board
             state={state}
             selectedUnit={selectedUnit}
@@ -111,70 +110,6 @@ export default function App() {
             onClearInspect={handlers.handleClearInspect}
             onInspectTerrain={handlers.handleInspectTerrain}
           />
-
-          {/* Guidance + action buttons */}
-          <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-gray-300 flex-1">{guidance}</span>
-
-            {isP1Turn && (
-              <>
-                {phase === 'champion_move' && (
-                  <ActionBtn onClick={handlers.handleSkipChampionMove} label="Skip Champion Move" />
-                )}
-
-                {phase === 'summon_cast' && selectMode === 'summon' && (
-                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
-                )}
-                {phase === 'summon_cast' && selectMode === 'spell' && (
-                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
-                )}
-                {phase === 'summon_cast' && (
-                  <ActionBtn onClick={handlers.handleEndSummonCast} label="End Phase →" />
-                )}
-
-                {phase === 'unit_move' && showArcherShoot && (
-                  <ActionBtn
-                    onClick={() => handlers.handleArcherSelectTarget(selectedUnit)}
-                    label="Archer: Shoot"
-                    variant="pink"
-                  />
-                )}
-                {phase === 'unit_move' && selectedUnit && (
-                  <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="gray" />
-                )}
-                {phase === 'unit_move' && (
-                  <ActionBtn onClick={handlers.handleEndUnitMove} label="End Phase →" />
-                )}
-
-                {phase === 'end' && !pendingDiscard && (
-                  <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" />
-                )}
-                {pendingDiscard && (
-                  <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* P1 hand */}
-          <div className={`bg-gray-800/50 border rounded-lg ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
-            <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
-              {p1.name} — {p1.resources}/10 💎
-              {phase === 'summon_cast' && isP1Turn ? '  (click cards to play)' : ''}
-              {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
-            </div>
-            <Hand
-              player={p1}
-              resources={p1.resources}
-              isActive={true}
-              canPlay={isP1Turn && phase === 'summon_cast'}
-              pendingDiscard={pendingDiscard && isP1Turn}
-              selectedCard={selectedCard}
-              onPlayCard={handlers.handlePlayCard}
-              onDiscardCard={handlers.handleDiscardCard}
-              onInspectCard={handlers.handleInspectCard}
-            />
-          </div>
         </div>
 
         {/* Right sidebar: game log */}
@@ -182,6 +117,70 @@ export default function App() {
           <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
           <Log entries={state.log} />
         </div>
+      </div>
+
+      {/* Bottom bar: guidance + action buttons */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center flex-shrink-0">
+        <span className="text-xs text-gray-300 flex-1">{guidance}</span>
+
+        {isP1Turn && (
+          <>
+            {phase === 'champion_move' && (
+              <ActionBtn onClick={handlers.handleSkipChampionMove} label="Skip Champion Move" />
+            )}
+
+            {phase === 'summon_cast' && selectMode === 'summon' && (
+              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
+            )}
+            {phase === 'summon_cast' && selectMode === 'spell' && (
+              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
+            )}
+            {phase === 'summon_cast' && (
+              <ActionBtn onClick={handlers.handleEndSummonCast} label="End Phase →" />
+            )}
+
+            {phase === 'unit_move' && showArcherShoot && (
+              <ActionBtn
+                onClick={() => handlers.handleArcherSelectTarget(selectedUnit)}
+                label="Archer: Shoot"
+                variant="pink"
+              />
+            )}
+            {phase === 'unit_move' && selectedUnit && (
+              <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="gray" />
+            )}
+            {phase === 'unit_move' && (
+              <ActionBtn onClick={handlers.handleEndUnitMove} label="End Phase →" />
+            )}
+
+            {phase === 'end' && !pendingDiscard && (
+              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" />
+            )}
+            {pendingDiscard && (
+              <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Bottom bar: P1 hand */}
+      <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
+        <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
+          {p1.name} — {p1.resources}/10 💎
+          {phase === 'summon_cast' && isP1Turn ? '  (click cards to play)' : ''}
+          {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
+        </div>
+        <Hand
+          player={p1}
+          resources={p1.resources}
+          isActive={true}
+          canPlay={isP1Turn && phase === 'summon_cast'}
+          pendingDiscard={pendingDiscard && isP1Turn}
+          selectedCard={selectedCard}
+          onPlayCard={handlers.handlePlayCard}
+          onDiscardCard={handlers.handleDiscardCard}
+          onInspectCard={handlers.handleInspectCard}
+        />
       </div>
     </div>
   );
