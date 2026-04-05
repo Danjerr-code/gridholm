@@ -304,9 +304,11 @@ function reachableTiles(state, unit, speed) {
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
-      if (friendlyOccupied) continue; // can't pass through friendly
+      // Allow moving onto the champion tile even if a friendly unit is already there —
+      // multiple friendly units may attack the same champion in one turn.
+      if (friendlyOccupied && !enemyChamp) continue;
       result.push([nr, nc]);
-      if (remaining > 1 && !enemyUnit && !enemyChamp) {
+      if (remaining > 1 && !enemyUnit && !enemyChamp && !friendlyOccupied) {
         frontier.push([nr, nc, remaining - 1]);
       }
     }
@@ -358,13 +360,19 @@ export function moveUnit(state, unitUid, row, col) {
       }
     }
   } else if (enemyChamp) {
-    // Attack champion
+    // CHAMPION ATTACK - attacker survives
+    // Only state changes here: reduce champion HP, move attacker to champion tile, mark attacker as moved.
+    // No unit removal code in this block — champion attacks do not counter-attack.
     const attackerAtk = effectiveAtk(s, unit);
     enemyChamp.hp -= attackerAtk;
     addLog(s, `${unit.name} strikes ${s.players[enemyChamp.owner].name}'s champion for ${attackerAtk} damage!`);
-    // Attacker survives and occupies the champion tile
-    unit.row = row;
-    unit.col = col;
+    // Move attacker to champion tile only if no friendly unit is already occupying it.
+    // Multiple units can attack the same champion in one turn; later attackers stay in place.
+    const friendlyOnChampTile = s.units.find(u => u.owner === unit.owner && u.row === row && u.col === col);
+    if (!friendlyOnChampTile) {
+      unit.row = row;
+      unit.col = col;
+    }
     unit.moved = true;
     checkWinner(s);
   } else {
@@ -388,6 +396,8 @@ function applyDamageToUnit(state, unit, dmg, sourceName) {
   }
   unit.hp -= actualDmg;
   addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
+  // Guard: only remove a unit when hp has actually dropped to zero or below.
+  // A unit with positive HP must never be removed by this filter.
   if (unit.hp <= 0) {
     addLog(state, `${unit.name} is destroyed.`);
     state.units = state.units.filter(u => u.uid !== unit.uid);
