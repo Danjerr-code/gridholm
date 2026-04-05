@@ -297,9 +297,7 @@ function reachableTiles(state, unit, speed) {
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
-      // Allow moving onto the champion tile even if a friendly unit is already there —
-      // multiple friendly units may attack the same champion in one turn.
-      if (friendlyOccupied && !enemyChamp) continue;
+      if (friendlyOccupied) continue;
       result.push([nr, nc]);
       if (remaining > 1 && !enemyUnit && !enemyChamp && !friendlyOccupied) {
         frontier.push([nr, nc, remaining - 1]);
@@ -307,6 +305,19 @@ function reachableTiles(state, unit, speed) {
     }
   }
   return result;
+}
+
+// For a speed-2 unit clicking the champion tile from distance 2, find the
+// cardinal neighbor of the champion tile that the unit should land on.
+function findIntermediateTile(state, unit, champRow, champCol) {
+  const champNeighbors = cardinalNeighbors(champRow, champCol);
+  // Prefer a champion neighbor that is directly adjacent to the unit and unoccupied
+  const onPath = champNeighbors.find(([r, c]) =>
+    manhattan([unit.row, unit.col], [r, c]) === 1 && !isTileOccupied(state, r, c)
+  );
+  if (onPath) return onPath;
+  // Fallback: any unoccupied champion neighbor
+  return champNeighbors.find(([r, c]) => !isTileOccupied(state, r, c)) || [unit.row, unit.col];
 }
 
 function isTileOccupiedByFriendly(state, owner, row, col) {
@@ -353,19 +364,19 @@ export function moveUnit(state, unitUid, row, col) {
       }
     }
   } else if (enemyChamp) {
-    // CHAMPION ATTACK - attacker survives
-    // Only state changes here: reduce champion HP, move attacker to champion tile, mark attacker as moved.
+    // CHAMPION ATTACK - unit stays in its current tile (or advances to adjacent tile for speed-2)
     // No unit removal code in this block — champion attacks do not counter-attack.
     const attackerAtk = effectiveAtk(s, unit);
-    enemyChamp.hp -= attackerAtk;
-    addLog(s, `${unit.name} strikes ${s.players[enemyChamp.owner].name}'s champion for ${attackerAtk} damage!`);
-    // Move attacker to champion tile only if no friendly unit is already occupying it.
-    // Multiple units can attack the same champion in one turn; later attackers stay in place.
-    const friendlyOnChampTile = s.units.find(u => u.owner === unit.owner && u.row === row && u.col === col);
-    if (!friendlyOnChampTile) {
-      unit.row = row;
-      unit.col = col;
+    const dist = manhattan([unit.row, unit.col], [row, col]);
+    if (dist > 1) {
+      // Speed-2 unit attacking from 2 tiles away: advance to the adjacent tile on the path
+      const [mr, mc] = findIntermediateTile(s, unit, row, col);
+      unit.row = mr;
+      unit.col = mc;
     }
+    // If dist === 1 the unit is already adjacent; stays where it is.
+    enemyChamp.hp -= attackerAtk;
+    addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${attackerAtk} damage from (${unit.row},${unit.col}).`);
     unit.moved = true;
     checkWinner(s);
   } else {
