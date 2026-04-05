@@ -339,8 +339,12 @@ export function moveUnit(state, unitUid, row, col) {
       applyDamageToUnit(s, stillAlive, defenderAtk, enemyUnit.name);
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
-        stillAlive2.row = row;
-        stillAlive2.col = col;
+        // Only advance into the tile if the defender was destroyed
+        const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
+        if (defenderDestroyed) {
+          stillAlive2.row = row;
+          stillAlive2.col = col;
+        }
         stillAlive2.moved = true;
       }
     }

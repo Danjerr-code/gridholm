@@ -56,13 +56,16 @@ export default function Board({
       return;
     }
     if (phase === 'unit_move') {
-      if (unit.owner === 0 && !unit.summoned && !unit.moved) {
-        // If elf archer and not yet selected, offer move or shoot
-        if (unit.id === 'elfarcher' && selectedUnit !== unit.uid) {
-          handlers.handleSelectUnit(unit.uid);
-        } else {
-          handlers.handleSelectUnit(unit.uid);
+      // Enemy unit on a valid move tile — treat as move-to (combat)
+      if (selectMode === 'unit_move' && unit.owner !== activePlayer) {
+        const key = `${unit.row},${unit.col}`;
+        if (unitMoveSet.has(key)) {
+          handlers.handleMoveUnit(unit.row, unit.col);
+          return;
         }
+      }
+      if (unit.owner === 0 && !unit.summoned && !unit.moved) {
+        handlers.handleSelectUnit(unit.uid);
       }
     }
   }
@@ -95,7 +98,12 @@ export default function Board({
                 isArcherTarget={isArcherTarget}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
-                onChampionClick={() => {/* champion click: deselect */}}
+                onChampionClick={() => {
+                  if (selectMode === 'unit_move' && champion && champion.owner !== activePlayer) {
+                    const key = `${row},${col}`;
+                    if (unitMoveSet.has(key)) handlers.handleMoveUnit(row, col);
+                  }
+                }}
               />
             );
           })
