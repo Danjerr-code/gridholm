@@ -1,7 +1,7 @@
 export default function Card({ card, isSelected, isPlayable, onClick }) {
   const typeColor = card.type === 'spell' ? 'border-purple-500' : 'border-gray-500';
   const selectedStyle = isSelected ? 'ring-2 ring-yellow-400 -translate-y-2' : '';
-  const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer border-opacity-100' : '';
+  const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer border-opacity-100' : 'cursor-pointer';
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
 
   return (
@@ -9,7 +9,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
       className={`relative flex flex-col bg-gray-800 border ${typeColor} rounded-lg p-1.5 text-xs select-none transition-transform
         ${selectedStyle} ${playableStyle} ${dimStyle} w-20`}
       style={{ minWidth: '80px' }}
-      onClick={isPlayable ? onClick : undefined}
+      onClick={onClick}
       title={card.rules || card.name}
     >
       <div className="flex justify-between items-start mb-0.5">

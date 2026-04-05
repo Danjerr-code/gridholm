@@ -1,6 +1,6 @@
 import Card from './Card.jsx';
 
-export default function Hand({ player, resources, isActive, canPlay, selectedCard, onPlayCard }) {
+export default function Hand({ player, resources, isActive, canPlay, selectedCard, onPlayCard, onInspectCard }) {
   if (!isActive) {
     // Opponent face-down count
     return (
@@ -21,7 +21,10 @@ export default function Hand({ player, resources, isActive, canPlay, selectedCar
           card={card}
           isSelected={canPlay && selectedCard === card.uid}
           isPlayable={canPlay && resources >= card.cost}
-          onClick={canPlay ? () => onPlayCard(card.uid) : undefined}
+          onClick={() => {
+            if (onInspectCard) onInspectCard(card);
+            if (canPlay) onPlayCard(card.uid);
+          }}
         />
       ))}
       {player.hand.length === 0 && (

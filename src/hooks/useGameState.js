@@ -36,6 +36,8 @@ export function useGameState() {
   const [selectedUnit, setSelectedUnit] = useState(null);
   // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target'
   const [selectMode, setSelectMode] = useState(null);
+  // Inspected item for detail panel: null | { type: 'unit', uid: string } | { type: 'card', card: object }
+  const [inspectedItem, setInspectedItem] = useState(null);
 
   const applyAndMaybeAI = useCallback((newState) => {
     setState(newState);
@@ -53,6 +55,18 @@ export function useGameState() {
     setSelectedCard(null);
     setSelectedUnit(null);
     setSelectMode(null);
+  }, []);
+
+  const handleInspectUnit = useCallback((unit) => {
+    setInspectedItem({ type: 'unit', uid: unit.uid });
+  }, []);
+
+  const handleInspectCard = useCallback((card) => {
+    setInspectedItem({ type: 'card', card });
+  }, []);
+
+  const handleClearInspect = useCallback(() => {
+    setInspectedItem(null);
   }, []);
 
   // ── Phase helpers ─────────────────────────────────────────────────────
@@ -203,6 +217,7 @@ export function useGameState() {
     selectedCard,
     selectedUnit,
     selectMode,
+    inspectedItem,
     championMoveTiles,
     summonTiles,
     unitMoveTiles,
@@ -225,6 +240,9 @@ export function useGameState() {
       handleEndTurn,
       handleNewGame,
       clearSelection,
+      handleInspectUnit,
+      handleInspectCard,
+      handleClearInspect,
     },
   };
 }

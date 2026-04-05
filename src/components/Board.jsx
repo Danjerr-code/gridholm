@@ -10,6 +10,8 @@ export default function Board({
   spellTargetUids,
   archerShootTargets,
   handlers,
+  onInspectUnit,
+  onClearInspect,
 }) {
   const { phase, activePlayer, units, champions } = state;
 
@@ -30,6 +32,11 @@ export default function Board({
   );
 
   function handleCellClick(row, col) {
+    // Clicking an empty cell clears the detail panel
+    const cellUnit = units.find(u => u.row === row && u.col === col);
+    const cellChamp = champions.find(c => c.row === row && c.col === col);
+    if (!cellUnit && !cellChamp && onClearInspect) onClearInspect();
+
     if (!isP1Turn) return;
     const key = `${row},${col}`;
     if (phase === 'champion_move' && champMoveSet.has(key)) {
@@ -42,6 +49,9 @@ export default function Board({
   }
 
   function handleUnitClick(unit) {
+    // Always inspect the clicked unit in the detail panel
+    if (onInspectUnit) onInspectUnit(unit);
+
     if (!isP1Turn) return;
     if (selectMode === 'spell') {
       if (spellTargetUids.includes(unit.uid)) {

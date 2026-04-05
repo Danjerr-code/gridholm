@@ -20,6 +20,7 @@ export default function App() {
     selectedCard,
     selectedUnit,
     selectMode,
+    inspectedItem,
     championMoveTiles,
     summonTiles,
     unitMoveTiles,
@@ -107,6 +108,8 @@ export default function App() {
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
             handlers={handlers}
+            onInspectUnit={handlers.handleInspectUnit}
+            onClearInspect={handlers.handleClearInspect}
           />
 
           {/* Guidance + action buttons */}
@@ -163,15 +166,97 @@ export default function App() {
               canPlay={isP1Turn && phase === 'summon_cast'}
               selectedCard={selectedCard}
               onPlayCard={handlers.handlePlayCard}
+              onInspectCard={handlers.handleInspectCard}
             />
           </div>
         </div>
 
-        {/* Log (hidden on small screens) */}
-        <div className="w-48 flex-shrink-0 hidden sm:block">
-          <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
-          <Log entries={state.log} />
+        {/* Right sidebar: card detail panel + game log (hidden on small screens) */}
+        <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
+          {/* Card detail panel — top 40% */}
+          <CardDetailPanel inspectedItem={inspectedItem} state={state} />
+          {/* Game log — bottom 60% */}
+          <div className="flex flex-col" style={{ flex: '0 0 60%', minHeight: 0 }}>
+            <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
+            <Log entries={state.log} />
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CardDetailPanel({ inspectedItem, state }) {
+  let content = null;
+
+  if (inspectedItem?.type === 'unit') {
+    // Look up live unit from state
+    const unit = state.units.find(u => u.uid === inspectedItem.uid);
+    if (unit) {
+      const ownerLabel = unit.owner === 0 ? 'Friendly' : 'Enemy';
+      const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+      content = (
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-start">
+            <span className="font-bold text-white text-xs leading-tight">{unit.name}</span>
+            <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+          </div>
+          {unit.unitType && <div className="text-gray-400 text-[10px]">{unit.unitType}</div>}
+          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
+            <span className="text-red-400">⚔ {unit.atk + (unit.atkBonus || 0)}</span>
+            <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
+            <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
+          </div>
+          {unit.shield > 0 && (
+            <div className="text-cyan-400 text-[10px]">🛡 Shield: {unit.shield}</div>
+          )}
+          {unit.rules && (
+            <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+              {unit.rules}
+            </div>
+          )}
+        </div>
+      );
+    }
+  } else if (inspectedItem?.type === 'card') {
+    const card = inspectedItem.card;
+    content = (
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between items-start">
+          <span className="font-bold text-white text-xs leading-tight">{card.name}</span>
+          <span className="text-yellow-400 font-bold text-xs">{card.cost}💎</span>
+        </div>
+        <div className="text-gray-400 text-[10px]">
+          {card.type === 'spell' ? 'Spell' : card.unitType}
+        </div>
+        {card.type === 'unit' && (
+          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
+            <span className="text-red-400">⚔ {card.atk}</span>
+            <span className="text-green-400">♥ {card.hp}</span>
+            <span className="text-blue-400">⚡ {card.spd}</span>
+          </div>
+        )}
+        {card.rules && (
+          <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+            {card.rules}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
+      style={{ flex: '0 0 40%', minHeight: 0 }}
+    >
+      <div className="text-xs text-gray-400 mb-1.5 px-0 font-semibold">Card Detail</div>
+      <div className="flex-1 overflow-y-auto">
+        {content || (
+          <div className="text-gray-600 text-[10px] italic leading-snug">
+            Click a card or unit to inspect
+          </div>
+        )}
       </div>
     </div>
   );
