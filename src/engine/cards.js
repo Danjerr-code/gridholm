@@ -52,6 +52,9 @@ export function buildDeck() {
   return deck;
 }
 
+const _deckTotal = DECK_RECIPE.reduce((sum, [, count]) => sum + count, 0);
+console.assert(_deckTotal === 40, 'Deck must be 40 cards, got ' + _deckTotal);
+
 export function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
