@@ -362,9 +362,10 @@ export function moveUnit(state, unitUid, row, col) {
     const attackerAtk = effectiveAtk(s, unit);
     enemyChamp.hp -= attackerAtk;
     addLog(s, `${unit.name} strikes ${s.players[enemyChamp.owner].name}'s champion for ${attackerAtk} damage!`);
-    // Attacker is destroyed
-    s.units = s.units.filter(u => u.uid !== unitUid);
-    addLog(s, `${unit.name} is destroyed.`);
+    // Attacker survives and occupies the champion tile
+    unit.row = row;
+    unit.col = col;
+    unit.moved = true;
     checkWinner(s);
   } else {
     // Regular move
