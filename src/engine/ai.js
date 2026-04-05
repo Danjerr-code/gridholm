@@ -98,6 +98,10 @@ function aiUnitMove(state) {
   return s;
 }
 
+// AI Hidden unit handling: when Hidden cards are added to the AI deck, AI should
+// reveal Hidden units when adjacent to enemy units rather than keeping them hidden
+// indefinitely. Implement when Demon deck is built.
+
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {

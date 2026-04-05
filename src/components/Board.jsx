@@ -65,6 +65,7 @@ export default function Board({
 
   function handleUnitClick(unit) {
     // Always inspect the clicked unit in the detail panel
+    // Hidden opponent units pass through as-is; CardDetailContent handles the redacted view
     if (onInspectUnit) onInspectUnit(unit);
 
     if (!canInteract) return;

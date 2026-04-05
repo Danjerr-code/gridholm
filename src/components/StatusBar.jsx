@@ -1,9 +1,14 @@
-export default function StatusBar({ state }) {
+// NEVER RENDER OPPONENT RESOURCES - game design decision
+export default function StatusBar({ state, myPlayerIndex }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
   const c2 = state.champions[1];
   const activePlayerName = state.players[state.activePlayer].name;
+
+  // When myPlayerIndex is set, hide the opponent's resources
+  const hideP1Resources = myPlayerIndex !== undefined && myPlayerIndex !== 0;
+  const hideP2Resources = myPlayerIndex !== undefined && myPlayerIndex !== 1;
 
   const PHASE_LABELS = {
     'begin-turn': 'Begin Turn',
@@ -17,7 +22,7 @@ export default function StatusBar({ state }) {
       <div className="sm:hidden grid grid-cols-3 items-start bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 leading-tight">
         <div className="flex flex-col gap-0.5 text-[11px] text-blue-400">
           <span className="font-bold">{p1.name} {c1.hp}/{c1.maxHp}</span>
-          <span className="text-gray-300">{p1.resources}/10 res</span>
+          {!hideP1Resources && <span className="text-gray-300">{p1.resources}/10 res</span>}
           <span className="text-gray-400">H:{p1.hand.length} D:{p1.deck.length}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-[11px] text-center">
@@ -26,7 +31,7 @@ export default function StatusBar({ state }) {
         </div>
         <div className="flex flex-col items-end gap-0.5 text-[11px] text-red-400">
           <span className="font-bold">{p2.name} {c2.hp}/{c2.maxHp}</span>
-          <span className="text-gray-300">{p2.resources}/10 res</span>
+          {!hideP2Resources && <span className="text-gray-300">{p2.resources}/10 res</span>}
           <span className="text-gray-400">H:{p2.hand.length} D:{p2.deck.length}</span>
         </div>
       </div>
@@ -36,7 +41,7 @@ export default function StatusBar({ state }) {
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-bold text-blue-400">{p1.name}</span>
           <HpBar hp={c1.hp} maxHp={c1.maxHp} color="blue" />
-          <span className="text-yellow-400">💎 {p1.resources}/10</span>
+          {!hideP1Resources && <span className="text-yellow-400">💎 {p1.resources}/10</span>}
           <span className="text-gray-400 text-xs">Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
         </div>
         <div className="text-center">
@@ -47,7 +52,7 @@ export default function StatusBar({ state }) {
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
           <span className="font-bold text-red-400">{p2.name}</span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
-          <span className="text-yellow-400">💎 {p2.resources}/10</span>
+          {!hideP2Resources && <span className="text-yellow-400">💎 {p2.resources}/10</span>}
           <span className="text-gray-400 text-xs">Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
         </div>
       </div>

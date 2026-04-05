@@ -1,12 +1,32 @@
-export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarget, isArcherTarget, onClick }) {
+export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarget, isArcherTarget, myPlayerIndex, onClick }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
+  const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
+  const isOpponentHidden = unit.hidden && !isMyUnit;
+  const isOwnHidden = unit.hidden && isMyUnit;
+
+  // Opponent's hidden unit: dark face-down token
+  if (isOpponentHidden) {
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer bg-gray-900 ring-1 ring-gray-600 select-none relative"
+        onClick={onClick}
+        title="Hidden Unit"
+      >
+        <div className="text-[9px] sm:text-xs font-bold leading-none text-gray-500">???</div>
+        <div className="text-[8px] text-gray-600 leading-none mt-0.5 font-semibold">Hidden</div>
+      </div>
+    );
+  }
+
   const border = isSelected
     ? 'ring-2 ring-yellow-400'
     : isSpellTarget
     ? 'ring-2 ring-orange-400'
     : isArcherTarget
     ? 'ring-2 ring-pink-400'
+    : isOwnHidden
+    ? 'ring-2 ring-yellow-300'
     : isLegendary
     ? 'ring-2 ring-amber-400'
     : isP1
@@ -20,12 +40,15 @@ export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarg
 
   return (
     <div
-      className={`w-full h-full flex flex-col items-center justify-center rounded cursor-pointer ${bg} ${border} select-none relative`}
+      className={`w-full h-full flex flex-col items-center justify-center rounded cursor-pointer ${bg} ${border} select-none relative${isOwnHidden ? ' shadow-[0_0_6px_2px_rgba(253,224,71,0.4)]' : ''}`}
       onClick={onClick}
-      title={`${unit.name} | ATK:${effectiveAtk} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}`}
+      title={`${unit.name} | ATK:${effectiveAtk} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}${unit.hidden ? ' [Hidden]' : ''}`}
     >
       {isLegendary && (
         <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" title="Legendary">♛</span>
+      )}
+      {isOwnHidden && (
+        <span className="absolute top-0 left-0 text-[8px] leading-none text-yellow-300" title="Hidden">H</span>
       )}
       <div className="text-[8px] sm:text-xs font-bold leading-none">{abbr}</div>
       <div className="text-[7px] sm:text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>

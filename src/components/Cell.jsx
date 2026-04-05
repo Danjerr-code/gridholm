@@ -68,6 +68,7 @@ export default function Cell({
             isSelected={isSelected}
             isSpellTarget={isSpellTarget}
             isArcherTarget={isArcherTarget}
+            myPlayerIndex={myPlayerIndex}
             onClick={e => { if (e.stopPropagation) e.stopPropagation(); onUnitClick && onUnitClick(); }}
           />
         </div>

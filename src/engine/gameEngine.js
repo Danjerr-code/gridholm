@@ -120,6 +120,35 @@ function addLog(state, msg) {
   state.log = [...state.log, msg].slice(-50);
 }
 
+// ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
+// Hidden units are face-down tokens invisible to the opponent.
+// - Movement: Hidden units move at most 1 tile per turn regardless of base SPD.
+//   Moving does not reveal the unit.
+// - Reveal triggers (automatically): enemy unit steps onto hidden tile (combat
+//   resolves normally after reveal); enemy champion moves adjacent to hidden
+//   unit (reveal, no combat).
+// - Player-initiated reveal: controlling player may reveal as the unit's action;
+//   the unit is marked moved:true and cannot act further this turn.
+// - Spell/ability targeting while hidden: Smite, Forge Weapon, Iron Shield, and
+//   Swift Step cannot target hidden units. Recall can. Mend Allies and area spells
+//   (Crownshatter, Imp Time Bomb) skip hidden units.
+// - After reveal the unit is a full combat unit. All spells and abilities can
+//   target it. Its full SPD applies from the next turn onward.
+
+function revealUnit(state, unit) {
+  unit.hidden = false;
+  addLog(state, `${unit.name} revealed!`);
+}
+
+export function playerRevealUnit(state, unitUid) {
+  const s = cloneState(state);
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit || !unit.hidden || unit.owner !== s.activePlayer) return s;
+  revealUnit(s, unit);
+  unit.moved = true;
+  return s;
+}
+
 // ── phase auto-advance ─────────────────────────────────────────────────────
 
 export function autoAdvancePhase(state) {
@@ -158,7 +187,8 @@ function doBeginTurnPhase(state) {
   // Imp Time Bomb: sacrifice to deal 2 damage to all units within 2 tiles
   const impBombs = state.units.filter(u => u.owner === state.activePlayer && u.id === 'imptimebomb');
   for (const bomb of impBombs) {
-    const nearby = state.units.filter(u => manhattan([u.row, u.col], [bomb.row, bomb.col]) <= 2 && u.uid !== bomb.uid);
+    // Hidden units are unaffected by Imp Time Bomb area damage
+    const nearby = state.units.filter(u => !u.hidden && manhattan([u.row, u.col], [bomb.row, bomb.col]) <= 2 && u.uid !== bomb.uid);
     for (const target of nearby) {
       target.hp -= 2;
     }
@@ -203,6 +233,11 @@ export function moveChampion(state, row, col) {
   champ.col = col;
   champ.moved = true;
   addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
+  // Reveal Hidden enemy units adjacent to champion's new position
+  for (const [nr, nc] of cardinalNeighbors(row, col)) {
+    const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
+    if (hiddenEnemy) revealUnit(s, hiddenEnemy);
+  }
   return s;
 }
 
@@ -236,9 +271,9 @@ export function playCard(state, cardUid) {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      // Restore 2 HP to all friendly units
+      // Restore 2 HP to all friendly units (Hidden units are not restored)
       s.units.forEach(u => {
-        if (u.owner === s.activePlayer) {
+        if (u.owner === s.activePlayer && !u.hidden) {
           u.hp = Math.min(u.maxHp, u.hp + 2);
         }
       });
@@ -259,8 +294,9 @@ export function playCard(state, cardUid) {
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       // Deal 3 damage to all units within 2 tiles of the Throne (row 2, col 2)
+      // Hidden units are unaffected by Crownshatter area damage
       const throneRow = 2, throneCol = 2;
-      const hit = s.units.filter(u => manhattan([u.row, u.col], [throneRow, throneCol]) <= 2);
+      const hit = s.units.filter(u => !u.hidden && manhattan([u.row, u.col], [throneRow, throneCol]) <= 2);
       for (const u of hit) {
         u.hp -= 3;
         addLog(s, `Crownshatter hits ${u.name} for 3 damage (${u.hp}/${u.maxHp} HP).`);
@@ -313,6 +349,7 @@ export function summonUnit(state, cardUid, row, col) {
     atkBonus: 0,
     shield: 0,
     speedBonus: 0,
+    hidden: card.hidden || false,
   };
   s.units.push(unit);
   addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
@@ -391,7 +428,8 @@ export function endActionPhase(state) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer || unit.summoned || unit.moved) return [];
-  const speed = unit.spd + (unit.speedBonus || 0);
+  // Hidden units move at most 1 tile per turn regardless of base SPD
+  const speed = unit.hidden ? 1 : (unit.spd + (unit.speedBonus || 0));
   return reachableTiles(state, unit, speed);
 }
 
@@ -448,6 +486,8 @@ export function moveUnit(state, unitUid, row, col) {
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
 
   if (enemyUnit) {
+    // Reveal hidden enemy unit before resolving combat
+    if (enemyUnit.hidden) revealUnit(s, enemyUnit);
     // Combat: both deal damage simultaneously
     const attackerAtk = effectiveAtk(s, unit);
     const defenderAtk = effectiveAtk(s, enemyUnit);
@@ -491,6 +531,8 @@ export function moveUnit(state, unitUid, row, col) {
     // If dist === 1 the unit is already adjacent; stays where it is.
     let champDmg = attackerAtk;
     if (enemyChamp.thornShield) {
+      // If the attacker is a Hidden unit, reveal it before thorn damage applies
+      if (unit.hidden) revealUnit(s, unit);
       const absorbed = Math.min(enemyChamp.thornShield.absorb, champDmg);
       champDmg -= absorbed;
       const thornDmg = enemyChamp.thornShield.thornDamage;
@@ -682,12 +724,17 @@ export function getSpellTargets(state, effect) {
   const champ = state.champions[state.activePlayer];
   switch (effect) {
     case 'smite':
+      // Hidden units cannot be targeted by Smite
       return state.units
-        .filter(u => u.owner !== state.activePlayer && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
     case 'forgeweapon':
     case 'ironshield':
+    case 'swiftstep':
+      // Hidden units cannot be targeted by Forge Weapon, Iron Shield, or Swift Step
+      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
     case 'recall':
+      // Recall can target Hidden units
       return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
     default:
       return [];

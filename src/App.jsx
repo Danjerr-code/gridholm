@@ -1,5 +1,5 @@
 import { useGameState } from './hooks/useGameState.js';
-import { getAuraAtkBonus } from './engine/gameEngine.js';
+import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
 import StatusBar from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
@@ -48,6 +48,12 @@ export default function App({ onBackToLobby } = {}) {
     && selectMode === 'unit_move'
     && phase === 'action'
     && isP1Turn;
+  const showHiddenReveal = selectedUnitObj?.hidden
+    && selectedUnitObj.owner === 0
+    && !selectedUnitObj.moved
+    && selectMode === 'unit_move'
+    && phase === 'action'
+    && isP1Turn;
 
   return (
     <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
@@ -90,7 +96,7 @@ export default function App({ onBackToLobby } = {}) {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} />
+      <StatusBar state={state} myPlayerIndex={0} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -145,6 +151,13 @@ export default function App({ onBackToLobby } = {}) {
                 onClick={() => handlers.handleArcherSelectTarget(selectedUnit)}
                 label="Archer: Shoot"
                 variant="pink"
+              />
+            )}
+            {phase === 'action' && showHiddenReveal && (
+              <ActionBtn
+                onClick={() => { handlers.handleRevealUnit(selectedUnit); handlers.clearSelection(); }}
+                label="Reveal"
+                variant="gold"
               />
             )}
             {phase === 'action' && selectedUnit && (
@@ -287,6 +300,7 @@ function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
     green: 'bg-green-600 hover:bg-green-500 text-white',
     gray: 'bg-gray-600 hover:bg-gray-500 text-white',
     pink: 'bg-pink-600 hover:bg-pink-500 text-white',
+    gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
   };
   return (
     <button

@@ -17,6 +17,7 @@ import {
   discardCard,
   getSpellTargets,
   getArcherShootTargets,
+  playerRevealUnit,
 } from '../engine/gameEngine.js';
 import { runAITurn } from '../engine/ai.js';
 
@@ -183,6 +184,11 @@ export function useGameState() {
     }, 600);
   }, []);
 
+  const handleRevealUnit = useCallback((unitUid) => {
+    setState(prev => playerRevealUnit(prev, unitUid));
+    clearSelection();
+  }, [clearSelection]);
+
   const handleNewGame = useCallback(() => {
     const s = createInitialState();
     setState(autoAdvancePhase(s));
@@ -239,6 +245,7 @@ export function useGameState() {
       handleArcherShoot,
       handleEndTurn,
       handleDiscardCard,
+      handleRevealUnit,
       handleNewGame,
       clearSelection,
       handleInspectUnit,

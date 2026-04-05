@@ -133,6 +133,9 @@ export function useMultiplayerGame(gameId) {
       }
     }
 
+    // NEVER RENDER OPPONENT RESOURCES - game design decision
+    // The full game_state is stored for engine use. The UI layer must never
+    // render opponent resource counts (enforced in StatusBar and MultiplayerGame).
     const { data: updated } = await supabase
       .from('game_sessions')
       .update({

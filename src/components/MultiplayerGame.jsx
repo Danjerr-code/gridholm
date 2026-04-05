@@ -17,6 +17,7 @@ import {
   discardCard,
   getSpellTargets,
   getArcherShootTargets,
+  playerRevealUnit,
 } from '../engine/gameEngine.js';
 import { getGuestId } from '../supabase.js';
 import StatusBar from './StatusBar.jsx';
@@ -148,6 +149,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleDiscardCard = useCallback(async (cardUid) => {
     if (!gameState) return;
     await dispatch(discardCard(gameState, cardUid));
+  }, [gameState, dispatch]);
+
+  const handleRevealUnit = useCallback(async (unitUid) => {
+    if (!gameState) return;
+    await dispatch(playerRevealUnit(gameState, unitUid));
   }, [gameState, dispatch]);
 
   const handleInspectUnit = useCallback((unit) => {
@@ -305,6 +311,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     && selectMode === 'unit_move'
     && phase === 'action'
     && isActiveTurn;
+  const showHiddenReveal = selectedUnitObj?.hidden
+    && selectedUnitObj.owner === myPlayerIndex
+    && !selectedUnitObj.moved
+    && selectMode === 'unit_move'
+    && phase === 'action'
+    && isActiveTurn;
 
   // Derived highlight data (only valid when it's my turn and champion is explicitly selected)
   const championMoveTiles = phase === 'action' && isActiveTurn && selectMode === 'champion_move'
@@ -433,7 +445,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} />
+      <StatusBar state={state} myPlayerIndex={myPlayerIndex} />
 
       {/* Middle content row */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -443,7 +455,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             phase={phase}
             phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
           />
-          <CardDetailPanel inspectedItem={inspectedItem} state={state} />
+          <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
         </div>
 
         {/* Center: board */}
@@ -492,6 +504,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 variant="pink"
               />
             )}
+            {phase === 'action' && showHiddenReveal && (
+              <ActionBtn
+                onClick={() => { handleRevealUnit(selectedUnit); clearSelection(); }}
+                label="Reveal"
+                variant="gold"
+              />
+            )}
             {phase === 'action' && selectedUnit && (
               <ActionBtn onClick={clearSelection} label="Deselect" variant="gray" />
             )}
@@ -509,9 +528,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       </div>
 
       {/* Opponent hand (face down) */}
+      {/* NEVER RENDER OPPONENT RESOURCES - game design decision */}
       <div className="bg-gray-800/50 border border-gray-700 rounded-lg flex-shrink-0">
         <div className="text-xs text-red-400 px-2 pt-1 font-semibold">
-          {oppPlayer.name} — {oppPlayer.resources}/10 💎
+          {oppPlayer.name}
         </div>
         <Hand
           player={oppPlayer}
@@ -555,13 +575,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           inspectedItem={mobileModalItem}
           state={state}
           onClose={handleMobileModalDismiss}
+          myPlayerIndex={myPlayerIndex}
         />
       )}
     </div>
   );
 }
 
-function CardDetailContent({ inspectedItem, state, large = false }) {
+function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex }) {
   const nameClass = large ? 'font-bold text-white text-sm leading-tight' : 'font-bold text-white text-xs leading-tight';
   const typeClass = large ? 'text-gray-400 text-xs' : 'text-gray-400 text-[10px]';
   const statsClass = large ? 'grid grid-cols-3 gap-x-1 text-xs mt-0.5' : 'grid grid-cols-3 gap-x-1 text-[10px] mt-0.5';
@@ -574,6 +595,26 @@ function CardDetailContent({ inspectedItem, state, large = false }) {
     if (!unit) return null;
     const ownerLabel = unit.owner === 0 ? 'P1' : 'P2';
     const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+
+    // Opponent's hidden unit: show redacted information
+    const isOpponentHidden = unit.hidden && unit.owner !== myPlayerIndex;
+    if (isOpponentHidden) {
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-start">
+            <span className={nameClass}>Hidden Unit</span>
+            <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+          </div>
+          <div className={typeClass}>Unknown</div>
+          <div className={statsClass}>
+            <span className="text-red-400">⚔ ???</span>
+            <span className="text-green-400">♥ ???</span>
+            <span className="text-blue-400">⚡ ???</span>
+          </div>
+        </div>
+      );
+    }
+
     const auraBonus = getAuraAtkBonus(state, unit);
     const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
     return (
@@ -634,7 +675,7 @@ function CardDetailContent({ inspectedItem, state, large = false }) {
   return null;
 }
 
-function CardDetailPanel({ inspectedItem, state }) {
+function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
   return (
     <div
       className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
@@ -643,7 +684,7 @@ function CardDetailPanel({ inspectedItem, state }) {
       <div className="text-xs text-gray-400 mb-1.5 font-semibold">Card Detail</div>
       <div className="flex-1 overflow-y-auto">
         {inspectedItem ? (
-          <CardDetailContent inspectedItem={inspectedItem} state={state} />
+          <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
         ) : (
           <div className="text-gray-600 text-[10px] italic leading-snug">
             Click a card or unit to inspect
@@ -654,7 +695,7 @@ function CardDetailPanel({ inspectedItem, state }) {
   );
 }
 
-function CardDetailModal({ inspectedItem, state, onClose }) {
+function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -674,7 +715,7 @@ function CardDetailModal({ inspectedItem, state, onClose }) {
           ✕
         </button>
         <div className="pr-6">
-          <CardDetailContent inspectedItem={inspectedItem} state={state} large />
+          <CardDetailContent inspectedItem={inspectedItem} state={state} large myPlayerIndex={myPlayerIndex} />
         </div>
       </div>
     </div>
@@ -687,6 +728,7 @@ function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
     green: 'bg-green-600 hover:bg-green-500 text-white',
     gray: 'bg-gray-600 hover:bg-gray-500 text-white',
     pink: 'bg-pink-600 hover:bg-pink-500 text-white',
+    gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
   };
   return (
     <button
