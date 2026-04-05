@@ -1,5 +1,5 @@
 export default function Card({ card, isSelected, isPlayable, onClick }) {
-  const typeColor = card.type === 'spell' ? 'border-purple-500' : 'border-gray-500';
+  const typeColor = card.legendary ? 'border-amber-400' : card.type === 'spell' ? 'border-purple-500' : 'border-gray-500';
   const selectedStyle = isSelected ? 'ring-2 ring-yellow-400 -translate-y-2' : '';
   const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer border-opacity-100' : 'cursor-pointer';
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
@@ -13,7 +13,10 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
       title={card.rules || card.name}
     >
       <div className="flex justify-between items-start mb-0.5">
-        <span className="font-bold text-white leading-tight text-[10px]">{card.name}</span>
+        <span className="font-bold text-white leading-tight text-[10px]">
+          {card.legendary && <span className="text-amber-400 mr-0.5">♛</span>}
+          {card.name}
+        </span>
         <span className="text-yellow-400 font-bold leading-none">{card.cost}</span>
       </div>
 

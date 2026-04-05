@@ -14,6 +14,8 @@ export const CARD_DB = {
   brutedemon:   { id: 'brutedemon',   name: 'Brute Demon',  type: 'unit', cost: 3, atk: 5, hp: 1, spd: 1, unitType: 'Demon', rules: '' },
   shadowfiend:  { id: 'shadowfiend',  name: 'Shadow Fiend', type: 'unit', cost: 4, atk: 4, hp: 5, spd: 1, unitType: 'Demon', rules: '' },
   demonlord:    { id: 'demonlord',    name: 'Demon Lord',   type: 'unit', cost: 6, atk: 6, hp: 6, spd: 1, unitType: 'Demon', rules: '' },
+  pip:          { id: 'pip',          name: 'Pip the Hungry', type: 'unit', cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Beast', rules: 'At the end of your turn, this unit gains +1 ATK and +1 HP.', legendary: true },
+  imptimebomb:  { id: 'imptimebomb',  name: 'Imp Time Bomb', type: 'unit', cost: 3, atk: 1, hp: 3, spd: 1, unitType: 'Demon', rules: 'At the beginning of your turn, sacrifice this unit to deal 2 damage to all units within 2 tiles.' },
 
   smite:       { id: 'smite',       name: 'Smite',        type: 'spell', cost: 2, effect: 'smite',       rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.' },
   mendallies:  { id: 'mendallies',  name: 'Mend Allies',  type: 'spell', cost: 4, effect: 'mendallies',  rules: 'Restore 2 HP to all friendly units.' },
@@ -25,9 +27,9 @@ export const CARD_DB = {
 const DECK_RECIPE = [
   ['footsoldier', 2], ['knight', 2], ['crossbowman', 1], ['captain', 1],
   ['wolf', 1], ['sabretooth', 1],
-  ['elfscout', 2], ['elfblade', 1], ['elfelder', 1], ['elfranger', 2], ['elfarcher', 1],
-  ['hellhound', 1], ['brutedemon', 1], ['shadowfiend', 2], ['demonlord', 1],
-  ['smite', 2], ['mendallies', 2], ['forgeweapon', 2], ['ironshield', 2], ['swiftstep', 2],
+  ['elfscout', 1], ['elfblade', 1], ['elfelder', 1], ['elfranger', 2], ['elfarcher', 1], ['pip', 1],
+  ['hellhound', 1], ['brutedemon', 1], ['shadowfiend', 2], ['demonlord', 1], ['imptimebomb', 1],
+  ['smite', 2], ['mendallies', 2], ['forgeweapon', 2], ['ironshield', 2], ['swiftstep', 1],
 ];
 
 export function buildDeck() {

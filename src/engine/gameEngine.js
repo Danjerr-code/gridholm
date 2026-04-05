@@ -118,6 +118,19 @@ function doBeginTurnPhase(state) {
 
   // BEGIN TURN TRIGGERS - card abilities fire here
 
+  // Imp Time Bomb: sacrifice to deal 2 damage to all units within 2 tiles
+  const impBombs = state.units.filter(u => u.owner === state.activePlayer && u.id === 'imptimebomb');
+  for (const bomb of impBombs) {
+    const nearby = state.units.filter(u => manhattan([u.row, u.col], [bomb.row, bomb.col]) <= 2 && u.uid !== bomb.uid);
+    for (const target of nearby) {
+      target.hp -= 2;
+    }
+    state.units = state.units.filter(u => u.uid !== bomb.uid);
+    addLog(state, `Imp Time Bomb explodes! ${nearby.length} units hit.`);
+  }
+  // Remove units killed by the explosion
+  state.units = state.units.filter(u => u.hp > 0);
+
   state.phase = 'action';
   return state;
 }
@@ -483,6 +496,16 @@ function completeTurnAdvance(state) {
   champ.moved = false;
 
   // END TURN TRIGGERS - card abilities fire here
+
+  // Pip the Hungry: gains +1 ATK and +1 HP at end of owner's turn
+  s.units.forEach(u => {
+    if (u.owner === s.activePlayer && u.id === 'pip') {
+      u.atk += 1;
+      u.hp += 1;
+      u.maxHp += 1;
+      addLog(s, `Pip the Hungry grows! Now ${u.atk}/${u.hp}.`);
+    }
+  });
 
   // Advance turn
   const nextPlayer = 1 - s.activePlayer;
