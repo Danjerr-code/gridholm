@@ -286,7 +286,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-red-400 mb-4">This game is full.</p>
+          <p className="text-red-400 mb-4">This game is already in progress.</p>
           <button
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm"
             onClick={onBackToLobby}

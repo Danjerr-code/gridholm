@@ -28,7 +28,7 @@ export function useMultiplayerGame(gameId) {
         .single();
 
       if (fetchError || !data) {
-        setError('Game not found. Check the game ID and try again.');
+        setError('Game not found. Check the code and try again.');
         setLoading(false);
         return;
       }
@@ -139,7 +139,9 @@ export function useMultiplayerGame(gameId) {
   }, [session, gameId]);
 
   const myPlayerIndex = session
-    ? (session.player1_id === guestId ? 0 : 1)
+    ? (session.player1_id === guestId ? 0
+      : session.player2_id === guestId ? 1
+      : null)
     : null;
 
   const isMyTurn = session ? session.active_player === guestId : false;
