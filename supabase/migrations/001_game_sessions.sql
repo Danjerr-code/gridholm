@@ -1,4 +1,4 @@
-create table game_sessions (
+create table if not exists game_sessions (
   id text primary key,
   player1_id text not null,
   player2_id text,
@@ -12,11 +12,13 @@ create table game_sessions (
 
 alter table game_sessions enable row level security;
 
-create policy "Anyone can read game sessions"
+create policy if not exists "Anyone can read game sessions"
   on game_sessions for select using (true);
 
-create policy "Anyone can insert game sessions"
+create policy if not exists "Anyone can insert game sessions"
   on game_sessions for insert with check (true);
 
-create policy "Players can update their own game sessions"
+create policy if not exists "Anyone can update game sessions"
   on game_sessions for update using (true);
+
+alter publication supabase_realtime add table game_sessions;
