@@ -197,16 +197,19 @@ export function useMultiplayerGame(gameId) {
 
   const playAgain = useCallback(async () => {
     if (!session || !supabase) return;
-    // Reset to deck_select for a fresh rematch
+    const p1DeckId = session.player1_deck || 'human';
+    const p2DeckId = session.player2_deck || 'human';
+    const s = createInitialState(p1DeckId, p2DeckId);
+    s.players[0].name = 'Player 1';
+    s.players[1].name = 'Player 2';
+    const freshState = autoAdvancePhase(s);
     const { data: updated } = await supabase
       .from('game_sessions')
       .update({
-        game_state: null,
+        game_state: freshState,
         active_player: session.player1_id,
-        status: 'deck_select',
+        status: 'active',
         winner: null,
-        player1_deck: null,
-        player2_deck: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', gameId)
