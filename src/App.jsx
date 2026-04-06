@@ -336,8 +336,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
-          {/* Resource panel */}
+        {/* Desktop: resources + hand side by side */}
+        <div className="hidden sm:flex" style={{ alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -353,14 +353,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
               RESOURCES
             </div>
-            <ResourceDisplay
-              current={p1.resources}
-              max={10}
-              playerColor="#185FA5"
-              small={false}
-            />
+            <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" small={false} />
           </div>
-          {/* Hand cards */}
           <div style={{ overflow: 'hidden' }}>
             <Hand
               player={p1}
@@ -377,8 +371,187 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             />
           </div>
         </div>
+        {/* Mobile: resources on top, hand scrollable below */}
+        <div className="flex flex-col sm:hidden" style={{ padding: '4px 8px 8px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 0',
+            marginBottom: 4,
+          }}>
+            <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em' }}>
+              RESOURCES
+            </div>
+            <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" small={true} />
+          </div>
+          <Hand
+            player={p1}
+            resources={p1.resources}
+            isActive={true}
+            canPlay={isP1Turn && phase === 'action'}
+            pendingDiscard={pendingDiscard && isP1Turn}
+            pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
+            selectedCard={selectedCard}
+            onPlayCard={handlers.handlePlayCard}
+            onDiscardCard={handlers.handleDiscardCard}
+            onHandSelect={handlers.handleHandSelect}
+            onInspectCard={handlers.handleInspectCard}
+            isMobile={true}
+            onMobileTap={(card) => {
+              if (inspectedItem?.type === 'card' && inspectedItem?.card?.uid === card.uid) {
+                handlers.handleClearInspect();
+              } else {
+                handlers.handleInspectCard(card);
+              }
+            }}
+          />
+        </div>
       </div>
+
+      {/* Mobile bottom sheet: card / unit detail */}
+      {isMobile && inspectedItem && (
+        <MobileBottomSheet
+          inspectedItem={inspectedItem}
+          state={state}
+          onDismiss={handlers.handleClearInspect}
+        />
+      )}
     </div>
+  );
+}
+
+function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
+  let content = null;
+
+  if (inspectedItem?.type === 'unit') {
+    const unit = state.units.find(u => u.uid === inspectedItem.uid)
+      || state.champions.find(c => c.uid === inspectedItem.uid);
+    if (unit) {
+      const ownerLabel = unit.owner === 0 ? 'Friendly' : 'Enemy';
+      const ownerColor = unit.owner === 0 ? '#4a8abf' : '#bf4a4a';
+      const auraBonus = getAuraAtkBonus(state, unit);
+      const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
+      const unitImageUrl = getCardImageUrl(unit.image);
+      content = (
+        <div className="flex flex-col gap-2">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ width: 90, height: 120, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#252538' }}>
+              {unitImageUrl
+                ? <img src={unitImageUrl} alt={unit.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4a6a', fontSize: 11, fontFamily: "'Cinzel', serif" }}>{unit.unitType || 'Unit'}</div>
+              }
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: unit.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>
+                  {unit.legendary && <span style={{ color: '#C9A84C', marginRight: 3 }}>♛</span>}{unit.name}
+                </span>
+                <span style={{ fontSize: 11, color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
+              </div>
+              {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>{unit.unitType}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontFamily: 'var(--font-sans)' }}>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#e05050' }}>{displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: 11 }}> +{auraBonus}</span>}</div></div>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div></div>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#5090e0' }}>{unit.spd + (unit.speedBonus || 0)}</div></div>
+              </div>
+              {unit.shield > 0 && <div style={{ fontSize: 12, color: '#67e8f9', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>}
+            </div>
+          </div>
+          {unit.rules && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+              {unit.rules}
+            </div>
+          )}
+        </div>
+      );
+    }
+  } else if (inspectedItem?.type === 'terrain') {
+    content = (
+      <div className="flex flex-col gap-2">
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Throne</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>Terrain</span>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+        </div>
+      </div>
+    );
+  } else if (inspectedItem?.type === 'card') {
+    const card = inspectedItem.card;
+    const cardImageUrl = getCardImageUrl(card.image);
+    content = (
+      <div className="flex flex-col gap-2">
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ width: 90, height: 120, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#252538' }}>
+            {cardImageUrl
+              ? <img src={cardImageUrl} alt={card.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4a6a', fontSize: 11, fontFamily: "'Cinzel', serif" }}>{card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}</div>
+            }
+          </div>
+          <div className="flex flex-col gap-1 flex-1">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>
+                {card.legendary && <span style={{ color: '#C9A84C', marginRight: 3 }}>♛</span>}{card.name}
+              </span>
+              <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{card.cost}</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
+            {card.type === 'unit' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontFamily: 'var(--font-sans)' }}>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#e05050' }}>{card.atk}</div></div>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#50c050' }}>{card.hp}</div></div>
+                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#5090e0' }}>{card.spd}</div></div>
+              </div>
+            )}
+            {card.aura && (
+              <span style={{ fontSize: 11, background: '#134e4a', color: '#5eead4', padding: '2px 6px', borderRadius: 4, fontWeight: 600, alignSelf: 'flex-start' }}>Aura {card.aura.range}</span>
+            )}
+          </div>
+        </div>
+        {card.rules && (
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+            {card.rules}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!content) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onDismiss}
+        style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.5)' }}
+      />
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: '#0d0d1a',
+        border: '1px solid #C9A84C40',
+        borderBottom: 'none',
+        borderRadius: '16px 16px 0 0',
+        padding: '16px',
+        maxHeight: '65vh',
+        overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
+          <button
+            onClick={onDismiss}
+            style={{ background: 'transparent', border: 'none', color: '#6a6a8a', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
+          >×</button>
+        </div>
+        {content}
+      </div>
+    </>
   );
 }
 

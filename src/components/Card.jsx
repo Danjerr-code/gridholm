@@ -32,7 +32,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
       className={`relative rounded-lg text-xs select-none transition-transform
         ${selectedStyle} ${playableStyle} ${dimStyle}
         ${isLegendary && !isSelected ? 'legendary-card' : ''}
-        flex flex-col p-1.5 w-20
+        flex flex-col p-1.5 w-[30vw] max-w-[120px]
         md:w-[124px] md:h-[172px]`}
       style={cardBaseStyle}
       onClick={onClick}

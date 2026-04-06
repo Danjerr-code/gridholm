@@ -16,9 +16,12 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
   const dimmed = !canPlay && !pendingDiscard && !pendingHandSelect;
 
   return (
-    <div className={`flex flex-nowrap justify-center overflow-x-auto gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''}`}>
+    <div
+      className={`flex flex-nowrap overflow-x-auto gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''} md:justify-center`}
+      style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
+    >
       {player.hand.map(card => (
-        <div key={card.uid} className={(pendingDiscard || pendingHandSelect) ? 'relative' : ''}>
+        <div key={card.uid} className={(pendingDiscard || pendingHandSelect) ? 'relative' : ''} style={{ scrollSnapAlign: 'start', flexShrink: 0 }}>
           <Card
             card={card}
             isSelected={canPlay && selectedCard === card.uid}
