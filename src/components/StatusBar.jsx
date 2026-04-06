@@ -1,4 +1,47 @@
 // NEVER RENDER OPPONENT RESOURCES - game design decision
+export function ResourceDisplay({ current, max = 10, playerColor, small = false }) {
+  const diamonds = Array.from({ length: max }, (_, i) => i < current);
+  const row1 = diamonds.slice(0, 5);
+  const row2 = diamonds.slice(5, 10);
+  const size = small ? 8 : 10;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <div style={{ display: 'flex', gap: 2 }}>
+        {row1.map((filled, i) => (
+          <div key={i} style={{
+            width: size, height: size,
+            transform: 'rotate(45deg)',
+            background: filled ? playerColor : '#1a1a2e',
+            border: `1px solid ${filled ? playerColor : '#2a2a42'}`,
+            boxShadow: filled ? `0 0 4px ${playerColor}60` : 'none',
+          }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 2 }}>
+        {row2.map((filled, i) => (
+          <div key={i} style={{
+            width: size, height: size,
+            transform: 'rotate(45deg)',
+            background: filled ? playerColor : '#1a1a2e',
+            border: `1px solid ${filled ? playerColor : '#2a2a42'}`,
+            boxShadow: filled ? `0 0 4px ${playerColor}60` : 'none',
+          }} />
+        ))}
+      </div>
+      <div style={{
+        fontSize: small ? 10 : 11,
+        fontWeight: 600,
+        color: '#C9A84C',
+        fontFamily: 'var(--font-sans)',
+        marginTop: 2,
+      }}>
+        {current}/{max}
+      </div>
+    </div>
+  );
+}
+
 export default function StatusBar({ state, myPlayerIndex }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
@@ -25,11 +68,10 @@ export default function StatusBar({ state, myPlayerIndex }) {
 
   return (
     <>
-      {/* Mobile: compact 3-column layout */}
+      {/* Mobile: compact 3-column layout — no resource display (visible in bottom panel) */}
       <div className="sm:hidden grid grid-cols-3 items-start px-2 py-1 leading-tight" style={barStyle}>
         <div className="flex flex-col gap-0.5">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c1.hp}/{c1.maxHp}</span></span>
-          {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
@@ -38,7 +80,6 @@ export default function StatusBar({ state, myPlayerIndex }) {
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
-          {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
         </div>
       </div>
@@ -48,7 +89,7 @@ export default function StatusBar({ state, myPlayerIndex }) {
         <div className="flex items-center gap-3 flex-wrap">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name}</span>
           <HpBar hp={c1.hp} maxHp={c1.maxHp} color="blue" />
-          {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
+          {!hideP1Resources && <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
         </div>
         <div className="text-center">
@@ -59,7 +100,7 @@ export default function StatusBar({ state, myPlayerIndex }) {
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name}</span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
-          {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
+          {!hideP2Resources && <ResourceDisplay current={p2.resources} max={10} playerColor="#993C1D" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
         </div>
       </div>
@@ -91,28 +132,6 @@ function HpBar({ hp, maxHp, color }) {
         }} />
       </div>
       <span style={{ fontSize: '10px', color: '#e8e8f0', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{hp}/{maxHp}</span>
-    </div>
-  );
-}
-
-function ResourcePips({ count, max, color }) {
-  return (
-    <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '80px' }}>
-      {Array.from({ length: max }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            width: '7px',
-            height: '7px',
-            transform: 'rotate(45deg)',
-            background: i < count ? color : '#1a1a2a',
-            border: i < count ? 'none' : `1px solid #2a2a3a`,
-            boxShadow: i < count ? `0 0 4px ${color}80` : 'none',
-            borderRadius: '1px',
-            flexShrink: 0,
-          }}
-        />
-      ))}
     </div>
   );
 }

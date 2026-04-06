@@ -183,47 +183,38 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         position: 'absolute',
         bottom: '2px',
         left: '2px',
-        background: '#1a1a2e',
-        border: '1px solid #3a3a5a',
-        color: factionColors.text,
+        background: '#3a1010',
+        color: '#e05050',
         fontSize: '9px',
         fontFamily: 'var(--font-sans)',
-        fontWeight: 600,
+        fontWeight: 700,
         padding: '1px 4px',
         borderRadius: '99px',
         zIndex: 2,
         lineHeight: 1.3,
-      }}>{effectiveAtk}</div>
+      }}>⚔{effectiveAtk}</div>
 
       {/* HP badge bottom right */}
       <div style={{
         position: 'absolute',
         bottom: '2px',
         right: '2px',
-        background: '#1a1a2e',
-        border: '1px solid #3a3a5a',
-        color: typeof effectiveHp === 'number' && effectiveHp <= effectiveMaxHp / 2 ? '#fca5a5' : '#ffffff',
+        background: '#101a10',
+        color: '#50c050',
         fontSize: '9px',
         fontFamily: 'var(--font-sans)',
-        fontWeight: 600,
+        fontWeight: 700,
         padding: '1px 4px',
         borderRadius: '99px',
         zIndex: 2,
         lineHeight: 1.3,
-      }}>{effectiveHp}</div>
-
-      {/* Shield overlay */}
-      {unit.shield > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%,-50%)',
-          color: '#67e8f9',
-          fontSize: '9px',
-          zIndex: 2,
-        }}>🛡{unit.shield}</div>
-      )}
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1px',
+      }}>
+        {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
+        ♥{effectiveHp}
+      </div>
     </div>
   );
 }

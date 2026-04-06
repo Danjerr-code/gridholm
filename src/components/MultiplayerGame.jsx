@@ -26,7 +26,7 @@ import {
   triggerUnitAction,
 } from '../engine/gameEngine.js';
 import { getGuestId } from '../supabase.js';
-import StatusBar from './StatusBar.jsx';
+import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
 import Hand from './Hand.jsx';
 import Log from './Log.jsx';
@@ -748,31 +748,59 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       {/* My hand (face up) */}
       <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isActiveTurn ? 'border-yellow-500' : 'border-gray-700'}`}>
         <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
-          {myPlayer.name} (you) — {myPlayer.resources}/10 💎
+          {myPlayer.name} (you)
           <span className="hidden sm:inline">
             {phase === 'action' && isActiveTurn ? '  (click cards to play)' : ''}
             {pendingDiscard && isActiveTurn ? '  — click a card to discard' : ''}
           </span>
         </div>
-        <Hand
-          player={myPlayer}
-          resources={myPlayer.resources}
-          isActive={true}
-          canPlay={isActiveTurn && phase === 'action'}
-          pendingDiscard={pendingDiscard && isActiveTurn}
-          pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
-          selectedCard={selectedCard}
-          onPlayCard={handlePlayCard}
-          onDiscardCard={handleDiscardCard}
-          onHandSelect={async (cardUid) => {
-            if (!gameState) return;
-            const s = resolveHandSelect(gameState, cardUid);
-            await dispatch(s);
-          }}
-          onInspectCard={handleInspectCard}
-          isMobile={window.innerWidth < 768}
-          onMobileTap={handleMobileHandCardTap}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px 8px' }}>
+          {/* Resource panel */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            padding: '10px 12px',
+            background: '#0f0f1e',
+            border: '1px solid #252538',
+            borderRadius: 8,
+            minWidth: 72,
+            flexShrink: 0,
+          }}>
+            <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
+              RESOURCES
+            </div>
+            <ResourceDisplay
+              current={myPlayer.resources}
+              max={10}
+              playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'}
+              small={false}
+            />
+          </div>
+          {/* Hand cards */}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <Hand
+              player={myPlayer}
+              resources={myPlayer.resources}
+              isActive={true}
+              canPlay={isActiveTurn && phase === 'action'}
+              pendingDiscard={pendingDiscard && isActiveTurn}
+              pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
+              selectedCard={selectedCard}
+              onPlayCard={handlePlayCard}
+              onDiscardCard={handleDiscardCard}
+              onHandSelect={async (cardUid) => {
+                if (!gameState) return;
+                const s = resolveHandSelect(gameState, cardUid);
+                await dispatch(s);
+              }}
+              onInspectCard={handleInspectCard}
+              isMobile={window.innerWidth < 768}
+              onMobileTap={handleMobileHandCardTap}
+            />
+          </div>
+        </div>
       </div>
       {/* Mobile card detail modal */}
       {mobileModalItem && (
@@ -854,18 +882,25 @@ function KeywordBubbles({ keywords }) {
 }
 
 function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex }) {
-  const nameClass = large ? 'font-bold text-white text-sm leading-tight' : 'font-bold text-white text-xs leading-tight';
-  const typeClass = large ? 'text-gray-400 text-xs' : 'text-gray-400 text-[10px]';
-  const statsClass = large ? 'grid grid-cols-3 gap-x-1 text-xs mt-0.5' : 'grid grid-cols-3 gap-x-1 text-[10px] mt-0.5';
-  const rulesClass = large
-    ? 'text-gray-400 text-xs leading-tight mt-1 border-t border-gray-700 pt-1'
-    : 'text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1';
+  const nameStyle = { fontFamily: 'var(--font-sans)', fontSize: large ? '15px' : '15px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 };
+  const typeStyle = { fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' };
+  const rulesStyle = {
+    fontFamily: 'var(--font-sans)',
+    fontStyle: 'normal',
+    fontSize: '12px',
+    fontWeight: 400,
+    color: '#c0c0d8',
+    lineHeight: 1.6,
+    marginTop: '4px',
+    borderTop: '0.5px solid #252538',
+    paddingTop: '4px',
+  };
 
   if (inspectedItem?.type === 'unit') {
     const unit = state.units.find(u => u.uid === inspectedItem.uid);
     if (!unit) return null;
     const ownerLabel = unit.owner === 0 ? 'P1' : 'P2';
-    const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+    const ownerColor = unit.owner === 0 ? '#4a8abf' : '#bf4a4a';
 
     // Opponent's hidden unit: show redacted information
     const isOpponentHidden = unit.hidden && unit.owner !== myPlayerIndex;
@@ -873,14 +908,14 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
       return (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-start">
-            <span className={nameClass}>Hidden Unit</span>
-            <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+            <span style={nameStyle}>Hidden Unit</span>
+            <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
           </div>
-          <div className={typeClass}>Unknown</div>
-          <div className={statsClass}>
-            <span className="text-red-400">⚔ ???</span>
-            <span className="text-green-400">♥ ???</span>
-            <span className="text-blue-400">⚡ ???</span>
+          <div style={typeStyle}>Unknown</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>⚔ ???</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>♥ ???</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>⚡ ???</div>
           </div>
         </div>
       );
@@ -892,21 +927,30 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
     return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
-          <span className={nameClass}>{unit.name}</span>
-          <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+          <span style={{ ...nameStyle, color: unit.legendary ? '#C9A84C' : '#ffffff' }}>{unit.name}</span>
+          <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
         </div>
-        {unit.unitType && <div className={typeClass}>{unit.unitType}</div>}
-        <div className={statsClass}>
-          <span className="text-red-400">
-            ⚔ {displayAtk}{auraBonus > 0 && <span className="text-teal-400"> (+{auraBonus})</span>}
-          </span>
-          <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
-          <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
+        {unit.unitType && <div style={typeStyle}>{unit.unitType}</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>
+              {displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: '11px' }}> +{auraBonus}</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{unit.spd + (unit.speedBonus || 0)}</div>
+          </div>
         </div>
         {unit.shield > 0 && (
-          <div className={`text-cyan-400 ${large ? 'text-xs' : 'text-[10px]'}`}>🛡 Shield: {unit.shield}</div>
+          <div style={{ fontSize: '11px', color: '#67e8f9', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>
         )}
-        {unit.rules && <div className={rulesClass}>{unit.rules}</div>}
+        {unit.rules && <div style={rulesStyle}>{unit.rules}</div>}
         <KeywordBubbles keywords={unitKeywords} />
       </div>
     );
@@ -916,10 +960,10 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
     const terrainKeyword = !large ? [{ key: 'terrain', ...KEYWORD_REMINDERS.terrain }] : [];
     return (
       <div className="flex flex-col gap-1">
-        <span className={nameClass}>Throne</span>
-        <div className={`text-amber-700 font-semibold ${large ? 'text-xs' : 'text-[10px]'}`}>Terrain</div>
+        <span style={nameStyle}>Throne</span>
+        <div style={{ ...typeStyle, color: '#9090b8' }}>Terrain</div>
         {large && (
-          <div className={rulesClass}>
+          <div style={rulesStyle}>
             End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
           </div>
         )}
@@ -934,18 +978,27 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
     return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
-          <span className={nameClass}>{card.name}</span>
-          <span className={`text-yellow-400 font-bold ${large ? 'text-sm' : 'text-xs'}`}>{card.cost}💎</span>
+          <span style={{ ...nameStyle, color: card.legendary ? '#C9A84C' : '#ffffff' }}>{card.name}</span>
+          <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{card.cost}</span>
         </div>
-        <div className={typeClass}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
+        <div style={typeStyle}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
         {card.type === 'unit' && (
-          <div className={statsClass}>
-            <span className="text-red-400">⚔ {card.atk}</span>
-            <span className="text-green-400">♥ {card.hp}</span>
-            <span className="text-blue-400">⚡ {card.spd}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>{card.atk}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{card.hp}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{card.spd}</div>
+            </div>
           </div>
         )}
-        {card.rules && <div className={rulesClass}>{card.rules}</div>}
+        {card.rules && <div style={rulesStyle}>{card.rules}</div>}
         <KeywordBubbles keywords={cardKeywords} />
       </div>
     );

@@ -1,7 +1,7 @@
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
 import { getCardImageUrl } from './supabase.js';
-import StatusBar from './components/StatusBar.jsx';
+import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
 import Log from './components/Log.jsx';
@@ -284,25 +284,53 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           padding: '4px 8px 2px',
           fontWeight: 600,
         }}>
-          {p1.name} — {p1.resources}/10
+          {p1.name}
           <span className="hidden sm:inline" style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontWeight: 400, color: '#4a4a6a', fontSize: '12px' }}>
             {phase === 'action' && isP1Turn ? '  (click cards to play)' : ''}
             {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
           </span>
         </div>
-        <Hand
-          player={p1}
-          resources={p1.resources}
-          isActive={true}
-          canPlay={isP1Turn && phase === 'action'}
-          pendingDiscard={pendingDiscard && isP1Turn}
-          pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
-          selectedCard={selectedCard}
-          onPlayCard={handlers.handlePlayCard}
-          onDiscardCard={handlers.handleDiscardCard}
-          onHandSelect={handlers.handleHandSelect}
-          onInspectCard={handlers.handleInspectCard}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px 8px' }}>
+          {/* Resource panel */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            padding: '10px 12px',
+            background: '#0f0f1e',
+            border: '1px solid #252538',
+            borderRadius: 8,
+            minWidth: 72,
+            flexShrink: 0,
+          }}>
+            <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
+              RESOURCES
+            </div>
+            <ResourceDisplay
+              current={p1.resources}
+              max={10}
+              playerColor="#185FA5"
+              small={false}
+            />
+          </div>
+          {/* Hand cards */}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <Hand
+              player={p1}
+              resources={p1.resources}
+              isActive={true}
+              canPlay={isP1Turn && phase === 'action'}
+              pendingDiscard={pendingDiscard && isP1Turn}
+              pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
+              selectedCard={selectedCard}
+              onPlayCard={handlers.handlePlayCard}
+              onDiscardCard={handlers.handleDiscardCard}
+              onHandSelect={handlers.handleHandSelect}
+              onInspectCard={handlers.handleInspectCard}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -344,27 +372,37 @@ function CardDetailPanel({ inspectedItem, state }) {
             )}
           </div>
           <div className="flex justify-between items-start">
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: unit.legendary ? '#C9A84C' : '#fff', lineHeight: 1.2 }}>{unit.name}</span>
-            <span style={{ fontSize: '10px', color: ownerColor }}>{ownerLabel}</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: unit.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>{unit.name}</span>
+            <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
           </div>
-          {unit.unitType && <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a' }}>{unit.unitType}</div>}
-          <div className="grid grid-cols-3 gap-x-1" style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', marginTop: '2px' }}>
-            <span style={{ color: '#f87171' }}>
-              ⚔ {displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4' }}> (+{auraBonus})</span>}
-            </span>
-            <span style={{ color: '#4ade80' }}>♥ {unit.hp}/{unit.maxHp}</span>
-            <span style={{ color: '#60a5fa' }}>⚡ {unit.spd + (unit.speedBonus || 0)}</span>
+          {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>{unit.unitType}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>
+                {displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: '11px' }}> +{auraBonus}</span>}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{unit.spd + (unit.speedBonus || 0)}</div>
+            </div>
           </div>
           {unit.shield > 0 && (
-            <div style={{ fontSize: '10px', color: '#67e8f9' }}>🛡 Shield: {unit.shield}</div>
+            <div style={{ fontSize: '11px', color: '#67e8f9', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>
           )}
           {unit.rules && (
             <div style={{
-              fontFamily: "'Crimson Text', serif",
-              fontStyle: 'italic',
-              fontSize: '11px',
-              color: '#8a8aaa',
-              lineHeight: 1.5,
+              fontFamily: 'var(--font-sans)',
+              fontStyle: 'normal',
+              fontSize: '12px',
+              fontWeight: 400,
+              color: '#c0c0d8',
+              lineHeight: 1.6,
               marginTop: '4px',
               borderTop: '0.5px solid #1e1e2e',
               paddingTop: '4px',
@@ -379,15 +417,16 @@ function CardDetailPanel({ inspectedItem, state }) {
     content = (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#fff' }}>Throne</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>Throne</span>
         </div>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#7a4010', fontWeight: 600 }}>Terrain</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>Terrain</div>
         <div style={{
-          fontFamily: "'Crimson Text', serif",
-          fontStyle: 'italic',
-          fontSize: '11px',
-          color: '#8a8aaa',
-          lineHeight: 1.5,
+          fontFamily: 'var(--font-sans)',
+          fontStyle: 'normal',
+          fontSize: '12px',
+          fontWeight: 400,
+          color: '#c0c0d8',
+          lineHeight: 1.6,
           marginTop: '4px',
           borderTop: '0.5px solid #1e1e2e',
           paddingTop: '4px',
@@ -424,34 +463,44 @@ function CardDetailPanel({ inspectedItem, state }) {
           )}
         </div>
         <div className="flex justify-between items-start">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: card.legendary ? '#C9A84C' : '#fff', lineHeight: 1.2 }}>{card.name}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>{card.name}</span>
           <span style={{
             background: '#C9A84C',
             color: '#0a0a0f',
-            fontFamily: "'Cinzel', serif",
-            fontSize: '9px',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '14px',
             fontWeight: 700,
-            padding: '1px 5px',
+            padding: '1px 7px',
             borderRadius: '99px',
           }}>{card.cost}</span>
         </div>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>
           {card.type === 'spell' ? 'Spell' : card.unitType}
         </div>
         {card.type === 'unit' && (
-          <div className="grid grid-cols-3 gap-x-1" style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', marginTop: '2px' }}>
-            <span style={{ color: '#f87171' }}>⚔ {card.atk}</span>
-            <span style={{ color: '#4ade80' }}>♥ {card.hp}</span>
-            <span style={{ color: '#60a5fa' }}>⚡ {card.spd}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>{card.atk}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{card.hp}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{card.spd}</div>
+            </div>
           </div>
         )}
         {card.rules && (
           <div style={{
-            fontFamily: "'Crimson Text', serif",
-            fontStyle: 'italic',
-            fontSize: '11px',
-            color: '#8a8aaa',
-            lineHeight: 1.5,
+            fontFamily: 'var(--font-sans)',
+            fontStyle: 'normal',
+            fontSize: '12px',
+            fontWeight: 400,
+            color: '#c0c0d8',
+            lineHeight: 1.6,
             marginTop: '4px',
             borderTop: '0.5px solid #1e1e2e',
             paddingTop: '4px',
