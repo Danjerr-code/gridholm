@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
+import DeckSelect from './DeckSelect.jsx';
 import {
   getChampionMoveTiles,
   moveChampion,
@@ -8,6 +9,8 @@ import {
   playCard,
   summonUnit,
   resolveSpell,
+  resolveHandSelect,
+  resolveFleshtitheSacrifice,
   cancelSpell,
   endActionPhase,
   getUnitMoveTiles,
@@ -18,6 +21,7 @@ import {
   getSpellTargets,
   getArcherShootTargets,
   playerRevealUnit,
+  triggerUnitAction,
 } from '../engine/gameEngine.js';
 import { getGuestId } from '../supabase.js';
 import StatusBar from './StatusBar.jsx';
@@ -47,6 +51,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     opponentDisconnected,
     abandonGame,
     playAgain,
+    selectDeck,
+    inDeckSelect,
+    myDeck,
+    opponentDeck,
   } = useMultiplayerGame(gameId);
 
   // Local UI selection state
@@ -232,8 +240,29 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     );
   }
 
-  // Waiting for player 2 to join (player 1's waiting screen)
-  if (session?.status === 'waiting' && myPlayerIndex === 0) {
+  // Deck selection phase
+  if (inDeckSelect) {
+    // Player hasn't selected their deck yet
+    if (!myDeck) {
+      return (
+        <DeckSelect
+          onSelect={selectDeck}
+          waitingForOpponent={false}
+        />
+      );
+    }
+    // Player selected, waiting for opponent
+    return (
+      <DeckSelect
+        onSelect={selectDeck}
+        waitingForOpponent={true}
+        selectedDeck={myDeck}
+      />
+    );
+  }
+
+  // Waiting for player 2 to join (legacy waiting status or pre-deck-select)
+  if ((session?.status === 'waiting' || (session?.status === 'deck_select' && !session?.player2_id)) && myPlayerIndex === 0) {
     const gameLink = `${window.location.origin}${window.location.pathname}#/game/${gameId}`;
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
@@ -561,9 +590,15 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           isActive={true}
           canPlay={isActiveTurn && phase === 'action'}
           pendingDiscard={pendingDiscard && isActiveTurn}
+          pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
           selectedCard={selectedCard}
           onPlayCard={handlePlayCard}
           onDiscardCard={handleDiscardCard}
+          onHandSelect={async (cardUid) => {
+            if (!gameState) return;
+            const s = resolveHandSelect(gameState, cardUid);
+            await dispatch(s);
+          }}
           onInspectCard={handleInspectCard}
           isMobile={window.innerWidth < 768}
           onMobileTap={handleMobileHandCardTap}

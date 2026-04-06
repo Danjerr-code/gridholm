@@ -8,6 +8,8 @@ import {
   playCard,
   summonUnit,
   resolveSpell,
+  resolveHandSelect,
+  resolveFleshtitheSacrifice,
   cancelSpell,
   endActionPhase,
   getUnitMoveTiles,
@@ -18,24 +20,22 @@ import {
   getSpellTargets,
   getArcherShootTargets,
   playerRevealUnit,
+  triggerUnitAction,
 } from '../engine/gameEngine.js';
 import { runAITurn } from '../engine/ai.js';
 
 const AI_PLAYER = 1;
 
-export function useGameState() {
+export function useGameState({ deckId = 'human' } = {}) {
   const [state, setState] = useState(() => {
-    const s = createInitialState();
+    const s = createInitialState(deckId, 'human'); // AI always human
     return autoAdvancePhase(s);
   });
 
-  // Selected card uid (for summon/spell targeting)
   const [selectedCard, setSelectedCard] = useState(null);
-  // Selected unit uid (for move targeting or archer shoot)
   const [selectedUnit, setSelectedUnit] = useState(null);
-  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target'
+  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice'
   const [selectMode, setSelectMode] = useState(null);
-  // Inspected item for detail panel: null | { type: 'unit', uid: string } | { type: 'card', card: object } | { type: 'terrain', name: string }
   const [inspectedItem, setInspectedItem] = useState(null);
 
   const applyAndMaybeAI = useCallback((newState) => {
@@ -80,12 +80,14 @@ export function useGameState() {
   }, [clearSelection]);
 
   const handlePlayCard = useCallback((cardUid) => {
-    // Clear any selected unit so its move highlights don't persist while playing a card.
     setSelectedUnit(null);
     setSelectMode(null);
     setState(prev => {
       const s = playCard(prev, cardUid);
-      if (s.pendingSummon) {
+      if (s.pendingHandSelect) {
+        setSelectedCard(cardUid);
+        setSelectMode('hand_select');
+      } else if (s.pendingSummon) {
         setSelectedCard(cardUid);
         setSelectMode('summon');
       } else if (s.pendingSpell) {
@@ -100,16 +102,49 @@ export function useGameState() {
     if (!selectedCard) return;
     setState(prev => {
       const s = summonUnit(prev, selectedCard, row, col);
+      if (s.pendingHandSelect) {
+        setSelectMode('hand_select');
+      } else if (s.pendingFleshtitheSacrifice) {
+        setSelectMode('fleshtithe_sacrifice');
+      }
       return s;
     });
-    clearSelection();
-  }, [selectedCard, clearSelection]);
+    if (!state.pendingHandSelect && !state.pendingFleshtitheSacrifice) {
+      clearSelection();
+    }
+  }, [selectedCard, clearSelection, state]);
 
   const handleSpellTarget = useCallback((targetUid) => {
-    if (!selectedCard) return;
-    setState(prev => resolveSpell(prev, selectedCard, targetUid));
+    if (!selectedCard && !state.pendingSpell) return;
+    setState(prev => {
+      const cardUid = prev.pendingSpell?.cardUid ?? selectedCard;
+      const s = resolveSpell(prev, cardUid, targetUid);
+      if (s.pendingSpell) {
+        // multi-step spell continues
+        setSelectMode('spell');
+      } else {
+        clearSelection();
+      }
+      return s;
+    });
+  }, [selectedCard, state, clearSelection]);
+
+  const handleHandSelect = useCallback((cardUid) => {
+    setState(prev => {
+      const s = resolveHandSelect(prev, cardUid);
+      if (s.pendingSpell) {
+        setSelectMode('spell');
+      } else {
+        clearSelection();
+      }
+      return s;
+    });
+  }, [clearSelection]);
+
+  const handleFleshtitheSacrifice = useCallback((choice, sacrificeUid) => {
+    setState(prev => resolveFleshtitheSacrifice(prev, choice, sacrificeUid));
     clearSelection();
-  }, [selectedCard, clearSelection]);
+  }, [clearSelection]);
 
   const handleCancelSpell = useCallback(() => {
     setState(prev => cancelSpell(prev));
@@ -128,8 +163,6 @@ export function useGameState() {
   }, []);
 
   const handleSelectUnit = useCallback((unitUid) => {
-    // Clear previous selection immediately before setting new one, ensuring
-    // old unit's move tiles are not shown alongside the new unit's tiles.
     setSelectedUnit(unitUid);
     setSelectMode('unit_move');
   }, []);
@@ -189,11 +222,22 @@ export function useGameState() {
     clearSelection();
   }, [clearSelection]);
 
+  const handleTriggerUnitAction = useCallback((unitUid) => {
+    setState(prev => {
+      const s = triggerUnitAction(prev, unitUid);
+      if (s.pendingSpell) {
+        setSelectedCard(s.pendingSpell.cardUid);
+        setSelectMode('spell');
+      }
+      return s;
+    });
+  }, []);
+
   const handleNewGame = useCallback(() => {
-    const s = createInitialState();
+    const s = createInitialState(deckId, 'human');
     setState(autoAdvancePhase(s));
     clearSelection();
-  }, [clearSelection]);
+  }, [clearSelection, deckId]);
 
   // ── Derived highlight data ─────────────────────────────────────────────
 
@@ -209,10 +253,10 @@ export function useGameState() {
     ? getUnitMoveTiles(state, selectedUnit)
     : [];
 
-  const spellTargetUids = selectMode === 'spell' && selectedCard
+  const spellTargetUids = selectMode === 'spell' && state.pendingSpell
     ? (() => {
-        const card = state.players[state.activePlayer].hand.find(c => c.uid === selectedCard);
-        return card ? getSpellTargets(state, card.effect) : [];
+        const ps = state.pendingSpell;
+        return getSpellTargets(state, ps.effect, ps.step || 0, ps.data || {});
       })()
     : [];
 
@@ -236,6 +280,8 @@ export function useGameState() {
       handlePlayCard,
       handleSummonOnTile,
       handleSpellTarget,
+      handleHandSelect,
+      handleFleshtitheSacrifice,
       handleCancelSpell,
       handleEndAction,
       handleSelectChampion,
@@ -246,6 +292,7 @@ export function useGameState() {
       handleEndTurn,
       handleDiscardCard,
       handleRevealUnit,
+      handleTriggerUnitAction,
       handleNewGame,
       clearSelection,
       handleInspectUnit,

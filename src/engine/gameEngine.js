@@ -32,7 +32,7 @@ function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
 function getPlayer(state) { return state.players[state.activePlayer]; }
 
-// Returns the total ATK aura bonus applied to a unit from all friendly aura units on the board.
+// Returns effective ATK bonus from friendly/enemy auras (stat === 'atk')
 export function getAuraAtkBonus(state, unit) {
   let bonus = 0;
   for (const other of state.units) {
@@ -42,7 +42,7 @@ export function getAuraAtkBonus(state, unit) {
       bonus += other.aura.value;
     }
   }
-  // Enemy debuff auras (e.g. Aendor): enemy units with aura.target === 'enemy' reduce this unit's ATK
+  // Enemy debuff auras (e.g. Aendor)
   for (const other of state.units) {
     if (other.owner === unit.owner) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target !== 'enemy') continue;
@@ -53,25 +53,51 @@ export function getAuraAtkBonus(state, unit) {
   return bonus;
 }
 
-// HP aura stub — no HP aura cards exist yet, but follows the same pattern for future use.
-export function getAuraHpBonus(/* state, unit */) {
-  // Future: scan state.units for aura.stat === 'hp' and sum bonuses within range.
-  return 0;
+// Standard Bearer "both" aura: +1 ATK and +1 HP in combat (not permanent).
+// Returns { atk, hp } bonuses from Standard Bearer within range.
+function getStandardBearerBonus(state, unit) {
+  let atk = 0, hp = 0;
+  for (const other of state.units) {
+    if (other.owner !== unit.owner || other.uid === unit.uid) continue;
+    if (!other.aura || other.aura.stat !== 'both') continue;
+    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+      atk += other.aura.value;
+      hp += other.aura.value;
+    }
+  }
+  return { atk, hp };
 }
 
-// SPD aura stub — no SPD aura cards exist yet, follows same pattern for future use.
-export function getAuraSpdBonus(/* state, unit */) {
-  // Future: scan state.units for aura.stat === 'spd' and sum bonuses within range.
-  return 0;
+// Pack Runt: +1/+1 per other friendly Beast combat unit in play
+function getPackRuntBonus(state, unit) {
+  if (unit.id !== 'packrunt') return { atk: 0, hp: 0 };
+  const count = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType === 'Beast').length;
+  return { atk: count, hp: count };
 }
 
 function effectiveAtk(state, unit) {
-  return Math.max(0, unit.atk + (unit.atkBonus || 0) + getAuraAtkBonus(state, unit));
+  const base = unit.atk + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit);
+  const sbBonus = getStandardBearerBonus(state, unit).atk;
+  const packBonus = getPackRuntBonus(state, unit).atk;
+  return Math.max(0, base + sbBonus + packBonus);
 }
 
-// Exported variant for UI components that need the resolved ATK value.
 export function getEffectiveAtk(state, unit) {
   return effectiveAtk(state, unit);
+}
+
+export function getEffectiveSpd(unit) {
+  return unit.spd + (unit.speedBonus || 0);
+}
+
+// HP aura stub
+export function getAuraHpBonus(/* state, unit */) {
+  return 0;
+}
+
+// SPD aura stub
+export function getAuraSpdBonus(/* state, unit */) {
+  return 0;
 }
 
 // Deep-clone state
@@ -79,25 +105,53 @@ export function cloneState(state) {
   return JSON.parse(JSON.stringify(state));
 }
 
+// ── HP restore hook ────────────────────────────────────────────────────────
+// Called whenever any HP is restored to the active player's champion or any
+// friendly unit during the active player's turn.
+
+function onRestoreHP(state) {
+  // Moonveil Mystic: gains +1/+1 once per restore event
+  const mystic = state.units.find(u => u.owner === state.activePlayer && u.id === 'moonveilmystic');
+  if (mystic) {
+    mystic.atk += 1;
+    mystic.hp += 1;
+    mystic.maxHp += 1;
+    addLog(state, `Moonveil Mystic grows! Now ${mystic.atk}/${mystic.hp}.`);
+  }
+}
+
+// Restore HP to a unit/champion and fire the hook. Returns actual amount healed.
+function restoreHp(state, target, amount) {
+  const before = target.hp;
+  target.hp = Math.min(target.maxHp, target.hp + amount);
+  const healed = target.hp - before;
+  if (healed > 0) {
+    state.players[state.activePlayer].hpRestoredThisTurn =
+      (state.players[state.activePlayer].hpRestoredThisTurn || 0) + healed;
+    onRestoreHP(state);
+  }
+  return healed;
+}
+
 // ── initializer ────────────────────────────────────────────────────────────
 
-export function createInitialState() {
-  const p1Deck = shuffle(buildDeck());
-  const p2Deck = shuffle(buildDeck());
+export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
+  const p1Deck = shuffle(buildDeck(p1DeckId));
+  const p2Deck = shuffle(buildDeck(p2DeckId));
 
   const p1Hand = p1Deck.splice(0, 5);
   const p2Hand = p2Deck.splice(0, 5);
 
   return {
     turn: 1,
-    activePlayer: 0, // 0 = P1, 1 = P2
+    activePlayer: 0,
     phase: 'begin-turn',
-    phaseStep: 0, // for auto-phases
+    phaseStep: 0,
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [] },
-      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [] },
+      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0 },
+      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -105,11 +159,10 @@ export function createInitialState() {
     ],
     units: [],
     log: ['Game started. P1 goes first. Both players start with 5 cards. P1 skips draw on turn 1.'],
-    // Pending spell state
-    pendingSpell: null, // { cardUid, effect, playerIdx }
-    // Archer shot tracking: set of unit UIDs that used skip-to-shoot this turn
+    pendingSpell: null,   // { cardUid, effect, playerIdx, step, data }
+    pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
+    pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     archerShot: [],
-    // Recall tracking: card IDs recalled this turn cannot be replayed
     recalledThisTurn: [],
   };
 }
@@ -121,23 +174,29 @@ function addLog(state, msg) {
 }
 
 // ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
-// Hidden units are face-down tokens invisible to the opponent.
-// - Movement: Hidden units move at most 1 tile per turn regardless of base SPD.
-//   Moving does not reveal the unit.
-// - Reveal triggers (automatically): enemy unit steps onto hidden tile (combat
-//   resolves normally after reveal); enemy champion moves adjacent to hidden
-//   unit (reveal, no combat).
-// - Player-initiated reveal: controlling player may reveal as the unit's action;
-//   the unit is marked moved:true and cannot act further this turn.
-// - Spell/ability targeting while hidden: Smite, Forge Weapon, Iron Shield, and
-//   Swift Step cannot target hidden units. Recall can. Mend Allies and area spells
-//   (Crownshatter, Imp Time Bomb) skip hidden units.
-// - After reveal the unit is a full combat unit. All spells and abilities can
-//   target it. Its full SPD applies from the next turn onward.
 
 function revealUnit(state, unit) {
   unit.hidden = false;
   addLog(state, `${unit.name} revealed!`);
+  // On-reveal effects
+  if (unit.id === 'shadowtrap') {
+    // On reveal: destroy the enemy unit that revealed this unit (handled at call site)
+  }
+  if (unit.id === 'veilfiend') {
+    // On reveal: deal 2 damage to all adjacent enemy units
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    const targets = state.units.filter(u => u.owner !== unit.owner && adj.some(([r, c]) => u.row === r && u.col === c));
+    for (const t of targets) {
+      applyDamageToUnit(state, t, 2, unit.name);
+    }
+    state.units = state.units.filter(u => u.hp > 0);
+    if (targets.length) addLog(state, `Veil Fiend reveal: ${targets.length} adjacent enemies hit for 2 damage.`);
+  }
+  if (unit.id === 'dreadshade') {
+    // On reveal: gains +2 ATK this turn
+    unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
+    addLog(state, `Dread Shade reveal: +2 ATK this turn.`);
+  }
 }
 
 export function playerRevealUnit(state, unitUid) {
@@ -160,7 +219,7 @@ export function autoAdvancePhase(state) {
 function doBeginTurnPhase(state) {
   const p = state.players[state.activePlayer];
 
-  // Draw: P1 skips draw on turn 1
+  // Draw
   let drawnCard = null;
   const skipDraw = state.turn === 1 && state.activePlayer === 0;
   if (!skipDraw) {
@@ -170,11 +229,9 @@ function doBeginTurnPhase(state) {
 
   // Gain resources
   p.turnCount = (p.turnCount || 0) + 1;
-  // P2 going-second bonus: first turn grants 2 resources instead of 1
   const bonus = state.activePlayer === 1 ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
 
-  // Combined begin-turn log entry
   const drawnPart = skipDraw
     ? 'Skipped draw (turn 1 rule).'
     : drawnCard
@@ -182,35 +239,52 @@ function doBeginTurnPhase(state) {
       : 'No cards left to draw.';
   addLog(state, `${p.name} begins turn ${p.turnCount}. ${drawnPart} Resources: ${p.resources}/10.`);
 
-  // BEGIN TURN TRIGGERS - card abilities fire here
+  // Reset hpRestoredThisTurn
+  p.hpRestoredThisTurn = 0;
 
-  // Imp Time Bomb: sacrifice to deal 2 damage to all units within 2 tiles
-  const impBombs = state.units.filter(u => u.owner === state.activePlayer && u.id === 'imptimebomb');
-  for (const bomb of impBombs) {
-    // Hidden units are unaffected by Imp Time Bomb area damage
-    const nearby = state.units.filter(u => !u.hidden && manhattan([u.row, u.col], [bomb.row, bomb.col]) <= 2 && u.uid !== bomb.uid);
-    for (const target of nearby) {
-      target.hp -= 2;
+  // BEGIN TURN TRIGGERS
+
+  // Paladin Aura: permanent max HP for adjacent friendly combat units
+  const paladins = state.units.filter(u => u.owner === state.activePlayer && u.id === 'paladin');
+  for (const pal of paladins) {
+    const adj = cardinalNeighbors(pal.row, pal.col);
+    const nearby = state.units.filter(u =>
+      u.owner === state.activePlayer &&
+      u.uid !== pal.uid &&
+      adj.some(([r, c]) => u.row === r && u.col === c)
+    );
+    for (const u of nearby) {
+      const wasAtMax = u.hp === u.maxHp;
+      u.maxHp += 1;
+      if (wasAtMax) u.hp += 1;
     }
-    state.units = state.units.filter(u => u.uid !== bomb.uid);
-    addLog(state, `Imp Time Bomb explodes! ${nearby.length} units hit.`);
+    if (nearby.length) addLog(state, `Paladin Aura: ${nearby.length} adjacent unit(s) gain +1 max HP.`);
   }
-  // Remove units killed by the explosion
-  state.units = state.units.filter(u => u.hp > 0);
 
-  // Zmore, Sleeping Ash: deal 1 damage to all enemy units at beginning of owner's turn
-  const zmores = state.units.filter(u => u.owner === state.activePlayer && u.id === 'zmore');
-  for (const zmore of zmores) {
-    const enemies = state.units.filter(u => u.owner !== state.activePlayer);
-    for (const enemy of enemies) {
-      enemy.hp -= 1;
+  // Clear martial law from the opponent's units (applied last turn)
+  state.units.forEach(u => {
+    if (u.owner !== state.activePlayer && u.martialLaw) {
+      u.moved = true; // skip action
+      u.martialLaw = false;
     }
-    addLog(state, `Zmore, Sleeping Ash awakens! All enemy units take 1 damage.`);
-  }
-  // Remove units killed by Zmore
-  state.units = state.units.filter(u => u.hp > 0);
+  });
 
-  // Clear recalled-this-turn at the start of each turn
+  // Clear summoning sickness and per-turn bonuses for active player
+  state.units.forEach(u => {
+    if (u.owner === state.activePlayer) {
+      u.summoned = false;
+      u.moved = false;
+      u.speedBonus = 0;
+      u.turnAtkBonus = 0;
+      // Clear razorfang reset used flag
+      if (u.id === 'razorfang') u.razorfangResetUsed = false;
+    }
+  });
+
+  // Reset champion moved state
+  state.champions[state.activePlayer].moved = false;
+
+  // Clear recalled-this-turn
   state.recalledThisTurn = [];
 
   state.phase = 'action';
@@ -236,7 +310,12 @@ export function moveChampion(state, row, col) {
   // Reveal Hidden enemy units adjacent to champion's new position
   for (const [nr, nc] of cardinalNeighbors(row, col)) {
     const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
-    if (hiddenEnemy) revealUnit(s, hiddenEnemy);
+    if (hiddenEnemy) {
+      revealUnit(s, hiddenEnemy);
+      if (hiddenEnemy.id === 'shadowtrap') {
+        // Shadow Trap: destroy the unit that revealed it (champion can't be destroyed, skip)
+      }
+    }
   }
   return s;
 }
@@ -258,69 +337,165 @@ export function playCard(state, cardUid) {
   if (p.resources < card.cost) return s;
 
   if (card.type === 'unit') {
-    // Recalled units cannot be played the turn they were recalled
     if ((s.recalledThisTurn || []).includes(card.id)) return s;
-    // Unit summon — needs a target tile; return state with pendingSummon marker
     s.pendingSummon = { cardUid, card };
     return s;
   }
 
   if (card.type === 'spell') {
-    // Some spells need a target, some don't
-    if (card.effect === 'mendallies') {
+    // Spells that resolve immediately without a target
+    if (card.effect === 'overgrowth') {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      // Restore 2 HP to all friendly units (Hidden units are not restored)
       s.units.forEach(u => {
         if (u.owner === s.activePlayer && !u.hidden) {
-          u.hp = Math.min(u.maxHp, u.hp + 2);
+          const healed = restoreHp(s, u, 2);
+          if (healed > 0) addLog(s, `${u.name} restored ${healed} HP.`);
         }
       });
-      addLog(s, `${p.name} casts Mend Allies. All friendly units restored 2 HP.`);
-    } else if (card.effect === 'rallyingcry') {
+      // Also restore champion
+      const champ = s.champions[s.activePlayer];
+      const champHealed = restoreHp(s, champ, 2);
+      if (champHealed > 0) addLog(s, `${p.name}'s champion restored ${champHealed} HP.`);
+      addLog(s, `${p.name} casts Overgrowth. All friendly units restore 2 HP.`);
+      return s;
+    }
+
+    if (card.effect === 'packhowl') {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      // All friendly units gain +1 SPD this turn
       s.units.forEach(u => {
-        if (u.owner === s.activePlayer) {
+        if (u.owner === s.activePlayer && u.unitType === 'Beast') {
           u.speedBonus = (u.speedBonus || 0) + 1;
         }
       });
-      addLog(s, `${p.name} casts Rallying Cry. All friendly units gain +1 SPD this turn.`);
-    } else if (card.effect === 'crownshatter') {
+      addLog(s, `${p.name} casts Pack Howl. All friendly Beasts gain +1 SPD this turn.`);
+      return s;
+    }
+
+    if (card.effect === 'callofthesnakes') {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      // Deal 3 damage to all units within 2 tiles of the Throne (row 2, col 2)
-      // Hidden units are unaffected by Crownshatter area damage
-      const throneRow = 2, throneCol = 2;
-      const hit = s.units.filter(u => !u.hidden && manhattan([u.row, u.col], [throneRow, throneCol]) <= 2);
-      for (const u of hit) {
-        u.hp -= 3;
-        addLog(s, `Crownshatter hits ${u.name} for 3 damage (${u.hp}/${u.maxHp} HP).`);
+      const champ = s.champions[s.activePlayer];
+      const adj = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) => !isTileOccupied(s, r, c));
+      for (const [r, c] of adj) {
+        s.units.push({
+          id: 'snake', name: 'Snake', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
+          unitType: 'Beast', rules: '', owner: s.activePlayer, row: r, col: c,
+          summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
+          uid: `snake_${Math.random().toString(36).slice(2)}`,
+        });
       }
-      const destroyed = hit.filter(u => u.hp <= 0);
-      for (const u of destroyed) {
-        addLog(s, `${u.name} is destroyed.`);
-        onFriendlyUnitDestroyed(s, u);
-      }
-      s.units = s.units.filter(u => u.hp > 0);
-      addLog(s, `${p.name} casts Crownshatter! ${hit.length} unit(s) hit.`);
-    } else if (card.effect === 'ironthorns') {
+      addLog(s, `${p.name} casts Call of the Snakes. ${adj.length} Snake(s) summoned.`);
+      return s;
+    }
+
+    if (card.effect === 'rally') {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      // Give the active player's champion a thorn shield
+      s.units.forEach(u => {
+        if (u.owner === s.activePlayer) {
+          u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
+        }
+      });
+      addLog(s, `${p.name} casts Rally. All friendly units gain +1 ATK this turn.`);
+      return s;
+    }
+
+    if (card.effect === 'crusade') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      s.units.forEach(u => {
+        if (u.owner === s.activePlayer) {
+          u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
+        }
+      });
+      addLog(s, `${p.name} casts Crusade. All friendly units gain +2 ATK this turn.`);
+      return s;
+    }
+
+    if (card.effect === 'ironthorns') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
       const champ = s.champions[s.activePlayer];
       champ.thornShield = { absorb: 3, thornDamage: 3 };
       addLog(s, `${p.name} casts Iron Thorns. Champion gains a thorn shield (absorb 3, thorn 3).`);
-    } else {
-      // Needs target — set pendingSpell
-      s.pendingSpell = { cardUid, effect: card.effect, playerIdx: s.activePlayer };
       return s;
     }
+
+    if (card.effect === 'infernalpact') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      const champ = s.champions[s.activePlayer];
+      champ.hp = Math.max(1, champ.hp - 3);
+      addLog(s, `${p.name} casts Infernal Pact. Champion takes 3 damage.`);
+      s.units.forEach(u => {
+        if (u.owner === s.activePlayer && u.unitType === 'Demon') {
+          u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
+        }
+      });
+      addLog(s, `All friendly Demons gain +2 ATK this turn.`);
+      return s;
+    }
+
+    if (card.effect === 'martiallaw') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      const champ = s.champions[s.activePlayer];
+      const affected = s.units.filter(u =>
+        u.owner !== s.activePlayer &&
+        manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
+      );
+      for (const u of affected) {
+        u.martialLaw = true;
+      }
+      addLog(s, `${p.name} casts Martial Law. ${affected.length} enemy unit(s) affected.`);
+      return s;
+    }
+
+    if (card.effect === 'fortify') {
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      s.units.forEach(u => {
+        if (u.owner === s.activePlayer) {
+          u.hp = Math.min(u.maxHp + 2, u.hp + 2);
+          u.fortifyBonus = (u.fortifyBonus || 0) + 2;
+        }
+      });
+      addLog(s, `${p.name} casts Fortify. All friendly units gain +2 HP until next turn.`);
+      return s;
+    }
+
+    // Pact of Ruin: needs hand card selection first, then enemy target
+    if (card.effect === 'pactofruin') {
+      if (p.hand.length <= 1) {
+        // No other cards to discard — skip the discard step and deal damage directly
+        p.resources -= card.cost;
+        p.hand.splice(cardIdx, 1);
+        p.discard.push(card);
+        s.pendingSpell = { cardUid: null, effect: 'pactofruin_damage', playerIdx: s.activePlayer, step: 0, data: {} };
+        return s;
+      }
+      // Need to select a card to discard first
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
+      return s;
+    }
+
+    // Needs a target — set pendingSpell
+    s.pendingSpell = { cardUid, effect: card.effect, playerIdx: s.activePlayer, step: 0, data: {} };
+    return s;
   }
   return s;
 }
@@ -344,65 +519,432 @@ export function summonUnit(state, cardUid, row, col) {
     owner: s.activePlayer,
     row, col,
     maxHp: card.hp,
-    summoned: card.rush ? false : true, // Rush units can move immediately
+    summoned: card.rush ? false : true,
     moved: false,
     atkBonus: 0,
     shield: 0,
     speedBonus: 0,
+    turnAtkBonus: 0,
     hidden: card.hidden || false,
   };
+
+  // Apply Sergeant buff if active
+  if (s.players[s.activePlayer].sergeantBuff) {
+    unit.atk += 1;
+    unit.hp += 1;
+    unit.maxHp += 1;
+    s.players[s.activePlayer].sergeantBuff = false;
+    addLog(s, `Sergeant buff applied: ${unit.name} gains +1/+1.`);
+  }
+
   s.units.push(unit);
   addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
 
   // Elf Elder on-summon: restore 2 HP to champion
   if (card.id === 'elfelder') {
     const champ = s.champions[s.activePlayer];
-    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
-    addLog(s, `Elf Elder restores 2 HP to ${p.name}'s champion.`);
+    const healed = restoreHp(s, champ, 2);
+    addLog(s, `Elf Elder: champion restores ${healed} HP.`);
+  }
+
+  // Chaos Spawn on-summon: prompt to discard a card and draw
+  if (card.id === 'chaospawn') {
+    if (p.hand.length > 0) {
+      s.pendingHandSelect = { reason: 'chaospawn', cardUid: unit.uid, data: {} };
+    } else {
+      // No cards to discard, just draw
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(s, `Chaos Spawn: drew ${drawn.name}.`);
+      }
+    }
+  }
+
+  // Flesh Tithe on-summon: ask if player wants to sacrifice a unit
+  if (card.id === 'fleshtithe') {
+    const friendlyUnits = s.units.filter(u => u.owner === s.activePlayer && u.uid !== unit.uid);
+    if (friendlyUnits.length > 0) {
+      s.pendingFleshtitheSacrifice = { unitUid: unit.uid };
+    } else {
+      addLog(s, `Flesh Tithe: enters as 3/3 (no units to sacrifice).`);
+    }
   }
 
   return s;
 }
 
+// ── hand card selection ───────────────────────────────────────────────────
+// Called when player selects a card from hand during pendingHandSelect.
+
+export function resolveHandSelect(state, selectedCardUid) {
+  const s = cloneState(state);
+  const hs = s.pendingHandSelect;
+  if (!hs) return s;
+  const p = s.players[s.activePlayer];
+
+  if (hs.reason === 'pactofruin') {
+    // Discard the selected card
+    const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
+    if (idx !== -1) {
+      const [discarded] = p.hand.splice(idx, 1);
+      p.discard.push(discarded);
+      addLog(s, `Pact of Ruin: ${discarded.name} discarded.`);
+    }
+    s.pendingHandSelect = null;
+    // Now need to select an enemy target for 3 damage
+    s.pendingSpell = { cardUid: null, effect: 'pactofruin_damage', playerIdx: s.activePlayer, step: 0, data: {} };
+    return s;
+  }
+
+  if (hs.reason === 'chaospawn') {
+    // Discard the selected card
+    const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
+    if (idx !== -1) {
+      const [discarded] = p.hand.splice(idx, 1);
+      p.discard.push(discarded);
+      addLog(s, `Chaos Spawn: ${discarded.name} discarded.`);
+    }
+    // Draw a card
+    const drawn = p.deck.shift();
+    if (drawn) {
+      p.hand.push(drawn);
+      addLog(s, `Chaos Spawn: drew ${drawn.name}.`);
+    }
+    s.pendingHandSelect = null;
+    return s;
+  }
+
+  s.pendingHandSelect = null;
+  return s;
+}
+
+// ── Flesh Tithe sacrifice ─────────────────────────────────────────────────
+
+export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
+  // choice: 'yes' | 'no'
+  const s = cloneState(state);
+  const pending = s.pendingFleshtitheSacrifice;
+  if (!pending) return s;
+
+  const fleshtithe = s.units.find(u => u.uid === pending.unitUid);
+  s.pendingFleshtitheSacrifice = null;
+
+  if (choice === 'yes' && sacrificeUid && fleshtithe) {
+    const sacrifice = s.units.find(u => u.uid === sacrificeUid);
+    if (sacrifice) {
+      addLog(s, `Flesh Tithe: ${sacrifice.name} sacrificed.`);
+      s.units = s.units.filter(u => u.uid !== sacrifice.uid);
+      onFriendlyUnitDestroyed(s, sacrifice);
+      if (fleshtithe) {
+        fleshtithe.atk += 2;
+        fleshtithe.hp += 2;
+        fleshtithe.maxHp += 2;
+        addLog(s, `Flesh Tithe: gains +2/+2. Now ${fleshtithe.atk}/${fleshtithe.hp}.`);
+      }
+    }
+  } else {
+    addLog(s, `Flesh Tithe: enters as 3/3.`);
+  }
+
+  return s;
+}
+
+// ── spell resolution ──────────────────────────────────────────────────────
+
 export function resolveSpell(state, cardUid, targetUnitUid) {
   const s = cloneState(state);
+  const pending = s.pendingSpell;
+  if (!pending) return s;
+
   const p = s.players[s.activePlayer];
-  const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) return s;
-  const card = p.hand[cardIdx];
-  if (p.resources < card.cost) return s;
 
-  p.resources -= card.cost;
-  p.hand.splice(cardIdx, 1);
-  p.discard.push(card);
+  // For spells that consumed resources at pendingSpell creation we don't deduct again.
+  // For spells that set pendingSpell from playCard, resources/hand already consumed.
+  // Special case: 'pactofruin_damage' was already paid.
+  const isPaid = pending.effect === 'pactofruin_damage';
+
+  if (!isPaid) {
+    const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
+    if (cardIdx === -1) return s;
+    const card = p.hand[cardIdx];
+    if (p.resources < card.cost) return s;
+    p.resources -= card.cost;
+    p.hand.splice(cardIdx, 1);
+    p.discard.push(card);
+  }
+
   s.pendingSpell = null;
+  const target = targetUnitUid ? s.units.find(u => u.uid === targetUnitUid) : null;
+  const effect = pending.effect;
+  const step = pending.step || 0;
+  const data = pending.data || {};
 
-  const target = s.units.find(u => u.uid === targetUnitUid);
-
-  if (card.effect === 'smite' && target) {
-    const champ = s.champions[s.activePlayer];
-    if (manhattan([champ.row, champ.col], [target.row, target.col]) <= 2) {
-      applyDamageToUnit(s, target, 4, p.name);
+  // ── Smite ──
+  if (effect === 'smite') {
+    if (target) {
+      const champ = s.champions[s.activePlayer];
+      if (manhattan([champ.row, champ.col], [target.row, target.col]) <= 2) {
+        applyDamageToUnit(s, target, 4, 'Smite');
+      }
+      s.units = s.units.filter(u => u.hp > 0);
     }
-  } else if (card.effect === 'forgeweapon' && target) {
-    target.atkBonus = (target.atkBonus || 0) + 3;
-    addLog(s, `${p.name} forges weapon on ${target.name}. +3 ATK.`);
-  } else if (card.effect === 'ironshield' && target) {
-    target.shield = (target.shield || 0) + 5;
-    addLog(s, `${p.name} gives Iron Shield to ${target.name}.`);
-  } else if (card.effect === 'recall' && target) {
-    // Return the unit to the owner's hand, restored to base stats
-    const { owner: _o, row: _r, col: _c, maxHp: _mh, summoned: _s, moved: _mv,
-            atkBonus: _ab, shield: _sh, speedBonus: _sb, ...baseFields } = target;
-    const recalledCard = {
-      ...baseFields,
-      hp: target.maxHp, // restore to full HP
-      uid: `${target.id}_${Math.random().toString(36).slice(2)}`,
-    };
-    s.units = s.units.filter(u => u.uid !== target.uid);
-    p.hand.push(recalledCard);
-    s.recalledThisTurn = [...(s.recalledThisTurn || []), recalledCard.id];
-    addLog(s, `${target.name} recalled to hand. Cannot be played this turn.`);
+  }
+  // ── Forge Weapon ──
+  else if (effect === 'forgeweapon') {
+    if (target) {
+      target.atkBonus = (target.atkBonus || 0) + 3;
+      addLog(s, `${p.name} forges weapon on ${target.name}. +3 ATK.`);
+    }
+  }
+  // ── Iron Shield ──
+  else if (effect === 'ironshield') {
+    if (target) {
+      target.shield = (target.shield || 0) + 5;
+      addLog(s, `${p.name} gives Iron Shield to ${target.name}.`);
+    }
+  }
+  // ── Recall ──
+  else if (effect === 'recall') {
+    if (target) {
+      const { owner: _o, row: _r, col: _c, maxHp: _mh, summoned: _s, moved: _mv,
+              atkBonus: _ab, shield: _sh, speedBonus: _sb, turnAtkBonus: _ta, ...baseFields } = target;
+      const recalledCard = { ...baseFields, hp: target.maxHp, uid: `${target.id}_${Math.random().toString(36).slice(2)}` };
+      s.units = s.units.filter(u => u.uid !== target.uid);
+      p.hand.push(recalledCard);
+      s.recalledThisTurn = [...(s.recalledThisTurn || []), recalledCard.id];
+      addLog(s, `${target.name} recalled to hand. Cannot be played this turn.`);
+    }
+  }
+  // ── Moonleaf ──
+  else if (effect === 'moonleaf') {
+    if (target) {
+      const handCount = p.hand.length; // hand size AFTER playing moonleaf (already removed)
+      target.maxHp += handCount;
+      const healed = restoreHp(s, target, handCount);
+      addLog(s, `Moonleaf: ${target.name} gains +${handCount} HP.`);
+    }
+  }
+  // ── Bloom (step 0: friendly, step 1: enemy) ──
+  else if (effect === 'bloom') {
+    if (step === 0) {
+      // Friendly unit selected: restore 2 HP
+      if (target) {
+        const healed = restoreHp(s, target, 2);
+        addLog(s, `Bloom: ${target.name} restored ${healed} HP.`);
+      }
+      // Now pick enemy target
+      s.pendingSpell = { cardUid, effect: 'bloom', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
+    } else {
+      // Step 1: enemy target — deal damage equal to hpRestoredThisTurn
+      if (target) {
+        const dmg = p.hpRestoredThisTurn || 0;
+        addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
+        applyDamageToUnit(s, target, dmg, 'Bloom');
+        s.units = s.units.filter(u => u.hp > 0);
+      }
+    }
+  }
+  // ── Bloom step 1 can come back through resolveSpell after s.pendingSpell is set ──
+  else if (effect === 'bloom' && step === 1) {
+    if (target) {
+      const dmg = p.hpRestoredThisTurn || 0;
+      addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
+      applyDamageToUnit(s, target, dmg, 'Bloom');
+      s.units = s.units.filter(u => u.hp > 0);
+    }
+  }
+  // ── Entangle ──
+  else if (effect === 'entangle') {
+    if (target) {
+      const adj = cardinalNeighbors(target.row, target.col);
+      const affected = s.units.filter(u =>
+        u.owner !== s.activePlayer &&
+        adj.some(([r, c]) => u.row === r && u.col === c)
+      );
+      for (const u of affected) u.martialLaw = true;
+      addLog(s, `Entangle: ${affected.length} enemy unit(s) around ${target.name} cannot move next turn.`);
+    }
+  }
+  // ── Predator's Mark ──
+  else if (effect === 'predatorsmark') {
+    if (target) {
+      target.martialLaw = true;
+      addLog(s, `Predator's Mark: ${target.name} cannot act next turn.`);
+    }
+  }
+  // ── Pounce ──
+  else if (effect === 'pounce') {
+    if (target) {
+      // Select this unit: mark as pending for movement (handled by UI selecting tiles)
+      // Engine-side: just mark the unit as pounce-ready (engine resolves actual move via moveUnit)
+      target.pounceReady = true;
+      addLog(s, `Pounce: ${target.name} may move up to 2 tiles ignoring sickness.`);
+      // The UI will trigger moveUnit which respects pounceReady
+    }
+  }
+  // ── Savage Growth ──
+  else if (effect === 'savagegrowth') {
+    if (target) {
+      target.atk += 2;
+      target.hp += 2;
+      target.maxHp += 2;
+      addLog(s, `Savage Growth: ${target.name} gains +2/+2 permanently.`);
+    }
+  }
+  // ── Ambush (step 0: friendly Beast, step 1: adjacent enemy) ──
+  else if (effect === 'ambush') {
+    if (step === 0) {
+      // Select a friendly Beast unit
+      if (target) {
+        s.pendingSpell = { cardUid, effect: 'ambush', playerIdx: s.activePlayer, step: 1, data: { beastUid: target.uid, paid: true } };
+      }
+    } else {
+      // Step 1: select adjacent enemy (unit or champion implied via uid)
+      const beast = s.units.find(u => u.uid === data.beastUid);
+      if (beast && target) {
+        // Resolve combat: beast attacks target without moving
+        const attackerAtk = effectiveAtk(s, beast);
+        addLog(s, `Ambush: ${beast.name} battles ${target.name}!`);
+        applyDamageToUnit(s, target, attackerAtk, beast.name);
+        // Beast does NOT take counterattack from enemy unit combat in Ambush
+        s.units = s.units.filter(u => u.hp > 0);
+      }
+    }
+  }
+  // ── Blood Offering (step 0: sacrifice, step 1: enemy target) ──
+  else if (effect === 'bloodoffering') {
+    if (step === 0) {
+      // Select friendly unit to sacrifice
+      if (target) {
+        const sacrificeAtk = target.atk;
+        addLog(s, `Blood Offering: ${target.name} (${sacrificeAtk} ATK) sacrificed.`);
+        s.units = s.units.filter(u => u.uid !== target.uid);
+        onFriendlyUnitDestroyed(s, target);
+        s.pendingSpell = { cardUid, effect: 'bloodoffering', playerIdx: s.activePlayer, step: 1, data: { sacrificeAtk, paid: true } };
+      }
+    } else {
+      // Step 1: deal sacrifice ATK damage to enemy target
+      if (target) {
+        const dmg = data.sacrificeAtk || 0;
+        addLog(s, `Blood Offering: ${dmg} damage to ${target.name}.`);
+        applyDamageToUnit(s, target, dmg, 'Blood Offering');
+        s.units = s.units.filter(u => u.hp > 0);
+      }
+    }
+  }
+  // ── Pact of Ruin damage ──
+  else if (effect === 'pactofruin_damage') {
+    if (target) {
+      addLog(s, `Pact of Ruin: 3 damage to ${target.name}.`);
+      applyDamageToUnit(s, target, 3, 'Pact of Ruin');
+      s.units = s.units.filter(u => u.hp > 0);
+    }
+  }
+  // ── Dark Sentence ──
+  else if (effect === 'darksentence') {
+    if (target) {
+      addLog(s, `Dark Sentence: ${target.name} destroyed.`);
+      s.units = s.units.filter(u => u.uid !== target.uid);
+      onFriendlyUnitDestroyed(s, target);
+    }
+  }
+  // ── Devour ──
+  else if (effect === 'devour') {
+    if (target && target.hp <= 2) {
+      addLog(s, `Devour: ${target.name} consumed.`);
+      s.units = s.units.filter(u => u.uid !== target.uid);
+      onFriendlyUnitDestroyed(s, target);
+    }
+  }
+  // ── Shadow Veil ──
+  else if (effect === 'shadowveil') {
+    if (target) {
+      target.hidden = true;
+      addLog(s, `Shadow Veil: ${target.name} becomes Hidden.`);
+    }
+  }
+  // ── Soul Drain ──
+  else if (effect === 'souldrain') {
+    if (target) {
+      const actualDmg = Math.min(2, target.hp);
+      addLog(s, `Soul Drain: 2 damage to ${target.name}.`);
+      applyDamageToUnit(s, target, 2, 'Soul Drain');
+      s.units = s.units.filter(u => u.hp > 0);
+      const champ = s.champions[s.activePlayer];
+      const healed = restoreHp(s, champ, actualDmg);
+      addLog(s, `Soul Drain: champion restores ${healed} HP.`);
+    }
+  }
+  // ── Woodland Guard action ──
+  else if (effect === 'woodlandguard_action') {
+    if (target) {
+      addLog(s, `Woodland Guard: deals 2 damage to ${target.name}.`);
+      applyDamageToUnit(s, target, 2, 'Woodland Guard');
+      s.units = s.units.filter(u => u.hp > 0);
+    }
+  }
+  // ── Battle Priest action (step 0: enemy, step 1: friendly) ──
+  else if (effect === 'battlepriestunit_action') {
+    if (step === 0) {
+      // Enemy target selected
+      if (target) {
+        addLog(s, `Battle Priest: deals 2 damage to ${target.name}.`);
+        applyDamageToUnit(s, target, 2, 'Battle Priest');
+        s.units = s.units.filter(u => u.hp > 0);
+      }
+      s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
+    } else {
+      // Friendly target selected: restore 2 HP
+      if (target) {
+        const healed = restoreHp(s, target, 2);
+        addLog(s, `Battle Priest: restores ${healed} HP to ${target.name}.`);
+      }
+    }
+  }
+  // ── Grove Warden action ──
+  else if (effect === 'grovewarden_action') {
+    const elfCount = s.units.filter(u => u.owner === s.activePlayer && u.unitType === 'Elf' && u.id !== 'grovewarden').length;
+    const champ = s.champions[s.activePlayer];
+    const healed = restoreHp(s, champ, elfCount);
+    addLog(s, `Grove Warden: champion restores ${elfCount} HP (${elfCount} friendly Elves).`);
+  }
+  // ── Pack Runner action ──
+  else if (effect === 'packrunner_action') {
+    if (target && target.id !== 'packrunner') {
+      target.moved = false;
+      // Don't clear summoning sickness
+      addLog(s, `Pack Runner: ${target.name} action reset.`);
+    }
+  }
+  // ── Dark Dealer action ──
+  else if (effect === 'darkdealer_action') {
+    const champ = s.champions[s.activePlayer];
+    champ.hp = Math.max(1, champ.hp - 2);
+    addLog(s, `Dark Dealer: champion takes 2 damage.`);
+    const drawn = p.deck.shift();
+    if (drawn && p.hand.length < 6) {
+      p.hand.push(drawn);
+      addLog(s, `Dark Dealer: drew ${drawn.name}.`);
+    }
+  }
+  // ── Sergeant action ──
+  else if (effect === 'sergeant_action') {
+    p.sergeantBuff = true;
+    addLog(s, `Sergeant: next unit played this turn gains +1/+1.`);
+  }
+  // ── Elf Archer action (ranged 2 damage) ──
+  else if (effect === 'elfarcher_action') {
+    if (target) {
+      applyDamageToUnit(s, target, 2, 'Elf Archer');
+      s.units = s.units.filter(u => u.hp > 0);
+      addLog(s, `Elf Archer fires at ${target.name}!`);
+    }
+    // Mark the archer as moved
+    if (data.archerUid) {
+      const archer = s.units.find(u => u.uid === data.archerUid);
+      if (archer) archer.moved = true;
+    }
   }
 
   return s;
@@ -412,6 +954,7 @@ export function cancelSpell(state) {
   const s = cloneState(state);
   s.pendingSpell = null;
   s.pendingSummon = null;
+  s.pendingHandSelect = null;
   return s;
 }
 
@@ -419,7 +962,55 @@ export function endActionPhase(state) {
   const s = cloneState(state);
   s.pendingSpell = null;
   s.pendingSummon = null;
+  s.pendingHandSelect = null;
   s.phase = 'end-turn';
+  return s;
+}
+
+// ── unit action abilities ─────────────────────────────────────────────────
+
+export function triggerUnitAction(state, unitUid) {
+  const s = cloneState(state);
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit || unit.owner !== s.activePlayer || unit.moved || unit.summoned) return s;
+
+  if (unit.id === 'sergeant') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: null, effect: 'sergeant_action', playerIdx: s.activePlayer, step: 0, data: {} };
+    // Resolve immediately — no target needed
+    return resolveSpell(s, null, null);
+  }
+  if (unit.id === 'battlepriestunit') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s; // wait for enemy target selection
+  }
+  if (unit.id === 'woodlandguard') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s; // wait for enemy target
+  }
+  if (unit.id === 'grovewarden') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'grovewarden_action', playerIdx: s.activePlayer, step: 0, data: {} };
+    return resolveSpell(s, null, null);
+  }
+  if (unit.id === 'packrunner') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'packrunner_action', playerIdx: s.activePlayer, step: 0, data: {} };
+    return s; // wait for friendly target
+  }
+  if (unit.id === 'darkdealer') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'darkdealer_action', playerIdx: s.activePlayer, step: 0, data: {} };
+    return resolveSpell(s, null, null);
+  }
+  if (unit.id === 'elfarcher') {
+    unit.moved = true;
+    s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { archerUid: unit.uid } };
+    return s; // wait for target selection
+  }
+
   return s;
 }
 
@@ -427,9 +1018,19 @@ export function endActionPhase(state) {
 
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
-  if (!unit || unit.owner !== state.activePlayer || unit.summoned || unit.moved) return [];
-  // Hidden units move at most 1 tile per turn regardless of base SPD
-  const speed = unit.hidden ? 1 : (unit.spd + (unit.speedBonus || 0));
+  if (!unit || unit.owner !== state.activePlayer) return [];
+  // cannotMove units (Seedling) cannot be selected for movement
+  if (unit.cannotMove) return [];
+  if (unit.summoned || unit.moved) {
+    // Pounce: Beast unit can move ignoring sickness
+    if (unit.pounceReady) {
+      const speed = 2;
+      return reachableTiles(state, unit, speed);
+    }
+    return [];
+  }
+  // Hidden units move at most 1 tile
+  const speed = unit.hidden ? 1 : getEffectiveSpd(unit);
   return reachableTiles(state, unit, speed);
 }
 
@@ -445,7 +1046,6 @@ function reachableTiles(state, unit, speed) {
       const key = `${nr},${nc}`;
       if (visited.has(key)) continue;
       visited.add(key);
-      // Can move onto enemy unit or champion (combat), or empty tile
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
@@ -459,16 +1059,12 @@ function reachableTiles(state, unit, speed) {
   return result;
 }
 
-// For a speed-2 unit clicking the champion tile from distance 2, find the
-// cardinal neighbor of the champion tile that the unit should land on.
 function findIntermediateTile(state, unit, champRow, champCol) {
   const champNeighbors = cardinalNeighbors(champRow, champCol);
-  // Prefer a champion neighbor that is directly adjacent to the unit and unoccupied
   const onPath = champNeighbors.find(([r, c]) =>
     manhattan([unit.row, unit.col], [r, c]) === 1 && !isTileOccupied(state, r, c)
   );
   if (onPath) return onPath;
-  // Fallback: any unoccupied champion neighbor
   return champNeighbors.find(([r, c]) => !isTileOccupied(state, r, c)) || [unit.row, unit.col];
 }
 
@@ -482,57 +1078,84 @@ export function moveUnit(state, unitUid, row, col) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
 
+  // Clear pounce ready flag
+  const wasPounce = unit.pounceReady;
+  unit.pounceReady = false;
+
   const enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
 
   if (enemyUnit) {
+    // Reveal shadow veil-given hidden before combat
+    if (unit.hidden) revealUnit(s, unit);
     // Reveal hidden enemy unit before resolving combat
-    if (enemyUnit.hidden) revealUnit(s, enemyUnit);
-    // Combat: both deal damage simultaneously
+    const wasHidden = enemyUnit.hidden;
+    if (wasHidden) revealUnit(s, enemyUnit);
+
+    // Shadow Trap on reveal: destroy the attacker
+    if (wasHidden && enemyUnit.id === 'shadowtrap' && s.units.find(u => u.uid === enemyUnit.uid)) {
+      addLog(s, `Shadow Trap springs! ${unit.name} is destroyed.`);
+      s.units = s.units.filter(u => u.uid !== unit.uid);
+      onFriendlyUnitDestroyed(s, unit);
+      // Shadow Trap is now revealed (no longer hidden) but stays
+      s.units = s.units.filter(u => u.hp > 0);
+      return s;
+    }
+
     const attackerAtk = effectiveAtk(s, unit);
     const defenderAtk = effectiveAtk(s, enemyUnit);
     addLog(s, `${unit.name} attacks ${enemyUnit.name}!`);
     applyDamageToUnit(s, enemyUnit, attackerAtk, unit.name);
-    // Check if attacker survives
+
     const stillAlive = s.units.find(u => u.uid === unitUid);
     if (stillAlive) {
       applyDamageToUnit(s, stillAlive, defenderAtk, enemyUnit.name);
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
-        // Only advance into the tile if the defender was destroyed
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
         if (defenderDestroyed) {
           stillAlive2.row = row;
           stillAlive2.col = col;
+          // Razorfang reset on kill
+          if (stillAlive2.id === 'razorfang' && !stillAlive2.razorfangResetUsed) {
+            stillAlive2.moved = false;
+            stillAlive2.razorfangResetUsed = true;
+            addLog(s, `Razorfang, Alpha: action reset!`);
+            return s; // don't mark moved yet
+          }
         }
         stillAlive2.moved = true;
+
+        // Whisper attack restore
+        if (stillAlive2.id === 'whisper') {
+          const champ = s.champions[s.activePlayer];
+          const healed = restoreHp(s, champ, 2);
+          addLog(s, `Whisper: champion restores ${healed} HP.`);
+        }
       }
     }
-    // Crossbowman draw trigger: if crossbowman destroyed a unit
+
+    // Crossbowman draw trigger
     if (unit.id === 'crossbowman' && !s.units.find(u => u.uid === enemyUnit.uid)) {
-      const p = s.players[unit.owner];
-      const drawn = p.deck.shift();
+      const unitPlayer = s.players[unit.owner];
+      const drawn = unitPlayer.deck.shift();
       if (drawn) {
-        p.hand.push(drawn);
-        addLog(s, `Crossbowman trigger: ${s.players[unit.owner].name} draws ${drawn.name}.`);
+        unitPlayer.hand.push(drawn);
+        addLog(s, `Crossbowman: drew ${drawn.name}.`);
       }
     }
   } else if (enemyChamp) {
-    // CHAMPION ATTACK - unit stays in its current tile (or advances to adjacent tile for speed-2)
-    // No unit removal code in this block — champion attacks do not counter-attack.
+    // Reveal hidden attacker
+    if (unit.hidden) revealUnit(s, unit);
     const attackerAtk = effectiveAtk(s, unit);
     const dist = manhattan([unit.row, unit.col], [row, col]);
     if (dist > 1) {
-      // Speed-2 unit attacking from 2 tiles away: advance to the adjacent tile on the path
       const [mr, mc] = findIntermediateTile(s, unit, row, col);
       unit.row = mr;
       unit.col = mc;
     }
-    // If dist === 1 the unit is already adjacent; stays where it is.
     let champDmg = attackerAtk;
     if (enemyChamp.thornShield) {
-      // If the attacker is a Hidden unit, reveal it before thorn damage applies
-      if (unit.hidden) revealUnit(s, unit);
       const absorbed = Math.min(enemyChamp.thornShield.absorb, champDmg);
       champDmg -= absorbed;
       const thornDmg = enemyChamp.thornShield.thornDamage;
@@ -541,15 +1164,31 @@ export function moveUnit(state, unitUid, row, col) {
       enemyChamp.thornShield = null;
     }
     enemyChamp.hp -= champDmg;
-    addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage from (${unit.row},${unit.col}).`);
-    // unit may have been destroyed by thorn — re-check
+    addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
+
+    // Dread Knight: champion damage → opponent discards random card
+    if (unit.id === 'dreadknight' && champDmg > 0) {
+      const oppPlayer = s.players[enemyChamp.owner];
+      if (oppPlayer.hand.length > 0) {
+        const randIdx = Math.floor(Math.random() * oppPlayer.hand.length);
+        const [discarded] = oppPlayer.hand.splice(randIdx, 1);
+        oppPlayer.discard.push(discarded);
+        addLog(s, `Dread Knight: ${s.players[enemyChamp.owner].name} discards ${discarded.name} at random.`);
+      }
+    }
+
     const unitAfterThorn = s.units.find(u => u.uid === unitUid);
     if (unitAfterThorn) unitAfterThorn.moved = true;
     checkWinner(s);
   } else {
-    // Regular move
+    // Regular move — clear shadow-veil hidden if moving
+    if (unit.hidden && !unit.id) {
+      // Shadow veil'd units lose hidden on move
+      unit.hidden = false;
+    }
     unit.row = row;
     unit.col = col;
+    unit.moved = !wasPounce; // if pounce, stay moveable? No — pounce marks moved after
     unit.moved = true;
   }
 
@@ -566,24 +1205,51 @@ function applyDamageToUnit(state, unit, dmg, sourceName) {
     if (unit.shield === 0) addLog(state, `${unit.name}'s shield breaks.`);
   }
   unit.hp -= actualDmg;
-  addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
-  // Guard: only remove a unit when hp has actually dropped to zero or below.
-  // A unit with positive HP must never be removed by this filter.
+  if (actualDmg > 0) addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
   if (unit.hp <= 0) {
     addLog(state, `${unit.name} is destroyed.`);
+    // Plague Hog death: deal 2 damage to all adjacent units
+    if (unit.id === 'plaguehog') {
+      const adj = cardinalNeighbors(unit.row, unit.col);
+      const nearby = state.units.filter(u => u.uid !== unit.uid && adj.some(([r, c]) => u.row === r && u.col === c));
+      for (const t of nearby) {
+        t.hp -= 2;
+        addLog(state, `Plague Hog explodes! ${t.name} takes 2 damage.`);
+      }
+    }
     state.units = state.units.filter(u => u.uid !== unit.uid);
-    // Sister Siofra: restore 2 HP to owner's champion when a friendly unit is destroyed
+    state.units = state.units.filter(u => u.hp > 0);
     onFriendlyUnitDestroyed(state, unit);
   }
 }
 
 function onFriendlyUnitDestroyed(state, destroyedUnit) {
+  // Sister Siofra: permanent +2 max HP when a friendly unit is destroyed
   const siofra = state.units.find(u => u.owner === destroyedUnit.owner && u.id === 'sistersiofra');
-  if (!siofra || destroyedUnit.id === 'sistersiofra') return;
-  const champ = state.champions[destroyedUnit.owner];
-  const healed = Math.min(2, champ.maxHp - champ.hp);
-  champ.hp = Math.min(champ.maxHp, champ.hp + 2);
-  addLog(state, `Sister Siofra mourns. Champion restored ${healed} HP.`);
+  if (siofra && destroyedUnit.id !== 'sistersiofra') {
+    const champ = state.champions[destroyedUnit.owner];
+    champ.maxHp += 2;
+    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
+    addLog(state, `Sister Siofra: champion gains +2 max HP permanently.`);
+  }
+
+  // Thornweave death restore
+  if (destroyedUnit.id === 'thornweave') {
+    const champ = state.champions[destroyedUnit.owner];
+    // Only restore if this is the active player's unit being destroyed during their turn
+    // or during their unit's death — fire regardless
+    const healed = Math.min(3, champ.maxHp - champ.hp);
+    champ.hp = Math.min(champ.maxHp, champ.hp + 3);
+    if (healed > 0) {
+      // Manually track restore and fire hook (owner may not be activePlayer)
+      if (destroyedUnit.owner === state.activePlayer) {
+        state.players[state.activePlayer].hpRestoredThisTurn =
+          (state.players[state.activePlayer].hpRestoredThisTurn || 0) + healed;
+        onRestoreHP(state);
+      }
+    }
+    addLog(state, `Thornweave: champion restores ${healed} HP.`);
+  }
 }
 
 // Elf Archer ranged shot — player opts to skip move
@@ -595,9 +1261,10 @@ export function archerShoot(state, archerUid, targetUid) {
   if (archer.moved || archer.summoned) return s;
   if (manhattan([archer.row, archer.col], [target.row, target.col]) > 2) return s;
 
-  archer.moved = true; // can't also move this turn
+  archer.moved = true;
   s.archerShot.push(archerUid);
   applyDamageToUnit(s, target, 2, archer.name);
+  s.units = s.units.filter(u => u.hp > 0);
   addLog(s, `Elf Archer fires at ${target.name}!`);
   return s;
 }
@@ -609,7 +1276,7 @@ export function endTurn(state) {
   const p = s.players[s.activePlayer];
   const champ = s.champions[s.activePlayer];
 
-  // Throne check: if champion on (2,2), opponent takes up to 4 damage (cannot reduce below 1 HP)
+  // Throne check
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - s.activePlayer;
     const maxDamage = Math.max(0, s.champions[oppIdx].hp - 1);
@@ -624,10 +1291,64 @@ export function endTurn(state) {
     if (s.winner) return s;
   }
 
+  // END TURN TRIGGERS
+
+  // Pip the Hungry: +1/+1
+  s.units.forEach(u => {
+    if (u.owner === s.activePlayer && u.id === 'pip') {
+      u.atk += 1;
+      u.hp += 1;
+      u.maxHp += 1;
+      addLog(s, `Pip the Hungry grows! Now ${u.atk}/${u.hp}.`);
+    }
+  });
+
+  // Seedling end of turn: restore 1 HP to champion
+  s.units.forEach(u => {
+    if (u.owner === s.activePlayer && u.cannotMove) {
+      const healed = restoreHp(s, champ, 1);
+      if (healed > 0) addLog(s, `Seedling restores 1 HP to champion.`);
+    }
+  });
+
+  // Sentinel Aura end of turn: restore 1 HP to other adjacent friendly units
+  s.units.forEach(u => {
+    if (u.owner === s.activePlayer && u.id === 'sentinel') {
+      const adj = cardinalNeighbors(u.row, u.col);
+      const nearby = s.units.filter(n =>
+        n.owner === s.activePlayer &&
+        n.uid !== u.uid &&
+        adj.some(([r, c]) => n.row === r && n.col === c)
+      );
+      for (const n of nearby) {
+        const healed = restoreHp(s, n, 1);
+        if (healed > 0) addLog(s, `Sentinel Aura: ${n.name} restores ${healed} HP.`);
+      }
+    }
+  });
+
+  // Zmore: deal 1 damage to all units on the board
+  s.units.forEach(u => {
+    if (u.owner === s.activePlayer && u.id === 'zmore') {
+      addLog(s, `Zmore, Sleeping Ash stirs. All units take 1 damage.`);
+      // Damage all units (snapshot loop — copy array first)
+      const allUnits = [...s.units];
+      for (const t of allUnits) {
+        if (s.units.find(x => x.uid === t.uid)) {
+          t.hp -= 1;
+          if (t.hp <= 0) {
+            addLog(s, `${t.name} is destroyed by Zmore.`);
+            onFriendlyUnitDestroyed(s, t);
+          }
+        }
+      }
+      s.units = s.units.filter(u => u.hp > 0);
+    }
+  });
+
   // Hand limit: 6
   if (p.hand.length > 6) {
     if (s.activePlayer === 1) {
-      // AI: auto-discard lowest cost card(s)
       while (p.hand.length > 6) {
         const lowestIdx = p.hand.reduce((minIdx, c, i, arr) => c.cost < arr[minIdx].cost ? i : minIdx, 0);
         const [discarded] = p.hand.splice(lowestIdx, 1);
@@ -635,7 +1356,6 @@ export function endTurn(state) {
         addLog(s, `${p.name} discards ${discarded.name} (hand limit).`);
       }
     } else {
-      // Human: enter pending discard state — turn does not advance yet
       s.pendingDiscard = true;
       addLog(s, `${p.name} has too many cards. Click a card to discard.`);
       return s;
@@ -646,41 +1366,30 @@ export function endTurn(state) {
 }
 
 function completeTurnAdvance(state) {
-  const s = state; // already cloned by caller
+  const s = state;
   const champ = s.champions[s.activePlayer];
 
   s.pendingDiscard = false;
 
-  // Clear summoning sickness and speed bonuses for active player's units
+  // Clear per-turn state for active player's units
   s.units.forEach(u => {
     if (u.owner === s.activePlayer) {
-      u.summoned = false;
-      u.moved = false;
       u.speedBonus = 0;
+      u.turnAtkBonus = 0;
+      // Clear fortify bonus (revert temporary HP increase)
+      if (u.fortifyBonus) {
+        u.hp = Math.max(1, u.hp - u.fortifyBonus);
+        u.fortifyBonus = 0;
+      }
     }
   });
 
-  // Reset archer shot list
   s.archerShot = [];
-  // Recalled cards can be played again next turn
   s.recalledThisTurn = [];
+  s.players[s.activePlayer].sergeantBuff = false;
 
-  // Reset champion moved state
   champ.moved = false;
 
-  // END TURN TRIGGERS - card abilities fire here
-
-  // Pip the Hungry: gains +1 ATK and +1 HP at end of owner's turn
-  s.units.forEach(u => {
-    if (u.owner === s.activePlayer && u.id === 'pip') {
-      u.atk += 1;
-      u.hp += 1;
-      u.maxHp += 1;
-      addLog(s, `Pip the Hungry grows! Now ${u.atk}/${u.hp}.`);
-    }
-  });
-
-  // Advance turn
   const nextPlayer = 1 - s.activePlayer;
   s.activePlayer = nextPlayer;
   if (nextPlayer === 0) s.turn++;
@@ -688,7 +1397,7 @@ function completeTurnAdvance(state) {
   s.phase = 'begin-turn';
   addLog(s, `--- Turn ${s.turn}: ${s.players[nextPlayer].name}'s turn ---`);
 
-  return autoAdvancePhase(s); // auto begin-turn (draw + resource + advance to action)
+  return autoAdvancePhase(s);
 }
 
 export function discardCard(state, cardUid) {
@@ -705,7 +1414,7 @@ export function discardCard(state, cardUid) {
     return completeTurnAdvance(s);
   }
 
-  return s; // still over limit, keep pendingDiscard: true
+  return s;
 }
 
 function checkWinner(state) {
@@ -720,28 +1429,115 @@ function checkWinner(state) {
 
 // ── valid spell targets ─────────────────────────────────────────────────────
 
-export function getSpellTargets(state, effect) {
+export function getSpellTargets(state, effect, step = 0, data = {}) {
   const champ = state.champions[state.activePlayer];
+  const p = state.players[state.activePlayer];
+
   switch (effect) {
+    // Smite: enemy within 2 tiles of champion (not hidden)
     case 'smite':
-      // Hidden units cannot be targeted by Smite
       return state.units
         .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
+
+    // Forge Weapon, Iron Shield, Shadow Veil, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden for most)
     case 'forgeweapon':
     case 'ironshield':
-    case 'swiftstep':
-      // Hidden units cannot be targeted by Forge Weapon, Iron Shield, or Swift Step
+    case 'shadowveil':
+    case 'savagegrowth':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
     case 'recall':
-      // Recall can target Hidden units
       return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
+    case 'moonleaf':
+      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit').map(u => u.uid);
+
+    // Bloom step 0: friendly unit; step 1: enemy unit
+    case 'bloom':
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
+    // Entangle: friendly Elf unit
+    case 'entangle':
+      return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Elf' && !u.hidden).map(u => u.uid);
+
+    // Predator's Mark: enemy within 2 tiles of champion
+    case 'predatorsmark':
+      return state.units
+        .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .map(u => u.uid);
+
+    // Pounce: friendly Beast unit
+    case 'pounce':
+      return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Beast').map(u => u.uid);
+
+    // Ambush step 0: friendly Beast; step 1: enemy adjacent to selected Beast
+    case 'ambush':
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Beast').map(u => u.uid);
+      if (data.beastUid) {
+        const beast = state.units.find(u => u.uid === data.beastUid);
+        if (!beast) return [];
+        const adj = cardinalNeighbors(beast.row, beast.col);
+        return state.units.filter(u => u.owner !== state.activePlayer && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+      }
+      return [];
+
+    // Blood Offering step 0: friendly unit; step 1: any enemy
+    case 'bloodoffering':
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
+    // Pact of Ruin damage: any enemy unit
+    case 'pactofruin_damage':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
+    // Dark Sentence: any enemy unit
+    case 'darksentence':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
+    // Devour: enemy with 2 or less HP
+    case 'devour':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && u.hp <= 2).map(u => u.uid);
+
+    // Soul Drain: enemy unit
+    case 'souldrain':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
+    // Woodland Guard action: enemy within 2 tiles
+    case 'woodlandguard_action': {
+      const src = state.units.find(u => u.uid === (data.sourceUid || ''));
+      if (!src) return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
+    }
+
+    // Battle Priest action step 0: enemy within 1 tile; step 1: friendly within 1 tile
+    case 'battlepriestunit_action': {
+      const priest = state.units.find(u => u.uid === (data.sourceUid || ''));
+      if (!priest) return [];
+      if (step === 0) {
+        const adj = cardinalNeighbors(priest.row, priest.col);
+        return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+      }
+      const adj = cardinalNeighbors(priest.row, priest.col);
+      return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+    }
+
+    // Pack Runner action: friendly unit (not packrunner itself)
+    case 'packrunner_action':
+      return state.units.filter(u => u.owner === state.activePlayer && u.id !== 'packrunner').map(u => u.uid);
+
+    // Elf Archer action: enemy within 2 tiles
+    case 'elfarcher_action': {
+      const archer = data.archerUid ? state.units.find(u => u.uid === data.archerUid) : null;
+      if (!archer) return [];
+      return state.units.filter(u => u.owner !== state.activePlayer && manhattan([archer.row, archer.col], [u.row, u.col]) <= 2).map(u => u.uid);
+    }
+
     default:
       return [];
   }
 }
 
-// ── summon tile validity ───────────────────────────────────────────────────
+// ── archer shoot targets ───────────────────────────────────────────────────
 
 export function getArcherShootTargets(state, archerUid) {
   const archer = state.units.find(u => u.uid === archerUid);

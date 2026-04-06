@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
-import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -9,13 +8,6 @@ function generateGameId() {
     id += chars[Math.floor(Math.random() * chars.length)];
   }
   return id;
-}
-
-function buildInitialMultiplayerState() {
-  const s = createInitialState();
-  s.players[0].name = 'Player 1';
-  s.players[1].name = 'Player 2';
-  return autoAdvancePhase(s);
 }
 
 export default function Lobby({ onNavigate }) {
@@ -34,14 +26,16 @@ export default function Lobby({ onNavigate }) {
 
     const guestId = getGuestId();
     const gameId = generateGameId();
-    const initialState = buildInitialMultiplayerState();
 
+    // Create game in deck_select status — no game_state yet, both players pick decks first
     const { error } = await supabase.from('game_sessions').insert({
       id: gameId,
       player1_id: guestId,
-      game_state: initialState,
+      game_state: null,
       active_player: guestId,
-      status: 'waiting',
+      status: 'deck_select',
+      player1_deck: null,
+      player2_deck: null,
     });
 
     setCreating(false);

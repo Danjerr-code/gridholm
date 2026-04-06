@@ -13,7 +13,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App({ onBackToLobby } = {}) {
+export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   const {
     state,
     selectedCard,
@@ -26,7 +26,7 @@ export default function App({ onBackToLobby } = {}) {
     spellTargetUids,
     archerShootTargets,
     handlers,
-  } = useGameState();
+  } = useGameState({ deckId });
 
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
@@ -40,6 +40,8 @@ export default function App({ onBackToLobby } = {}) {
   if (selectMode === 'spell') guidance = 'Click a highlighted unit to target the spell.';
   if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
   if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
+  if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
+  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Flesh Tithe: sacrifice a unit for +2/+2, or decline.';
 
   const selectedUnitObj = selectedUnit ? state.units.find(u => u.uid === selectedUnit) : null;
   const showArcherShoot = selectedUnitObj?.id === 'elfarcher'
@@ -57,6 +59,35 @@ export default function App({ onBackToLobby } = {}) {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
+      {/* Flesh Tithe sacrifice prompt */}
+      {state.pendingFleshtitheSacrifice && isP1Turn && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
+          <div className="bg-gray-800 border border-red-500 rounded-2xl p-6 text-center shadow-2xl max-w-xs">
+            <p className="text-red-400 font-bold mb-2">Flesh Tithe</p>
+            <p className="text-gray-300 text-sm mb-4">Sacrifice a friendly unit to give Flesh Tithe +2/+2?</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                className="bg-red-700 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm"
+                onClick={() => {
+                  const units = state.units.filter(u => u.owner === 0 && u.uid !== state.pendingFleshtitheSacrifice.unitUid);
+                  if (units.length > 0) {
+                    handlers.handleFleshtitheSacrifice('yes', units[0].uid);
+                  }
+                }}
+              >
+                Yes (auto-pick)
+              </button>
+              <button
+                className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg text-sm"
+                onClick={() => handlers.handleFleshtitheSacrifice('no', null)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Winner overlay */}
       {winner && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -192,9 +223,11 @@ export default function App({ onBackToLobby } = {}) {
           isActive={true}
           canPlay={isP1Turn && phase === 'action'}
           pendingDiscard={pendingDiscard && isP1Turn}
+          pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
           selectedCard={selectedCard}
           onPlayCard={handlers.handlePlayCard}
           onDiscardCard={handlers.handleDiscardCard}
+          onHandSelect={handlers.handleHandSelect}
           onInspectCard={handlers.handleInspectCard}
         />
       </div>

@@ -10,9 +10,12 @@ import {
   endActionPhase,
   endTurn,
   resolveSpell,
+  resolveHandSelect,
   getSpellTargets,
 } from './gameEngine.js';
 
+// AI deck selection: always Human for now.
+// Update when AI difficulty levels are added.
 const AI_PLAYER = 1;
 
 function getAIChampion(state) {
@@ -27,7 +30,6 @@ function aiChampionMove(state) {
   const moveTiles = getChampionMoveTiles(state);
   if (moveTiles.length === 0) return state;
 
-  // Pick tile closest to center (2,2)
   moveTiles.sort((a, b) => manhattan(a, [2, 2]) - manhattan(b, [2, 2]));
   const [r, c] = moveTiles[0];
   return moveChampion(state, r, c);
@@ -38,7 +40,7 @@ function aiSummonCast(state) {
   let s = cloneState(state);
   const p = s.players[AI_PLAYER];
 
-  // Try to play units first
+  // Play units first (highest cost)
   const units = p.hand.filter(c => c.type === 'unit').sort((a, b) => b.cost - a.cost);
   for (const card of units) {
     if (p.resources < card.cost) continue;
@@ -46,18 +48,56 @@ function aiSummonCast(state) {
     if (summonTiles.length === 0) break;
     const [r, c] = summonTiles[0];
     s = summonUnit(s, card.uid, r, c);
-    if (s.players[AI_PLAYER].resources <= 0) break;
+    // Clear any pending states from on-summon effects (auto-resolve for AI)
+    if (s.pendingHandSelect) {
+      // Chaos Spawn: auto-discard first card in hand
+      if (s.pendingHandSelect.reason === 'chaospawn' && s.players[AI_PLAYER].hand.length > 0) {
+        s = resolveHandSelect(s, s.players[AI_PLAYER].hand[0].uid);
+      }
+      s.pendingHandSelect = null;
+    }
+    if (s.pendingFleshtitheSacrifice) {
+      // Flesh Tithe: AI declines sacrifice
+      s.pendingFleshtitheSacrifice = null;
+    }
+    if (p.resources <= 0) break;
   }
 
-  // Try spells
+  // Play spells
+  // Cast Smite on highest HP enemy in range; Iron Shield on lowest HP friendly; others randomly
   const spells = s.players[AI_PLAYER].hand.filter(c => c.type === 'spell');
   for (const spell of spells) {
     if (s.players[AI_PLAYER].resources < spell.cost) continue;
     const targets = getSpellTargets(s, spell.effect);
-    if (spell.effect === 'mendallies') {
-      s = resolveSpell(s, spell.uid, null);
+
+    if (spell.effect === 'smite') {
+      // Target highest HP enemy
+      if (targets.length > 0) {
+        const targetUnit = targets
+          .map(uid => s.units.find(u => u.uid === uid))
+          .filter(Boolean)
+          .sort((a, b) => b.hp - a.hp)[0];
+        if (targetUnit) s = resolveSpell(s, spell.uid, targetUnit.uid);
+      }
+    } else if (spell.effect === 'ironshield') {
+      // Target lowest HP friendly
+      if (targets.length > 0) {
+        const targetUnit = targets
+          .map(uid => s.units.find(u => u.uid === uid))
+          .filter(Boolean)
+          .sort((a, b) => a.hp - b.hp)[0];
+        if (targetUnit) s = resolveSpell(s, spell.uid, targetUnit.uid);
+      }
     } else if (targets.length > 0) {
+      // Cast on first valid target
       s = resolveSpell(s, spell.uid, targets[0]);
+      // Clear multi-step pending spells
+      if (s.pendingSpell) s.pendingSpell = null;
+    } else if (spell.effect === 'overgrowth' || spell.effect === 'rally' || spell.effect === 'crusade' ||
+               spell.effect === 'infernalpact' || spell.effect === 'packhowl' || spell.effect === 'callofthesnakes' ||
+               spell.effect === 'martiallaw' || spell.effect === 'fortify') {
+      // No-target spells — resolve with null
+      s = resolveSpell(s, spell.uid, null);
     }
   }
 
@@ -67,7 +107,9 @@ function aiSummonCast(state) {
 // ── Unit move: toward nearest enemy ───────────────────────────────────────
 function aiUnitMove(state) {
   let s = cloneState(state);
-  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.summoned && !u.moved);
+  // TODO: AI Hidden strategy — teach AI to place Hidden units strategically and
+  // reveal at optimal moments. For now, Hidden AI units are treated as normal units.
+  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.summoned && !u.moved && !u.cannotMove);
 
   for (const unit of aiUnits) {
     const liveUnit = s.units.find(u => u.uid === unit.uid);
@@ -98,21 +140,15 @@ function aiUnitMove(state) {
   return s;
 }
 
-// AI Hidden unit handling: when Hidden cards are added to the AI deck, AI should
-// reveal Hidden units when adjacent to enemy units rather than keeping them hidden
-// indefinitely. Implement when Demon deck is built.
-
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {
   let s = cloneState(state);
 
-  // All actions happen in the single action phase
   s = aiChampionMove(s);
   s = aiSummonCast(s);
   s = aiUnitMove(s);
 
-  // End action phase then end turn
   s = endActionPhase(s);
   s = endTurn(s);
   return s;

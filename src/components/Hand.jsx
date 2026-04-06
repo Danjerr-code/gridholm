@@ -1,6 +1,6 @@
 import Card from './Card.jsx';
 
-export default function Hand({ player, resources, isActive, canPlay, pendingDiscard, selectedCard, onPlayCard, onDiscardCard, onInspectCard, isMobile, onMobileTap }) {
+export default function Hand({ player, resources, isActive, canPlay, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap }) {
   if (!isActive) {
     // Opponent face-down count
     return (
@@ -13,18 +13,20 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
     );
   }
 
-  const dimmed = !canPlay && !pendingDiscard;
+  const dimmed = !canPlay && !pendingDiscard && !pendingHandSelect;
 
   return (
     <div className={`flex flex-nowrap justify-center overflow-x-auto gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''}`}>
       {player.hand.map(card => (
-        <div key={card.uid} className={pendingDiscard ? 'relative' : ''}>
+        <div key={card.uid} className={(pendingDiscard || pendingHandSelect) ? 'relative' : ''}>
           <Card
             card={card}
             isSelected={canPlay && selectedCard === card.uid}
             isPlayable={canPlay && resources >= card.cost}
             onClick={() => {
-              if (pendingDiscard) {
+              if (pendingHandSelect) {
+                if (onHandSelect) onHandSelect(card.uid);
+              } else if (pendingDiscard) {
                 if (onDiscardCard) onDiscardCard(card.uid);
               } else if (isMobile && onMobileTap) {
                 onMobileTap(card);
@@ -37,6 +39,11 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
           {pendingDiscard && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded border-2 border-yellow-400 bg-yellow-900/20">
               <span className="text-yellow-300 text-[10px] font-bold drop-shadow">DISCARD</span>
+            </div>
+          )}
+          {pendingHandSelect && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded border-2 border-purple-400 bg-purple-900/20">
+              <span className="text-purple-300 text-[10px] font-bold drop-shadow">SELECT</span>
             </div>
           )}
         </div>
