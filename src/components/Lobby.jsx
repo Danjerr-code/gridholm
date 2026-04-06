@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
+import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -27,11 +28,20 @@ export default function Lobby({ onNavigate }) {
     const guestId = getGuestId();
     const gameId = generateGameId();
 
-    // Create game in deck_select status — no game_state yet, both players pick decks first
+    // Generate a placeholder initial state to satisfy the NOT NULL constraint.
+    // The real state is replaced by useMultiplayerGame.selectDeck once both
+    // players have chosen their factions during the deck_select phase.
+    const placeholderState = autoAdvancePhase(createInitialState('human', 'human'));
+    if (!placeholderState) {
+      setCreateError('Failed to generate initial game state.');
+      setCreating(false);
+      return;
+    }
+
     const { error } = await supabase.from('game_sessions').insert({
       id: gameId,
       player1_id: guestId,
-      game_state: null,
+      game_state: placeholderState,
       active_player: guestId,
       status: 'deck_select',
       player1_deck: null,
