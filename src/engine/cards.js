@@ -84,7 +84,7 @@ export const CARD_DB = {
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden.', hidden: true, image: 'imp.webp' },
-  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 2, atk: 2, hp: 3, spd: 1, unitType: 'Demon',  rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, image: 'darkdealer.webp' },
+  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: 'Demon',  rules: 'Cannot move. Action: Deal 2 damage to your champion. Draw a card.', action: true, cannotMove: true, legendary: true, image: 'darkdealer.webp' },
   dreadknight:     { id: 'dreadknight',     name: 'Dread Knight',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. When this unit deals damage to the enemy champion that player discards a card at random.', hidden: true, image: 'dreadknight.webp' },
   chaospawn:       { id: 'chaospawn',       name: 'Chaos Spawn',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'When summoned discard a card to draw a card.', image: 'chaospawn.webp' },
   hellhound:       { id: 'hellhound',       name: 'Hellhound',           type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Demon',  rules: '', image: 'hellhound.webp' },
