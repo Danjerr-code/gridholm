@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
 import { getCardImageUrl } from './supabase.js';
@@ -32,6 +33,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   } = useGameState({ deckId });
 
   const isMobile = useIsMobile();
+  const [logOpen, setLogOpen] = useState(false);
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
 
@@ -116,6 +118,69 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
         </div>
       )}
 
+      {/* Mobile log drawer */}
+      {logOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-50 flex flex-col"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setLogOpen(false)}
+        >
+          <div
+            className="flex flex-col"
+            style={{
+              background: '#0f0f1e',
+              border: '1px solid #252538',
+              borderRadius: '0 0 12px 12px',
+              padding: '12px',
+              height: '80vh',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between" style={{ marginBottom: '8px', flexShrink: 0 }}>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em' }}>Game Log</span>
+              <button
+                onClick={() => setLogOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2a2a42',
+                  borderRadius: '4px',
+                  color: '#8080a0',
+                  fontSize: '12px',
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >✕ Close</button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} className="no-scrollbar">
+              {state.log.map((entry, i) => (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: '13px',
+                    fontFamily: 'var(--font-sans)',
+                    lineHeight: 1.6,
+                    padding: '3px 4px',
+                    borderRadius: '2px',
+                    background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
+                    borderBottom: '0.5px solid #0f0f1a',
+                    ...((() => {
+                      const lower = entry.toLowerCase();
+                      if (/damage|hits|destroyed|takes/.test(lower)) return { color: '#c06060' };
+                      if (/restores|heals|gains hp/.test(lower)) return { color: '#60a060' };
+                      if (/turn|begins|starts/.test(lower)) return { color: '#C9A84C', fontSize: '14px', fontWeight: 600 };
+                      if (/summons|plays|draws/.test(lower)) return { color: '#6080c0' };
+                      return { color: '#9090b8' };
+                    })()),
+                  }}
+                >{entry}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', fontWeight: 600, color: '#C9A84C', letterSpacing: '0.1em' }}>GRIDHOLM</h1>
@@ -158,7 +223,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={0} />
+      <StatusBar state={state} myPlayerIndex={0} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">

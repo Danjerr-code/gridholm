@@ -1,4 +1,11 @@
 // NEVER RENDER OPPONENT RESOURCES - game design decision
+
+const PHASE_LABELS = {
+  'begin-turn': 'Begin',
+  action: 'Action',
+  'end-turn': 'End Turn',
+};
+
 export function ResourceDisplay({ current, max = 10, playerColor, small = false }) {
   const diamonds = Array.from({ length: max }, (_, i) => i < current);
   const row1 = diamonds.slice(0, 5);
@@ -42,7 +49,7 @@ export function ResourceDisplay({ current, max = 10, playerColor, small = false 
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex }) {
+export default function StatusBar({ state, myPlayerIndex, onOpenLog }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -53,7 +60,7 @@ export default function StatusBar({ state, myPlayerIndex }) {
   const hideP1Resources = myPlayerIndex !== undefined && myPlayerIndex !== 0;
   const hideP2Resources = myPlayerIndex !== undefined && myPlayerIndex !== 1;
 
-  const PHASE_LABELS = {
+  const desktopPhaseLabels = {
     'begin-turn': 'Begin Turn',
     action: 'Action',
     'end-turn': 'End Turn',
@@ -77,10 +84,30 @@ export default function StatusBar({ state, myPlayerIndex }) {
         <div className="flex flex-col items-center gap-0.5">
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: '#6a6a88' }}>Turn {state.turn}</span>
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C' }}>{activePlayerName}</span>
+          <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</span>
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
+          {onOpenLog && (
+            <button
+              onClick={onOpenLog}
+              style={{
+                marginTop: '2px',
+                fontSize: '9px',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                color: '#C9A84C',
+                background: 'transparent',
+                border: '1px solid #C9A84C60',
+                borderRadius: '3px',
+                padding: '1px 5px',
+                cursor: 'pointer',
+                lineHeight: 1.4,
+              }}
+            >LOG</button>
+          )}
         </div>
       </div>
 
@@ -95,7 +122,7 @@ export default function StatusBar({ state, myPlayerIndex }) {
         <div className="text-center">
           <div style={{ fontSize: '11px', color: '#6a6a88', fontFamily: 'var(--font-sans)' }}>Turn {state.turn}</div>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#C9A84C' }}>{activePlayerName}'s turn</div>
-          <div style={{ fontSize: '11px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</div>
+          <div style={{ fontSize: '11px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{desktopPhaseLabels[state.phase] || state.phase}</div>
         </div>
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name}</span>
