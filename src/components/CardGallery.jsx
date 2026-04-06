@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { CARD_DB } from '../engine/cards.js';
+import { CARD_DB, DECKS } from '../engine/cards.js';
 import Card from './Card.jsx';
 import { getCardImageUrl } from '../supabase.js';
 
@@ -14,10 +14,16 @@ const FACTIONS = [
 function getGroupedCards() {
   const all = Object.values(CARD_DB);
   return FACTIONS.map(faction => {
+    const deckKey = faction.unitType.toLowerCase();
+    const deckCards = DECKS[deckKey]?.cards ?? [];
+    const copyCount = {};
+    for (const id of deckCards) {
+      copyCount[id] = (copyCount[id] || 0) + 1;
+    }
     const cards = all.filter(c => c.unitType === faction.unitType);
     const units = cards.filter(c => c.type === 'unit').sort((a, b) => a.cost - b.cost);
     const spells = cards.filter(c => c.type === 'spell').sort((a, b) => a.cost - b.cost);
-    return { ...faction, units, spells };
+    return { ...faction, units, spells, copyCount };
   });
 }
 
@@ -235,7 +241,25 @@ export default function CardGallery() {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {faction.units.map(card => (
-                  <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
+                  <div key={card.id} style={{ position: 'relative' }}>
+                    <Card card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
+                    <span style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      background: 'rgba(0,0,0,0.72)',
+                      color: '#C9A84C',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-sans)',
+                      pointerEvents: 'none',
+                      letterSpacing: '0.03em',
+                    }}>
+                      {faction.copyCount[card.id] === 2 ? 'x2' : 'x1'}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -255,7 +279,25 @@ export default function CardGallery() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {faction.spells.map(card => (
-                    <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
+                    <div key={card.id} style={{ position: 'relative' }}>
+                      <Card card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
+                      <span style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        left: 4,
+                        background: 'rgba(0,0,0,0.72)',
+                        color: '#C9A84C',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontFamily: 'var(--font-sans)',
+                        pointerEvents: 'none',
+                        letterSpacing: '0.03em',
+                      }}>
+                        {faction.copyCount[card.id] === 2 ? 'x2' : 'x1'}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
