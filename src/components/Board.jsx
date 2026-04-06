@@ -16,6 +16,9 @@ export default function Board({
   onInspectTerrain,
   isMyTurn,
   myPlayerIndex = 0,
+  isMobile,
+  onLongPressUnit,
+  onLongPressDismiss,
 }) {
   const { phase, activePlayer, units, champions } = state;
 
@@ -138,6 +141,9 @@ export default function Board({
                 isSacrificeTarget={isSacrificeTarget}
                 state={state}
                 myPlayerIndex={myPlayerIndex}
+                isMobile={isMobile}
+                onUnitLongPress={onLongPressUnit}
+                onLongPressDismiss={onLongPressDismiss}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => {

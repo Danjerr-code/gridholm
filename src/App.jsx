@@ -253,6 +253,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             onInspectUnit={handlers.handleInspectUnit}
             onClearInspect={handlers.handleClearInspect}
             onInspectTerrain={handlers.handleInspectTerrain}
+            isMobile={isMobile}
+            onLongPressUnit={isMobile ? handlers.handleInspectUnit : undefined}
+            onLongPressDismiss={isMobile ? handlers.handleClearInspect : undefined}
           />
         </div>
 
@@ -471,6 +474,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
                 handlers.handleInspectCard(card);
               }
             }}
+            onLongPressCard={handlers.handleInspectCard}
+            onLongPressDismiss={handlers.handleClearInspect}
           />
         </div>
       </div>

@@ -1,6 +1,42 @@
 import Card from './Card.jsx';
+import useLongPress from '../hooks/useLongPress.js';
 
-export default function Hand({ player, resources, isActive, canPlay, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap }) {
+function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss, onClick, children }) {
+  const longPress = useLongPress(() => {
+    if (onLongPressCard) onLongPressCard(card);
+  });
+
+  const handlePointerUp = () => {
+    const fired = longPress.firedRef.current;
+    longPress.onPointerUp();
+    if (fired && onLongPressDismiss) onLongPressDismiss();
+  };
+
+  const handleClick = (e) => {
+    if (longPress.firedRef.current) {
+      longPress.firedRef.current = false;
+      return;
+    }
+    onClick(e);
+  };
+
+  if (!isMobile || !onLongPressCard) {
+    return <div onClick={onClick}>{children}</div>;
+  }
+
+  return (
+    <div
+      onPointerDown={longPress.onPointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={longPress.onPointerCancel}
+      onClick={handleClick}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default function Hand({ player, resources, isActive, canPlay, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss }) {
   if (!isActive) {
     // Opponent face-down count
     return (
@@ -21,23 +57,30 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
       style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
     >
       {player.hand.map(card => (
-        <div key={card.uid} className={(pendingDiscard || pendingHandSelect) ? 'relative' : ''} style={{ scrollSnapAlign: 'start', flexShrink: 0 }}>
+        <CardWithLongPress
+          key={card.uid}
+          card={card}
+          isMobile={isMobile}
+          onLongPressCard={onLongPressCard}
+          onLongPressDismiss={onLongPressDismiss}
+          onClick={() => {
+            if (pendingHandSelect) {
+              if (onHandSelect) onHandSelect(card.uid);
+            } else if (pendingDiscard) {
+              if (onDiscardCard) onDiscardCard(card.uid);
+            } else if (isMobile && onMobileTap) {
+              onMobileTap(card);
+            } else {
+              if (onInspectCard) onInspectCard(card);
+              if (canPlay) onPlayCard(card.uid);
+            }
+          }}
+        >
+          <div className={(pendingDiscard || pendingHandSelect) ? 'relative' : ''} style={{ scrollSnapAlign: 'start', flexShrink: 0 }}>
           <Card
             card={card}
             isSelected={canPlay && selectedCard === card.uid}
             isPlayable={canPlay && resources >= card.cost}
-            onClick={() => {
-              if (pendingHandSelect) {
-                if (onHandSelect) onHandSelect(card.uid);
-              } else if (pendingDiscard) {
-                if (onDiscardCard) onDiscardCard(card.uid);
-              } else if (isMobile && onMobileTap) {
-                onMobileTap(card);
-              } else {
-                if (onInspectCard) onInspectCard(card);
-                if (canPlay) onPlayCard(card.uid);
-              }
-            }}
           />
           {pendingDiscard && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded border-2 border-yellow-400 bg-yellow-900/20">
@@ -49,7 +92,8 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
               <span className="text-purple-300 text-[10px] font-bold drop-shadow">SELECT</span>
             </div>
           )}
-        </div>
+          </div>
+        </CardWithLongPress>
       ))}
       {player.hand.length === 0 && (
         <span className="text-gray-500 text-xs self-center">Empty hand</span>

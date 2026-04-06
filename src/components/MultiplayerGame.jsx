@@ -664,6 +664,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onInspectTerrain={handleInspectTerrain}
             isMyTurn={isActiveTurn}
             myPlayerIndex={myPlayerIndex}
+            isMobile={isMobile}
+            onLongPressUnit={isMobile ? handleInspectUnit : undefined}
+            onLongPressDismiss={isMobile ? handleClearInspect : undefined}
           />
         </div>
 
@@ -805,6 +808,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               onInspectCard={handleInspectCard}
               isMobile={window.innerWidth < 768}
               onMobileTap={handleMobileHandCardTap}
+              onLongPressCard={handleInspectCard}
+              onLongPressDismiss={handleClearInspect}
             />
           </div>
         </div>

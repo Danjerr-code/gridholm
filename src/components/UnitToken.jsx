@@ -1,5 +1,6 @@
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
 import { getCardImageUrl } from '../supabase.js';
+import useLongPress from '../hooks/useLongPress.js';
 
 const FACTION_COLORS = {
   Human:  { border: '#2a4a7a', text: '#4a8abf' },
@@ -14,7 +15,7 @@ function getFactionColors(unitType) {
   return FACTION_COLORS[unitType] || { border: '#2a2a3a', text: '#6a6a8a' };
 }
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, myPlayerIndex, onClick }) {
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
@@ -87,6 +88,29 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ? '0 0 0 2px #3b82f6, 0 0 10px rgba(59,130,246,0.55)'
     : '0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)';
 
+  // Long-press inspect on mobile
+  const longPress = useLongPress(() => {
+    if (onLongPress) onLongPress();
+  });
+
+  const longPressHandlers = isMobile && onLongPress ? {
+    onPointerDown: longPress.onPointerDown,
+    onPointerUp: () => {
+      const fired = longPress.firedRef.current;
+      longPress.onPointerUp();
+      if (fired && onLongPressDismiss) onLongPressDismiss();
+    },
+    onPointerCancel: longPress.onPointerCancel,
+  } : {};
+
+  const handleClick = (e) => {
+    if (longPress.firedRef.current) {
+      longPress.firedRef.current = false;
+      return;
+    }
+    if (onClick) onClick(e);
+  };
+
   // Ring style based on selection state
   let ringStyle = {};
   if (isSelected) {
@@ -113,7 +137,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         overflow: 'hidden',
         ...ringStyle,
       }}
-      onClick={onClick}
+      {...longPressHandlers}
+      onClick={handleClick}
       title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
       {/* Card art fills token */}

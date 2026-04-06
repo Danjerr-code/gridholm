@@ -18,6 +18,9 @@ export default function Cell({
   onClick,
   onUnitClick,
   onChampionClick,
+  isMobile,
+  onUnitLongPress,
+  onLongPressDismiss,
 }) {
   let tileStyle;
   let tileClass = 'relative w-full aspect-square transition-colors';
@@ -128,6 +131,9 @@ export default function Cell({
             isSacrificeTarget={isSacrificeTarget}
             myPlayerIndex={myPlayerIndex}
             onClick={e => { if (e.stopPropagation) e.stopPropagation(); onUnitClick && onUnitClick(); }}
+            isMobile={isMobile}
+            onLongPress={onUnitLongPress ? () => { onUnitLongPress(unit); } : undefined}
+            onLongPressDismiss={onLongPressDismiss}
           />
         </div>
       )}
