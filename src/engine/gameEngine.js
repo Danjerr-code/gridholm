@@ -721,7 +721,11 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   }
 
   s.pendingSpell = null;
-  const target = targetUnitUid ? s.units.find(u => u.uid === targetUnitUid) : null;
+  let target = targetUnitUid ? s.units.find(u => u.uid === targetUnitUid) : null;
+  if (!target && targetUnitUid && typeof targetUnitUid === 'string' && targetUnitUid.startsWith('champion')) {
+    const idx = parseInt(targetUnitUid.replace('champion', ''), 10);
+    if (!isNaN(idx)) target = s.champions[idx];
+  }
   const effect = pending.effect;
   const step = pending.step || 0;
   const data = pending.data || {};
@@ -1206,9 +1210,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'moonleaf':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit').map(u => u.uid);
 
-    // Bloom step 0: friendly unit; step 1: enemy unit
+    // Bloom step 0: friendly unit or champion; step 1: enemy unit
     case 'bloom':
-      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
+      if (step === 0) return ['champion' + state.activePlayer, ...state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid)];
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
 
     // Entangle: friendly Elf unit

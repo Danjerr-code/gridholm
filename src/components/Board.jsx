@@ -117,6 +117,7 @@ export default function Board({
             const isSpellTarget = spellTargetUids.includes(unit?.uid);
             const isArcherTarget = archerShootTargets.includes(unit?.uid);
             const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
+            const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
 
             return (
               <Cell
@@ -132,6 +133,7 @@ export default function Board({
                 isEnemyMoveTile={enemyMoveSet.has(key)}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
+                isChampionSpellTarget={isChampionSpellTarget}
                 isArcherTarget={isArcherTarget}
                 isSacrificeTarget={isSacrificeTarget}
                 state={state}
@@ -139,6 +141,10 @@ export default function Board({
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => {
+                  if (selectMode === 'spell' && isChampionSpellTarget) {
+                    handlers.handleSpellTarget('champion' + champion.owner);
+                    return;
+                  }
                   if (selectMode === 'unit_move' && champion && champion.owner !== activePlayer) {
                     const key = `${row},${col}`;
                     if (unitMoveSet.has(key)) {

@@ -217,7 +217,8 @@ export const SPELL_REGISTRY = {
     if (!target) return state;
     if (step === 0) {
       const healed = restoreHP(target, 2, state);
-      addLog(state, `Bloom: ${target.name} restored ${healed} HP.`);
+      const targetName = target.name || `${state.players[caster].name}'s champion`;
+      addLog(state, `Bloom: ${targetName} restored ${healed} HP.`);
     } else {
       const dmg = state.players[caster].hpRestoredThisTurn || 0;
       addLog(state, `Bloom: deals ${dmg} damage to ${target.name}.`);

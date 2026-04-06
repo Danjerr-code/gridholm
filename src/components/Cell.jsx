@@ -10,6 +10,7 @@ export default function Cell({
   isEnemyMoveTile,
   isSelected,
   isSpellTarget,
+  isChampionSpellTarget,
   isArcherTarget,
   isSacrificeTarget,
   state,
@@ -83,8 +84,8 @@ export default function Cell({
           className="absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none"
           style={{
             background: `radial-gradient(circle, ${champColor}66 0%, transparent 100%)`,
-            border: `2px solid ${champColor}`,
-            boxShadow: `0 0 12px ${champColor}60`,
+            border: `2px solid ${isChampionSpellTarget ? '#f97316' : champColor}`,
+            boxShadow: `0 0 12px ${isChampionSpellTarget ? '#f9731660' : champColor + '60'}`,
           }}
           onClick={e => { e.stopPropagation(); onChampionClick && onChampionClick(); }}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
