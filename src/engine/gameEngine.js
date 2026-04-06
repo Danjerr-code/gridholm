@@ -105,32 +105,81 @@ export function cloneState(state) {
   return JSON.parse(JSON.stringify(state));
 }
 
-// ── HP restore hook ────────────────────────────────────────────────────────
-// Called whenever any HP is restored to the active player's champion or any
-// friendly unit during the active player's turn.
-
-function onRestoreHP(state) {
-  // Moonveil Mystic: gains +1/+1 once per restore event
-  const mystic = state.units.find(u => u.owner === state.activePlayer && u.id === 'moonveilmystic');
-  if (mystic) {
-    mystic.atk += 1;
-    mystic.hp += 1;
-    mystic.maxHp += 1;
-    addLog(state, `Moonveil Mystic grows! Now ${mystic.atk}/${mystic.hp}.`);
+// ── HP restore ─────────────────────────────────────────────────────────────
+// Single point of HP restoration for the entire engine.
+// target: unit/champion object OR 'champion0'/'champion1' string.
+// Returns actual amount healed.
+function restoreHP(target, amount, state, source = 'effect') {
+  let holder;
+  if (typeof target === 'string') {
+    const idx = parseInt(target.replace('champion', ''), 10);
+    holder = state.champions[idx];
+  } else {
+    holder = target;
   }
+  const actual = Math.min(amount, holder.maxHp - holder.hp);
+  if (actual > 0) {
+    holder.hp += actual;
+    const ap = state.activePlayer;
+    if (state.players[ap].hpRestoredThisTurn == null) state.players[ap].hpRestoredThisTurn = 0;
+    state.players[ap].hpRestoredThisTurn += actual;
+    // Moonveil Mystic: gains +1/+1 once per restore call
+    const mystic = state.units.find(u => u.owner === ap && u.id === 'moonveilmystic');
+    if (mystic) {
+      mystic.atk += 1;
+      mystic.hp += 1;
+      mystic.maxHp += 1;
+      addLog(state, `Moonveil Mystic grows! Now ${mystic.atk}/${mystic.hp}.`);
+    }
+  }
+  return actual;
 }
 
-// Restore HP to a unit/champion and fire the hook. Returns actual amount healed.
-function restoreHp(state, target, amount) {
-  const before = target.hp;
-  target.hp = Math.min(target.maxHp, target.hp + amount);
-  const healed = target.hp - before;
-  if (healed > 0) {
-    state.players[state.activePlayer].hpRestoredThisTurn =
-      (state.players[state.activePlayer].hpRestoredThisTurn || 0) + healed;
-    onRestoreHP(state);
+// ── Unit destruction ────────────────────────────────────────────────────────
+// Single point of unit removal for the entire engine. Fires death triggers.
+export function destroyUnit(unit, state, source = 'combat', destroyingUids = new Set()) {
+  if (destroyingUids.has(unit.uid)) return state;
+  destroyingUids.add(unit.uid);
+
+  // Remove from board
+  state.units = state.units.filter(u => u.uid !== unit.uid);
+
+  // Thornweave: restore 3 HP to owner's champion
+  if (unit.id === 'thornweave') {
+    const healed = restoreHP('champion' + unit.owner, 3, state, 'thornweave');
+    if (healed > 0) addLog(state, `Thornweave: champion restores ${healed} HP.`);
   }
-  return healed;
+
+  // Plague Hog: deal 2 damage to cardinal adjacent units, chain-destroy any at 0
+  if (unit.id === 'plaguehog') {
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    const nearby = state.units.filter(u => adj.some(([r, c]) => u.row === r && u.col === c));
+    for (const t of nearby) {
+      t.hp -= 2;
+      addLog(state, `Plague Hog explodes! ${t.name} takes 2 damage.`);
+      if (t.hp <= 0) destroyUnit(t, state, 'plaguehog', destroyingUids);
+    }
+    state.units = state.units.filter(u => u.hp > 0);
+  }
+
+  // Shadow Trap: when shadow trap itself is destroyed, kill the triggering enemy
+  if (unit.id === 'shadowtrap' && source !== 'shadowtrap' && state.shadowTrapTriggerUid) {
+    const triggerEnemy = state.units.find(u => u.uid === state.shadowTrapTriggerUid);
+    if (triggerEnemy) destroyUnit(triggerEnemy, state, 'shadowtrap', destroyingUids);
+    state.shadowTrapTriggerUid = null;
+  }
+
+  // Sister Siofra: champion gains +2 max HP when a friendly unit is destroyed
+  const siofra = state.units.find(u => u.owner === unit.owner && u.id === 'sistersiofra');
+  if (siofra && unit.id !== 'sistersiofra') {
+    const champ = state.champions[unit.owner];
+    champ.maxHp += 2;
+    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
+    addLog(state, `Sister Siofra: champion gains +2 max HP permanently.`);
+  }
+
+  addLog(state, `${unit.name} destroyed`);
+  return state;
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -189,7 +238,6 @@ function revealUnit(state, unit) {
     for (const t of targets) {
       applyDamageToUnit(state, t, 2, unit.name);
     }
-    state.units = state.units.filter(u => u.hp > 0);
     if (targets.length) addLog(state, `Veil Fiend reveal: ${targets.length} adjacent enemies hit for 2 damage.`);
   }
   if (unit.id === 'dreadshade') {
@@ -350,13 +398,13 @@ export function playCard(state, cardUid) {
       p.discard.push(card);
       s.units.forEach(u => {
         if (u.owner === s.activePlayer && !u.hidden) {
-          const healed = restoreHp(s, u, 2);
+          const healed = restoreHP(u, 2, s);
           if (healed > 0) addLog(s, `${u.name} restored ${healed} HP.`);
         }
       });
       // Also restore champion
       const champ = s.champions[s.activePlayer];
-      const champHealed = restoreHp(s, champ, 2);
+      const champHealed = restoreHP(champ, 2, s);
       if (champHealed > 0) addLog(s, `${p.name}'s champion restored ${champHealed} HP.`);
       addLog(s, `${p.name} casts Overgrowth. All friendly units restore 2 HP.`);
       return s;
@@ -543,7 +591,7 @@ export function summonUnit(state, cardUid, row, col) {
   // Elf Elder on-summon: restore 2 HP to champion
   if (card.id === 'elfelder') {
     const champ = s.champions[s.activePlayer];
-    const healed = restoreHp(s, champ, 2);
+    const healed = restoreHP(champ, 2, s);
     addLog(s, `Elf Elder: champion restores ${healed} HP.`);
   }
 
@@ -634,8 +682,7 @@ export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
     const sacrifice = s.units.find(u => u.uid === sacrificeUid);
     if (sacrifice) {
       addLog(s, `Flesh Tithe: ${sacrifice.name} sacrificed.`);
-      s.units = s.units.filter(u => u.uid !== sacrifice.uid);
-      onFriendlyUnitDestroyed(s, sacrifice);
+      destroyUnit(sacrifice, s, 'sacrifice');
       if (fleshtithe) {
         fleshtithe.atk += 2;
         fleshtithe.hp += 2;
@@ -687,7 +734,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       if (manhattan([champ.row, champ.col], [target.row, target.col]) <= 2) {
         applyDamageToUnit(s, target, 4, 'Smite');
       }
-      s.units = s.units.filter(u => u.hp > 0);
     }
   }
   // ── Forge Weapon ──
@@ -721,7 +767,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (target) {
       const handCount = p.hand.length; // hand size AFTER playing moonleaf (already removed)
       target.maxHp += handCount;
-      const healed = restoreHp(s, target, handCount);
+      const healed = restoreHP(target, handCount, s);
       addLog(s, `Moonleaf: ${target.name} gains +${handCount} HP.`);
     }
   }
@@ -730,7 +776,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (step === 0) {
       // Friendly unit selected: restore 2 HP
       if (target) {
-        const healed = restoreHp(s, target, 2);
+        const healed = restoreHP(target, 2, s);
         addLog(s, `Bloom: ${target.name} restored ${healed} HP.`);
       }
       // Now pick enemy target
@@ -741,7 +787,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
         const dmg = p.hpRestoredThisTurn || 0;
         addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
         applyDamageToUnit(s, target, dmg, 'Bloom');
-        s.units = s.units.filter(u => u.hp > 0);
       }
     }
   }
@@ -751,7 +796,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       const dmg = p.hpRestoredThisTurn || 0;
       addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
       applyDamageToUnit(s, target, dmg, 'Bloom');
-      s.units = s.units.filter(u => u.hp > 0);
     }
   }
   // ── Entangle ──
@@ -808,7 +852,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
         addLog(s, `Ambush: ${beast.name} battles ${target.name}!`);
         applyDamageToUnit(s, target, attackerAtk, beast.name);
         // Beast does NOT take counterattack from enemy unit combat in Ambush
-        s.units = s.units.filter(u => u.hp > 0);
       }
     }
   }
@@ -819,8 +862,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       if (target) {
         const sacrificeAtk = target.atk;
         addLog(s, `Blood Offering: ${target.name} (${sacrificeAtk} ATK) sacrificed.`);
-        s.units = s.units.filter(u => u.uid !== target.uid);
-        onFriendlyUnitDestroyed(s, target);
+        destroyUnit(target, s, 'sacrifice');
         s.pendingSpell = { cardUid, effect: 'bloodoffering', playerIdx: s.activePlayer, step: 1, data: { sacrificeAtk, paid: true } };
       }
     } else {
@@ -829,7 +871,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
         const dmg = data.sacrificeAtk || 0;
         addLog(s, `Blood Offering: ${dmg} damage to ${target.name}.`);
         applyDamageToUnit(s, target, dmg, 'Blood Offering');
-        s.units = s.units.filter(u => u.hp > 0);
       }
     }
   }
@@ -838,23 +879,20 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (target) {
       addLog(s, `Pact of Ruin: 3 damage to ${target.name}.`);
       applyDamageToUnit(s, target, 3, 'Pact of Ruin');
-      s.units = s.units.filter(u => u.hp > 0);
     }
   }
   // ── Dark Sentence ──
   else if (effect === 'darksentence') {
     if (target) {
       addLog(s, `Dark Sentence: ${target.name} destroyed.`);
-      s.units = s.units.filter(u => u.uid !== target.uid);
-      onFriendlyUnitDestroyed(s, target);
+      destroyUnit(target, s, 'darksentence');
     }
   }
   // ── Devour ──
   else if (effect === 'devour') {
     if (target && target.hp <= 2) {
       addLog(s, `Devour: ${target.name} consumed.`);
-      s.units = s.units.filter(u => u.uid !== target.uid);
-      onFriendlyUnitDestroyed(s, target);
+      destroyUnit(target, s, 'devour');
     }
   }
   // ── Shadow Veil ──
@@ -870,9 +908,8 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       const actualDmg = Math.min(2, target.hp);
       addLog(s, `Soul Drain: 2 damage to ${target.name}.`);
       applyDamageToUnit(s, target, 2, 'Soul Drain');
-      s.units = s.units.filter(u => u.hp > 0);
       const champ = s.champions[s.activePlayer];
-      const healed = restoreHp(s, champ, actualDmg);
+      const healed = restoreHP(champ, actualDmg, s);
       addLog(s, `Soul Drain: champion restores ${healed} HP.`);
     }
   }
@@ -881,7 +918,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (target) {
       addLog(s, `Woodland Guard: deals 2 damage to ${target.name}.`);
       applyDamageToUnit(s, target, 2, 'Woodland Guard');
-      s.units = s.units.filter(u => u.hp > 0);
     }
   }
   // ── Battle Priest action (step 0: enemy, step 1: friendly) ──
@@ -891,13 +927,12 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       if (target) {
         addLog(s, `Battle Priest: deals 2 damage to ${target.name}.`);
         applyDamageToUnit(s, target, 2, 'Battle Priest');
-        s.units = s.units.filter(u => u.hp > 0);
       }
       s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
     } else {
       // Friendly target selected: restore 2 HP
       if (target) {
-        const healed = restoreHp(s, target, 2);
+        const healed = restoreHP(target, 2, s);
         addLog(s, `Battle Priest: restores ${healed} HP to ${target.name}.`);
       }
     }
@@ -906,7 +941,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   else if (effect === 'grovewarden_action') {
     const elfCount = s.units.filter(u => u.owner === s.activePlayer && u.unitType === 'Elf' && u.id !== 'grovewarden').length;
     const champ = s.champions[s.activePlayer];
-    const healed = restoreHp(s, champ, elfCount);
+    const healed = restoreHP(champ, elfCount, s);
     addLog(s, `Grove Warden: champion restores ${elfCount} HP (${elfCount} friendly Elves).`);
   }
   // ── Pack Runner action ──
@@ -937,7 +972,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   else if (effect === 'elfarcher_action') {
     if (target) {
       applyDamageToUnit(s, target, 2, 'Elf Archer');
-      s.units = s.units.filter(u => u.hp > 0);
       addLog(s, `Elf Archer fires at ${target.name}!`);
     }
     // Mark the archer as moved
@@ -1095,10 +1129,8 @@ export function moveUnit(state, unitUid, row, col) {
     // Shadow Trap on reveal: destroy the attacker
     if (wasHidden && enemyUnit.id === 'shadowtrap' && s.units.find(u => u.uid === enemyUnit.uid)) {
       addLog(s, `Shadow Trap springs! ${unit.name} is destroyed.`);
-      s.units = s.units.filter(u => u.uid !== unit.uid);
-      onFriendlyUnitDestroyed(s, unit);
+      destroyUnit(unit, s, 'shadowtrap');
       // Shadow Trap is now revealed (no longer hidden) but stays
-      s.units = s.units.filter(u => u.hp > 0);
       return s;
     }
 
@@ -1129,7 +1161,7 @@ export function moveUnit(state, unitUid, row, col) {
         // Whisper attack restore
         if (stillAlive2.id === 'whisper') {
           const champ = s.champions[s.activePlayer];
-          const healed = restoreHp(s, champ, 2);
+          const healed = restoreHP(champ, 2, s);
           addLog(s, `Whisper: champion restores ${healed} HP.`);
         }
       }
@@ -1207,48 +1239,7 @@ function applyDamageToUnit(state, unit, dmg, sourceName) {
   unit.hp -= actualDmg;
   if (actualDmg > 0) addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
   if (unit.hp <= 0) {
-    addLog(state, `${unit.name} is destroyed.`);
-    // Plague Hog death: deal 2 damage to all adjacent units
-    if (unit.id === 'plaguehog') {
-      const adj = cardinalNeighbors(unit.row, unit.col);
-      const nearby = state.units.filter(u => u.uid !== unit.uid && adj.some(([r, c]) => u.row === r && u.col === c));
-      for (const t of nearby) {
-        t.hp -= 2;
-        addLog(state, `Plague Hog explodes! ${t.name} takes 2 damage.`);
-      }
-    }
-    state.units = state.units.filter(u => u.uid !== unit.uid);
-    state.units = state.units.filter(u => u.hp > 0);
-    onFriendlyUnitDestroyed(state, unit);
-  }
-}
-
-function onFriendlyUnitDestroyed(state, destroyedUnit) {
-  // Sister Siofra: permanent +2 max HP when a friendly unit is destroyed
-  const siofra = state.units.find(u => u.owner === destroyedUnit.owner && u.id === 'sistersiofra');
-  if (siofra && destroyedUnit.id !== 'sistersiofra') {
-    const champ = state.champions[destroyedUnit.owner];
-    champ.maxHp += 2;
-    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
-    addLog(state, `Sister Siofra: champion gains +2 max HP permanently.`);
-  }
-
-  // Thornweave death restore
-  if (destroyedUnit.id === 'thornweave') {
-    const champ = state.champions[destroyedUnit.owner];
-    // Only restore if this is the active player's unit being destroyed during their turn
-    // or during their unit's death — fire regardless
-    const healed = Math.min(3, champ.maxHp - champ.hp);
-    champ.hp = Math.min(champ.maxHp, champ.hp + 3);
-    if (healed > 0) {
-      // Manually track restore and fire hook (owner may not be activePlayer)
-      if (destroyedUnit.owner === state.activePlayer) {
-        state.players[state.activePlayer].hpRestoredThisTurn =
-          (state.players[state.activePlayer].hpRestoredThisTurn || 0) + healed;
-        onRestoreHP(state);
-      }
-    }
-    addLog(state, `Thornweave: champion restores ${healed} HP.`);
+    destroyUnit(unit, state, 'combat');
   }
 }
 
@@ -1264,7 +1255,6 @@ export function archerShoot(state, archerUid, targetUid) {
   archer.moved = true;
   s.archerShot.push(archerUid);
   applyDamageToUnit(s, target, 2, archer.name);
-  s.units = s.units.filter(u => u.hp > 0);
   addLog(s, `Elf Archer fires at ${target.name}!`);
   return s;
 }
@@ -1306,7 +1296,7 @@ export function endTurn(state) {
   // Seedling end of turn: restore 1 HP to champion
   s.units.forEach(u => {
     if (u.owner === s.activePlayer && u.cannotMove) {
-      const healed = restoreHp(s, champ, 1);
+      const healed = restoreHP(champ, 1, s);
       if (healed > 0) addLog(s, `Seedling restores 1 HP to champion.`);
     }
   });
@@ -1321,7 +1311,7 @@ export function endTurn(state) {
         adj.some(([r, c]) => n.row === r && n.col === c)
       );
       for (const n of nearby) {
-        const healed = restoreHp(s, n, 1);
+        const healed = restoreHP(n, 1, s);
         if (healed > 0) addLog(s, `Sentinel Aura: ${n.name} restores ${healed} HP.`);
       }
     }
@@ -1337,8 +1327,7 @@ export function endTurn(state) {
         if (s.units.find(x => x.uid === t.uid)) {
           t.hp -= 1;
           if (t.hp <= 0) {
-            addLog(s, `${t.name} is destroyed by Zmore.`);
-            onFriendlyUnitDestroyed(s, t);
+            destroyUnit(t, s, 'zmore');
           }
         }
       }
