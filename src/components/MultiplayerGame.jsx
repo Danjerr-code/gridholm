@@ -75,6 +75,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [isRematch, setIsRematch] = useState(false);
   const [showConcedeConfirm, setShowConcedeConfirm] = useState(false);
   const [opponentLeftCountdown, setOpponentLeftCountdown] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const copiedTimerRef = useRef(null);
   const prevStatusRef = useRef(null);
   const countdownRef = useRef(null);
   const prevGameStateRef = useRef(null);
@@ -440,31 +442,80 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   // Waiting for player 2 to join (legacy waiting status or pre-deck-select)
   if ((session?.status === 'waiting' || (session?.status === 'deck_select' && !session?.player2_id)) && myPlayerIndex === 0) {
     const gameLink = `${window.location.origin}${window.location.pathname}#/game/${gameId}`;
+    const handleCopyLink = () => {
+      navigator.clipboard.writeText(gameLink).then(() => {
+        setCopiedLink(true);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopiedLink(false), 2000);
+      });
+    };
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
-        <div className="text-center max-w-sm w-full flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-amber-400">GRIDHOLM</h1>
-          <p className="text-gray-300 text-sm">Waiting for opponent to join…</p>
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex flex-col gap-3">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#111827' }}>
+        <div className="text-center flex flex-col gap-5" style={{ maxWidth: '340px', width: '100%' }}>
+          <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', fontWeight: 700, color: '#C9A84C', letterSpacing: '0.12em', margin: 0 }}>
+            GRIDHOLM
+          </h1>
+          <p style={{ color: '#8a8aaa', fontSize: '13px', margin: 0 }}>Waiting for opponent to join…</p>
+          <div style={{
+            background: '#0d0d1a',
+            border: '1px solid #2a2a3a',
+            borderRadius: '10px',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
             <div>
-              <div className="text-gray-400 text-xs mb-1">Game ID</div>
-              <div className="text-3xl font-mono font-bold text-white tracking-widest">{gameId}</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#6a6a8a', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Game ID</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '32px', fontWeight: 700, color: '#C9A84C', letterSpacing: '0.18em' }}>{gameId}</div>
             </div>
             <div>
-              <div className="text-gray-400 text-xs mb-1">Share link</div>
-              <div className="bg-gray-900 rounded px-2 py-1.5 text-xs text-gray-300 font-mono break-all">
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#6a6a8a', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Share link</div>
+              <div style={{
+                background: '#070710',
+                border: '1px solid #1a1a2e',
+                borderRadius: '6px',
+                padding: '8px 10px',
+                fontSize: '11px',
+                color: '#8a8aaa',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all',
+                textAlign: 'left',
+              }}>
                 {gameLink}
               </div>
               <button
-                className="mt-2 text-xs text-blue-400 hover:text-blue-300"
-                onClick={() => navigator.clipboard?.writeText(gameLink)}
+                style={{
+                  marginTop: '10px',
+                  background: 'transparent',
+                  color: copiedLink ? '#60a060' : '#C9A84C',
+                  border: `1px solid ${copiedLink ? '#3a6a3a' : '#C9A84C40'}`,
+                  borderRadius: '4px',
+                  padding: '6px 18px',
+                  cursor: 'pointer',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '11px',
+                  letterSpacing: '0.06em',
+                  transition: 'color 0.2s, border-color 0.2s',
+                }}
+                onClick={handleCopyLink}
               >
-                Copy link
+                {copiedLink ? 'Copied!' : 'Copy Link'}
               </button>
             </div>
           </div>
           <button
-            className="text-xs text-gray-500 hover:text-gray-300 underline"
+            style={{
+              background: 'transparent',
+              color: '#3a3a5a',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '11px',
+              letterSpacing: '0.05em',
+            }}
+            onMouseEnter={e => e.target.style.color = '#6a6a8a'}
+            onMouseLeave={e => e.target.style.color = '#3a3a5a'}
             onClick={async () => { await cancelWaiting(); onBackToLobby(); }}
           >
             Cancel
