@@ -46,14 +46,14 @@ export default function Cell({
   } else if (isEnemyMoveTile) {
     tileStyle = {
       background: '#2a0d0d',
-      border: '1px solid #8a2a2a',
+      border: '1px solid #8a2020',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
     };
   } else {
     tileStyle = {
-      background: '#111118',
-      border: '1px solid #1e1e2e',
+      background: '#161624',
+      border: '1px solid #252538',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
     };
@@ -92,7 +92,7 @@ export default function Cell({
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
             <path d="M2 19h20v2H2zM2 14l4-8 6 5 6-5 4 8H2z"/>
           </svg>
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.hp}
           </span>
           {isMyChampion && (
@@ -104,7 +104,7 @@ export default function Cell({
               background: '#C9A84C',
               color: '#0a0a0f',
               fontSize: '9px',
-              fontFamily: "'Cinzel', serif",
+              fontFamily: 'var(--font-sans)',
               fontWeight: 600,
               padding: '1px 5px',
               borderRadius: '99px',

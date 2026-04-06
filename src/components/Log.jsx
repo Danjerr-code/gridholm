@@ -3,18 +3,18 @@ import { useEffect, useRef } from 'react';
 function getEntryStyle(entry) {
   const lower = entry.toLowerCase();
   if (/damage|hits|destroyed|takes/.test(lower)) {
-    return { color: '#8a3a3a' };
+    return { color: '#c06060' };
   }
   if (/restores|heals|gains hp/.test(lower)) {
-    return { color: '#3a7a3a' };
+    return { color: '#60a060' };
   }
   if (/turn|begins|starts/.test(lower)) {
-    return { color: '#C9A84C80', fontSize: '13px' };
+    return { color: '#C9A84C', fontSize: '13px', fontWeight: 600 };
   }
   if (/summons|plays|draws/.test(lower)) {
-    return { color: '#3a5a8a' };
+    return { color: '#6080c0' };
   }
-  return { color: '#6a6a8a' };
+  return { color: '#9090b8' };
 }
 
 export default function Log({ entries }) {
@@ -31,8 +31,8 @@ export default function Log({ entries }) {
     <div
       ref={containerRef}
       style={{
-        background: '#08080f',
-        border: '1px solid #1e1e2e',
+        background: '#0f0f1e',
+        border: '1px solid #252538',
         borderRadius: '6px',
         padding: '8px',
         overflowY: 'auto',
@@ -43,13 +43,13 @@ export default function Log({ entries }) {
     >
       <div style={{
         fontFamily: "'Cinzel', serif",
-        fontSize: '10px',
+        fontSize: '12px',
         color: '#C9A84C',
         textTransform: 'uppercase',
         letterSpacing: '0.08em',
         marginBottom: '6px',
         fontVariant: 'small-caps',
-      }}>Log</div>
+      }}>Game Log</div>
       <div>
         {entries.map((entry, i) => (
           <div
@@ -57,8 +57,8 @@ export default function Log({ entries }) {
             className="log-entry"
             style={{
               fontSize: '12px',
-              fontFamily: "'Crimson Text', serif",
-              lineHeight: 1.5,
+              fontFamily: 'var(--font-sans)',
+              lineHeight: 1.6,
               padding: '2px 4px',
               borderRadius: '2px',
               background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',

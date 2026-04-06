@@ -12,18 +12,18 @@ export default function PhaseTracker({ phase, phaseChangeId }) {
       className="flex flex-col justify-center gap-1 flex-shrink-0"
       style={{
         width: 140,
-        background: '#0a0a14',
-        borderRight: '1px solid #C9A84C30',
+        background: '#0f0f1e',
+        borderRight: '1px solid #252538',
         borderRadius: '6px',
         padding: '8px 4px',
       }}
     >
       <div style={{
         fontSize: '10px',
-        color: '#3a3a5a',
+        color: '#5a5a78',
         padding: '0 8px',
         marginBottom: '4px',
-        fontFamily: "'Cinzel', serif",
+        fontFamily: 'var(--font-sans)',
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
       }}>
@@ -66,8 +66,9 @@ export default function PhaseTracker({ phase, phaseChangeId }) {
                 justifyContent: 'center',
                 borderRadius: '50%',
                 flexShrink: 0,
+                fontFamily: 'var(--font-sans)',
                 background: isActive ? '#0a0a0f' : '#1a1a2e',
-                color: isActive ? '#C9A84C' : '#2a2a4a',
+                color: isActive ? '#C9A84C' : '#3a3a58',
               }}
             >
               {idx + 1}
@@ -75,9 +76,9 @@ export default function PhaseTracker({ phase, phaseChangeId }) {
             <span
               style={{
                 fontSize: '11px',
-                fontFamily: "'Cinzel', serif",
+                fontFamily: 'var(--font-sans)',
                 lineHeight: 1.2,
-                color: isActive ? '#0a0a0f' : '#2a2a3a',
+                color: isActive ? '#0a0a14' : '#5a5a78',
                 fontWeight: isActive ? 600 : 400,
               }}
             >

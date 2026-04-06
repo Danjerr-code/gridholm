@@ -670,8 +670,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       </div>
 
       {/* Bottom bar: guidance + action buttons */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs">
-        <span className="hidden sm:inline text-xs text-gray-300 sm:flex-1">{guidance}</span>
+      <div className="instruction-bar rounded-lg px-3 py-1.5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs" style={{ background: '#0f0f1e', borderTop: '1px solid #252538', border: '1px solid #252538' }}>
+        <span className="hidden sm:inline sm:flex-1" style={{ fontSize: '13px', fontFamily: 'var(--font-sans)', color: selectMode === 'spell' || selectMode === 'summon' || selectMode === 'targetless_spell' || selectMode === 'unit_move' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' ? '#C9A84C' : '#9090b8', fontWeight: selectMode ? 500 : 400 }}>{guidance}</span>
 
         {isActiveTurn && (
           <>
@@ -814,7 +814,7 @@ function KeywordBubbles({ keywords }) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: `${kw.color}18`,
+              background: `${kw.color}26`,
               border: `0.5px solid ${kw.color}`,
               borderRadius: '99px',
               padding: '4px 10px',
@@ -823,7 +823,7 @@ function KeywordBubbles({ keywords }) {
               cursor: 'default',
             }}
           >
-            <span style={{ fontSize: '11px', fontWeight: 500, color: kw.color }}>
+            <span style={{ fontSize: '11px', fontWeight: 500, color: kw.color, fontFamily: 'var(--font-sans)' }}>
               {kw.label}
             </span>
           </div>
@@ -834,13 +834,14 @@ function KeywordBubbles({ keywords }) {
           <div
             key={kw.key}
             style={{
-              fontSize: '11px',
-              color: 'var(--color-text-secondary, #9ca3af)',
+              fontSize: '12px',
+              color: '#9090b8',
               lineHeight: 1.5,
               padding: '6px 8px',
-              background: 'var(--color-background-secondary, #1f2937)',
+              background: '#1a1a2e',
               borderRadius: '4px',
               borderLeft: `2px solid ${kw.color}`,
+              fontFamily: 'var(--font-sans)',
             }}
           >
             <span style={{ fontWeight: 500, color: kw.color }}>{kw.label}: </span>
@@ -1003,17 +1004,19 @@ function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
 }
 
 function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
-  const colors = {
-    blue: 'bg-blue-600 hover:bg-blue-500 text-white',
-    green: 'bg-green-600 hover:bg-green-500 text-white',
-    gray: 'bg-gray-600 hover:bg-gray-500 text-white',
-    pink: 'bg-pink-600 hover:bg-pink-500 text-white',
-    gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
-    amber: 'bg-amber-600 hover:bg-amber-500 text-white',
+  const styles = {
+    blue:  { background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: '#d0d0e8' },
+    green: { background: 'linear-gradient(135deg, #166534, #16a34a)', color: '#d0d0e8' },
+    gray:  { background: '#1e1e2e', color: '#d0d0e8', border: '1px solid #3a3a5a' },
+    pink:  { background: 'linear-gradient(135deg, #9d174d, #db2777)', color: '#d0d0e8' },
+    gold:  { background: 'linear-gradient(135deg, #b45309, #C9A84C)', color: '#0a0a14' },
+    amber: { background: 'linear-gradient(135deg, #92400e, #d97706)', color: '#0a0a14' },
   };
+  const s = styles[variant] || styles.blue;
   return (
     <button
-      className={`text-xs font-semibold px-3 py-3 sm:py-1.5 rounded ${colors[variant]} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
+      className={`text-xs font-bold px-3 py-3 sm:py-1.5 rounded ${fullWidth ? 'w-full sm:w-auto' : ''}`}
+      style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, ...s }}
       onClick={onClick}
     >
       {label}

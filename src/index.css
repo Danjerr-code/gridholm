@@ -19,13 +19,31 @@
   animation: legendaryShimmer 3s ease-in-out infinite;
 }
 
+:root {
+  --font-sans: system-ui, -apple-system, sans-serif;
+
+  /* Text colors */
+  --text-primary: #e8e8f0;
+  --text-secondary: #b0b0c8;
+  --text-muted: #6a6a88;
+  --text-gold: #C9A84C;
+
+  /* Background surfaces */
+  --bg-page: #0d0d1a;
+  --bg-card: #1a1a2e;
+  --bg-panel: #141428;
+  --bg-statusbar: #0f0f20;
+  --bg-tile: #161624;
+  --border-tile: #252538;
+}
+
 body {
   margin: 0;
   background-color: #0a0a0f;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   background-repeat: repeat;
   color: #f9fafb;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 #root {
@@ -33,13 +51,14 @@ body {
   min-height: 100svh;
 }
 
-/* Typography */
-.card-name, .faction-name, .phase-label, h1, h2, h3, #gridholm-title {
+/* Typography — Cinzel only for game title and major screen headings */
+#gridholm-title, .screen-heading {
   font-family: 'Cinzel', serif;
 }
 
-.card-rules, .log-entry, .card-stats {
-  font-family: 'Crimson Text', serif;
-  font-size: 13px;
-  line-height: 1.6;
+/* All functional UI text uses clean sans-serif */
+button, input, .card-name, .card-stats, .card-rules,
+.log-entry, .phase-label, .status-bar, .instruction-bar,
+.unit-token, .card-detail, .faction-name, .keyword-bubble {
+  font-family: var(--font-sans);
 }

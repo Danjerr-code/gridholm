@@ -17,10 +17,10 @@ export default function StatusBar({ state, myPlayerIndex }) {
   };
 
   const barStyle = {
-    background: '#0d0d1a',
+    background: '#0f0f20',
     borderBottom: '1px solid #C9A84C40',
     borderRadius: '6px',
-    border: '1px solid #1e1e2e',
+    border: '1px solid #252538',
   };
 
   return (
@@ -28,39 +28,39 @@ export default function StatusBar({ state, myPlayerIndex }) {
       {/* Mobile: compact 3-column layout */}
       <div className="sm:hidden grid grid-cols-3 items-start px-2 py-1 leading-tight" style={barStyle}>
         <div className="flex flex-col gap-0.5">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#4a8abf' }}>{p1.name} {c1.hp}/{c1.maxHp}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c1.hp}/{c1.maxHp}</span></span>
           {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
-          <span style={{ fontSize: '10px', color: '#4a4a6a' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
+          <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 700, color: '#fff' }}>Turn {state.turn}</span>
-          <span style={{ fontSize: '10px', color: '#8a8aaa' }}>{activePlayerName}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: '#6a6a88' }}>Turn {state.turn}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C' }}>{activePlayerName}</span>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#bf4a4a' }}>{p2.name} {c2.hp}/{c2.maxHp}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
           {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
-          <span style={{ fontSize: '10px', color: '#4a4a6a' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
+          <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
         </div>
       </div>
 
       {/* Desktop: full layout */}
       <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-between gap-2 px-4 py-2" style={barStyle}>
         <div className="flex items-center gap-3 flex-wrap">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#4a8abf' }}>{p1.name}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name}</span>
           <HpBar hp={c1.hp} maxHp={c1.maxHp} color="blue" />
           {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
-          <span style={{ fontSize: '11px', color: '#4a4a6a' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
+          <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
         </div>
         <div className="text-center">
-          <div style={{ fontSize: '11px', color: '#4a4a6a' }}>Turn {state.turn}</div>
+          <div style={{ fontSize: '11px', color: '#6a6a88', fontFamily: 'var(--font-sans)' }}>Turn {state.turn}</div>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#C9A84C' }}>{activePlayerName}'s turn</div>
-          <div style={{ fontSize: '11px', color: '#6a5a8a' }}>{PHASE_LABELS[state.phase] || state.phase}</div>
+          <div style={{ fontSize: '11px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</div>
         </div>
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#bf4a4a' }}>{p2.name}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name}</span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
           {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
-          <span style={{ fontSize: '11px', color: '#4a4a6a' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
+          <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
         </div>
       </div>
     </>
@@ -77,7 +77,7 @@ function HpBar({ hp, maxHp, color }) {
       <div style={{
         width: '96px',
         height: '10px',
-        background: '#0a0a1a',
+        background: '#1a1a2e',
         borderRadius: '99px',
         overflow: 'hidden',
         boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.7)',
@@ -90,7 +90,7 @@ function HpBar({ hp, maxHp, color }) {
           transition: 'width 0.3s',
         }} />
       </div>
-      <span style={{ fontSize: '10px', color: '#8a8aaa' }}>{hp}/{maxHp}</span>
+      <span style={{ fontSize: '10px', color: '#e8e8f0', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{hp}/{maxHp}</span>
     </div>
   );
 }
