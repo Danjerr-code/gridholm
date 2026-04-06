@@ -189,85 +189,86 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           />
         </div>
 
-        {/* Right sidebar: game log */}
+        {/* Right sidebar: action buttons + game log */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
+          {/* Action buttons panel */}
+          <div
+            className="flex flex-col gap-2 flex-shrink-0"
+            style={{
+              background: '#0a0a14',
+              border: '1px solid #1e1e2e',
+              borderRadius: '6px',
+              padding: '8px',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Crimson Text', serif",
+                fontStyle: isImportantGuidance ? 'normal' : 'italic',
+                fontSize: '12px',
+                color: isImportantGuidance ? '#C9A84C' : '#8a8aaa',
+                lineHeight: 1.4,
+              }}
+            >{guidance}</span>
+
+            {isP1Turn && (
+              <div className="flex flex-col gap-1">
+                {phase === 'action' && selectMode === 'summon' && (
+                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'spell' && (
+                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+                  <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (3/3)" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'targetless_spell' && (
+                  <>
+                    <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
+                    <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
+                  </>
+                )}
+                {phase === 'action' && showAction && (
+                  <ActionBtn
+                    onClick={() => handlers.handleActionButtonClick(selectedUnit)}
+                    label="Action"
+                    variant="action"
+                    fullWidth
+                  />
+                )}
+                {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
+                  <>
+                    <ActionBtn onClick={handlers.handleConfirmAction} label="Confirm" variant="action" fullWidth />
+                    <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" fullWidth />
+                  </>
+                )}
+                {phase === 'action' && showHiddenReveal && (
+                  <ActionBtn
+                    onClick={() => { handlers.handleRevealUnit(selectedUnit); handlers.clearSelection(); }}
+                    label="Reveal"
+                    variant="gold"
+                    fullWidth
+                  />
+                )}
+                {phase === 'action' && selectedUnit && (
+                  <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && (
+                  <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" fullWidth />
+                )}
+
+                {phase === 'end-turn' && !pendingDiscard && (
+                  <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
+                )}
+                {pendingDiscard && (
+                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
+                )}
+              </div>
+            )}
+          </div>
+
           <Log entries={state.log} />
         </div>
-      </div>
-
-      {/* Bottom bar: guidance + action buttons */}
-      <div
-        className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs"
-        style={{
-          background: '#0a0a14',
-          borderTop: '1px solid #1e1e2e',
-          borderBottom: '1px solid #1e1e2e',
-          borderRadius: '6px',
-          padding: '6px 12px',
-        }}
-      >
-        <span
-          className="hidden sm:inline sm:flex-1"
-          style={{
-            fontFamily: "'Crimson Text', serif",
-            fontStyle: isImportantGuidance ? 'normal' : 'italic',
-            fontSize: '13px',
-            color: isImportantGuidance ? '#C9A84C' : '#8a8aaa',
-          }}
-        >{guidance}</span>
-
-        {isP1Turn && (
-          <>
-            {phase === 'action' && selectMode === 'summon' && (
-              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" />
-            )}
-            {phase === 'action' && selectMode === 'spell' && (
-              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="cancel" />
-            )}
-            {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
-              <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="cancel" />
-            )}
-            {phase === 'action' && selectMode === 'targetless_spell' && (
-              <>
-                <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" />
-                <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" />
-              </>
-            )}
-            {phase === 'action' && showAction && (
-              <ActionBtn
-                onClick={() => handlers.handleActionButtonClick(selectedUnit)}
-                label="Action"
-                variant="action"
-              />
-            )}
-            {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
-              <>
-                <ActionBtn onClick={handlers.handleConfirmAction} label="Confirm" variant="action" />
-                <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" />
-              </>
-            )}
-            {phase === 'action' && showHiddenReveal && (
-              <ActionBtn
-                onClick={() => { handlers.handleRevealUnit(selectedUnit); handlers.clearSelection(); }}
-                label="Reveal"
-                variant="gold"
-              />
-            )}
-            {phase === 'action' && selectedUnit && (
-              <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" />
-            )}
-            {phase === 'action' && (
-              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" fullWidth />
-            )}
-
-            {phase === 'end-turn' && !pendingDiscard && (
-              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
-            )}
-            {pendingDiscard && (
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
-            )}
-          </>
-        )}
       </div>
 
       {/* Bottom bar: P1 hand */}
