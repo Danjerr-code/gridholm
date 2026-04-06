@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
+import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
 import { KEYWORD_REMINDERS } from '../engine/keywords.js';
 import DeckSelect from './DeckSelect.jsx';
@@ -59,6 +60,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     opponentDeck,
     cancelWaiting,
   } = useMultiplayerGame(gameId);
+
+  const isMobile = useIsMobile();
 
   // Local UI selection state
   const [selectedCard, setSelectedCard] = useState(null);
@@ -633,13 +636,15 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       {/* Middle content row */}
       <div className="flex gap-2 flex-1 min-h-0">
         {/* Left column: phase tracker + card detail */}
-        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ width: 140, minHeight: 0 }}>
-          <PhaseTracker
-            phase={phase}
-            phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
-          />
-          <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
-        </div>
+        {!isMobile && (
+          <div className="flex-shrink-0 flex flex-col gap-2" style={{ width: 140, minHeight: 0 }}>
+            <PhaseTracker
+              phase={phase}
+              phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
+            />
+            <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
+          </div>
+        )}
 
         {/* Center: board */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
@@ -663,10 +668,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </div>
 
         {/* Right sidebar: game log */}
-        <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
-          <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
-          <Log entries={state.log} />
-        </div>
+        {!isMobile && (
+          <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
+            <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
+            <Log entries={state.log} />
+          </div>
+        )}
       </div>
 
       {/* Bottom bar: guidance + action buttons */}
