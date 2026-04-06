@@ -591,7 +591,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
         style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.5)' }}
       />
       {/* Sheet */}
-      <div style={{
+      <div className="no-scrollbar" style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
@@ -809,7 +809,7 @@ function CardDetailPanel({ inspectedItem, state }) {
       }}
     >
       <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
         {content || (
           <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
             Click a card or unit to inspect
