@@ -246,7 +246,7 @@ export default function CardGallery() {
                     <span style={{
                       position: 'absolute',
                       bottom: 4,
-                      left: 4,
+                      right: 4,
                       background: 'rgba(0,0,0,0.72)',
                       color: '#C9A84C',
                       fontSize: 10,
@@ -284,7 +284,7 @@ export default function CardGallery() {
                       <span style={{
                         position: 'absolute',
                         bottom: 4,
-                        left: 4,
+                        right: 4,
                         background: 'rgba(0,0,0,0.72)',
                         color: '#C9A84C',
                         fontSize: 10,
