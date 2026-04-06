@@ -228,7 +228,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleSummonOnTile = useCallback(async (row, col) => {
     if (!gameState || !selectedCard) return;
     const s = summonUnit(gameState, selectedCard, row, col);
-    if (s.pendingFleshtitheSacrifice) {
+    if (s.pendingHandSelect) {
+      setSelectMode('hand_select');
+      await dispatchAction(s);
+    } else if (s.pendingFleshtitheSacrifice) {
       setSelectMode('fleshtithe_sacrifice');
       await dispatchAction(s);
     } else {
@@ -1215,6 +1218,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>♥ ???</div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>⚡ ???</div>
           </div>
+          <KeywordBubbles keywords={[{ key: 'hidden', ...KEYWORD_REMINDERS.hidden }]} />
         </div>
       );
     }

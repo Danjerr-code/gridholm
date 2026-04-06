@@ -158,7 +158,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
             position: 'absolute',
             top: 0,
             left: 0,
-            opacity: unit.hidden ? 0 : 1,
+            opacity: isOwnHidden ? 0.5 : 1,
             WebkitTouchCallout: 'none',
             userSelect: 'none',
           }}
