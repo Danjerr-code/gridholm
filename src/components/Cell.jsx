@@ -94,7 +94,7 @@ export default function Cell({
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
         >
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
-            <path d="M2 18 L2 3 L4.5 13 L7 3 L9.5 13 L12 3 L14.5 13 L17 3 L19.5 13 L22 3 L22 18 Z"/>
+            <path d="M2,18 L2,6 L8,14 L12,2 L16,14 L22,6 L22,18 Z"/>
           </svg>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.hp}
