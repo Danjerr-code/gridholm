@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
+import { KEYWORD_REMINDERS } from '../engine/keywords.js';
 import DeckSelect from './DeckSelect.jsx';
 import {
   getChampionMoveTiles,
@@ -719,6 +720,71 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   );
 }
 
+function getActiveKeywords(source) {
+  const keys = ['rush', 'hidden', 'action', 'cannotMove', 'legendary'];
+  const result = [];
+  for (const key of keys) {
+    if (source[key]) result.push({ key, ...KEYWORD_REMINDERS[key] });
+  }
+  if (source.aura) {
+    const range = source.aura.range;
+    const base = KEYWORD_REMINDERS.aura;
+    const label = range === 1 ? 'Aura 1' : range === 2 ? 'Aura 2' : base.label;
+    result.push({ key: 'aura', ...base, label });
+  }
+  return result;
+}
+
+function KeywordBubbles({ keywords }) {
+  if (!keywords || keywords.length === 0) return null;
+  return (
+    <div style={{ marginTop: '6px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+        {keywords.map(kw => (
+          <div
+            key={kw.key}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: `${kw.color}18`,
+              border: `0.5px solid ${kw.color}`,
+              borderRadius: '99px',
+              padding: '4px 10px',
+              marginRight: '6px',
+              marginBottom: '6px',
+              cursor: 'default',
+            }}
+          >
+            <span style={{ fontSize: '11px', fontWeight: 500, color: kw.color }}>
+              {kw.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {keywords.map(kw => (
+          <div
+            key={kw.key}
+            style={{
+              fontSize: '11px',
+              color: 'var(--color-text-secondary, #9ca3af)',
+              lineHeight: 1.5,
+              padding: '6px 8px',
+              background: 'var(--color-background-secondary, #1f2937)',
+              borderRadius: '4px',
+              borderLeft: `2px solid ${kw.color}`,
+            }}
+          >
+            <span style={{ fontWeight: 500, color: kw.color }}>{kw.label}: </span>
+            {kw.reminder}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex }) {
   const nameClass = large ? 'font-bold text-white text-sm leading-tight' : 'font-bold text-white text-xs leading-tight';
   const typeClass = large ? 'text-gray-400 text-xs' : 'text-gray-400 text-[10px]';
@@ -754,6 +820,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
 
     const auraBonus = getAuraAtkBonus(state, unit);
     const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
+    const unitKeywords = !large ? getActiveKeywords(unit) : [];
     return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
@@ -772,24 +839,30 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
           <div className={`text-cyan-400 ${large ? 'text-xs' : 'text-[10px]'}`}>🛡 Shield: {unit.shield}</div>
         )}
         {unit.rules && <div className={rulesClass}>{unit.rules}</div>}
+        <KeywordBubbles keywords={unitKeywords} />
       </div>
     );
   }
 
   if (inspectedItem?.type === 'terrain') {
+    const terrainKeyword = !large ? [{ key: 'terrain', ...KEYWORD_REMINDERS.terrain }] : [];
     return (
       <div className="flex flex-col gap-1">
         <span className={nameClass}>Throne</span>
         <div className={`text-amber-700 font-semibold ${large ? 'text-xs' : 'text-[10px]'}`}>Terrain</div>
-        <div className={rulesClass}>
-          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
-        </div>
+        {large && (
+          <div className={rulesClass}>
+            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+          </div>
+        )}
+        <KeywordBubbles keywords={terrainKeyword} />
       </div>
     );
   }
 
   if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
+    const cardKeywords = !large ? getActiveKeywords(card) : [];
     return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
@@ -805,6 +878,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
           </div>
         )}
         {card.rules && <div className={rulesClass}>{card.rules}</div>}
+        <KeywordBubbles keywords={cardKeywords} />
       </div>
     );
   }
