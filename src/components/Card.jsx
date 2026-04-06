@@ -124,6 +124,8 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
                 objectFit: 'cover',
                 borderRadius: 'var(--border-radius-md)',
                 display: 'block',
+                WebkitTouchCallout: 'none',
+                userSelect: 'none',
               }}
             />
           ) : (

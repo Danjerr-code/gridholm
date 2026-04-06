@@ -502,7 +502,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ width: 90, height: 120, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#252538' }}>
               {unitImageUrl
-                ? <img src={unitImageUrl} alt={unit.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                ? <img src={unitImageUrl} alt={unit.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
                 : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4a6a', fontSize: 11, fontFamily: "'Cinzel', serif" }}>{unit.unitType || 'Unit'}</div>
               }
             </div>
@@ -548,7 +548,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ width: 90, height: 120, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#252538' }}>
             {cardImageUrl
-              ? <img src={cardImageUrl} alt={card.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ? <img src={cardImageUrl} alt={card.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4a6a', fontSize: 11, fontFamily: "'Cinzel', serif" }}>{card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}</div>
             }
           </div>
