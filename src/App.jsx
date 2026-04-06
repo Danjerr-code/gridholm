@@ -37,6 +37,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
   const selectedCardObj = selectedCard ? p1.hand.find(c => c.uid === selectedCard) : null;
 
+  const selectedUnitObj = selectedUnit ? state.units.find(u => u.uid === selectedUnit) : null;
+
   let guidance = isP1Turn ? (PHASE_GUIDANCE[phase] || '') : 'AI is thinking…';
   if (pendingDiscard && isP1Turn) guidance = PHASE_GUIDANCE.discard;
   if (selectMode === 'summon') guidance = 'Click a green tile to summon the unit.';
@@ -48,13 +50,16 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   if (selectMode === 'targetless_spell') {
     guidance = `Click Cast to play ${selectedCardObj?.name ?? 'spell'} or click the card again to cancel.`;
   }
-  if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
-  if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
+  if (selectMode === 'unit_move') {
+    guidance = selectedUnitObj?.action && !selectedUnitObj.moved
+      ? `Move ${selectedUnitObj.name} to a highlighted tile or click Action to use its ability.`
+      : 'Click a blue tile to move the unit. Or select another unit.';
+  }
+  if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Flesh Tithe: sacrifice a unit for +2/+2, or decline.';
 
-  const selectedUnitObj = selectedUnit ? state.units.find(u => u.uid === selectedUnit) : null;
-  const showArcherShoot = selectedUnitObj?.id === 'elfarcher'
+  const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
     && !selectedUnitObj.summoned
     && selectMode === 'unit_move'
@@ -193,12 +198,18 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
                 <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
               </>
             )}
-            {phase === 'action' && showArcherShoot && (
+            {phase === 'action' && showAction && (
               <ActionBtn
-                onClick={() => handlers.handleArcherSelectTarget(selectedUnit)}
-                label="Archer: Shoot"
-                variant="pink"
+                onClick={() => handlers.handleActionButtonClick(selectedUnit)}
+                label="Action"
+                variant="amber"
               />
+            )}
+            {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
+              <>
+                <ActionBtn onClick={handlers.handleConfirmAction} label="Confirm" variant="amber" />
+                <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="gray" />
+              </>
             )}
             {phase === 'action' && showHiddenReveal && (
               <ActionBtn
@@ -398,6 +409,7 @@ function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
     gray: 'bg-gray-600 hover:bg-gray-500 text-white',
     pink: 'bg-pink-600 hover:bg-pink-500 text-white',
     gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
+    amber: 'bg-amber-600 hover:bg-amber-500 text-white',
   };
   return (
     <button

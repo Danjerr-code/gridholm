@@ -706,9 +706,9 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   const p = s.players[s.activePlayer];
 
   // For spells that consumed resources at pendingSpell creation we don't deduct again.
-  // For spells that set pendingSpell from playCard, resources/hand already consumed.
-  // Special case: 'pactofruin_damage' was already paid.
-  const isPaid = pending.effect === 'pactofruin_damage';
+  // Unit actions and multi-step spells set paid:true in pendingSpell.data to skip the hand lookup.
+  // Special case: 'pactofruin_damage' was already paid (card and resources consumed at creation).
+  const isPaid = pending.effect === 'pactofruin_damage' || pending.data?.paid === true;
 
   if (!isPaid) {
     const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
@@ -891,19 +891,19 @@ export function triggerUnitAction(state, unitUid) {
   // Target-needing actions — use pendingSpell for UI target collection,
   // then resolveSpell routes to _dispatchAction via ACTION_REGISTRY.
   if (unit.id === 'battlepriestunit') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
   if (unit.id === 'woodlandguard') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
   if (unit.id === 'packrunner') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'packrunner_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    s.pendingSpell = { cardUid: unit.uid, effect: 'packrunner_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
   if (unit.id === 'elfarcher') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
 

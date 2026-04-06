@@ -34,8 +34,11 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice'
+  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm'
   const [selectMode, setSelectMode] = useState(null);
+
+  // Units whose action needs a target (routes through pendingSpell / resolveSpell)
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
   const [inspectedItem, setInspectedItem] = useState(null);
 
   const applyAndMaybeAI = useCallback((newState) => {
@@ -266,6 +269,34 @@ export function useGameState({ deckId = 'human' } = {}) {
     });
   }, []);
 
+  // Unified action button handler: targeted units go to spell targeting; untargeted show confirmation.
+  const handleActionButtonClick = useCallback((unitUid) => {
+    setState(prev => {
+      const unit = prev.units.find(u => u.uid === unitUid);
+      if (!unit) return prev;
+      if (TARGETED_ACTION_UNITS.has(unit.id)) {
+        const s = triggerUnitAction(prev, unitUid);
+        if (s.pendingSpell) {
+          setSelectedCard(s.pendingSpell.cardUid);
+          setSelectMode('spell');
+        }
+        return s;
+      }
+      // Untargeted: enter confirmation mode without dispatching yet
+      setSelectMode('action_confirm');
+      return prev;
+    });
+  }, [TARGETED_ACTION_UNITS]);
+
+  const handleConfirmAction = useCallback(() => {
+    if (!selectedUnit) return;
+    setState(prev => {
+      const s = triggerUnitAction(prev, selectedUnit);
+      return s;
+    });
+    clearSelection();
+  }, [selectedUnit, clearSelection]);
+
   const handleNewGame = useCallback(() => {
     const s = createInitialState(deckId, 'human');
     setState(autoAdvancePhase(s));
@@ -327,6 +358,8 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleDiscardCard,
       handleRevealUnit,
       handleTriggerUnitAction,
+      handleActionButtonClick,
+      handleConfirmAction,
       handleNewGame,
       clearSelection,
       handleInspectUnit,

@@ -69,7 +69,7 @@ export const CARD_DB = {
   elfranger:       { id: 'elfranger',       name: 'Elf Ranger',          type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 2, unitType: 'Elf',    rules: '', image: null },
   grovewarden:     { id: 'grovewarden',     name: 'Grove Warden',        type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Elf',    rules: 'Action: Restore 1 HP to your champion for each friendly Elf combat unit you control.', action: true, image: null },
   moonveilmystic:  { id: 'moonveilmystic',  name: 'Moonveil Mystic',     type: 'unit',  cost: 4, atk: 1, hp: 2, spd: 1, unitType: 'Elf',    rules: 'Whenever you restore HP to your champion or a friendly unit this unit gains +1/+1. Triggers once per restore event.', image: null },
-  elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Skip moving this unit to deal 2 damage to a unit within 2 tiles.', image: null },
+  elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Skip moving this unit to deal 2 damage to a unit within 2 tiles.', action: true, image: null },
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion permanently gains +2 max HP.', legendary: true, image: null },
 
   // Elf spells

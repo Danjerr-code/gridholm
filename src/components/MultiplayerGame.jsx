@@ -146,9 +146,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, [gameState, selectedCard, dispatch]);
 
   const handleSpellTarget = useCallback(async (targetUid) => {
-    if (!gameState || !selectedCard) return;
-    await dispatch(resolveSpell(gameState, selectedCard, targetUid));
-  }, [gameState, selectedCard, dispatch]);
+    if (!gameState) return;
+    const cardUid = gameState.pendingSpell?.cardUid ?? selectedCard;
+    if (!cardUid && !gameState.pendingSpell) return;
+    const newState = resolveSpell(gameState, cardUid, targetUid);
+    if (newState.pendingSpell) {
+      // Multi-step spell or action: stay in spell mode, don't clear selection
+      await dispatchAction(newState);
+    } else {
+      await dispatch(newState);
+    }
+  }, [gameState, selectedCard, dispatch, dispatchAction]);
 
   const handleCancelSpell = useCallback(async () => {
     if (!gameState) return;
@@ -200,6 +208,37 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!gameState) return;
     await dispatch(playerRevealUnit(gameState, unitUid));
   }, [gameState, dispatch]);
+
+  // Units whose action needs a target (routes through pendingSpell / resolveSpell)
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
+
+  const handleTriggerUnitAction = useCallback(async (unitUid) => {
+    if (!gameState) return;
+    const newState = triggerUnitAction(gameState, unitUid);
+    if (newState.pendingSpell) {
+      setSelectedCard(newState.pendingSpell.cardUid);
+      setSelectMode('spell');
+      await dispatchAction(newState);
+    } else {
+      await dispatch(newState);
+    }
+  }, [gameState, dispatch, dispatchAction]);
+
+  const handleActionButtonClick = useCallback((unitUid) => {
+    if (!gameState) return;
+    const unit = gameState.units.find(u => u.uid === unitUid);
+    if (!unit) return;
+    if (TARGETED_ACTION_UNITS.has(unit.id)) {
+      handleTriggerUnitAction(unitUid);
+    } else {
+      setSelectMode('action_confirm');
+    }
+  }, [gameState, TARGETED_ACTION_UNITS, handleTriggerUnitAction]);
+
+  const handleConfirmAction = useCallback(async () => {
+    if (!selectedUnit) return;
+    await handleTriggerUnitAction(selectedUnit);
+  }, [selectedUnit, handleTriggerUnitAction]);
 
   const handleInspectUnit = useCallback((unit) => {
     setInspectedItem({ type: 'unit', uid: unit.uid });
@@ -364,6 +403,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const oppPlayer = state.players[oppPlayerIndex];
 
   const selectedCardObj = selectedCard ? myPlayer.hand.find(c => c.uid === selectedCard) : null;
+  const selectedUnitObj = selectedUnit ? state.units.find(u => u.uid === selectedUnit) : null;
 
   let guidance = isActiveTurn ? (PHASE_GUIDANCE[phase] || '') : 'Waiting for opponent…';
   if (pendingDiscard && isActiveTurn) guidance = PHASE_GUIDANCE.discard;
@@ -372,11 +412,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   if (selectMode === 'targetless_spell') {
     guidance = `Click Cast to play ${selectedCardObj?.name ?? 'spell'} or click the card again to cancel.`;
   }
-  if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
-  if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
+  if (selectMode === 'unit_move') {
+    guidance = selectedUnitObj?.action && !selectedUnitObj.moved
+      ? `Move ${selectedUnitObj.name} to a highlighted tile or click Action to use its ability.`
+      : 'Click a blue tile to move the unit. Or select another unit.';
+  }
+  if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
 
-  const selectedUnitObj = selectedUnit ? state.units.find(u => u.uid === selectedUnit) : null;
-  const showArcherShoot = selectedUnitObj?.id === 'elfarcher'
+  const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
     && !selectedUnitObj.summoned
     && selectMode === 'unit_move'
@@ -402,10 +445,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     ? getUnitMoveTiles(state, selectedUnit)
     : [];
 
-  const spellTargetUids = selectMode === 'spell' && selectedCard
+  const spellTargetUids = selectMode === 'spell' && state.pendingSpell
     ? (() => {
-        const card = state.players[state.activePlayer].hand.find(c => c.uid === selectedCard);
-        return card ? getSpellTargets(state, card.effect) : [];
+        const ps = state.pendingSpell;
+        return getSpellTargets(state, ps.effect, ps.step || 0, ps.data || {});
       })()
     : [];
 
@@ -426,6 +469,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleMoveUnit,
     handleArcherSelectTarget,
     handleArcherShoot,
+    handleTriggerUnitAction,
+    handleActionButtonClick,
+    handleConfirmAction,
+    handleRevealUnit,
     handleEndTurn,
     handleDiscardCard,
     handleNewGame: onBackToLobby,
@@ -575,12 +622,18 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="gray" />
               </>
             )}
-            {phase === 'action' && showArcherShoot && (
+            {phase === 'action' && showAction && (
               <ActionBtn
-                onClick={() => handleArcherSelectTarget(selectedUnit)}
-                label="Archer: Shoot"
-                variant="pink"
+                onClick={() => handleActionButtonClick(selectedUnit)}
+                label="Action"
+                variant="amber"
               />
+            )}
+            {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
+              <>
+                <ActionBtn onClick={handleConfirmAction} label="Confirm" variant="amber" />
+                <ActionBtn onClick={clearSelection} label="Cancel" variant="gray" />
+              </>
             )}
             {phase === 'action' && showHiddenReveal && (
               <ActionBtn
@@ -815,6 +868,7 @@ function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
     gray: 'bg-gray-600 hover:bg-gray-500 text-white',
     pink: 'bg-pink-600 hover:bg-pink-500 text-white',
     gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
+    amber: 'bg-amber-600 hover:bg-amber-500 text-white',
   };
   return (
     <button
