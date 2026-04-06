@@ -10,6 +10,7 @@ export default function Board({
   spellTargetUids,
   archerShootTargets,
   sacrificeTargetUids = [],
+  opponentMoveTiles = new Set(),
   handlers,
   onInspectUnit,
   onClearInspect,
@@ -133,6 +134,7 @@ export default function Board({
                 isSummonTile={summonSet.has(key)}
                 isUnitMoveTile={unitMoveSet.has(key) && !enemyMoveSet.has(key)}
                 isEnemyMoveTile={enemyMoveSet.has(key)}
+                isOpponentMoveTile={opponentMoveTiles.has(key)}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}

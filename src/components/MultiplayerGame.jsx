@@ -77,6 +77,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [opponentLeftCountdown, setOpponentLeftCountdown] = useState(null);
   const prevStatusRef = useRef(null);
   const countdownRef = useRef(null);
+  const prevGameStateRef = useRef(null);
+  const highlightTimerRef = useRef(null);
+  const [opponentMoveTiles, setOpponentMoveTiles] = useState(new Set());
+  const [extraLogEntries, setExtraLogEntries] = useState([]);
 
   // Detect status transitions: rematch and opponent-left
   useEffect(() => {
@@ -102,6 +106,51 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }, 1000);
     return () => clearTimeout(countdownRef.current);
   }, [opponentLeftCountdown, onBackToLobby]);
+
+  // Detect opponent moves for tile highlights and missing log entries
+  useEffect(() => {
+    const prev = prevGameStateRef.current;
+    prevGameStateRef.current = gameState;
+
+    if (!prev || !gameState || myPlayerIndex === null) return;
+
+    const oppIndex = 1 - myPlayerIndex;
+    const newLogSlice = gameState.log.slice(prev.log.length);
+    const movedTiles = new Set();
+    const newEntries = [];
+
+    // Detect opponent unit position changes
+    for (const newUnit of gameState.units) {
+      if (newUnit.owner !== oppIndex) continue;
+      const prevUnit = prev.units.find(u => u.uid === newUnit.uid);
+      if (!prevUnit) continue;
+      if (prevUnit.row === newUnit.row && prevUnit.col === newUnit.col) continue;
+      movedTiles.add(`${newUnit.row},${newUnit.col}`);
+      // Plain move (no combat) — not logged by engine; add locally
+      const alreadyLogged = newLogSlice.some(e =>
+        e.includes(newUnit.name) && (e.includes('attacks') || e.includes('moves') || e.includes('revealed') || e.includes('pounce'))
+      );
+      if (!alreadyLogged) {
+        newEntries.push(`Opponent moves ${newUnit.name} to (${newUnit.row},${newUnit.col}).`);
+      }
+    }
+
+    // Detect opponent champion moves for tile highlights
+    const oppChampNew = gameState.champions.find(c => c.owner === oppIndex);
+    const oppChampPrev = prev.champions.find(c => c.owner === oppIndex);
+    if (oppChampNew && oppChampPrev && (oppChampNew.row !== oppChampPrev.row || oppChampNew.col !== oppChampPrev.col)) {
+      movedTiles.add(`${oppChampNew.row},${oppChampNew.col}`);
+    }
+
+    if (movedTiles.size > 0) {
+      setOpponentMoveTiles(movedTiles);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => setOpponentMoveTiles(new Set()), 1000);
+    }
+    if (newEntries.length > 0) {
+      setExtraLogEntries(prev => [...prev, ...newEntries]);
+    }
+  }, [gameState, myPlayerIndex]);
 
   const clearSelection = useCallback(() => {
     setSelectedCard(null);
@@ -764,6 +813,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
+            opponentMoveTiles={opponentMoveTiles}
             handlers={handlers}
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}
@@ -779,7 +829,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         {/* Right sidebar: game log + action buttons */}
         {!isMobile && (
           <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
-            <Log entries={state.log} />
+            <Log entries={[...state.log, ...extraLogEntries]} />
 
             {/* Action buttons panel */}
             <div

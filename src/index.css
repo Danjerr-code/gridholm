@@ -63,6 +63,16 @@ button, input, .card-name, .card-stats, .card-rules,
   font-family: var(--font-sans);
 }
 
+@keyframes opponent-move-flash {
+  0%   { background: rgba(201, 168, 76, 0.55); box-shadow: inset 0 0 10px rgba(201, 168, 76, 0.7); }
+  40%  { background: rgba(201, 168, 76, 0.4); }
+  100% { background: rgba(201, 168, 76, 0); box-shadow: none; }
+}
+
+.opponent-move-flash {
+  animation: opponent-move-flash 1s ease-out forwards;
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;

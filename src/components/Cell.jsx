@@ -8,6 +8,7 @@ export default function Cell({
   isSummonTile,
   isUnitMoveTile,
   isEnemyMoveTile,
+  isOpponentMoveTile,
   isSelected,
   isSpellTarget,
   isChampionSpellTarget,
@@ -74,6 +75,11 @@ export default function Cell({
       title={isCenter ? 'Throne — click to inspect' : undefined}
       onClick={onClick}
     >
+      {/* Opponent move flash overlay */}
+      {isOpponentMoveTile && (
+        <div className="opponent-move-flash absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 5 }} />
+      )}
+
       {/* Center marker */}
       {isCenter && !unit && !champion && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ color: 'rgba(150,80,20,0.6)', fontSize: '12px', fontWeight: 700 }}>
