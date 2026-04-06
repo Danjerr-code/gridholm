@@ -86,6 +86,13 @@ export default function Lobby({ onNavigate }) {
             <p className="text-red-400 text-xs text-center">{createError}</p>
           )}
 
+          <button
+            className="w-full text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 font-semibold py-2 px-6 rounded-lg text-sm transition-colors bg-transparent"
+            onClick={() => onNavigate('/how-to-play')}
+          >
+            How to Play
+          </button>
+
           <form onSubmit={handleJoinGame} className="flex flex-col gap-2">
             <div className="flex gap-2">
               <input
