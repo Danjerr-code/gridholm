@@ -540,8 +540,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleInspectTerrain,
   };
 
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell';
+
   return (
-    <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
+    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
       {/* Opponent left overlay (after game over) */}
       {opponentLeftCountdown !== null && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
@@ -554,21 +556,53 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
       {/* Winner overlay */}
       {winner && opponentLeftCountdown === null && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-800 border border-yellow-500 rounded-2xl p-8 text-center shadow-2xl">
-            <div className="text-4xl mb-4">🏆</div>
-            <h2 className="text-2xl font-bold text-yellow-400 mb-2">{winner} wins!</h2>
-            <p className="text-gray-300 mb-6">The champion has fallen.</p>
-            <div className="flex gap-3 justify-center flex-wrap">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+            border: '1px solid #C9A84C',
+            borderRadius: '12px',
+            padding: '40px',
+            textAlign: 'center',
+            boxShadow: '0 0 40px #C9A84C20',
+          }}>
+            <div className="text-4xl mb-4">⚔️</div>
+            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', fontWeight: 700, color: '#C9A84C', marginBottom: '8px' }}>{winner} wins!</h2>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#8a8aaa', marginBottom: '24px' }}>The champion has fallen.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
-                className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                  color: '#0a0a0f',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '10px 24px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px #C9A84C40',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
                 onClick={handlePlayAgain}
                 disabled={playAgainLoading}
               >
                 {playAgainLoading ? 'Resetting…' : 'Play Again'}
               </button>
               <button
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg"
+                style={{
+                  background: 'transparent',
+                  color: '#6a6a8a',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: '1px solid #2a2a3a',
+                  borderRadius: '4px',
+                  padding: '10px 24px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
                 onClick={async () => { await abandonGame(); onBackToLobby(); }}
               >
                 Leave Game
@@ -605,20 +639,26 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       )}
 
       {/* Header */}
-      <div className="flex items-center px-1 flex-shrink-0">
-        <h1 className="text-lg font-bold text-amber-400 tracking-wide flex-shrink-0">GRIDHOLM</h1>
-        <div className="flex-1 text-center">
-          {!isActiveTurn && !winner && (
-            <span className="text-xs text-gray-400">Waiting for opponent…</span>
-          )}
-        </div>
-        <div className="flex gap-2 items-center flex-shrink-0">
-          <span className="text-xs text-gray-500 hidden sm:inline">#{gameId}</span>
+      <div className="flex items-center justify-between px-1">
+        <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', fontWeight: 600, color: '#C9A84C', letterSpacing: '0.1em' }}>GRIDHOLM</h1>
+        <div className="flex gap-2 items-center">
+          <span className="hidden sm:inline" style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#4a4a6a' }}>#{gameId}</span>
           <button
-            className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
+            style={{
+              fontSize: '12px',
+              color: '#6a6a8a',
+              background: 'transparent',
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              fontFamily: "'Cinzel', serif",
+            }}
+            onMouseEnter={e => e.target.style.color = '#C9A84C'}
+            onMouseLeave={e => e.target.style.color = '#6a6a8a'}
             onClick={onBackToLobby}
           >
-            Lobby
+            ← Lobby
           </button>
         </div>
       </div>
@@ -630,7 +670,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       <div className="flex gap-2 flex-1 min-h-0">
         {/* Left column: phase tracker + card detail */}
         {!isMobile && (
-          <div className="flex-shrink-0 flex flex-col gap-2" style={{ width: 140, minHeight: 0 }}>
+          <div className="flex-shrink-0 flex flex-col gap-2" style={{ width: 220, minHeight: 0 }}>
             <PhaseTracker
               phase={phase}
               phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
@@ -663,75 +703,135 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           />
         </div>
 
-        {/* Right sidebar: game log */}
+        {/* Right sidebar: game log + action buttons */}
         {!isMobile && (
           <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
-            <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
             <Log entries={state.log} />
+
+            {/* Action buttons panel */}
+            <div
+              className="flex flex-col gap-2 flex-shrink-0"
+              style={{
+                background: '#0a0a14',
+                border: '1px solid #1e1e2e',
+                borderRadius: '6px',
+                padding: '8px',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Crimson Text', serif",
+                  fontStyle: isImportantGuidance ? 'normal' : 'italic',
+                  fontSize: '12px',
+                  color: isImportantGuidance ? '#C9A84C' : '#8a8aaa',
+                  lineHeight: 1.4,
+                }}
+              >{guidance}</span>
+
+              {isActiveTurn && (
+                <div className="flex flex-col gap-1">
+                  {phase === 'action' && selectMode === 'summon' && (
+                    <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
+                  )}
+                  {phase === 'action' && selectMode === 'spell' && (
+                    <ActionBtn onClick={handleCancelSpell} label="Cancel Spell" variant="cancel" fullWidth />
+                  )}
+                  {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+                    <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel (3/3)" variant="cancel" fullWidth />
+                  )}
+                  {phase === 'action' && selectMode === 'targetless_spell' && (
+                    <>
+                      <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
+                      <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
+                    </>
+                  )}
+                  {phase === 'action' && showAction && (
+                    <ActionBtn
+                      onClick={() => handleActionButtonClick(selectedUnit)}
+                      label="Action"
+                      variant="action"
+                      fullWidth
+                    />
+                  )}
+                  {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
+                    <>
+                      <ActionBtn onClick={handleConfirmAction} label="Confirm" variant="action" fullWidth />
+                      <ActionBtn onClick={clearSelection} label="Cancel" variant="cancel" fullWidth />
+                    </>
+                  )}
+                  {phase === 'action' && showHiddenReveal && (
+                    <ActionBtn
+                      onClick={() => { handleRevealUnit(selectedUnit); clearSelection(); }}
+                      label="Reveal"
+                      variant="gold"
+                      fullWidth
+                    />
+                  )}
+                  {phase === 'action' && selectedUnit && (
+                    <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" fullWidth />
+                  )}
+                  {phase === 'action' && (
+                    <ActionBtn onClick={handleEndAction} label="End Phase →" variant="endphase" fullWidth />
+                  )}
+                  {phase === 'end-turn' && !pendingDiscard && (
+                    <ActionBtn onClick={handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
+                  )}
+                  {pendingDiscard && (
+                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Bottom bar: guidance + action buttons */}
-      <div className="instruction-bar rounded-lg px-3 py-1.5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs" style={{ background: '#0f0f1e', borderTop: '1px solid #252538', border: '1px solid #252538' }}>
-        <span className="hidden sm:inline sm:flex-1" style={{ fontSize: '13px', fontFamily: 'var(--font-sans)', color: selectMode === 'spell' || selectMode === 'summon' || selectMode === 'targetless_spell' || selectMode === 'unit_move' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' ? '#C9A84C' : '#9090b8', fontWeight: selectMode ? 500 : 400 }}>{guidance}</span>
-
-        {isActiveTurn && (
-          <>
-            {phase === 'action' && selectMode === 'summon' && (
-              <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="gray" />
-            )}
-            {phase === 'action' && selectMode === 'spell' && (
-              <ActionBtn onClick={handleCancelSpell} label="Cancel Spell" variant="gray" />
-            )}
-            {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
-              <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="gray" />
-            )}
-            {phase === 'action' && selectMode === 'targetless_spell' && (
-              <>
-                <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="blue" />
-                <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="gray" />
-              </>
-            )}
-            {phase === 'action' && showAction && (
-              <ActionBtn
-                onClick={() => handleActionButtonClick(selectedUnit)}
-                label="Action"
-                variant="amber"
-              />
-            )}
-            {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
-              <>
-                <ActionBtn onClick={handleConfirmAction} label="Confirm" variant="amber" />
-                <ActionBtn onClick={clearSelection} label="Cancel" variant="gray" />
-              </>
-            )}
-            {phase === 'action' && showHiddenReveal && (
-              <ActionBtn
-                onClick={() => { handleRevealUnit(selectedUnit); clearSelection(); }}
-                label="Reveal"
-                variant="gold"
-              />
-            )}
-            {phase === 'action' && selectedUnit && (
-              <ActionBtn onClick={clearSelection} label="Deselect" variant="gray" />
-            )}
-            {phase === 'action' && (
-              <ActionBtn onClick={handleEndAction} label="End Phase →" fullWidth />
-            )}
-            {phase === 'end-turn' && !pendingDiscard && (
-              <ActionBtn onClick={handleEndTurn} label="End Turn ⏎" variant="green" fullWidth />
-            )}
-            {pendingDiscard && (
-              <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
-            )}
-          </>
-        )}
-      </div>
+      {/* Mobile fixed bottom action bar */}
+      {isMobile && isActiveTurn && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40,
+          background: '#0a0a14',
+          borderTop: '1px solid #1e1e2e',
+          padding: '8px 12px',
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}>
+          {phase === 'action' && selectMode === 'summon' && (
+            <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'spell' && (
+            <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+            <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'targetless_spell' && (
+            <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'action_confirm' && (
+            <ActionBtn onClick={clearSelection} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectedUnit && (
+            <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && (
+            <ActionBtn onClick={handleEndAction} label="End Phase →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'end-turn' && !pendingDiscard && (
+            <ActionBtn onClick={handleEndTurn} label="End Turn ⏎" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+        </div>
+      )}
 
       {/* Opponent hand (face down) */}
       {/* NEVER RENDER OPPONENT RESOURCES - game design decision */}
-      <div className="bg-gray-800/50 border border-gray-700 rounded-lg flex-shrink-0">
+      <div style={{ background: 'rgba(13,13,26,0.5)', border: '1px solid #1e1e2e', borderRadius: '6px', flexShrink: 0 }}>
         <Hand
           player={oppPlayer}
           resources={oppPlayer.resources}
@@ -746,9 +846,26 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       </div>
 
       {/* My hand (face up) */}
-      <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isActiveTurn ? 'border-yellow-500' : 'border-gray-700'}`}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
-          {/* Resource panel */}
+      <div style={{
+        background: pendingDiscard && isActiveTurn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
+        border: `1px solid ${pendingDiscard && isActiveTurn ? '#C9A84C' : '#1e1e2e'}`,
+        borderRadius: '6px',
+        flexShrink: 0,
+      }}>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '11px',
+          color: myPlayerIndex === 0 ? '#4a8abf' : '#bf4a4a',
+          padding: '4px 8px 2px',
+          fontWeight: 600,
+        }}>
+          {myPlayer.name}
+          <span className="hidden sm:inline" style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontWeight: 400, color: '#4a4a6a', fontSize: '12px' }}>
+            {phase === 'action' && isActiveTurn ? '  (click cards to play)' : ''}
+            {pendingDiscard && isActiveTurn ? '  — click a card to discard' : ''}
+          </span>
+        </div>
+        <div className="hidden sm:flex" style={{ alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -771,7 +888,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               small={false}
             />
           </div>
-          {/* Hand cards */}
           <div style={{ overflow: 'hidden' }}>
             <Hand
               player={myPlayer}
@@ -789,12 +905,42 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 await dispatch(s);
               }}
               onInspectCard={handleInspectCard}
-              isMobile={window.innerWidth < 768}
-              onMobileTap={handleMobileHandCardTap}
-              onLongPressCard={handleInspectCard}
-              onLongPressDismiss={handleClearInspect}
             />
           </div>
+        </div>
+        {/* Mobile: resources on top, hand scrollable below */}
+        <div className="flex flex-col sm:hidden" style={{ padding: '4px 8px 8px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 0',
+            marginBottom: 4,
+          }}>
+            <ResourceDisplay current={myPlayer.resources} max={10} playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'} singleRow={true} />
+          </div>
+          <Hand
+            player={myPlayer}
+            resources={myPlayer.resources}
+            isActive={true}
+            canPlay={isActiveTurn && phase === 'action'}
+            pendingDiscard={pendingDiscard && isActiveTurn}
+            pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
+            selectedCard={selectedCard}
+            onPlayCard={handlePlayCard}
+            onDiscardCard={handleDiscardCard}
+            onHandSelect={async (cardUid) => {
+              if (!gameState) return;
+              const s = resolveHandSelect(gameState, cardUid);
+              await dispatch(s);
+            }}
+            onInspectCard={handleInspectCard}
+            isMobile={true}
+            onMobileTap={handleMobileHandCardTap}
+            onLongPressCard={handleInspectCard}
+            onLongPressDismiss={handleClearInspect}
+          />
         </div>
       </div>
       {/* Mobile card detail modal */}
@@ -1021,17 +1167,25 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
 
   const arrowStyle = {
     position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-    background: 'rgba(17,24,39,0.85)', color: '#6b7280', border: 'none',
+    background: 'rgba(15,15,30,0.85)', color: '#6b7280', border: 'none',
     cursor: 'pointer', fontSize: '9px', lineHeight: 1, padding: '2px 8px',
     zIndex: 10,
   };
 
   return (
     <div
-      className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
-      style={{ flex: 1, minHeight: 0 }}
+      style={{
+        background: '#0f0f1e',
+        border: '1px solid #252538',
+        borderRadius: '6px',
+        padding: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+      }}
     >
-      <div className="text-xs text-gray-400 mb-1.5 font-semibold">Card Detail</div>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {canScrollUp && (
           <button
@@ -1048,7 +1202,7 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
           {inspectedItem ? (
             <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
           ) : (
-            <div className="text-gray-600 text-[10px] italic leading-snug">
+            <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
               Click a card or unit to inspect
             </div>
           )}
@@ -1093,20 +1247,54 @@ function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
   );
 }
 
-function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
+function ActionBtn({ onClick, label, variant = 'endphase', fullWidth = false, style: extraStyle }) {
   const styles = {
-    blue:  { background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: '#d0d0e8' },
-    green: { background: 'linear-gradient(135deg, #166534, #16a34a)', color: '#d0d0e8' },
-    gray:  { background: '#1e1e2e', color: '#d0d0e8', border: '1px solid #3a3a5a' },
-    pink:  { background: 'linear-gradient(135deg, #9d174d, #db2777)', color: '#d0d0e8' },
-    gold:  { background: 'linear-gradient(135deg, #b45309, #C9A84C)', color: '#0a0a14' },
-    amber: { background: 'linear-gradient(135deg, #92400e, #d97706)', color: '#0a0a14' },
+    endphase: {
+      background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+      color: '#0a0a0f',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: 'none',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px #C9A84C40',
+      letterSpacing: '0.05em',
+      textTransform: 'uppercase',
+    },
+    action: {
+      background: 'linear-gradient(135deg, #5a3a00, #8a6a00)',
+      color: '#C9A84C',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: '1px solid #C9A84C60',
+      borderRadius: '4px',
+      letterSpacing: '0.04em',
+    },
+    cancel: {
+      background: 'transparent',
+      color: '#6a6a8a',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      border: '1px solid #2a2a3a',
+      borderRadius: '4px',
+    },
+    gold: {
+      background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+      color: '#0a0a0f',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: 'none',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px #C9A84C40',
+    },
   };
-  const s = styles[variant] || styles.blue;
+
   return (
     <button
-      className={`text-xs font-bold px-3 py-3 sm:py-1.5 rounded ${fullWidth ? 'w-full sm:w-auto' : ''}`}
-      style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, ...s }}
+      className={`px-3 py-3 sm:py-1.5 cursor-pointer${fullWidth ? ' w-full sm:w-auto' : ''}`}
+      style={{ ...(styles[variant] || styles.endphase), ...extraStyle }}
       onClick={onClick}
     >
       {label}
