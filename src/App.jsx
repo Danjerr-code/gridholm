@@ -189,8 +189,10 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           />
         </div>
 
-        {/* Right sidebar: action buttons + game log */}
+        {/* Right sidebar: game log + action buttons */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
+          <Log entries={state.log} />
+
           {/* Action buttons panel */}
           <div
             className="flex flex-col gap-2 flex-shrink-0"
@@ -266,8 +268,6 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
               </div>
             )}
           </div>
-
-          <Log entries={state.log} />
         </div>
       </div>
 

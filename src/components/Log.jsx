@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 function getEntryStyle(entry) {
   const lower = entry.toLowerCase();
@@ -18,27 +18,44 @@ function getEntryStyle(entry) {
 }
 
 export default function Log({ entries }) {
-  const containerRef = useRef(null);
+  const scrollRef = useRef(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 2);
+    setCanScrollDown(el.scrollTop < el.scrollHeight - el.clientHeight - 2);
+  }, []);
 
   useEffect(() => {
-    const el = containerRef.current;
+    const el = scrollRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [entries]);
+    const t = setTimeout(checkScroll, 0);
+    return () => clearTimeout(t);
+  }, [entries, checkScroll]);
+
+  const arrowStyle = {
+    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+    background: 'rgba(15,15,30,0.85)', color: '#6b7280', border: 'none',
+    cursor: 'pointer', fontSize: '9px', lineHeight: 1, padding: '2px 8px',
+    zIndex: 10,
+  };
 
   return (
     <div
-      ref={containerRef}
       style={{
         background: '#0f0f1e',
         border: '1px solid #252538',
         borderRadius: '6px',
         padding: '8px',
-        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
+        minHeight: 0,
       }}
     >
       <div style={{
@@ -49,26 +66,46 @@ export default function Log({ entries }) {
         letterSpacing: '0.08em',
         marginBottom: '6px',
         fontVariant: 'small-caps',
+        flexShrink: 0,
       }}>Game Log</div>
-      <div>
-        {entries.map((entry, i) => (
-          <div
-            key={i}
-            className="log-entry"
-            style={{
-              fontSize: '12px',
-              fontFamily: 'var(--font-sans)',
-              lineHeight: 1.6,
-              padding: '2px 4px',
-              borderRadius: '2px',
-              background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-              borderBottom: '0.5px solid #0f0f1a',
-              ...getEntryStyle(entry),
-            }}
-          >
-            {entry}
-          </div>
-        ))}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        {canScrollUp && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ top: -60, behavior: 'smooth' })}
+            style={{ ...arrowStyle, top: 0, borderRadius: '0 0 4px 4px' }}
+          >▲</button>
+        )}
+        <div
+          ref={scrollRef}
+          className="no-scrollbar"
+          style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}
+          onScroll={checkScroll}
+        >
+          {entries.map((entry, i) => (
+            <div
+              key={i}
+              className="log-entry"
+              style={{
+                fontSize: '12px',
+                fontFamily: 'var(--font-sans)',
+                lineHeight: 1.6,
+                padding: '2px 4px',
+                borderRadius: '2px',
+                background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
+                borderBottom: '0.5px solid #0f0f1a',
+                ...getEntryStyle(entry),
+              }}
+            >
+              {entry}
+            </div>
+          ))}
+        </div>
+        {canScrollDown && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ top: 60, behavior: 'smooth' })}
+            style={{ ...arrowStyle, bottom: 0, borderRadius: '4px 4px 0 0' }}
+          >▼</button>
+        )}
       </div>
     </div>
   );
