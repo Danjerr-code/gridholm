@@ -56,8 +56,8 @@ export default function Cell({
     };
   } else {
     tileStyle = {
-      background: '#161624',
-      border: '1px solid #252538',
+      background: '#1a2236',
+      border: '1px solid #2a3a5c',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
     };

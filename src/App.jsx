@@ -513,17 +513,17 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
                 </span>
                 <span style={{ fontSize: 11, color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
               </div>
-              {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>{unit.unitType}</div>}
+              {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>{unit.unitType}</div>}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontFamily: 'var(--font-sans)' }}>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#e05050' }}>{displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: 11 }}> +{auraBonus}</span>}</div></div>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div></div>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#5090e0' }}>{unit.spd + (unit.speedBonus || 0)}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: 11 }}> +{auraBonus}</span>}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{unit.hp}/{unit.maxHp}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{unit.spd + (unit.speedBonus || 0)}</div></div>
               </div>
               {unit.shield > 0 && <div style={{ fontSize: 12, color: '#67e8f9', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>}
             </div>
           </div>
           {unit.rules && (
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
               {unit.rules}
             </div>
           )}
@@ -534,8 +534,8 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
     content = (
       <div className="flex flex-col gap-2">
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Throne</span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>Terrain</span>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Terrain</span>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
           End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
         </div>
       </div>
@@ -559,12 +559,12 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
               </span>
               <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{card.cost}</span>
             </div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#9090b8' }}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
             {card.type === 'unit' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontFamily: 'var(--font-sans)' }}>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#e05050' }}>{card.atk}</div></div>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#50c050' }}>{card.hp}</div></div>
-                <div><div style={{ fontSize: 10, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#5090e0' }}>{card.spd}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{card.atk}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{card.hp}</div></div>
+                <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{card.spd}</div></div>
               </div>
             )}
             {card.aura && (
@@ -573,7 +573,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
           </div>
         </div>
         {card.rules && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#c0c0d8', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
             {card.rules}
           </div>
         )}
@@ -657,21 +657,21 @@ function CardDetailPanel({ inspectedItem, state }) {
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: unit.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>{unit.name}</span>
             <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
           </div>
-          {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>{unit.unitType}</div>}
+          {unit.unitType && <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>{unit.unitType}</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                 {displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4', fontSize: '11px' }}> +{auraBonus}</span>}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{unit.hp}/{unit.maxHp}</div>
             </div>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{unit.spd + (unit.speedBonus || 0)}</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{unit.spd + (unit.speedBonus || 0)}</div>
             </div>
           </div>
           {unit.shield > 0 && (
@@ -683,7 +683,7 @@ function CardDetailPanel({ inspectedItem, state }) {
               fontStyle: 'normal',
               fontSize: '12px',
               fontWeight: 400,
-              color: '#c0c0d8',
+              color: '#e2e8f0',
               lineHeight: 1.6,
               marginTop: '4px',
               borderTop: '0.5px solid #1e1e2e',
@@ -701,13 +701,13 @@ function CardDetailPanel({ inspectedItem, state }) {
         <div className="flex justify-between items-start">
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>Throne</span>
         </div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>Terrain</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>Terrain</div>
         <div style={{
           fontFamily: 'var(--font-sans)',
           fontStyle: 'normal',
           fontSize: '12px',
           fontWeight: 400,
-          color: '#c0c0d8',
+          color: '#e2e8f0',
           lineHeight: 1.6,
           marginTop: '4px',
           borderTop: '0.5px solid #1e1e2e',
@@ -756,22 +756,22 @@ function CardDetailPanel({ inspectedItem, state }) {
             borderRadius: '99px',
           }}>{card.cost}</span>
         </div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
           {card.type === 'spell' ? 'Spell' : card.unitType}
         </div>
         {card.type === 'unit' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e05050' }}>{card.atk}</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{card.atk}</div>
             </div>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{card.hp}</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{card.hp}</div>
             </div>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#5090e0' }}>{card.spd}</div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{card.spd}</div>
             </div>
           </div>
         )}
@@ -781,7 +781,7 @@ function CardDetailPanel({ inspectedItem, state }) {
             fontStyle: 'normal',
             fontSize: '12px',
             fontWeight: 400,
-            color: '#c0c0d8',
+            color: '#e2e8f0',
             lineHeight: 1.6,
             marginTop: '4px',
             borderTop: '0.5px solid #1e1e2e',

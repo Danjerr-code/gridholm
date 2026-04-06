@@ -62,9 +62,9 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
           <>
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: `${factionColor}cc`, marginBottom: '2px' }}>{card.unitType}</div>
             <div className="flex justify-between" style={{ fontFamily: 'var(--font-sans)', fontSize: '10px' }}>
-              <span style={{ color: '#c0c0d8' }}>⚔{card.atk}</span>
-              <span style={{ color: '#c0c0d8' }}>♥{card.hp}</span>
-              <span style={{ color: '#c0c0d8' }}>⚡{card.spd}</span>
+              <span style={{ color: '#ffffff' }}>⚔{card.atk}</span>
+              <span style={{ color: '#ffffff' }}>♥{card.hp}</span>
+              <span style={{ color: '#ffffff' }}>⚡{card.spd}</span>
             </div>
           </>
         )}
@@ -79,7 +79,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
           </div>
         )}
         {card.rules && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#9090b0', marginTop: '2px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
         )}
       </div>
 
@@ -153,9 +153,9 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {/* Stats row */}
         {card.type === 'unit' && (
           <div className="flex justify-between mb-0.5" style={{ fontFamily: 'var(--font-sans)', fontSize: '11px' }}>
-            <span style={{ color: '#c0c0d8' }}>⚔{card.atk}</span>
-            <span style={{ color: '#c0c0d8' }}>♥{card.hp}</span>
-            <span style={{ color: '#c0c0d8' }}>⚡{card.spd}</span>
+            <span style={{ color: '#ffffff' }}>⚔{card.atk}</span>
+            <span style={{ color: '#ffffff' }}>♥{card.hp}</span>
+            <span style={{ color: '#ffffff' }}>⚡{card.spd}</span>
           </div>
         )}
         {card.type === 'spell' && (
@@ -173,7 +173,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
         {/* Rules text */}
         {card.rules && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#9090b0', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#e2e8f0', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
         )}
 
         {/* Card type label */}

@@ -30,7 +30,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       <div
         className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer select-none relative"
         style={{
-          background: '#1a1a2e',
+          background: '#1e2d45',
           border: '1px solid #3a2a5a60',
           borderRadius: '50%',
           boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)',
@@ -131,7 +131,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     <div
       className="w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative"
       style={{
-        background: '#1a1a2e',
+        background: '#1e2d45',
         border: `1px solid ${factionColors.border}4d`,
         boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
         overflow: 'hidden',
