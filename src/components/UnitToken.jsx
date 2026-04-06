@@ -24,6 +24,11 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   const factionColors = getFactionColors(unit.unitType);
 
+  // Player 1 is always blue, Player 2 is always red — color follows owner, not viewer
+  const ownerRingColor = unit.owner === 0
+    ? { ring: '#3b82f6', glow: 'rgba(59,130,246,0.55)' }
+    : { ring: '#ef4444', glow: 'rgba(239,68,68,0.55)' };
+
   // Opponent's hidden unit: dark face-down token
   if (isOpponentHidden) {
     return (
@@ -33,7 +38,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           background: '#1e2d45',
           border: '1px solid #3a2a5a60',
           borderRadius: '50%',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)',
+          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`,
         }}
         onClick={onClick}
         title="Hidden Unit"
@@ -84,9 +89,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const effectiveSpd = getEffectiveSpd(unit);
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
-  const teamRingShadow = isMyUnit
-    ? '0 0 0 2px #3b82f6, 0 0 10px rgba(59,130,246,0.55)'
-    : '0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)';
+  const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
 
   // Long-press inspect on mobile
   const longPress = useLongPress(() => {
