@@ -1,4 +1,6 @@
-export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarget, isArcherTarget, myPlayerIndex, onClick }) {
+import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
+
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, myPlayerIndex, onClick }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
@@ -33,16 +35,26 @@ export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarg
     ? 'ring-1 ring-blue-500'
     : 'ring-1 ring-red-500';
 
-  const bg = isP1 ? 'bg-blue-900' : 'bg-red-900';
+  const auraBuffed = state && isAuraBuffed(state, unit);
+  const auraDebuffed = state && isAuraDebuffed(state, unit);
+
+  const baseBg = isP1 ? 'bg-blue-900' : 'bg-red-900';
+  const auraTint = auraDebuffed ? ' bg-red-800/40' : auraBuffed ? ' bg-green-900/40' : '';
+  const bg = baseBg + auraTint;
+
   const abbr = unit.name.split(' ').map(w => w[0]).join('').slice(0, 3);
-  const effectiveAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
-  const hpColor = unit.hp <= unit.maxHp / 2 ? 'text-red-400' : 'text-gray-300';
+  const effectiveAtk = state ? getEffectiveAtk(state, unit) : unit.atk + (unit.atkBonus || 0);
+  const effectiveHp = state ? getEffectiveHp(state, unit) : unit.hp;
+  const effectiveMaxHp = state ? getEffectiveMaxHp(state, unit) : unit.maxHp;
+  const effectiveSpd = getEffectiveSpd(unit);
+  const packBonus = state ? getPackBonus(state, unit) : 0;
+  const hpColor = typeof effectiveHp === 'number' && effectiveHp <= effectiveMaxHp / 2 ? 'text-red-400' : 'text-gray-300';
 
   return (
     <div
       className={`w-full h-full flex flex-col items-center justify-center rounded cursor-pointer ${bg} ${border} select-none relative${isOwnHidden ? ' shadow-[0_0_6px_2px_rgba(253,224,71,0.4)]' : ''}`}
       onClick={onClick}
-      title={`${unit.name} | ATK:${effectiveAtk} HP:${unit.hp}/${unit.maxHp} SPD:${unit.spd + (unit.speedBonus || 0)}${unit.hidden ? ' [Hidden]' : ''}`}
+      title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
       {isLegendary && (
         <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" title="Legendary">♛</span>
@@ -52,14 +64,16 @@ export default function UnitToken({ unit, auraBonus = 0, isSelected, isSpellTarg
       )}
       <div className="text-[8px] sm:text-xs font-bold leading-none">{abbr}</div>
       <div className="text-[7px] sm:text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
-      <div className={`text-[7px] sm:text-[9px] leading-none ${hpColor}`}>HP {unit.hp}</div>
+      <div className={`text-[7px] sm:text-[9px] leading-none ${hpColor}`}>HP {effectiveHp}</div>
       <div className="flex gap-0.5 mt-0.5">
         {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
         {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
         {unit.shield > 0 && <Badge label={`🛡${unit.shield}`} color="cyan" title="Shield" />}
         {(unit.atkBonus || 0) > 0 && <Badge label={`+${unit.atkBonus}A`} color="green" title="ATK bonus" />}
-        {auraBonus > 0 && <Badge label="Aura" color="teal" title={`Aura +${auraBonus} ATK`} />}
+        {auraBuffed && <Badge label="Aura" color="teal" title="Receiving aura bonus" />}
+        {auraDebuffed && <Badge label="Debuff" color="red" title="Enemy aura debuff" />}
         {(unit.speedBonus || 0) > 0 && <Badge label={`+${unit.speedBonus}S`} color="purple" title="Speed bonus" />}
+        {packBonus > 0 && <Badge label={`Pack+${packBonus}`} color="amber" title={`Pack Runt bonus: +${packBonus}/+${packBonus}`} />}
         {unit.id === 'pip' && <Badge label="↑" color="amber" title="Growing each turn" />}
       </div>
     </div>
@@ -75,6 +89,7 @@ function Badge({ label, color, title }) {
     purple: 'bg-purple-700 text-purple-100',
     amber: 'bg-amber-600 text-amber-100',
     teal: 'bg-teal-700 text-teal-100',
+    red: 'bg-red-700 text-red-100',
   };
   return (
     <span className={`text-[8px] px-0.5 rounded leading-none ${colors[color]}`} title={title}>

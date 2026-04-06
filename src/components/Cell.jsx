@@ -11,7 +11,7 @@ export default function Cell({
   isSelected,
   isSpellTarget,
   isArcherTarget,
-  auraBonus = 0,
+  state,
   myPlayerIndex,
   onClick,
   onUnitClick,
@@ -64,7 +64,7 @@ export default function Cell({
         <div className="absolute inset-0.5">
           <UnitToken
             unit={unit}
-            auraBonus={auraBonus}
+            state={state}
             isSelected={isSelected}
             isSpellTarget={isSpellTarget}
             isArcherTarget={isArcherTarget}

@@ -1,4 +1,10 @@
 import { buildDeck, shuffle } from './cards.js';
+import {
+  getAuraAtkBonus,
+  getEffectiveAtk,
+  getEffectiveSpd,
+} from './statUtils.js';
+export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 
 // Phases in order
 export const PHASES = ['begin-turn', 'action', 'end-turn'];
@@ -32,73 +38,6 @@ function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
 function getPlayer(state) { return state.players[state.activePlayer]; }
 
-// Returns effective ATK bonus from friendly/enemy auras (stat === 'atk')
-export function getAuraAtkBonus(state, unit) {
-  let bonus = 0;
-  for (const other of state.units) {
-    if (other.owner !== unit.owner || other.uid === unit.uid) continue;
-    if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
-      bonus += other.aura.value;
-    }
-  }
-  // Enemy debuff auras (e.g. Aendor)
-  for (const other of state.units) {
-    if (other.owner === unit.owner) continue;
-    if (!other.aura || other.aura.stat !== 'atk' || other.aura.target !== 'enemy') continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
-      bonus -= Math.abs(other.aura.value);
-    }
-  }
-  return bonus;
-}
-
-// Standard Bearer "both" aura: +1 ATK and +1 HP in combat (not permanent).
-// Returns { atk, hp } bonuses from Standard Bearer within range.
-function getStandardBearerBonus(state, unit) {
-  let atk = 0, hp = 0;
-  for (const other of state.units) {
-    if (other.owner !== unit.owner || other.uid === unit.uid) continue;
-    if (!other.aura || other.aura.stat !== 'both') continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
-      atk += other.aura.value;
-      hp += other.aura.value;
-    }
-  }
-  return { atk, hp };
-}
-
-// Pack Runt: +1/+1 per other friendly Beast combat unit in play
-function getPackRuntBonus(state, unit) {
-  if (unit.id !== 'packrunt') return { atk: 0, hp: 0 };
-  const count = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType === 'Beast').length;
-  return { atk: count, hp: count };
-}
-
-function effectiveAtk(state, unit) {
-  const base = unit.atk + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit);
-  const sbBonus = getStandardBearerBonus(state, unit).atk;
-  const packBonus = getPackRuntBonus(state, unit).atk;
-  return Math.max(0, base + sbBonus + packBonus);
-}
-
-export function getEffectiveAtk(state, unit) {
-  return effectiveAtk(state, unit);
-}
-
-export function getEffectiveSpd(unit) {
-  return unit.spd + (unit.speedBonus || 0);
-}
-
-// HP aura stub
-export function getAuraHpBonus(/* state, unit */) {
-  return 0;
-}
-
-// SPD aura stub
-export function getAuraSpdBonus(/* state, unit */) {
-  return 0;
-}
 
 // Deep-clone state
 export function cloneState(state) {
@@ -1001,7 +940,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       const beast = s.units.find(u => u.uid === data.beastUid);
       if (beast && target) {
         // Resolve combat: beast attacks target without moving
-        const attackerAtk = effectiveAtk(s, beast);
+        const attackerAtk = getEffectiveAtk(s, beast);
         addLog(s, `Ambush: ${beast.name} battles ${target.name}!`);
         applyDamageToUnit(s, target, attackerAtk, beast.name);
         // Beast does NOT take counterattack from enemy unit combat in Ambush
@@ -1216,8 +1155,7 @@ export function getUnitMoveTiles(state, unitUid) {
     }
     return [];
   }
-  // Hidden units move at most 1 tile
-  const speed = unit.hidden ? 1 : getEffectiveSpd(unit);
+  const speed = getEffectiveSpd(unit);
   return reachableTiles(state, unit, speed);
 }
 
@@ -1287,8 +1225,8 @@ export function moveUnit(state, unitUid, row, col) {
       return s;
     }
 
-    const attackerAtk = effectiveAtk(s, unit);
-    const defenderAtk = effectiveAtk(s, enemyUnit);
+    const attackerAtk = getEffectiveAtk(s, unit);
+    const defenderAtk = getEffectiveAtk(s, enemyUnit);
     addLog(s, `${unit.name} attacks ${enemyUnit.name}!`);
     applyDamageToUnit(s, enemyUnit, attackerAtk, unit.name);
 
@@ -1311,7 +1249,7 @@ export function moveUnit(state, unitUid, row, col) {
   } else if (enemyChamp) {
     // Reveal hidden attacker
     if (unit.hidden) revealUnit(s, unit);
-    const attackerAtk = effectiveAtk(s, unit);
+    const attackerAtk = getEffectiveAtk(s, unit);
     const dist = manhattan([unit.row, unit.col], [row, col]);
     if (dist > 1) {
       const [mr, mc] = findIntermediateTile(s, unit, row, col);

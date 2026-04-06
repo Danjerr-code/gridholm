@@ -1,5 +1,4 @@
 import Cell from './Cell.jsx';
-import { getAuraAtkBonus } from '../engine/gameEngine.js';
 
 export default function Board({
   state,
@@ -107,8 +106,6 @@ export default function Board({
             const isSpellTarget = spellTargetUids.includes(unit?.uid);
             const isArcherTarget = archerShootTargets.includes(unit?.uid);
 
-            const unitAuraBonus = unit ? getAuraAtkBonus(state, unit) : 0;
-
             return (
               <Cell
                 key={key}
@@ -124,7 +121,7 @@ export default function Board({
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isArcherTarget={isArcherTarget}
-                auraBonus={unitAuraBonus}
+                state={state}
                 myPlayerIndex={myPlayerIndex}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
