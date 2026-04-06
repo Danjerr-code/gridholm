@@ -62,16 +62,17 @@ export default function HowToPlay() {
         {/* Section 1 */}
         <Section title="Welcome to Gridholm">
           <p style={bodyStyle}>
-            Gridholm is a tactical card game played on a 5×5 grid. You build a deck,
-            summon warriors, beasts, elves, and demons onto the board, and outmaneuver
-            your opponent to destroy their champion.
+            Gridholm is a tactical card game played on a 5x5 grid. You build a deck,
+            summon powerful game pieces onto the board, and outmaneuver your opponent
+            to destroy their champion.
           </p>
           <p style={bodyStyle}>
-            It is part chess, part card game, and entirely unforgiving to overconfidence.
+            It is part chess, part card game, and every match plays out differently.
           </p>
           <p style={bodyStyle}>
             Every card you play occupies a tile. Every unit you summon can move, attack,
             and be attacked. Positioning matters as much as the cards in your hand.
+            One well-placed unit can turn the entire board.
           </p>
         </Section>
 
