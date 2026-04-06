@@ -4,12 +4,14 @@ import Lobby from './components/Lobby.jsx';
 import MultiplayerGame from './components/MultiplayerGame.jsx';
 import DeckSelect from './components/DeckSelect.jsx';
 import HowToPlay from './components/HowToPlay.jsx';
+import CardGallery from './components/CardGallery.jsx';
 
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (!hash || hash === '/') return { view: 'lobby' };
   if (hash === 'ai') return { view: 'ai_deck_select' };
   if (hash === 'how-to-play') return { view: 'how_to_play' };
+  if (hash === 'card-gallery') return { view: 'card_gallery' };
   const gameMatch = hash.match(/^game\/([A-Z0-9]{6})$/i);
   if (gameMatch) return { view: 'game', gameId: gameMatch[1].toUpperCase() };
   return { view: 'lobby' };
@@ -34,6 +36,10 @@ export default function Root() {
 
   if (route.view === 'how_to_play') {
     return <HowToPlay />;
+  }
+
+  if (route.view === 'card_gallery') {
+    return <CardGallery />;
   }
 
   // Deck selection before AI game

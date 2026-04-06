@@ -37,6 +37,23 @@ export default function HowToPlay() {
         <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
           HOW TO PLAY
         </span>
+        <button
+          onClick={() => { window.location.hash = '/card-gallery'; }}
+          style={{
+            marginLeft: 'auto',
+            background: 'none',
+            border: '0.5px solid rgba(201,168,76,0.4)',
+            borderRadius: '6px',
+            color: '#C9A84C',
+            fontSize: '13px',
+            padding: '6px 12px',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={e => e.target.style.borderColor = '#C9A84C'}
+          onMouseLeave={e => e.target.style.borderColor = 'rgba(201,168,76,0.4)'}
+        >
+          Card Gallery →
+        </button>
       </div>
 
       {/* Page content */}
