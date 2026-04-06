@@ -26,7 +26,7 @@ import {
   playerRevealUnit,
   triggerUnitAction,
 } from '../engine/gameEngine.js';
-import { getGuestId } from '../supabase.js';
+import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
 import Hand from './Hand.jsx';
@@ -1003,22 +1003,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </div>
       )}
 
-      {/* Opponent hand (face down) */}
-      {/* NEVER RENDER OPPONENT RESOURCES - game design decision */}
-      <div style={{ background: 'rgba(13,13,26,0.5)', border: '1px solid #1e1e2e', borderRadius: '6px', flexShrink: 0 }}>
-        <Hand
-          player={oppPlayer}
-          resources={oppPlayer.resources}
-          isActive={false}
-          canPlay={false}
-          pendingDiscard={false}
-          selectedCard={null}
-          onPlayCard={() => {}}
-          onDiscardCard={() => {}}
-          onInspectCard={() => {}}
-        />
-      </div>
-
       {/* My hand (face up) */}
       <div style={{
         background: pendingDiscard && isActiveTurn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
@@ -1239,8 +1223,18 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
     const auraBonus = getAuraAtkBonus(state, unit);
     const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
     const unitKeywords = !large ? getActiveKeywords(unit) : [];
+    const unitImageUrl = getCardImageUrl(unit.image);
     return (
       <div className="flex flex-col gap-1">
+        <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          {unitImageUrl ? (
+            <img src={unitImageUrl} alt={unit.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)', fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500 }}>
+              {unit.unitType || 'Unit'}
+            </div>
+          )}
+        </div>
         <div className="flex justify-between items-start">
           <span style={{ ...nameStyle, color: unit.legendary ? '#C9A84C' : '#ffffff' }}>{unit.name}</span>
           <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
@@ -1290,8 +1284,18 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
   if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
     const cardKeywords = !large ? getActiveKeywords(card) : [];
+    const cardImageUrl = getCardImageUrl(card.image);
     return (
       <div className="flex flex-col gap-1">
+        <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          {cardImageUrl ? (
+            <img src={cardImageUrl} alt={card.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)', fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500 }}>
+              {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
+            </div>
+          )}
+        </div>
         <div className="flex justify-between items-start">
           <span style={{ ...nameStyle, color: card.legendary ? '#C9A84C' : '#ffffff' }}>{card.name}</span>
           <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{card.cost}</span>
