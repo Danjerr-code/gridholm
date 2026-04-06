@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
 import DeckSelect from './DeckSelect.jsx';
@@ -779,19 +780,20 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
 }
 
 function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.7)' }}
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.75)', zIndex: 9999 }}
       onClick={onClose}
     >
       <div
-        className="relative bg-gray-900 border-2 border-amber-500 rounded-xl p-4"
-        style={{ width: 280 }}
+        className="relative bg-gray-900 border-2 border-amber-500 rounded-xl p-4 overflow-y-auto"
+        style={{ width: 280, maxHeight: '80vh', zIndex: 10000 }}
         onClick={e => e.stopPropagation()}
       >
         <button
-          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white text-sm"
+          className="absolute top-2 right-2 flex items-center justify-center text-gray-400 hover:text-white text-sm"
+          style={{ width: 44, height: 44 }}
           onClick={onClose}
           aria-label="Close"
         >
@@ -801,7 +803,8 @@ function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
           <CardDetailContent inspectedItem={inspectedItem} state={state} large myPlayerIndex={myPlayerIndex} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
