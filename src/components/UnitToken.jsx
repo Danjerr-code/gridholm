@@ -18,6 +18,21 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       >
         <div className="text-[9px] sm:text-xs font-bold leading-none text-gray-500">???</div>
         <div className="text-[8px] text-gray-600 leading-none mt-0.5 font-semibold">Hidden</div>
+        <div style={{
+          position: 'absolute',
+          bottom: '2px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.75)',
+          color: '#fff',
+          fontSize: '10px',
+          fontWeight: 500,
+          padding: '1px 6px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 2,
+          lineHeight: 1.4,
+        }}>?/?</div>
       </div>
     );
   }
@@ -79,24 +94,44 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         />
       )}
       {isLegendary && (
-        <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" title="Legendary">♛</span>
+        <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" style={{ zIndex: 2 }} title="Legendary">♛</span>
       )}
       {isOwnHidden && (
-        <span className="absolute top-0 left-0 text-[8px] leading-none text-yellow-300" title="Hidden">H</span>
+        <span className="absolute top-0 left-0 text-[8px] leading-none text-yellow-300" style={{ zIndex: 2 }} title="Hidden">H</span>
       )}
+      {/* Summoning sickness and moved badges — absolutely positioned so they're visible above card art */}
+      <div style={{ position: 'absolute', top: 1, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', gap: 2 }}>
+        {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
+        {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
+      </div>
       <div className="text-[8px] sm:text-xs font-bold leading-none">{abbr}</div>
       <div className="text-[7px] sm:text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
       <div className={`text-[7px] sm:text-[9px] leading-none ${hpColor}`}>HP {effectiveHp}</div>
       <div className="flex gap-0.5 mt-0.5">
-        {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
-        {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
-        {unit.shield > 0 && <Badge label={`🛡${unit.shield}`} color="cyan" title="Shield" />}
         {(unit.atkBonus || 0) > 0 && <Badge label={`+${unit.atkBonus}A`} color="green" title="ATK bonus" />}
         {auraBuffed && <Badge label="Aura" color="teal" title="Receiving aura bonus" />}
         {auraDebuffed && <Badge label="Debuff" color="red" title="Enemy aura debuff" />}
         {(unit.speedBonus || 0) > 0 && <Badge label={`+${unit.speedBonus}S`} color="purple" title="Speed bonus" />}
         {packBonus > 0 && <Badge label={`Pack+${packBonus}`} color="amber" title={`Pack Runt bonus: +${packBonus}/+${packBonus}`} />}
         {unit.id === 'pip' && <Badge label="↑" color="amber" title="Growing each turn" />}
+      </div>
+      {/* Stat bar — always visible at bottom, above card art */}
+      <div style={{
+        position: 'absolute',
+        bottom: '2px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0, 0, 0, 0.75)',
+        color: '#fff',
+        fontSize: '10px',
+        fontWeight: 500,
+        padding: '1px 6px',
+        borderRadius: '99px',
+        whiteSpace: 'nowrap',
+        zIndex: 2,
+        lineHeight: 1.4,
+      }}>
+        {effectiveAtk}/{effectiveHp}{unit.shield > 0 ? ` 🛡${unit.shield}` : ''}
       </div>
     </div>
   );
