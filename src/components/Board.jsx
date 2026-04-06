@@ -9,6 +9,7 @@ export default function Board({
   unitMoveTiles,
   spellTargetUids,
   archerShootTargets,
+  sacrificeTargetUids = [],
   handlers,
   onInspectUnit,
   onClearInspect,
@@ -68,6 +69,12 @@ export default function Board({
     if (onInspectUnit) onInspectUnit(unit);
 
     if (!canInteract) return;
+    if (selectMode === 'fleshtithe_sacrifice') {
+      if (sacrificeTargetUids.includes(unit.uid)) {
+        handlers.handleFleshtitheSacrifice('yes', unit.uid);
+      }
+      return;
+    }
     if (selectMode === 'spell') {
       if (spellTargetUids.includes(unit.uid)) {
         handlers.handleSpellTarget(unit.uid);
@@ -105,6 +112,7 @@ export default function Board({
             const champion = champions.find(c => c.row === row && c.col === col) || null;
             const isSpellTarget = spellTargetUids.includes(unit?.uid);
             const isArcherTarget = archerShootTargets.includes(unit?.uid);
+            const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
 
             return (
               <Cell
@@ -121,6 +129,7 @@ export default function Board({
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isArcherTarget={isArcherTarget}
+                isSacrificeTarget={isSacrificeTarget}
                 state={state}
                 myPlayerIndex={myPlayerIndex}
                 onClick={() => handleCellClick(row, col)}

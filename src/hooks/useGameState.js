@@ -328,6 +328,12 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getArcherShootTargets(state, selectedUnit)
     : [];
 
+  const sacrificeTargetUids = selectMode === 'fleshtithe_sacrifice' && state.pendingFleshtitheSacrifice
+    ? state.units
+        .filter(u => u.owner === state.activePlayer && u.uid !== state.pendingFleshtitheSacrifice.unitUid)
+        .map(u => u.uid)
+    : [];
+
   return {
     state,
     selectedCard,
@@ -339,6 +345,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     unitMoveTiles,
     spellTargetUids,
     archerShootTargets,
+    sacrificeTargetUids,
     handlers: {
       handleChampionMoveTile,
       handlePlayCard,

@@ -1,7 +1,7 @@
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
 import { getCardImageUrl } from '../supabase.js';
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, myPlayerIndex, onClick }) {
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, myPlayerIndex, onClick }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
@@ -24,6 +24,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   const border = isSelected
     ? 'ring-2 ring-yellow-400'
+    : isSacrificeTarget
+    ? 'ring-2 ring-amber-500 animate-pulse'
     : isSpellTarget
     ? 'ring-2 ring-orange-400'
     : isArcherTarget

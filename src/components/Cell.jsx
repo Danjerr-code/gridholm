@@ -11,6 +11,7 @@ export default function Cell({
   isSelected,
   isSpellTarget,
   isArcherTarget,
+  isSacrificeTarget,
   state,
   myPlayerIndex,
   onClick,
@@ -68,6 +69,7 @@ export default function Cell({
             isSelected={isSelected}
             isSpellTarget={isSpellTarget}
             isArcherTarget={isArcherTarget}
+            isSacrificeTarget={isSacrificeTarget}
             myPlayerIndex={myPlayerIndex}
             onClick={e => { if (e.stopPropagation) e.stopPropagation(); onUnitClick && onUnitClick(); }}
           />

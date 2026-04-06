@@ -26,6 +26,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     unitMoveTiles,
     spellTargetUids,
     archerShootTargets,
+    sacrificeTargetUids,
     handlers,
   } = useGameState({ deckId });
 
@@ -57,7 +58,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
-  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Flesh Tithe: sacrifice a unit for +2/+2, or decline.';
+  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -74,35 +75,6 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
-      {/* Flesh Tithe sacrifice prompt */}
-      {state.pendingFleshtitheSacrifice && isP1Turn && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
-          <div className="bg-gray-800 border border-red-500 rounded-2xl p-6 text-center shadow-2xl max-w-xs">
-            <p className="text-red-400 font-bold mb-2">Flesh Tithe</p>
-            <p className="text-gray-300 text-sm mb-4">Sacrifice a friendly unit to give Flesh Tithe +2/+2?</p>
-            <div className="flex gap-3 justify-center">
-              <button
-                className="bg-red-700 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm"
-                onClick={() => {
-                  const units = state.units.filter(u => u.owner === 0 && u.uid !== state.pendingFleshtitheSacrifice.unitUid);
-                  if (units.length > 0) {
-                    handlers.handleFleshtitheSacrifice('yes', units[0].uid);
-                  }
-                }}
-              >
-                Yes (auto-pick)
-              </button>
-              <button
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg text-sm"
-                onClick={() => handlers.handleFleshtitheSacrifice('no', null)}
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Winner overlay */}
       {winner && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -166,6 +138,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             unitMoveTiles={unitMoveTiles}
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
+            sacrificeTargetUids={sacrificeTargetUids}
+            myPlayerIndex={0}
             handlers={handlers}
             onInspectUnit={handlers.handleInspectUnit}
             onClearInspect={handlers.handleClearInspect}
@@ -191,6 +165,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             )}
             {phase === 'action' && selectMode === 'spell' && (
               <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
+            )}
+            {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+              <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="gray" />
             )}
             {phase === 'action' && selectMode === 'targetless_spell' && (
               <>

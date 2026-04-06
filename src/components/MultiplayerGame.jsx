@@ -143,8 +143,19 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleSummonOnTile = useCallback(async (row, col) => {
     if (!gameState || !selectedCard) return;
-    await dispatch(summonUnit(gameState, selectedCard, row, col));
-  }, [gameState, selectedCard, dispatch]);
+    const s = summonUnit(gameState, selectedCard, row, col);
+    if (s.pendingFleshtitheSacrifice) {
+      setSelectMode('fleshtithe_sacrifice');
+      await dispatchAction(s);
+    } else {
+      await dispatch(s);
+    }
+  }, [gameState, selectedCard, dispatch, dispatchAction]);
+
+  const handleFleshtitheSacrifice = useCallback(async (choice, sacrificeUid) => {
+    if (!gameState) return;
+    await dispatch(resolveFleshtitheSacrifice(gameState, choice, sacrificeUid));
+  }, [gameState, dispatch]);
 
   const handleSpellTarget = useCallback(async (targetUid) => {
     if (!gameState) return;
@@ -419,6 +430,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       : 'Click a blue tile to move the unit. Or select another unit.';
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
+  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -457,6 +469,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     ? getArcherShootTargets(state, selectedUnit)
     : [];
 
+  const sacrificeTargetUids = selectMode === 'fleshtithe_sacrifice' && state.pendingFleshtitheSacrifice
+    ? state.units
+        .filter(u => u.owner === myPlayerIndex && u.uid !== state.pendingFleshtitheSacrifice.unitUid)
+        .map(u => u.uid)
+    : [];
+
   const handlers = {
     handleChampionMoveTile,
     handlePlayCard,
@@ -474,6 +492,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleActionButtonClick,
     handleConfirmAction,
     handleRevealUnit,
+    handleFleshtitheSacrifice,
     handleEndTurn,
     handleDiscardCard,
     handleNewGame: onBackToLobby,
@@ -589,6 +608,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             unitMoveTiles={isActiveTurn ? unitMoveTiles : []}
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
+            sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
             handlers={handlers}
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}
@@ -616,6 +636,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             )}
             {phase === 'action' && selectMode === 'spell' && (
               <ActionBtn onClick={handleCancelSpell} label="Cancel Spell" variant="gray" />
+            )}
+            {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+              <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="gray" />
             )}
             {phase === 'action' && selectMode === 'targetless_spell' && (
               <>
