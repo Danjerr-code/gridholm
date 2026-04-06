@@ -97,7 +97,11 @@ export default function Board({
         }
       }
       if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved) {
-        handlers.handleSelectUnit(unit.uid);
+        if (unit.uid === selectedUnit) {
+          handlers.clearSelection();
+        } else {
+          handlers.handleSelectUnit(unit.uid);
+        }
       }
     }
   }
