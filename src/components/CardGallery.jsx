@@ -1,5 +1,8 @@
+import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { CARD_DB } from '../engine/cards.js';
 import Card from './Card.jsx';
+import { getCardImageUrl } from '../supabase.js';
 
 const FACTIONS = [
   { name: 'Humans', unitType: 'Human', color: '#4a8abf' },
@@ -18,8 +21,152 @@ function getGroupedCards() {
   });
 }
 
+function CardModal({ card, onClose }) {
+  const imageUrl = getCardImageUrl(card.image);
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.75)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#08080f',
+          border: '1px solid #C9A84C40',
+          borderTop: '1px solid #C9A84C60',
+          borderRadius: '12px',
+          padding: '20px',
+          width: '280px',
+          maxWidth: '90vw',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
+          <button
+            onClick={onClose}
+            style={{ background: 'transparent', border: 'none', color: '#6a6a8a', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
+          >×</button>
+        </div>
+
+        {/* Art */}
+        <div style={{ height: '160px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }} data-art-slot="true">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={card.name}
+              onError={e => { e.target.style.display = 'none'; }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{
+              width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', background: 'rgba(255,255,255,0.03)',
+              border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
+              fontSize: '13px', fontFamily: "'Cinzel', serif", fontWeight: 500,
+            }}>
+              {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
+            </div>
+          )}
+        </div>
+
+        {/* Name + Cost */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>
+            {card.legendary && <span style={{ color: '#C9A84C', marginRight: '4px' }}>♛</span>}
+            {card.name}
+          </span>
+          <span style={{
+            background: '#C9A84C',
+            color: '#0a0a0f',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '14px',
+            fontWeight: 700,
+            padding: '1px 8px',
+            borderRadius: '99px',
+            flexShrink: 0,
+            marginLeft: '8px',
+          }}>{card.cost}</span>
+        </div>
+
+        {/* Type / Faction */}
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
+          {card.type === 'spell' ? 'Spell' : card.unitType}
+        </div>
+
+        {/* Stats */}
+        {card.type === 'unit' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.atk}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.hp}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.spd}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Keyword badges */}
+        {card.aura && (
+          <div>
+            <span style={{ fontSize: '10px', background: '#134e4a', color: '#5eead4', padding: '2px 6px', borderRadius: '4px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+              Aura {card.aura.range}
+            </span>
+          </div>
+        )}
+
+        {/* Rules text */}
+        {card.rules && (
+          <div style={{
+            fontFamily: 'var(--font-sans)',
+            fontStyle: 'normal',
+            fontSize: '13px',
+            fontWeight: 400,
+            color: '#e2e8f0',
+            lineHeight: 1.6,
+            marginTop: '4px',
+            borderTop: '0.5px solid #1e1e2e',
+            paddingTop: '8px',
+          }}>
+            {card.rules}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function CardGallery() {
   const groups = getGroupedCards();
+  const [selectedCard, setSelectedCard] = useState(null);
+
+  const handleClose = useCallback(() => setSelectedCard(null), []);
+
+  useEffect(() => {
+    if (!selectedCard) return;
+    const onKey = (e) => { if (e.key === 'Escape') handleClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedCard, handleClose]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e5e7eb', fontFamily: 'inherit' }}>
@@ -88,7 +235,7 @@ export default function CardGallery() {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {faction.units.map(card => (
-                  <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => {}} />
+                  <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
                 ))}
               </div>
             </div>
@@ -108,7 +255,7 @@ export default function CardGallery() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {faction.spells.map(card => (
-                    <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => {}} />
+                    <Card key={card.id} card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
                   ))}
                 </div>
               </div>
@@ -116,6 +263,8 @@ export default function CardGallery() {
           </div>
         ))}
       </div>
+
+      {selectedCard && <CardModal card={selectedCard} onClose={handleClose} />}
     </div>
   );
 }
