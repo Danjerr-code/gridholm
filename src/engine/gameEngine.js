@@ -1044,10 +1044,11 @@ export function moveUnit(state, unitUid, row, col) {
     if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
   } else {
-    // Regular move — clear shadow-veil hidden if moving
-    if (unit.hidden && !unit.id) {
-      // Shadow veil'd units lose hidden on move
+    // Regular move — shadow-veil'd units reveal on move; naturally hidden do not
+    if (unit.hidden && unit.shadowVeiled) {
       unit.hidden = false;
+      unit.shadowVeiled = false;
+      addLog(s, `${unit.name} revealed!`);
     }
     unit.row = row;
     unit.col = col;
@@ -1281,7 +1282,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Elf Archer action: enemy within 2 tiles
     case 'elfarcher_action': {
-      const archer = data.archerUid ? state.units.find(u => u.uid === data.archerUid) : null;
+      const archer = data.sourceUid ? state.units.find(u => u.uid === data.sourceUid) : null;
       if (!archer) return [];
       return state.units.filter(u => u.owner !== state.activePlayer && manhattan([archer.row, archer.col], [u.row, u.col]) <= 2).map(u => u.uid);
     }

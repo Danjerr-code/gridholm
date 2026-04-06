@@ -37,7 +37,11 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   let guidance = isP1Turn ? (PHASE_GUIDANCE[phase] || '') : 'AI is thinking…';
   if (pendingDiscard && isP1Turn) guidance = PHASE_GUIDANCE.discard;
   if (selectMode === 'summon') guidance = 'Click a green tile to summon the unit.';
-  if (selectMode === 'spell') guidance = 'Click a highlighted unit to target the spell.';
+  if (selectMode === 'spell') {
+    guidance = spellTargetUids.length === 0
+      ? 'No valid targets. Cancel the spell.'
+      : 'Click a highlighted unit to target the spell.';
+  }
   if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
   if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';

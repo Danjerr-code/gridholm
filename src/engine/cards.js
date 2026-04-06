@@ -131,12 +131,12 @@ const BEAST_DECK = [
   'boar', 'boar',
   'swiftpaw', 'swiftpaw',
   'wolf', 'wolf',
-  'razorclaw',
+  'razorclaw', 'razorclaw',
   'pip',
   'eagerbeaver', 'eagerbeaver',
   'stalker',
   'packrunner',
-  'packrunt',
+  'packrunt', 'packrunt',
   'rockhorn',
   'plaguehog',
   'sabretooth', 'sabretooth',
@@ -168,7 +168,7 @@ const ELF_DECK = [
   'moonleaf', 'moonleaf',
   'overgrowth', 'overgrowth',
   'bloom', 'bloom',
-  'entangle', 'entangle',
+  'entangle',
 ];
 
 const DEMON_DECK = [

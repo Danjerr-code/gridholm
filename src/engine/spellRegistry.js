@@ -307,6 +307,7 @@ export const SPELL_REGISTRY = {
     const target = targets[0];
     if (!target) return state;
     target.hidden = true;
+    target.shadowVeiled = true;
     addLog(state, `Shadow Veil: ${target.name} becomes Hidden.`);
     return state;
   },
