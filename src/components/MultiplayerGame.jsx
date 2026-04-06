@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
@@ -68,6 +68,35 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [mobileModalItem, setMobileModalItem] = useState(null);
   const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
   const [playAgainLoading, setPlayAgainLoading] = useState(false);
+  const [isRematch, setIsRematch] = useState(false);
+  const [opponentLeftCountdown, setOpponentLeftCountdown] = useState(null);
+  const prevStatusRef = useRef(null);
+  const countdownRef = useRef(null);
+
+  // Detect status transitions: rematch and opponent-left
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    const cur = session?.status;
+    if (prev === 'complete' && cur === 'deck_select') {
+      setIsRematch(true);
+    }
+    if (cur === 'abandoned' && prev !== 'abandoned') {
+      setOpponentLeftCountdown(5);
+    }
+    prevStatusRef.current = cur;
+  }, [session?.status]);
+
+  useEffect(() => {
+    if (opponentLeftCountdown === null) return;
+    if (opponentLeftCountdown <= 0) {
+      onBackToLobby();
+      return;
+    }
+    countdownRef.current = setTimeout(() => {
+      setOpponentLeftCountdown(n => n - 1);
+    }, 1000);
+    return () => clearTimeout(countdownRef.current);
+  }, [opponentLeftCountdown, onBackToLobby]);
 
   const clearSelection = useCallback(() => {
     setSelectedCard(null);
@@ -338,6 +367,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           onSelect={selectDeck}
           waitingForOpponent={false}
           opponentSelected={!!opponentDeck}
+          isRematch={isRematch}
         />
       );
     }
@@ -348,6 +378,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         waitingForOpponent={true}
         selectedDeck={myDeck}
         opponentSelected={!!opponentDeck}
+        isRematch={isRematch}
       />
     );
   }
@@ -508,8 +539,18 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
+      {/* Opponent left overlay (after game over) */}
+      {opponentLeftCountdown !== null && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
+          <div className="bg-gray-800 border border-gray-600 rounded-2xl p-8 text-center shadow-2xl max-w-xs">
+            <p className="text-gray-300 font-bold mb-2">Opponent left the game</p>
+            <p className="text-gray-500 text-sm">Returning to lobby in {opponentLeftCountdown}…</p>
+          </div>
+        </div>
+      )}
+
       {/* Winner overlay */}
-      {winner && (
+      {winner && opponentLeftCountdown === null && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-gray-800 border border-yellow-500 rounded-2xl p-8 text-center shadow-2xl">
             <div className="text-4xl mb-4">🏆</div>
@@ -525,9 +566,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               </button>
               <button
                 className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg"
-                onClick={onBackToLobby}
+                onClick={async () => { await abandonGame(); onBackToLobby(); }}
               >
-                Back to Lobby
+                Leave Game
               </button>
             </div>
           </div>

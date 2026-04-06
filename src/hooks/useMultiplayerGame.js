@@ -132,17 +132,28 @@ export function useMultiplayerGame(gameId) {
     const opponentDeck = isP1 ? session.player2_deck : session.player1_deck;
 
     if (opponentDeck) {
-      // Both decks now known — initialize game state
-      const p1DeckId = isP1 ? deckId : opponentDeck;
-      const p2DeckId = isP1 ? opponentDeck : deckId;
+      // Determine who goes first. session.active_player during deck_select holds
+      // the intended first player (player1_id for game 1, swapped for rematches).
+      const firstPlayerGuestId = session.active_player || session.player1_id;
+      const isSwapped = firstPlayerGuestId === session.player2_id;
+
+      // Deck assigned to game engine index 0 (first player) vs index 1 (second player)
+      const player1ChosenDeck = isP1 ? deckId : opponentDeck;
+      const player2ChosenDeck = isP1 ? opponentDeck : deckId;
+      const p1DeckId = isSwapped ? player2ChosenDeck : player1ChosenDeck;
+      const p2DeckId = isSwapped ? player1ChosenDeck : player2ChosenDeck;
+
       const s = createInitialState(p1DeckId, p2DeckId);
       s.players[0].name = 'Player 1';
       s.players[1].name = 'Player 2';
       const initialState = autoAdvancePhase(s);
 
+      // Track who goes first (guest ID) so rematches can alternate correctly
+      initialState.firstPlayerId = firstPlayerGuestId;
+
       updatePayload.game_state = initialState;
       updatePayload.status = 'active';
-      updatePayload.active_player = session.player1_id;
+      updatePayload.active_player = firstPlayerGuestId;
     }
 
     const { data: updated } = await supabase
@@ -159,9 +170,12 @@ export function useMultiplayerGame(gameId) {
     if (!session || !supabase) return;
 
     const nextActivePlayerIndex = newGameState.activePlayer;
+    // If decks were swapped (player2 went first), index 0 = player2, index 1 = player1
+    const firstPlayerId = newGameState.firstPlayerId || session.player1_id;
+    const isSwapped = firstPlayerId === session.player2_id;
     const nextActiveGuestId = nextActivePlayerIndex === 0
-      ? session.player1_id
-      : session.player2_id;
+      ? (isSwapped ? session.player2_id : session.player1_id)
+      : (isSwapped ? session.player1_id : session.player2_id);
 
     const isComplete = !!newGameState.winner;
     let winnerGuestId = null;
@@ -206,19 +220,21 @@ export function useMultiplayerGame(gameId) {
 
   const playAgain = useCallback(async () => {
     if (!session || !supabase) return;
-    const p1DeckId = session.player1_deck || 'human';
-    const p2DeckId = session.player2_deck || 'human';
-    const s = createInitialState(p1DeckId, p2DeckId);
-    s.players[0].name = 'Player 1';
-    s.players[1].name = 'Player 2';
-    const freshState = autoAdvancePhase(s);
+    // Alternate who goes first: whoever went first last game yields to the other player.
+    const lastFirstPlayerId = session.game_state?.firstPlayerId || session.player1_id;
+    const nextFirstPlayer = lastFirstPlayerId === session.player1_id
+      ? session.player2_id
+      : session.player1_id;
+
     const { data: updated } = await supabase
       .from('game_sessions')
       .update({
-        game_state: freshState,
-        active_player: session.player1_id,
-        status: 'active',
+        game_state: null,
+        status: 'deck_select',
         winner: null,
+        active_player: nextFirstPlayer,
+        player1_deck: null,
+        player2_deck: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', gameId)
@@ -228,9 +244,14 @@ export function useMultiplayerGame(gameId) {
     if (updated) setSession(updated);
   }, [session, gameId]);
 
+  // When decks are swapped for alternation, player2 has game-engine index 0
+  const firstPlayerId = session?.game_state?.firstPlayerId ?? session?.player1_id;
+  const isSwapped = firstPlayerId === session?.player2_id;
   const myPlayerIndex = session
-    ? (session.player1_id === guestId ? 0
-      : session.player2_id === guestId ? 1
+    ? (session.player1_id === guestId
+      ? (isSwapped ? 1 : 0)
+      : session.player2_id === guestId
+      ? (isSwapped ? 0 : 1)
       : null)
     : null;
 

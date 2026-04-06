@@ -2,12 +2,15 @@ import { FACTION_INFO } from '../engine/cards.js';
 
 const FACTIONS = Object.values(FACTION_INFO);
 
-export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false }) {
+export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false, isRematch = false }) {
   if (waitingForOpponent) {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <h1 className="text-2xl font-bold text-amber-400 mb-4">GRIDHOLM</h1>
+          {isRematch && (
+            <p className="text-yellow-300 font-semibold mb-3">Rematch! Select your faction.</p>
+          )}
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
             <PlayerStatusRow youSelected={true} opponentSelected={opponentSelected} />
             <div
@@ -30,7 +33,10 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 gap-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-amber-400 tracking-widest mb-1">GRIDHOLM</h1>
-        <p className="text-gray-400 text-sm">Choose your faction</p>
+        {isRematch
+          ? <p className="text-yellow-300 font-semibold">Rematch! Select your faction.</p>
+          : <p className="text-gray-400 text-sm">Choose your faction</p>
+        }
       </div>
 
       {opponentSelected !== null && (
