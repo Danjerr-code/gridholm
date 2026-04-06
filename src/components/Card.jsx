@@ -33,7 +33,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         ${selectedStyle} ${playableStyle} ${dimStyle}
         ${isLegendary && !isSelected ? 'legendary-card' : ''}
         flex flex-col p-1.5 w-20
-        md:w-[100px] md:h-[140px]`}
+        md:w-[124px] md:h-[172px]`}
       style={cardBaseStyle}
       onClick={onClick}
       title={card.rules || card.name}
@@ -110,7 +110,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {/* Art area */}
         <div
           className="rounded mb-1 flex-shrink-0 overflow-hidden"
-          style={{ height: '56px' }}
+          style={{ height: '70px' }}
           data-art-slot="true"
         >
           {imageUrl ? (

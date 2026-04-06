@@ -21,15 +21,7 @@ export default function Cell({
   let tileStyle;
   let tileClass = 'relative w-full aspect-square transition-colors';
 
-  if (isCenter) {
-    tileStyle = {
-      background: 'radial-gradient(circle, #3d1f0a 0%, #1a0d00 100%)',
-      border: '1px solid #7a4010',
-      borderRadius: '4px',
-      boxShadow: 'inset 0 0 20px rgba(150, 80, 20, 0.3), 0 0 8px rgba(150, 80, 20, 0.2)',
-      cursor: 'pointer',
-    };
-  } else if (isChampionMoveTile || isUnitMoveTile) {
+  if (isChampionMoveTile || isUnitMoveTile) {
     tileStyle = {
       background: '#0d1f3a',
       border: '1px solid #2a5a9a',
@@ -49,6 +41,14 @@ export default function Cell({
       border: '1px solid #8a2020',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+    };
+  } else if (isCenter) {
+    tileStyle = {
+      background: 'radial-gradient(circle, #3d1f0a 0%, #1a0d00 100%)',
+      border: '1px solid #7a4010',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 0 20px rgba(150, 80, 20, 0.3), 0 0 8px rgba(150, 80, 20, 0.2)',
+      cursor: 'pointer',
     };
   } else {
     tileStyle = {

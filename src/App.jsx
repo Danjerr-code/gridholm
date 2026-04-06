@@ -290,7 +290,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
           {/* Resource panel */}
           <div style={{
             display: 'flex',
@@ -315,7 +315,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             />
           </div>
           {/* Hand cards */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ overflow: 'hidden' }}>
             <Hand
               player={p1}
               resources={p1.resources}
