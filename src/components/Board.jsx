@@ -67,9 +67,8 @@ export default function Board({
   }
 
   function handleUnitClick(unit) {
-    // Always inspect the clicked unit in the detail panel
-    // Hidden opponent units pass through as-is; CardDetailContent handles the redacted view
-    if (onInspectUnit) onInspectUnit(unit);
+    // On mobile, tap selects only — detail is shown via long-press, not tap
+    if (!isMobile && onInspectUnit) onInspectUnit(unit);
 
     if (!canInteract) return;
     if (selectMode === 'fleshtithe_sacrifice') {

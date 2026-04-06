@@ -468,11 +468,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             onInspectCard={handlers.handleInspectCard}
             isMobile={true}
             onMobileTap={(card) => {
-              if (inspectedItem?.type === 'card' && inspectedItem?.card?.uid === card.uid) {
-                handlers.handleClearInspect();
-              } else {
-                handlers.handleInspectCard(card);
-              }
+              handlers.handlePlayCard(card.uid);
             }}
             onLongPressCard={handlers.handleInspectCard}
             onLongPressDismiss={handlers.handleClearInspect}
