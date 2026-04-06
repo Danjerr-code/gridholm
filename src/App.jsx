@@ -6,6 +6,7 @@ import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
 import Log from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
+import useIsMobile from './hooks/useIsMobile.js';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -30,6 +31,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     handlers,
   } = useGameState({ deckId });
 
+  const isMobile = useIsMobile();
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
 
@@ -76,7 +78,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     && isP1Turn;
 
   return (
-    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f' }}>
+    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
       {/* Winner overlay */}
       {winner && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.85)' }}>
@@ -270,6 +272,49 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           </div>
         </div>
       </div>
+
+      {/* Mobile fixed bottom action bar */}
+      {isMobile && isP1Turn && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40,
+          background: '#0a0a14',
+          borderTop: '1px solid #1e1e2e',
+          padding: '8px 12px',
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}>
+          {phase === 'action' && selectMode === 'summon' && (
+            <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'spell' && (
+            <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
+            <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'targetless_spell' && (
+            <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'action_confirm' && (
+            <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectedUnit && (
+            <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && (
+            <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'end-turn' && !pendingDiscard && (
+            <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+        </div>
+      )}
 
       {/* Bottom bar: P1 hand */}
       <div style={{
@@ -539,7 +584,7 @@ function CardDetailPanel({ inspectedItem, state }) {
   );
 }
 
-function ActionBtn({ onClick, label, variant = 'endphase', fullWidth = false }) {
+function ActionBtn({ onClick, label, variant = 'endphase', fullWidth = false, style: extraStyle }) {
   const styles = {
     endphase: {
       background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
@@ -586,7 +631,7 @@ function ActionBtn({ onClick, label, variant = 'endphase', fullWidth = false }) 
   return (
     <button
       className={`px-3 py-3 sm:py-1.5 cursor-pointer${fullWidth ? ' w-full sm:w-auto' : ''}`}
-      style={styles[variant] || styles.endphase}
+      style={{ ...(styles[variant] || styles.endphase), ...extraStyle }}
       onClick={onClick}
     >
       {label}
