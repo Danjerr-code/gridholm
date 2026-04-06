@@ -449,10 +449,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             padding: '6px 0',
             marginBottom: 4,
           }}>
-            <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em' }}>
-              RESOURCES
-            </div>
-            <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" small={true} />
+            <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" singleRow={true} />
           </div>
           <Hand
             player={p1}

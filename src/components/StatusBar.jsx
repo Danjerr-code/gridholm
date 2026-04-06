@@ -6,11 +6,39 @@ const PHASE_LABELS = {
   'end-turn': 'End Turn',
 };
 
-export function ResourceDisplay({ current, max = 10, playerColor, small = false }) {
+export function ResourceDisplay({ current, max = 10, playerColor, small = false, singleRow = false }) {
   const diamonds = Array.from({ length: max }, (_, i) => i < current);
   const row1 = diamonds.slice(0, 5);
   const row2 = diamonds.slice(5, 10);
   const size = small ? 8 : 10;
+
+  if (singleRow) {
+    const pipSize = 7;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        {diamonds.map((filled, i) => (
+          <div key={i} style={{
+            width: pipSize, height: pipSize,
+            flexShrink: 0,
+            transform: 'rotate(45deg)',
+            background: filled ? playerColor : '#1a1a2e',
+            border: `1px solid ${filled ? playerColor : '#2a2a42'}`,
+            boxShadow: filled ? `0 0 3px ${playerColor}60` : 'none',
+          }} />
+        ))}
+        <div style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: '#C9A84C',
+          fontFamily: 'var(--font-sans)',
+          marginLeft: 4,
+          whiteSpace: 'nowrap',
+        }}>
+          {current}/{max}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
