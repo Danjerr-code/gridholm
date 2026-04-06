@@ -56,6 +56,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     setSelectMode(null);
   }, []);
 
+  const NO_TARGET_SPELL_EFFECTS = new Set([
+    'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
+    'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
+  ]);
+
   const handleInspectUnit = useCallback((unit) => {
     setInspectedItem({ type: 'unit', uid: unit.uid });
   }, []);
@@ -80,10 +85,31 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [clearSelection]);
 
   const handlePlayCard = useCallback((cardUid) => {
+    // Second click on the already-selected card → deselect
+    if (cardUid === selectedCard) {
+      setState(prev => cancelSpell(prev));
+      clearSelection();
+      return;
+    }
+
     setSelectedUnit(null);
     setSelectMode(null);
+
     setState(prev => {
-      const s = playCard(prev, cardUid);
+      // Cancel any leftover pending state from a previous selection
+      const base = (prev.pendingSpell || prev.pendingSummon) ? cancelSpell(prev) : prev;
+      const p = base.players[base.activePlayer];
+      const card = p.hand.find(c => c.uid === cardUid);
+      if (!card || p.resources < card.cost) return base;
+
+      // Targetless spell: preview mode — don't execute yet
+      if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
+        setSelectedCard(cardUid);
+        setSelectMode('targetless_spell');
+        return base;
+      }
+
+      const s = playCard(base, cardUid);
       if (s.pendingHandSelect) {
         setSelectedCard(cardUid);
         setSelectMode('hand_select');
@@ -96,7 +122,14 @@ export function useGameState({ deckId = 'human' } = {}) {
       }
       return s;
     });
-  }, []);
+  }, [selectedCard, clearSelection]);
+
+  const handleCastTargetlessSpell = useCallback(() => {
+    if (!selectedCard || selectMode !== 'targetless_spell') return;
+    const cardUid = selectedCard;
+    setState(prev => playCard(prev, cardUid));
+    clearSelection();
+  }, [selectedCard, selectMode, clearSelection]);
 
   const handleSummonOnTile = useCallback((row, col) => {
     if (!selectedCard) return;
@@ -278,6 +311,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     handlers: {
       handleChampionMoveTile,
       handlePlayCard,
+      handleCastTargetlessSpell,
       handleSummonOnTile,
       handleSpellTarget,
       handleHandSelect,

@@ -72,6 +72,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectMode(null);
   }, []);
 
+  const NO_TARGET_SPELL_EFFECTS = new Set([
+    'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
+    'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
+  ]);
+
   // Dispatch helper: compute new state then write to Supabase
   const dispatch = useCallback(async (newState) => {
     clearSelection();
@@ -87,9 +92,34 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handlePlayCard = useCallback(async (cardUid) => {
     if (!gameState) return;
+
+    // Second click on the already-selected card → deselect
+    if (cardUid === selectedCard) {
+      clearSelection();
+      if (gameState.pendingSpell || gameState.pendingSummon) {
+        await dispatch(cancelSpell(gameState));
+      }
+      return;
+    }
+
     setSelectedUnit(null);
     setSelectMode(null);
-    const s = playCard(gameState, cardUid);
+
+    // Cancel any leftover pending state from a previous selection
+    const base = (gameState.pendingSpell || gameState.pendingSummon) ? cancelSpell(gameState) : gameState;
+    const p = base.players[base.activePlayer];
+    const card = p.hand.find(c => c.uid === cardUid);
+    if (!card || p.resources < card.cost) return;
+
+    // Targetless spell: preview mode — don't execute yet
+    if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
+      setSelectedCard(cardUid);
+      setSelectMode('targetless_spell');
+      if (base !== gameState) await dispatchAction(base);
+      return;
+    }
+
+    const s = playCard(base, cardUid);
     if (s.pendingSummon) {
       setSelectedCard(cardUid);
       setSelectMode('summon');
@@ -101,7 +131,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     } else {
       await dispatch(s);
     }
-  }, [gameState, dispatch, dispatchAction]);
+  }, [gameState, selectedCard, clearSelection, dispatch, dispatchAction]);
+
+  const handleCastTargetlessSpell = useCallback(async () => {
+    if (!gameState || !selectedCard || selectMode !== 'targetless_spell') return;
+    const s = playCard(gameState, selectedCard);
+    await dispatch(s);
+  }, [gameState, selectedCard, selectMode, dispatch]);
 
   const handleSummonOnTile = useCallback(async (row, col) => {
     if (!gameState || !selectedCard) return;
@@ -326,10 +362,15 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const oppPlayerIndex = 1 - myPlayerIndex;
   const oppPlayer = state.players[oppPlayerIndex];
 
+  const selectedCardObj = selectedCard ? myPlayer.hand.find(c => c.uid === selectedCard) : null;
+
   let guidance = isActiveTurn ? (PHASE_GUIDANCE[phase] || '') : 'Waiting for opponent…';
   if (pendingDiscard && isActiveTurn) guidance = PHASE_GUIDANCE.discard;
   if (selectMode === 'summon') guidance = 'Click a green tile to summon the unit.';
   if (selectMode === 'spell') guidance = 'Click a highlighted unit to target the spell.';
+  if (selectMode === 'targetless_spell') {
+    guidance = `Click Cast to play ${selectedCardObj?.name ?? 'spell'} or click the card again to cancel.`;
+  }
   if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
   if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
 
@@ -374,6 +415,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handlers = {
     handleChampionMoveTile,
     handlePlayCard,
+    handleCastTargetlessSpell,
     handleSummonOnTile,
     handleSpellTarget,
     handleCancelSpell,
@@ -525,6 +567,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             )}
             {phase === 'action' && selectMode === 'spell' && (
               <ActionBtn onClick={handleCancelSpell} label="Cancel Spell" variant="gray" />
+            )}
+            {phase === 'action' && selectMode === 'targetless_spell' && (
+              <>
+                <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="blue" />
+                <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="gray" />
+              </>
             )}
             {phase === 'action' && showArcherShoot && (
               <ActionBtn

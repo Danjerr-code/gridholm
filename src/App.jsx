@@ -34,6 +34,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   const p1 = state.players[0];
   const p2 = state.players[1];
 
+  const selectedCardObj = selectedCard ? p1.hand.find(c => c.uid === selectedCard) : null;
+
   let guidance = isP1Turn ? (PHASE_GUIDANCE[phase] || '') : 'AI is thinking…';
   if (pendingDiscard && isP1Turn) guidance = PHASE_GUIDANCE.discard;
   if (selectMode === 'summon') guidance = 'Click a green tile to summon the unit.';
@@ -41,6 +43,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     guidance = spellTargetUids.length === 0
       ? 'No valid targets. Cancel the spell.'
       : 'Click a highlighted unit to target the spell.';
+  }
+  if (selectMode === 'targetless_spell') {
+    guidance = `Click Cast to play ${selectedCardObj?.name ?? 'spell'} or click the card again to cancel.`;
   }
   if (selectMode === 'unit_move') guidance = 'Click a blue tile to move the unit. Or select another unit.';
   if (selectMode === 'archer_target') guidance = 'Click an enemy unit (pink highlight) for Elf Archer to shoot.';
@@ -180,6 +185,12 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             )}
             {phase === 'action' && selectMode === 'spell' && (
               <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
+            )}
+            {phase === 'action' && selectMode === 'targetless_spell' && (
+              <>
+                <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="blue" />
+                <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
+              </>
             )}
             {phase === 'action' && showArcherShoot && (
               <ActionBtn
