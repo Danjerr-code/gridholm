@@ -324,10 +324,10 @@ export const SPELL_REGISTRY = {
   },
 
   // ==========================================
-  // UNIT ACTION SPELLS
-  // (not card spells — triggered via triggerUnitAction)
+  // SPELL EFFECTS THAT NEED gameEngine helpers
   // ==========================================
 
+  // Recall: return a unit to hand (triggered via spell card or ability)
   recall: (state, caster, targets) => {
     const target = targets[0];
     if (!target) return state;
@@ -338,79 +338,6 @@ export const SPELL_REGISTRY = {
     state.players[caster].hand.push(recalledCard);
     state.recalledThisTurn = [...(state.recalledThisTurn || []), recalledCard.id];
     addLog(state, `${target.name} recalled to hand. Cannot be played this turn.`);
-    return state;
-  },
-
-  woodlandguard_action: (state, caster, targets) => {
-    const target = targets[0];
-    if (!target) return state;
-    addLog(state, `Woodland Guard: deals 2 damage to ${target.name}.`);
-    applyDamageToUnit(state, target, 2, 'Woodland Guard');
-    return state;
-  },
-
-  // options.step: 0 = enemy target, 1 = friendly target
-  battlepriestunit_action: (state, caster, targets, options = {}) => {
-    const step = options.step || 0;
-    const target = targets[0];
-    if (!target) return state;
-    if (step === 0) {
-      addLog(state, `Battle Priest: deals 2 damage to ${target.name}.`);
-      applyDamageToUnit(state, target, 2, 'Battle Priest');
-    } else {
-      const healed = restoreHP(target, 2, state);
-      addLog(state, `Battle Priest: restores ${healed} HP to ${target.name}.`);
-    }
-    return state;
-  },
-
-  grovewarden_action: (state, caster) => {
-    const elfCount = state.units.filter(u =>
-      u.owner === caster && u.unitType === 'Elf' && u.id !== 'grovewarden'
-    ).length;
-    const champ = state.champions[caster];
-    restoreHP(champ, elfCount, state);
-    addLog(state, `Grove Warden: champion restores ${elfCount} HP (${elfCount} friendly Elves).`);
-    return state;
-  },
-
-  packrunner_action: (state, caster, targets) => {
-    const target = targets[0];
-    if (!target || target.id === 'packrunner') return state;
-    target.moved = false;
-    addLog(state, `Pack Runner: ${target.name} action reset.`);
-    return state;
-  },
-
-  darkdealer_action: (state, caster) => {
-    const champ = state.champions[caster];
-    const p = state.players[caster];
-    champ.hp = Math.max(1, champ.hp - 2);
-    addLog(state, `Dark Dealer: champion takes 2 damage.`);
-    const drawn = p.deck.shift();
-    if (drawn && p.hand.length < 6) {
-      p.hand.push(drawn);
-      addLog(state, `Dark Dealer: drew ${drawn.name}.`);
-    }
-    return state;
-  },
-
-  sergeant_action: (state, caster) => {
-    state.players[caster].sergeantBuff = true;
-    addLog(state, `Sergeant: next unit played this turn gains +1/+1.`);
-    return state;
-  },
-
-  elfarcher_action: (state, caster, targets, options = {}) => {
-    const target = targets[0];
-    if (target) {
-      applyDamageToUnit(state, target, 2, 'Elf Archer');
-      addLog(state, `Elf Archer fires at ${target.name}!`);
-    }
-    if (options.archerUid) {
-      const archer = state.units.find(u => u.uid === options.archerUid);
-      if (archer) archer.moved = true;
-    }
     return state;
   },
 

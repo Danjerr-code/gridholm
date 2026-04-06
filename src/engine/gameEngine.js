@@ -6,6 +6,7 @@ import {
 } from './statUtils.js';
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 import { SPELL_REGISTRY } from './spellRegistry.js';
+import { ACTION_REGISTRY } from './actionRegistry.js';
 
 // Phases in order
 export const PHASES = ['begin-turn', 'action', 'end-turn'];
@@ -369,6 +370,18 @@ function _dispatchSpell(state, caster, spellId, targets, options = {}) {
     return state;
   }
   return resolver(state, caster, targets, options);
+}
+
+// ── action dispatch ────────────────────────────────────────────────────────
+// Single dispatch point for all unit action abilities. Looks up the resolver
+// in ACTION_REGISTRY by unit.id and delegates. Returns updated state.
+function _dispatchAction(unit, state, targets) {
+  const resolver = ACTION_REGISTRY[unit.id];
+  if (!resolver) {
+    console.error(`No action resolver found for unit: ${unit.id}`);
+    return state;
+  }
+  return resolver(unit, state, targets);
 }
 
 // ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
@@ -807,36 +820,32 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   }
   // ── Woodland Guard action ──
   else if (effect === 'woodlandguard_action') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'woodlandguard_action', [target]);
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
-  // ── Battle Priest action (step 0: enemy, step 1: friendly) ──
+  // ── Battle Priest action (step 0: collect enemy, step 1: collect friendly + dispatch) ──
   else if (effect === 'battlepriestunit_action') {
     if (step === 0) {
-      if (target) s = _dispatchSpell(s, s.activePlayer, 'battlepriestunit_action', [target], { step: 0 });
-      s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
+      // Collect enemy target — store uid and wait for friendly target
+      if (target) {
+        s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid: target.uid, paid: true } };
+      }
     } else {
-      if (target) s = _dispatchSpell(s, s.activePlayer, 'battlepriestunit_action', [target], { step: 1 });
+      // All targets collected — dispatch to ACTION_REGISTRY
+      const unit = s.units.find(u => u.uid === data.sourceUid);
+      const enemy = s.units.find(u => u.uid === data.enemyUid);
+      if (unit) s = _dispatchAction(unit, s, [enemy, target]);
     }
-  }
-  // ── Grove Warden action ──
-  else if (effect === 'grovewarden_action') {
-    s = _dispatchSpell(s, s.activePlayer, 'grovewarden_action', []);
   }
   // ── Pack Runner action ──
   else if (effect === 'packrunner_action') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'packrunner_action', [target]);
-  }
-  // ── Dark Dealer action ──
-  else if (effect === 'darkdealer_action') {
-    s = _dispatchSpell(s, s.activePlayer, 'darkdealer_action', []);
-  }
-  // ── Sergeant action ──
-  else if (effect === 'sergeant_action') {
-    s = _dispatchSpell(s, s.activePlayer, 'sergeant_action', []);
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
   // ── Elf Archer action (ranged 2 damage) ──
   else if (effect === 'elfarcher_action') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'elfarcher_action', [target], { archerUid: data.archerUid });
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
 
   return s;
@@ -866,41 +875,36 @@ export function triggerUnitAction(state, unitUid) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== s.activePlayer || unit.moved || unit.summoned) return s;
 
+  unit.moved = true;
+
+  // No-target actions — dispatch immediately via ACTION_REGISTRY
   if (unit.id === 'sergeant') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: null, effect: 'sergeant_action', playerIdx: s.activePlayer, step: 0, data: {} };
-    // Resolve immediately — no target needed
-    return resolveSpell(s, null, null);
-  }
-  if (unit.id === 'battlepriestunit') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
-    return s; // wait for enemy target selection
-  }
-  if (unit.id === 'woodlandguard') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
-    return s; // wait for enemy target
+    return _dispatchAction(unit, s, []);
   }
   if (unit.id === 'grovewarden') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'grovewarden_action', playerIdx: s.activePlayer, step: 0, data: {} };
-    return resolveSpell(s, null, null);
-  }
-  if (unit.id === 'packrunner') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'packrunner_action', playerIdx: s.activePlayer, step: 0, data: {} };
-    return s; // wait for friendly target
+    return _dispatchAction(unit, s, []);
   }
   if (unit.id === 'darkdealer') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'darkdealer_action', playerIdx: s.activePlayer, step: 0, data: {} };
-    return resolveSpell(s, null, null);
+    return _dispatchAction(unit, s, []);
+  }
+
+  // Target-needing actions — use pendingSpell for UI target collection,
+  // then resolveSpell routes to _dispatchAction via ACTION_REGISTRY.
+  if (unit.id === 'battlepriestunit') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s;
+  }
+  if (unit.id === 'woodlandguard') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s;
+  }
+  if (unit.id === 'packrunner') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'packrunner_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s;
   }
   if (unit.id === 'elfarcher') {
-    unit.moved = true;
-    s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { archerUid: unit.uid } };
-    return s; // wait for target selection
+    s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid } };
+    return s;
   }
 
   return s;
