@@ -92,8 +92,8 @@ export const ACTION_REGISTRY = {
       addLog(state, `Woodland Guard: no valid target in range.`);
       return state;
     }
-    addLog(state, `Woodland Guard: deals 2 damage to ${target.name}.`);
-    applyDamageToUnit(state, target, 2, 'Woodland Guard');
+    addLog(state, `Woodland Guard: deals 1 damage to ${target.name}.`);
+    applyDamageToUnit(state, target, 1, 'Woodland Guard');
     return state;
   },
 
