@@ -11,6 +11,48 @@ function generateGameId() {
   return id;
 }
 
+const btnPrimary = {
+  background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+  color: '#0a0a0f',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '13px',
+  fontWeight: 600,
+  border: 'none',
+  borderRadius: '4px',
+  boxShadow: '0 2px 8px #C9A84C40',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  padding: '12px 24px',
+  width: '100%',
+  cursor: 'pointer',
+};
+
+const btnSecondary = {
+  background: 'transparent',
+  color: '#C9A84C',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '13px',
+  fontWeight: 500,
+  border: '1px solid #C9A84C60',
+  borderRadius: '4px',
+  letterSpacing: '0.04em',
+  padding: '8px 24px',
+  width: '100%',
+  cursor: 'pointer',
+};
+
+const btnCancel = {
+  background: 'transparent',
+  color: '#6a6a8a',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '13px',
+  border: '1px solid #2a2a3a',
+  borderRadius: '4px',
+  padding: '8px 24px',
+  width: '100%',
+  cursor: 'pointer',
+};
+
 export default function Lobby({ onNavigate }) {
   const [joinInput, setJoinInput] = useState('');
   const [creating, setCreating] = useState(false);
@@ -70,43 +112,69 @@ export default function Lobby({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-sm flex flex-col gap-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-amber-400 tracking-widest mb-1">GRIDHOLM</h1>
-          <p className="text-gray-400 text-sm">A tactical card game</p>
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      color: '#f9fafb',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+    }}>
+      <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '36px',
+            fontWeight: 600,
+            color: '#C9A84C',
+            letterSpacing: '0.2em',
+            marginBottom: '4px',
+          }}>GRIDHOLM</h1>
+          <p style={{
+            fontFamily: "'Crimson Text', serif",
+            fontStyle: 'italic',
+            fontSize: '15px',
+            color: '#4a4a6a',
+          }}>A tactical card game</p>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <button
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg text-sm transition-colors"
-            onClick={() => onNavigate('/ai')}
-          >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button style={btnPrimary} onClick={() => onNavigate('/ai')}>
             Play vs AI
           </button>
 
           <button
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg text-sm transition-colors disabled:opacity-50"
+            style={{ ...btnPrimary, opacity: creating ? 0.6 : 1 }}
             onClick={handleCreateGame}
             disabled={creating}
           >
             {creating ? 'Creating…' : 'Create Online Game'}
           </button>
           {createError && (
-            <p className="text-red-400 text-xs text-center">{createError}</p>
+            <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
           )}
 
-          <button
-            className="w-full text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 font-semibold py-2 px-6 rounded-lg text-sm transition-colors bg-transparent"
-            onClick={() => onNavigate('/how-to-play')}
-          >
+          <button style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
             How to Play
           </button>
 
-          <form onSubmit={handleJoinGame} className="flex flex-col gap-2">
-            <div className="flex gap-2">
+          <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <input
-                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-3 text-sm font-mono uppercase tracking-widest text-white placeholder-gray-500 focus:outline-none focus:border-gray-400"
+                style={{
+                  flex: 1,
+                  background: '#0d0d1a',
+                  border: '1px solid #2a2a3a',
+                  borderRadius: '4px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  color: '#C9A84C',
+                  outline: 'none',
+                }}
                 placeholder="GAME ID"
                 value={joinInput}
                 onChange={e => setJoinInput(e.target.value.toUpperCase())}
@@ -117,13 +185,23 @@ export default function Lobby({ onNavigate }) {
               />
               <button
                 type="submit"
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg text-sm transition-colors"
+                style={{
+                  background: 'transparent',
+                  color: '#C9A84C',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                  border: '1px solid #C9A84C60',
+                  borderRadius: '4px',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
               >
-                Join Game
+                Join
               </button>
             </div>
             {joinError && (
-              <p className="text-red-400 text-xs">{joinError}</p>
+              <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px' }}>{joinError}</p>
             )}
           </form>
         </div>

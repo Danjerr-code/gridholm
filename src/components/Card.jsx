@@ -1,75 +1,113 @@
 import { getCardImageUrl } from '../supabase.js';
 
+const FACTION_TEXT_COLORS = {
+  Human: '#4a8abf',
+  Beast: '#4a8a4a',
+  Elf: '#8a4abf',
+  Demon: '#bf2a2a',
+};
+
+function getFactionColor(unitType) {
+  return FACTION_TEXT_COLORS[unitType] || '#6a6a8a';
+}
+
 export default function Card({ card, isSelected, isPlayable, onClick }) {
   const isSpell = card.type === 'spell';
-  const typeBorder = card.legendary ? 'border-amber-400' : isSpell ? 'border-purple-500' : 'border-gray-500';
   const selectedStyle = isSelected ? '-translate-y-2' : '';
   const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer' : 'cursor-pointer';
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
-  const borderStyle = isSelected ? { borderColor: '#C9A84C' } : undefined;
+  const isLegendary = !!card.legendary;
+  const factionColor = getFactionColor(card.unitType);
 
-  const artTypeChar = isSpell ? '✦' : (card.unitType ? card.unitType[0] : '?');
   const imageUrl = getCardImageUrl(card.image);
+
+  const cardBaseStyle = {
+    background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+    border: isSelected ? '2px solid #C9A84C' : isLegendary ? '2px solid #C9A84C80' : '1px solid #2a2a3a',
+    boxShadow: isSelected ? '0 0 8px #C9A84C40' : 'none',
+  };
 
   return (
     <div
-      className={`relative bg-gray-800 border ${typeBorder} rounded-lg text-xs select-none transition-transform
+      className={`relative rounded-lg text-xs select-none transition-transform
         ${selectedStyle} ${playableStyle} ${dimStyle}
+        ${isLegendary && !isSelected ? 'legendary-card' : ''}
         flex flex-col p-1.5 w-20
         md:w-[100px] md:h-[140px]`}
-      style={borderStyle}
+      style={cardBaseStyle}
       onClick={onClick}
       title={card.rules || card.name}
     >
       {/* === MOBILE LAYOUT (hidden on md+) === */}
       <div className="md:hidden flex flex-col">
         <div className="flex justify-between items-start mb-0.5">
-          <span className="font-bold text-white leading-tight text-[10px]">
-            {card.legendary && <span className="text-amber-400 mr-0.5">♛</span>}
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>
+            {card.legendary && <span style={{ color: '#C9A84C', marginRight: '2px' }}>♛</span>}
             {card.name}
           </span>
-          <span className="text-yellow-400 font-bold leading-none">{card.cost}</span>
+          <span style={{
+            background: '#C9A84C',
+            color: '#0a0a0f',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '9px',
+            fontWeight: 700,
+            padding: '1px 4px',
+            borderRadius: '99px',
+            lineHeight: 1.4,
+            flexShrink: 0,
+            marginLeft: '2px',
+          }}>{card.cost}</span>
         </div>
         {card.type === 'unit' && (
           <>
-            <div className="text-gray-400 text-[9px] mb-0.5">{card.unitType}</div>
-            <div className="flex justify-between text-[9px]">
-              <span className="text-red-400">⚔{card.atk}</span>
-              <span className="text-green-400">♥{card.hp}</span>
-              <span className="text-blue-400">⚡{card.spd}</span>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: `${factionColor}99`, marginBottom: '2px' }}>{card.unitType}</div>
+            <div className="flex justify-between" style={{ fontFamily: "'Crimson Text', serif", fontSize: '10px' }}>
+              <span style={{ color: '#f87171' }}>⚔{card.atk}</span>
+              <span style={{ color: '#4ade80' }}>♥{card.hp}</span>
+              <span style={{ color: '#60a5fa' }}>⚡{card.spd}</span>
             </div>
           </>
         )}
         {card.type === 'spell' && (
-          <div className="text-purple-400 text-[9px] mt-auto">Spell</div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#8a4abf', marginTop: 'auto' }}>Spell</div>
         )}
         {card.aura && (
           <div className="mt-0.5">
-            <span className="text-[8px] bg-teal-800 text-teal-200 px-1 rounded leading-none font-semibold">
+            <span style={{ fontSize: '8px', background: '#134e4a', color: '#5eead4', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>
               Aura {card.aura.range}
             </span>
           </div>
         )}
         {card.rules && (
-          <div className="text-[8px] text-gray-400 mt-0.5 leading-tight line-clamp-2">{card.rules}</div>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '8px', color: '#8a8aaa', marginTop: '2px', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
         )}
       </div>
 
       {/* === DESKTOP LAYOUT (hidden on mobile, shown on md+) === */}
       <div className="hidden md:flex md:flex-col md:h-full">
-        {/* Name + Cost row: name top-left, cost top-right */}
+        {/* Name + Cost row */}
         <div className="flex items-start mb-1 gap-0.5">
           <div
-            className="font-bold text-white text-[10px] leading-tight overflow-hidden whitespace-nowrap flex-1"
-            style={{ textOverflow: 'ellipsis' }}
+            style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', fontWeight: 600, color: '#fff', lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}
           >
-            {card.legendary && <span className="text-amber-400 mr-0.5">♛</span>}
+            {card.legendary && <span style={{ color: '#C9A84C', marginRight: '2px' }}>♛</span>}
             {card.name}
           </div>
-          <span className="text-yellow-400 font-bold text-[10px] leading-none flex-shrink-0 ml-auto">{card.cost}</span>
+          <span style={{
+            background: '#C9A84C',
+            color: '#0a0a0f',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '9px',
+            fontWeight: 700,
+            padding: '1px 5px',
+            borderRadius: '99px',
+            lineHeight: 1.4,
+            flexShrink: 0,
+            marginLeft: '2px',
+          }}>{card.cost}</span>
         </div>
 
-        {/* Art area: ~40% of card height (~56px) */}
+        {/* Art area */}
         <div
           className="rounded mb-1 flex-shrink-0 overflow-hidden"
           style={{ height: '56px' }}
@@ -96,11 +134,12 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'rgba(255,255,255,0.03)',
                 borderRadius: 'var(--border-radius-md)',
-                border: '0.5px solid rgba(255,255,255,0.1)',
-                color: 'rgba(156,163,175,1)',
+                border: '0.5px solid rgba(255,255,255,0.07)',
+                color: `${factionColor}99`,
                 fontSize: '11px',
+                fontFamily: "'Cinzel', serif",
                 fontWeight: 500,
               }}
             >
@@ -111,32 +150,32 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
         {/* Stats row */}
         {card.type === 'unit' && (
-          <div className="flex justify-between text-[9px] mb-0.5">
-            <span className="text-red-400">⚔{card.atk}</span>
-            <span className="text-green-400">♥{card.hp}</span>
-            <span className="text-blue-400">⚡{card.spd}</span>
+          <div className="flex justify-between mb-0.5" style={{ fontFamily: "'Crimson Text', serif", fontSize: '10px' }}>
+            <span style={{ color: '#f87171' }}>⚔{card.atk}</span>
+            <span style={{ color: '#4ade80' }}>♥{card.hp}</span>
+            <span style={{ color: '#60a5fa' }}>⚡{card.spd}</span>
           </div>
         )}
         {card.type === 'spell' && (
-          <div className="text-purple-400 text-[9px] mb-0.5">Spell</div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#8a4abf', marginBottom: '2px' }}>Spell</div>
         )}
 
-        {/* Keyword badges (Aura, etc.) */}
+        {/* Keyword badges */}
         {card.aura && (
           <div className="mb-0.5">
-            <span className="text-[8px] bg-teal-800 text-teal-200 px-1 rounded leading-none font-semibold">
+            <span style={{ fontSize: '8px', background: '#134e4a', color: '#5eead4', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>
               Aura {card.aura.range}
             </span>
           </div>
         )}
 
-        {/* Rules text: 2 lines max with ellipsis */}
+        {/* Rules text */}
         {card.rules && (
-          <div className="text-[8px] text-gray-400 leading-tight line-clamp-2 overflow-hidden">{card.rules}</div>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '8px', color: '#8a8aaa', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
         )}
 
-        {/* Card type label at very bottom */}
-        <div className="mt-auto text-[8px] text-gray-500 capitalize">
+        {/* Card type label */}
+        <div style={{ marginTop: 'auto', fontFamily: "'Cinzel', serif", fontSize: '8px', color: `${factionColor}99`, textTransform: 'capitalize' }}>
           {card.unitType || (isSpell ? 'Spell' : '')}
         </div>
       </div>

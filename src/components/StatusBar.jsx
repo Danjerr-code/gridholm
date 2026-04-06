@@ -16,44 +16,51 @@ export default function StatusBar({ state, myPlayerIndex }) {
     'end-turn': 'End Turn',
   };
 
+  const barStyle = {
+    background: '#0d0d1a',
+    borderBottom: '1px solid #C9A84C40',
+    borderRadius: '6px',
+    border: '1px solid #1e1e2e',
+  };
+
   return (
     <>
       {/* Mobile: compact 3-column layout */}
-      <div className="sm:hidden grid grid-cols-3 items-start bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 leading-tight">
-        <div className="flex flex-col gap-0.5 text-[11px] text-blue-400">
-          <span className="font-bold">{p1.name} {c1.hp}/{c1.maxHp}</span>
-          {!hideP1Resources && <span className="text-gray-300">{p1.resources}/10 res</span>}
-          <span className="text-gray-400">H:{p1.hand.length} D:{p1.deck.length}</span>
+      <div className="sm:hidden grid grid-cols-3 items-start px-2 py-1 leading-tight" style={barStyle}>
+        <div className="flex flex-col gap-0.5">
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#4a8abf' }}>{p1.name} {c1.hp}/{c1.maxHp}</span>
+          {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
+          <span style={{ fontSize: '10px', color: '#4a4a6a' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
         </div>
-        <div className="flex flex-col items-center gap-0.5 text-[11px] text-center">
-          <span className="font-bold text-white">Turn {state.turn}</span>
-          <span className="text-gray-300">{activePlayerName}</span>
+        <div className="flex flex-col items-center gap-0.5">
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 700, color: '#fff' }}>Turn {state.turn}</span>
+          <span style={{ fontSize: '10px', color: '#8a8aaa' }}>{activePlayerName}</span>
         </div>
-        <div className="flex flex-col items-end gap-0.5 text-[11px] text-red-400">
-          <span className="font-bold">{p2.name} {c2.hp}/{c2.maxHp}</span>
-          {!hideP2Resources && <span className="text-gray-300">{p2.resources}/10 res</span>}
-          <span className="text-gray-400">H:{p2.hand.length} D:{p2.deck.length}</span>
+        <div className="flex flex-col items-end gap-0.5">
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#bf4a4a' }}>{p2.name} {c2.hp}/{c2.maxHp}</span>
+          {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
+          <span style={{ fontSize: '10px', color: '#4a4a6a' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
         </div>
       </div>
 
       {/* Desktop: full layout */}
-      <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-between gap-2 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-sm">
+      <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-between gap-2 px-4 py-2" style={barStyle}>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-bold text-blue-400">{p1.name}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#4a8abf' }}>{p1.name}</span>
           <HpBar hp={c1.hp} maxHp={c1.maxHp} color="blue" />
-          {!hideP1Resources && <span className="text-yellow-400">💎 {p1.resources}/10</span>}
-          <span className="text-gray-400 text-xs">Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
+          {!hideP1Resources && <ResourcePips count={p1.resources} max={10} color="#4a8abf" />}
+          <span style={{ fontSize: '11px', color: '#4a4a6a' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
         </div>
         <div className="text-center">
-          <div className="text-xs text-gray-400">Turn {state.turn}</div>
-          <div className="font-semibold text-white text-sm">{activePlayerName}'s turn</div>
-          <div className="text-xs text-purple-300">{PHASE_LABELS[state.phase] || state.phase}</div>
+          <div style={{ fontSize: '11px', color: '#4a4a6a' }}>Turn {state.turn}</div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#C9A84C' }}>{activePlayerName}'s turn</div>
+          <div style={{ fontSize: '11px', color: '#6a5a8a' }}>{PHASE_LABELS[state.phase] || state.phase}</div>
         </div>
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
-          <span className="font-bold text-red-400">{p2.name}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#bf4a4a' }}>{p2.name}</span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
-          {!hideP2Resources && <span className="text-yellow-400">💎 {p2.resources}/10</span>}
-          <span className="text-gray-400 text-xs">Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
+          {!hideP2Resources && <ResourcePips count={p2.resources} max={10} color="#bf4a4a" />}
+          <span style={{ fontSize: '11px', color: '#4a4a6a' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
         </div>
       </div>
     </>
@@ -62,13 +69,50 @@ export default function StatusBar({ state, myPlayerIndex }) {
 
 function HpBar({ hp, maxHp, color }) {
   const pct = Math.max(0, (hp / maxHp) * 100);
-  const barColor = color === 'blue' ? 'bg-blue-500' : 'bg-red-500';
+  const fillGradient = color === 'blue'
+    ? 'linear-gradient(90deg, #60a5fa, #2563eb)'
+    : 'linear-gradient(90deg, #f87171, #dc2626)';
   return (
     <div className="flex items-center gap-1">
-      <div className="w-24 h-3 bg-gray-700 rounded-full overflow-hidden">
-        <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+      <div style={{
+        width: '96px',
+        height: '10px',
+        background: '#0a0a1a',
+        borderRadius: '99px',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.7)',
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${pct}%`,
+          background: fillGradient,
+          borderRadius: '99px',
+          transition: 'width 0.3s',
+        }} />
       </div>
-      <span className="text-xs text-gray-300">{hp}/{maxHp}</span>
+      <span style={{ fontSize: '10px', color: '#8a8aaa' }}>{hp}/{maxHp}</span>
+    </div>
+  );
+}
+
+function ResourcePips({ count, max, color }) {
+  return (
+    <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '80px' }}>
+      {Array.from({ length: max }, (_, i) => (
+        <div
+          key={i}
+          style={{
+            width: '7px',
+            height: '7px',
+            transform: 'rotate(45deg)',
+            background: i < count ? color : '#1a1a2a',
+            border: i < count ? 'none' : `1px solid #2a2a3a`,
+            boxShadow: i < count ? `0 0 4px ${color}80` : 'none',
+            borderRadius: '1px',
+            flexShrink: 0,
+          }}
+        />
+      ))}
     </div>
   );
 }

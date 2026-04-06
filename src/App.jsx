@@ -60,6 +60,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
 
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell';
+
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
     && !selectedUnitObj.summoned
@@ -74,16 +76,36 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     && isP1Turn;
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-950 text-white p-2 flex flex-col gap-2">
+    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f' }}>
       {/* Winner overlay */}
       {winner && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-800 border border-yellow-500 rounded-2xl p-8 text-center shadow-2xl">
-            <div className="text-4xl mb-4">🏆</div>
-            <h2 className="text-2xl font-bold text-yellow-400 mb-2">{winner} wins!</h2>
-            <p className="text-gray-300 mb-6">The champion has fallen.</p>
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+            border: '1px solid #C9A84C',
+            borderRadius: '12px',
+            padding: '40px',
+            textAlign: 'center',
+            boxShadow: '0 0 40px #C9A84C20',
+          }}>
+            <div className="text-4xl mb-4">⚔️</div>
+            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', fontWeight: 700, color: '#C9A84C', marginBottom: '8px' }}>{winner} wins!</h2>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#8a8aaa', marginBottom: '24px' }}>The champion has fallen.</p>
             <button
-              className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-lg"
+              style={{
+                background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                color: '#0a0a0f',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '13px',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: '4px',
+                padding: '10px 24px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px #C9A84C40',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
               onClick={handlers.handleNewGame}
             >
               New Game
@@ -94,18 +116,38 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h1 className="text-lg font-bold text-amber-400 tracking-wide">GRIDHOLM</h1>
+        <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', fontWeight: 600, color: '#C9A84C', letterSpacing: '0.1em' }}>GRIDHOLM</h1>
         <div className="flex gap-2">
           {onBackToLobby && (
             <button
-              className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
+              style={{
+                fontSize: '12px',
+                color: '#6a6a8a',
+                background: 'transparent',
+                border: '1px solid #2a2a3a',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+              }}
+              onMouseEnter={e => e.target.style.color = '#C9A84C'}
+              onMouseLeave={e => e.target.style.color = '#6a6a8a'}
               onClick={onBackToLobby}
             >
               ← Lobby
             </button>
           )}
           <button
-            className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
+            style={{
+              fontSize: '12px',
+              color: '#C9A84C',
+              background: 'transparent',
+              border: '1px solid #C9A84C60',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              fontFamily: "'Cinzel', serif",
+            }}
             onClick={handlers.handleNewGame}
           >
             New Game
@@ -149,43 +191,59 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
         {/* Right sidebar: game log */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
-          <div className="text-xs text-gray-400 mb-1 px-1">Game Log</div>
           <Log entries={state.log} />
         </div>
       </div>
 
       {/* Bottom bar: guidance + action buttons */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs">
-        <span className="hidden sm:inline text-xs text-gray-300 sm:flex-1">{guidance}</span>
+      <div
+        className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center flex-shrink-0 text-xs"
+        style={{
+          background: '#0a0a14',
+          borderTop: '1px solid #1e1e2e',
+          borderBottom: '1px solid #1e1e2e',
+          borderRadius: '6px',
+          padding: '6px 12px',
+        }}
+      >
+        <span
+          className="hidden sm:inline sm:flex-1"
+          style={{
+            fontFamily: "'Crimson Text', serif",
+            fontStyle: isImportantGuidance ? 'normal' : 'italic',
+            fontSize: '13px',
+            color: isImportantGuidance ? '#C9A84C' : '#8a8aaa',
+          }}
+        >{guidance}</span>
 
         {isP1Turn && (
           <>
             {phase === 'action' && selectMode === 'summon' && (
-              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
+              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" />
             )}
             {phase === 'action' && selectMode === 'spell' && (
-              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="gray" />
+              <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="cancel" />
             )}
             {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
-              <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="gray" />
+              <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (summon as 3/3)" variant="cancel" />
             )}
             {phase === 'action' && selectMode === 'targetless_spell' && (
               <>
-                <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="blue" />
-                <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="gray" />
+                <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" />
+                <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" />
               </>
             )}
             {phase === 'action' && showAction && (
               <ActionBtn
                 onClick={() => handlers.handleActionButtonClick(selectedUnit)}
                 label="Action"
-                variant="amber"
+                variant="action"
               />
             )}
             {phase === 'action' && selectMode === 'action_confirm' && selectedUnitObj && (
               <>
-                <ActionBtn onClick={handlers.handleConfirmAction} label="Confirm" variant="amber" />
-                <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="gray" />
+                <ActionBtn onClick={handlers.handleConfirmAction} label="Confirm" variant="action" />
+                <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" />
               </>
             )}
             {phase === 'action' && showHiddenReveal && (
@@ -196,27 +254,38 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
               />
             )}
             {phase === 'action' && selectedUnit && (
-              <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="gray" />
+              <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" />
             )}
             {phase === 'action' && (
-              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" fullWidth />
+              <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" fullWidth />
             )}
 
             {phase === 'end-turn' && !pendingDiscard && (
-              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="green" fullWidth />
+              <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
             )}
             {pendingDiscard && (
-              <span className="text-xs text-yellow-400 font-semibold">Discard a card to continue</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
             )}
           </>
         )}
       </div>
 
       {/* Bottom bar: P1 hand */}
-      <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isP1Turn ? 'border-yellow-500' : 'border-gray-700'}`}>
-        <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
-          {p1.name} — {p1.resources}/10 💎
-          <span className="hidden sm:inline">
+      <div style={{
+        background: pendingDiscard && isP1Turn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
+        border: `1px solid ${pendingDiscard && isP1Turn ? '#C9A84C' : '#1e1e2e'}`,
+        borderRadius: '6px',
+        flexShrink: 0,
+      }}>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '11px',
+          color: '#4a8abf',
+          padding: '4px 8px 2px',
+          fontWeight: 600,
+        }}>
+          {p1.name} — {p1.resources}/10
+          <span className="hidden sm:inline" style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontWeight: 400, color: '#4a4a6a', fontSize: '12px' }}>
             {phase === 'action' && isP1Turn ? '  (click cards to play)' : ''}
             {pendingDiscard && isP1Turn ? '  — click a card to discard' : ''}
           </span>
@@ -243,17 +312,15 @@ function CardDetailPanel({ inspectedItem, state }) {
   let content = null;
 
   if (inspectedItem?.type === 'unit') {
-    // Look up live unit from state
     const unit = state.units.find(u => u.uid === inspectedItem.uid);
     if (unit) {
       const ownerLabel = unit.owner === 0 ? 'Friendly' : 'Enemy';
-      const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
+      const ownerColor = unit.owner === 0 ? '#4a8abf' : '#bf4a4a';
       const auraBonus = getAuraAtkBonus(state, unit);
       const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
       const unitImageUrl = getCardImageUrl(unit.image);
       content = (
         <div className="flex flex-col gap-1">
-          {/* Detail panel image area */}
           <div
             style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}
             data-art-slot="true"
@@ -268,31 +335,40 @@ function CardDetailPanel({ inspectedItem, state }) {
             ) : (
               <div style={{
                 width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', background: 'rgba(255,255,255,0.05)',
-                border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(156,163,175,1)',
-                fontSize: '11px', fontWeight: 500,
+                justifyContent: 'center', background: 'rgba(255,255,255,0.03)',
+                border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
+                fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500,
               }}>
                 {unit.unitType || 'Unit'}
               </div>
             )}
           </div>
           <div className="flex justify-between items-start">
-            <span className="font-bold text-white text-xs leading-tight">{unit.name}</span>
-            <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: unit.legendary ? '#C9A84C' : '#fff', lineHeight: 1.2 }}>{unit.name}</span>
+            <span style={{ fontSize: '10px', color: ownerColor }}>{ownerLabel}</span>
           </div>
-          {unit.unitType && <div className="text-gray-400 text-[10px]">{unit.unitType}</div>}
-          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
-            <span className="text-red-400">
-              ⚔ {displayAtk}{auraBonus > 0 && <span className="text-teal-400"> (Aura +{auraBonus})</span>}
+          {unit.unitType && <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a' }}>{unit.unitType}</div>}
+          <div className="grid grid-cols-3 gap-x-1" style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', marginTop: '2px' }}>
+            <span style={{ color: '#f87171' }}>
+              ⚔ {displayAtk}{auraBonus > 0 && <span style={{ color: '#5eead4' }}> (+{auraBonus})</span>}
             </span>
-            <span className="text-green-400">♥ {unit.hp}/{unit.maxHp}</span>
-            <span className="text-blue-400">⚡ {unit.spd + (unit.speedBonus || 0)}</span>
+            <span style={{ color: '#4ade80' }}>♥ {unit.hp}/{unit.maxHp}</span>
+            <span style={{ color: '#60a5fa' }}>⚡ {unit.spd + (unit.speedBonus || 0)}</span>
           </div>
           {unit.shield > 0 && (
-            <div className="text-cyan-400 text-[10px]">🛡 Shield: {unit.shield}</div>
+            <div style={{ fontSize: '10px', color: '#67e8f9' }}>🛡 Shield: {unit.shield}</div>
           )}
           {unit.rules && (
-            <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+            <div style={{
+              fontFamily: "'Crimson Text', serif",
+              fontStyle: 'italic',
+              fontSize: '11px',
+              color: '#8a8aaa',
+              lineHeight: 1.5,
+              marginTop: '4px',
+              borderTop: '0.5px solid #1e1e2e',
+              paddingTop: '4px',
+            }}>
               {unit.rules}
             </div>
           )}
@@ -303,10 +379,19 @@ function CardDetailPanel({ inspectedItem, state }) {
     content = (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
-          <span className="font-bold text-white text-xs leading-tight">Throne</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#fff' }}>Throne</span>
         </div>
-        <div className="text-amber-700 text-[10px] font-semibold">Terrain</div>
-        <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#7a4010', fontWeight: 600 }}>Terrain</div>
+        <div style={{
+          fontFamily: "'Crimson Text', serif",
+          fontStyle: 'italic',
+          fontSize: '11px',
+          color: '#8a8aaa',
+          lineHeight: 1.5,
+          marginTop: '4px',
+          borderTop: '0.5px solid #1e1e2e',
+          paddingTop: '4px',
+        }}>
           End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
         </div>
       </div>
@@ -316,7 +401,6 @@ function CardDetailPanel({ inspectedItem, state }) {
     const cardImageUrl = getCardImageUrl(card.image);
     content = (
       <div className="flex flex-col gap-1">
-        {/* Detail panel image area */}
         <div
           style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}
           data-art-slot="true"
@@ -331,30 +415,47 @@ function CardDetailPanel({ inspectedItem, state }) {
           ) : (
             <div style={{
               width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', background: 'rgba(255,255,255,0.05)',
-              border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(156,163,175,1)',
-              fontSize: '11px', fontWeight: 500,
+              justifyContent: 'center', background: 'rgba(255,255,255,0.03)',
+              border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
+              fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500,
             }}>
               {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
             </div>
           )}
         </div>
         <div className="flex justify-between items-start">
-          <span className="font-bold text-white text-xs leading-tight">{card.name}</span>
-          <span className="text-yellow-400 font-bold text-xs">{card.cost}💎</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: card.legendary ? '#C9A84C' : '#fff', lineHeight: 1.2 }}>{card.name}</span>
+          <span style={{
+            background: '#C9A84C',
+            color: '#0a0a0f',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '9px',
+            fontWeight: 700,
+            padding: '1px 5px',
+            borderRadius: '99px',
+          }}>{card.cost}</span>
         </div>
-        <div className="text-gray-400 text-[10px]">
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a' }}>
           {card.type === 'spell' ? 'Spell' : card.unitType}
         </div>
         {card.type === 'unit' && (
-          <div className="grid grid-cols-3 gap-x-1 text-[10px] mt-0.5">
-            <span className="text-red-400">⚔ {card.atk}</span>
-            <span className="text-green-400">♥ {card.hp}</span>
-            <span className="text-blue-400">⚡ {card.spd}</span>
+          <div className="grid grid-cols-3 gap-x-1" style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', marginTop: '2px' }}>
+            <span style={{ color: '#f87171' }}>⚔ {card.atk}</span>
+            <span style={{ color: '#4ade80' }}>♥ {card.hp}</span>
+            <span style={{ color: '#60a5fa' }}>⚡ {card.spd}</span>
           </div>
         )}
         {card.rules && (
-          <div className="text-gray-400 text-[10px] leading-tight mt-1 border-t border-gray-700 pt-1">
+          <div style={{
+            fontFamily: "'Crimson Text', serif",
+            fontStyle: 'italic',
+            fontSize: '11px',
+            color: '#8a8aaa',
+            lineHeight: 1.5,
+            marginTop: '4px',
+            borderTop: '0.5px solid #1e1e2e',
+            paddingTop: '4px',
+          }}>
             {card.rules}
           </div>
         )}
@@ -364,13 +465,22 @@ function CardDetailPanel({ inspectedItem, state }) {
 
   return (
     <div
-      className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
-      style={{ flex: 1, minHeight: 0 }}
+      style={{
+        background: '#08080f',
+        border: '1px solid #1e1e2e',
+        borderTop: '1px solid #C9A84C30',
+        borderRadius: '6px',
+        padding: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+      }}
     >
-      <div className="text-xs text-gray-400 mb-1.5 px-0 font-semibold">Card Detail</div>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
       <div className="flex-1 overflow-y-auto">
         {content || (
-          <div className="text-gray-600 text-[10px] italic leading-snug">
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
             Click a card or unit to inspect
           </div>
         )}
@@ -379,18 +489,54 @@ function CardDetailPanel({ inspectedItem, state }) {
   );
 }
 
-function ActionBtn({ onClick, label, variant = 'blue', fullWidth = false }) {
-  const colors = {
-    blue: 'bg-blue-600 hover:bg-blue-500 text-white',
-    green: 'bg-green-600 hover:bg-green-500 text-white',
-    gray: 'bg-gray-600 hover:bg-gray-500 text-white',
-    pink: 'bg-pink-600 hover:bg-pink-500 text-white',
-    gold: 'bg-yellow-600 hover:bg-yellow-500 text-black',
-    amber: 'bg-amber-600 hover:bg-amber-500 text-white',
+function ActionBtn({ onClick, label, variant = 'endphase', fullWidth = false }) {
+  const styles = {
+    endphase: {
+      background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+      color: '#0a0a0f',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: 'none',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px #C9A84C40',
+      letterSpacing: '0.05em',
+      textTransform: 'uppercase',
+    },
+    action: {
+      background: 'linear-gradient(135deg, #5a3a00, #8a6a00)',
+      color: '#C9A84C',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: '1px solid #C9A84C60',
+      borderRadius: '4px',
+      letterSpacing: '0.04em',
+    },
+    cancel: {
+      background: 'transparent',
+      color: '#6a6a8a',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      border: '1px solid #2a2a3a',
+      borderRadius: '4px',
+    },
+    gold: {
+      background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+      color: '#0a0a0f',
+      fontFamily: "'Cinzel', serif",
+      fontSize: '12px',
+      fontWeight: 600,
+      border: 'none',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px #C9A84C40',
+    },
   };
+
   return (
     <button
-      className={`text-xs font-semibold px-3 py-3 sm:py-1.5 rounded ${colors[variant]} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
+      className={`px-3 py-3 sm:py-1.5 cursor-pointer${fullWidth ? ' w-full sm:w-auto' : ''}`}
+      style={styles[variant] || styles.endphase}
       onClick={onClick}
     >
       {label}

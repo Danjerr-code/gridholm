@@ -1,6 +1,19 @@
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
 import { getCardImageUrl } from '../supabase.js';
 
+const FACTION_COLORS = {
+  Human:  { border: '#2a4a7a', text: '#4a8abf' },
+  Beast:  { border: '#2a4a2a', text: '#4a8a4a' },
+  Elf:    { border: '#3a2a5a', text: '#8a4abf' },
+  Demon:  { border: '#4a1a1a', text: '#bf2a2a' },
+};
+
+const UNIT_TYPE_ABBR = { Human: 'H', Beast: 'B', Elf: 'E', Demon: 'D' };
+
+function getFactionColors(unitType) {
+  return FACTION_COLORS[unitType] || { border: '#2a2a3a', text: '#6a6a8a' };
+}
+
 export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, myPlayerIndex, onClick }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
@@ -8,16 +21,37 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const isOpponentHidden = unit.hidden && !isMyUnit;
   const isOwnHidden = unit.hidden && isMyUnit;
 
+  const factionColors = getFactionColors(unit.unitType);
+
   // Opponent's hidden unit: dark face-down token
   if (isOpponentHidden) {
     return (
       <div
-        className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer bg-gray-900 ring-1 ring-gray-600 select-none relative"
+        className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer select-none relative"
+        style={{
+          background: '#1a1a2e',
+          border: '1px solid #3a2a5a60',
+          borderRadius: '50%',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+        }}
         onClick={onClick}
         title="Hidden Unit"
       >
-        <div className="text-[9px] sm:text-xs font-bold leading-none text-gray-500">???</div>
-        <div className="text-[8px] text-gray-600 leading-none mt-0.5 font-semibold">Hidden</div>
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#6a3abf',
+          color: '#fff',
+          fontSize: '8px',
+          fontFamily: "'Cinzel', serif",
+          fontWeight: 600,
+          padding: '1px 5px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 2,
+        }}>Hidden</div>
         <div style={{
           position: 'absolute',
           bottom: '2px',
@@ -37,45 +71,47 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     );
   }
 
-  const border = isSelected
-    ? 'ring-2 ring-yellow-400'
-    : isSacrificeTarget
-    ? 'ring-2 ring-amber-500 animate-pulse'
-    : isSpellTarget
-    ? 'ring-2 ring-orange-400'
-    : isArcherTarget
-    ? 'ring-2 ring-pink-400'
-    : isOwnHidden
-    ? 'ring-2 ring-yellow-300'
-    : isLegendary
-    ? 'ring-2 ring-amber-400'
-    : isP1
-    ? 'ring-1 ring-blue-500'
-    : 'ring-1 ring-red-500';
-
   const auraBuffed = state && isAuraBuffed(state, unit);
   const auraDebuffed = state && isAuraDebuffed(state, unit);
 
-  const baseBg = isP1 ? 'bg-blue-900' : 'bg-red-900';
-  const auraTint = auraDebuffed ? ' bg-red-800/40' : auraBuffed ? ' bg-green-900/40' : '';
-  const bg = baseBg + auraTint;
-
-  const abbr = unit.name.split(' ').map(w => w[0]).join('').slice(0, 3);
-  // Only show image when unit is visible (not hidden to opponent)
+  const abbr = UNIT_TYPE_ABBR[unit.unitType] || unit.name[0];
   const imageUrl = !isOpponentHidden ? getCardImageUrl(unit.image) : null;
   const effectiveAtk = state ? getEffectiveAtk(state, unit) : unit.atk + (unit.atkBonus || 0);
   const effectiveHp = state ? getEffectiveHp(state, unit) : unit.hp;
   const effectiveMaxHp = state ? getEffectiveMaxHp(state, unit) : unit.maxHp;
   const effectiveSpd = getEffectiveSpd(unit);
   const packBonus = state ? getPackBonus(state, unit) : 0;
-  const hpColor = typeof effectiveHp === 'number' && effectiveHp <= effectiveMaxHp / 2 ? 'text-red-400' : 'text-gray-300';
+
+  // Ring style based on selection state
+  let ringStyle = {};
+  if (isSelected) {
+    ringStyle = { outline: '2px solid #C9A84C', boxShadow: '0 0 8px #C9A84C60' };
+  } else if (isSacrificeTarget) {
+    ringStyle = { outline: '2px solid #d97706' };
+  } else if (isSpellTarget) {
+    ringStyle = { outline: '2px solid #f97316' };
+  } else if (isArcherTarget) {
+    ringStyle = { outline: '2px solid #ec4899' };
+  } else if (isLegendary) {
+    ringStyle = { outline: '2px solid #C9A84C80' };
+  } else if (isOwnHidden) {
+    ringStyle = { outline: '2px solid #a855f7', boxShadow: '0 0 6px rgba(168,85,247,0.4)' };
+  }
 
   return (
     <div
-      className={`w-full h-full flex flex-col items-center justify-center rounded cursor-pointer ${bg} ${border} select-none relative${isOwnHidden ? ' shadow-[0_0_6px_2px_rgba(253,224,71,0.4)]' : ''}`}
+      className="w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative"
+      style={{
+        background: '#1a1a2e',
+        border: `1px solid ${factionColors.border}4d`,
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+        overflow: 'hidden',
+        ...ringStyle,
+      }}
       onClick={onClick}
       title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
+      {/* Card art fills token */}
       {imageUrl && (
         <img
           src={imageUrl}
@@ -93,64 +129,116 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           }}
         />
       )}
-      {isLegendary && (
-        <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" style={{ zIndex: 2 }} title="Legendary">♛</span>
+
+      {/* Fallback letter when no art */}
+      {!imageUrl && (
+        <span style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '14px',
+          fontWeight: 600,
+          color: `${factionColors.text}99`,
+          position: 'absolute',
+          zIndex: 1,
+        }}>{abbr}</span>
       )}
-      {isOwnHidden && (
-        <span className="absolute top-0 left-0 text-[8px] leading-none text-yellow-300" style={{ zIndex: 2 }} title="Hidden">H</span>
-      )}
-      {/* Summoning sickness and moved badges — absolutely positioned so they're visible above card art */}
+
+      {/* Status badges top center */}
       <div style={{ position: 'absolute', top: 1, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', gap: 2 }}>
-        {unit.summoned && <Badge label="S" color="yellow" title="Summoning sickness" />}
-        {unit.moved && <Badge label="M" color="gray" title="Already moved" />}
+        {unit.summoned && <SmallPill label="S" bg="#78716c" color="#e7e5e4" title="Summoning sickness" />}
+        {unit.moved && <SmallPill label="✓" bg="#374151" color="#9ca3af" title="Already moved" />}
       </div>
-      <div className="text-[8px] sm:text-xs font-bold leading-none">{abbr}</div>
-      <div className="text-[7px] sm:text-[9px] text-gray-300 leading-none">ATK {effectiveAtk}</div>
-      <div className={`text-[7px] sm:text-[9px] leading-none ${hpColor}`}>HP {effectiveHp}</div>
-      <div className="flex gap-0.5 mt-0.5">
-        {(unit.atkBonus || 0) > 0 && <Badge label={`+${unit.atkBonus}A`} color="green" title="ATK bonus" />}
-        {auraBuffed && <Badge label="Aura" color="teal" title="Receiving aura bonus" />}
-        {auraDebuffed && <Badge label="Debuff" color="red" title="Enemy aura debuff" />}
-        {(unit.speedBonus || 0) > 0 && <Badge label={`+${unit.speedBonus}S`} color="purple" title="Speed bonus" />}
-        {packBonus > 0 && <Badge label={`Pack+${packBonus}`} color="amber" title={`Pack Runt bonus: +${packBonus}/+${packBonus}`} />}
-        {unit.id === 'pip' && <Badge label="↑" color="amber" title="Growing each turn" />}
+
+      {/* Hidden badge (own hidden unit) — top center above status */}
+      {isOwnHidden && (
+        <div style={{
+          position: 'absolute',
+          top: '1px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#6a3abf',
+          color: '#fff',
+          fontSize: '7px',
+          fontFamily: "'Cinzel', serif",
+          fontWeight: 600,
+          padding: '1px 4px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 3,
+        }}>H</div>
+      )}
+
+      {/* Aura/bonus badges */}
+      <div className="flex gap-0.5 mt-0.5" style={{ position: 'absolute', zIndex: 2, bottom: '14px' }}>
+        {(unit.atkBonus || 0) > 0 && <SmallPill label={`+${unit.atkBonus}A`} bg="#166534" color="#86efac" title="ATK bonus" />}
+        {auraBuffed && <SmallPill label="Aura" bg="#134e4a" color="#5eead4" title="Receiving aura bonus" />}
+        {auraDebuffed && <SmallPill label="Debuff" bg="#7f1d1d" color="#fca5a5" title="Enemy aura debuff" />}
+        {(unit.speedBonus || 0) > 0 && <SmallPill label={`+${unit.speedBonus}S`} bg="#4c1d95" color="#c4b5fd" title="Speed bonus" />}
+        {packBonus > 0 && <SmallPill label={`Pack+${packBonus}`} bg="#78350f" color="#fcd34d" title={`Pack Runt bonus: +${packBonus}/+${packBonus}`} />}
+        {unit.id === 'pip' && <SmallPill label="↑" bg="#78350f" color="#fcd34d" title="Growing each turn" />}
       </div>
-      {/* Stat bar — always visible at bottom, above card art */}
+
+      {/* ATK badge bottom left */}
       <div style={{
         position: 'absolute',
         bottom: '2px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(0, 0, 0, 0.75)',
-        color: '#fff',
-        fontSize: '10px',
-        fontWeight: 500,
-        padding: '1px 6px',
+        left: '2px',
+        background: 'rgba(0,0,0,0.8)',
+        color: factionColors.text,
+        fontSize: '9px',
+        fontFamily: "'Cinzel', serif",
+        fontWeight: 600,
+        padding: '1px 4px',
         borderRadius: '99px',
-        whiteSpace: 'nowrap',
         zIndex: 2,
-        lineHeight: 1.4,
-      }}>
-        {effectiveAtk}/{effectiveHp}{unit.shield > 0 ? ` 🛡${unit.shield}` : ''}
-      </div>
+        lineHeight: 1.3,
+      }}>{effectiveAtk}</div>
+
+      {/* HP badge bottom right */}
+      <div style={{
+        position: 'absolute',
+        bottom: '2px',
+        right: '2px',
+        background: 'rgba(0,0,0,0.8)',
+        color: typeof effectiveHp === 'number' && effectiveHp <= effectiveMaxHp / 2 ? '#fca5a5' : '#fff',
+        fontSize: '9px',
+        fontFamily: "'Cinzel', serif",
+        fontWeight: 600,
+        padding: '1px 4px',
+        borderRadius: '99px',
+        zIndex: 2,
+        lineHeight: 1.3,
+      }}>{effectiveHp}</div>
+
+      {/* Shield overlay */}
+      {unit.shield > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%,-50%)',
+          color: '#67e8f9',
+          fontSize: '9px',
+          zIndex: 2,
+        }}>🛡{unit.shield}</div>
+      )}
     </div>
   );
 }
 
-function Badge({ label, color, title }) {
-  const colors = {
-    yellow: 'bg-yellow-600 text-yellow-100',
-    gray: 'bg-gray-600 text-gray-200',
-    cyan: 'bg-cyan-700 text-cyan-100',
-    green: 'bg-green-700 text-green-100',
-    purple: 'bg-purple-700 text-purple-100',
-    amber: 'bg-amber-600 text-amber-100',
-    teal: 'bg-teal-700 text-teal-100',
-    red: 'bg-red-700 text-red-100',
-  };
+function SmallPill({ label, bg, color, title }) {
   return (
-    <span className={`text-[8px] px-0.5 rounded leading-none ${colors[color]}`} title={title}>
-      {label}
-    </span>
+    <span
+      style={{
+        background: bg,
+        color: color,
+        fontSize: '7px',
+        padding: '1px 3px',
+        borderRadius: '99px',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        fontWeight: 600,
+      }}
+      title={title}
+    >{label}</span>
   );
 }

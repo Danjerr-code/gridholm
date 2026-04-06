@@ -10,9 +10,23 @@ export default function PhaseTracker({ phase, phaseChangeId }) {
   return (
     <div
       className="flex flex-col justify-center gap-1 flex-shrink-0"
-      style={{ width: 140 }}
+      style={{
+        width: 140,
+        background: '#0a0a14',
+        borderRight: '1px solid #C9A84C30',
+        borderRadius: '6px',
+        padding: '8px 4px',
+      }}
     >
-      <div className="text-xs text-gray-500 px-1 mb-1 font-semibold tracking-wider uppercase">
+      <div style={{
+        fontSize: '10px',
+        color: '#3a3a5a',
+        padding: '0 8px',
+        marginBottom: '4px',
+        fontFamily: "'Cinzel', serif",
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+      }}>
         Phase
       </div>
       {PHASES.map(({ key, label, auto }, idx) => {
@@ -20,28 +34,52 @@ export default function PhaseTracker({ phase, phaseChangeId }) {
         return (
           <div
             key={isActive ? `${key}-${phaseChangeId}` : key}
-            className={
-              isActive
-                ? `flex items-center gap-1.5 px-2 py-1.5 rounded-md ${auto ? 'phase-tracker-flash' : ''}`
-                : 'flex items-center gap-1.5 px-2 py-1.5 rounded-md'
-            }
+            className={isActive && auto ? 'phase-tracker-flash' : ''}
             style={
               isActive
-                ? { backgroundColor: 'rgba(217, 119, 6, 0.25)', border: '1px solid rgba(245, 158, 11, 0.6)' }
-                : { border: '1px solid transparent' }
+                ? {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: '#C9A84C',
+                    boxShadow: '0 0 8px #C9A84C40',
+                  }
+                : {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                  }
             }
           >
             <span
-              className={`text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full flex-shrink-0 ${
-                isActive ? 'bg-amber-500 text-black' : 'bg-gray-700 text-gray-500'
-              }`}
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                width: '16px',
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                flexShrink: 0,
+                background: isActive ? '#0a0a0f' : '#1a1a2e',
+                color: isActive ? '#C9A84C' : '#2a2a4a',
+              }}
             >
               {idx + 1}
             </span>
             <span
-              className={`text-xs leading-tight ${
-                isActive ? 'text-amber-300 font-semibold' : 'text-gray-600'
-              }`}
+              style={{
+                fontSize: '11px',
+                fontFamily: "'Cinzel', serif",
+                lineHeight: 1.2,
+                color: isActive ? '#0a0a0f' : '#2a2a3a',
+                fontWeight: isActive ? 600 : 400,
+              }}
             >
               {label}
             </span>

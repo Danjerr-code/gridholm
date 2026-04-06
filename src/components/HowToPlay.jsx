@@ -34,7 +34,7 @@ export default function HowToPlay() {
         >
           ← Back to Gridholm
         </button>
-        <span style={{ color: '#C9A84C', fontWeight: 700, fontSize: '15px', letterSpacing: '0.1em' }}>
+        <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
           HOW TO PLAY
         </span>
       </div>
@@ -173,7 +173,8 @@ export default function HowToPlay() {
 }
 
 const bodyStyle = {
-  fontSize: 14,
+  fontFamily: "'Crimson Text', serif",
+  fontSize: 16,
   color: '#9ca3af',
   lineHeight: 1.7,
   margin: '0 0 12px 0',
@@ -183,11 +184,12 @@ function Section({ title, children }) {
   return (
     <section style={{ marginBottom: 8 }}>
       <h2 style={{
+        fontFamily: "'Cinzel', serif",
         fontSize: 18,
         fontWeight: 500,
         color: '#C9A84C',
         margin: '0 0 16px 0',
-        letterSpacing: '0.02em',
+        letterSpacing: '0.04em',
       }}>
         {title}
       </h2>
@@ -533,8 +535,8 @@ function FactionCards() {
           borderRadius: 8,
           padding: '14px 16px',
         }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: f.color, marginBottom: 4 }}>{f.name}</div>
-          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 10, fontStyle: 'italic' }}>"{f.identity}"</div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 15, fontWeight: 600, color: f.color, marginBottom: 4 }}>{f.name}</div>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontSize: 13, color: '#9ca3af', marginBottom: 10, fontStyle: 'italic' }}>"{f.identity}"</div>
           <div style={{
             display: 'inline-block',
             background: `${f.color}18`,
