@@ -43,7 +43,7 @@ export default function Lobby({ onNavigate }) {
       player1_id: guestId,
       game_state: placeholderState,
       active_player: guestId,
-      status: 'deck_select',
+      status: 'waiting',
       player1_deck: null,
       player2_deck: null,
     });

@@ -62,12 +62,13 @@ export function useMultiplayerGame(gameId) {
         return;
       }
 
-      // Join as player 2 if slot is open (deck_select or waiting status)
+      // Join as player 2 if slot is open (waiting status)
       if ((sessionData.status === 'deck_select' || sessionData.status === 'waiting') && !sessionData.player2_id) {
         const { data: joined, error: joinError } = await supabase
           .from('game_sessions')
           .update({
             player2_id: guestId,
+            status: 'deck_select',
             updated_at: new Date().toISOString(),
           })
           .eq('id', gameId)
@@ -195,6 +196,14 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId);
   }, [session, gameId]);
 
+  const cancelWaiting = useCallback(async () => {
+    if (!session || !supabase) return;
+    await supabase
+      .from('game_sessions')
+      .delete()
+      .eq('id', gameId);
+  }, [session, gameId]);
+
   const playAgain = useCallback(async () => {
     if (!session || !supabase) return;
     const p1DeckId = session.player1_deck || 'human';
@@ -247,6 +256,7 @@ export function useMultiplayerGame(gameId) {
     guestId,
     opponentDisconnected,
     abandonGame,
+    cancelWaiting,
     playAgain,
     selectDeck,
     inDeckSelect,

@@ -2,13 +2,14 @@ import { FACTION_INFO } from '../engine/cards.js';
 
 const FACTIONS = Object.values(FACTION_INFO);
 
-export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null }) {
+export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false }) {
   if (waitingForOpponent) {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <h1 className="text-2xl font-bold text-amber-400 mb-4">GRIDHOLM</h1>
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
+            <PlayerStatusRow youSelected={true} opponentSelected={opponentSelected} />
             <div
               className="text-lg font-bold"
               style={{ color: FACTION_INFO[selectedDeck]?.color || '#fff' }}
@@ -32,6 +33,10 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
         <p className="text-gray-400 text-sm">Choose your faction</p>
       </div>
 
+      {opponentSelected !== null && (
+        <PlayerStatusRow youSelected={false} opponentSelected={opponentSelected} />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
         {FACTIONS.map(faction => (
           <FactionCard
@@ -40,6 +45,19 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
             onSelect={() => onSelect(faction.id)}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PlayerStatusRow({ youSelected, opponentSelected }) {
+  return (
+    <div className="flex gap-3 justify-center text-xs">
+      <div className={`flex items-center gap-1 px-2 py-1 rounded-full border ${youSelected ? 'border-green-500 text-green-400' : 'border-gray-600 text-gray-400'}`}>
+        {youSelected ? '✓' : '…'} You
+      </div>
+      <div className={`flex items-center gap-1 px-2 py-1 rounded-full border ${opponentSelected ? 'border-green-500 text-green-400' : 'border-gray-600 text-gray-400'}`}>
+        {opponentSelected ? '✓' : '…'} Opponent
       </div>
     </div>
   );

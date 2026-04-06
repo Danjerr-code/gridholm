@@ -57,6 +57,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     inDeckSelect,
     myDeck,
     opponentDeck,
+    cancelWaiting,
   } = useMultiplayerGame(gameId);
 
   // Local UI selection state
@@ -336,6 +337,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         <DeckSelect
           onSelect={selectDeck}
           waitingForOpponent={false}
+          opponentSelected={!!opponentDeck}
         />
       );
     }
@@ -345,6 +347,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         onSelect={selectDeck}
         waitingForOpponent={true}
         selectedDeck={myDeck}
+        opponentSelected={!!opponentDeck}
       />
     );
   }
@@ -377,7 +380,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           </div>
           <button
             className="text-xs text-gray-500 hover:text-gray-300 underline"
-            onClick={onBackToLobby}
+            onClick={async () => { await cancelWaiting(); onBackToLobby(); }}
           >
             Cancel
           </button>
