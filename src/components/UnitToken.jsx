@@ -32,7 +32,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           background: '#1a1a2e',
           border: '1px solid #3a2a5a60',
           borderRadius: '50%',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)',
         }}
         onClick={onClick}
         title="Hidden Unit"
@@ -83,10 +83,14 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const effectiveSpd = getEffectiveSpd(unit);
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
+  const teamRingShadow = isMyUnit
+    ? '0 0 0 2px #3b82f6, 0 0 10px rgba(59,130,246,0.55)'
+    : '0 0 0 2px #ef4444, 0 0 10px rgba(239,68,68,0.55)';
+
   // Ring style based on selection state
   let ringStyle = {};
   if (isSelected) {
-    ringStyle = { outline: '2px solid #C9A84C', boxShadow: '0 0 8px #C9A84C60' };
+    ringStyle = { outline: '2px solid #C9A84C', boxShadow: `0 0 8px #C9A84C60, ${teamRingShadow}` };
   } else if (isSacrificeTarget) {
     ringStyle = { outline: '2px solid #d97706' };
   } else if (isSpellTarget) {
@@ -96,7 +100,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   } else if (isLegendary) {
     ringStyle = { outline: '2px solid #C9A84C80' };
   } else if (isOwnHidden) {
-    ringStyle = { outline: '2px solid #a855f7', boxShadow: '0 0 6px rgba(168,85,247,0.4)' };
+    ringStyle = { outline: '2px solid #a855f7', boxShadow: `0 0 6px rgba(168,85,247,0.4), ${teamRingShadow}` };
   }
 
   return (
@@ -105,7 +109,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       style={{
         background: '#1a1a2e',
         border: `1px solid ${factionColors.border}4d`,
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+        boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
         overflow: 'hidden',
         ...ringStyle,
       }}

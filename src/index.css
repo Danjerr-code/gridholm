@@ -62,3 +62,11 @@ button, input, .card-name, .card-stats, .card-rules,
 .unit-token, .card-detail, .faction-name, .keyword-bubble {
   font-family: var(--font-sans);
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

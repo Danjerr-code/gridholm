@@ -1008,19 +1008,61 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
 }
 
 function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
+  const scrollRef = useRef(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 2);
+    setCanScrollDown(el.scrollTop < el.scrollHeight - el.clientHeight - 2);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(checkScroll, 0);
+    return () => clearTimeout(t);
+  }, [inspectedItem, checkScroll]);
+
+  const arrowStyle = {
+    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+    background: 'rgba(17,24,39,0.85)', color: '#6b7280', border: 'none',
+    cursor: 'pointer', fontSize: '9px', lineHeight: 1, padding: '2px 8px',
+    zIndex: 10,
+  };
+
   return (
     <div
       className="bg-gray-900 border border-gray-700 rounded-lg p-2 flex flex-col"
       style={{ flex: 1, minHeight: 0 }}
     >
       <div className="text-xs text-gray-400 mb-1.5 font-semibold">Card Detail</div>
-      <div className="flex-1 overflow-y-auto">
-        {inspectedItem ? (
-          <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
-        ) : (
-          <div className="text-gray-600 text-[10px] italic leading-snug">
-            Click a card or unit to inspect
-          </div>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        {canScrollUp && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ top: -60, behavior: 'smooth' })}
+            style={{ ...arrowStyle, top: 0, borderRadius: '0 0 4px 4px' }}
+          >▲</button>
+        )}
+        <div
+          ref={scrollRef}
+          className="no-scrollbar"
+          style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}
+          onScroll={checkScroll}
+        >
+          {inspectedItem ? (
+            <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
+          ) : (
+            <div className="text-gray-600 text-[10px] italic leading-snug">
+              Click a card or unit to inspect
+            </div>
+          )}
+        </div>
+        {canScrollDown && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ top: 60, behavior: 'smooth' })}
+            style={{ ...arrowStyle, bottom: 0, borderRadius: '4px 4px 0 0' }}
+          >▼</button>
         )}
       </div>
     </div>
