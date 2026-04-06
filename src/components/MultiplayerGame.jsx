@@ -604,17 +604,15 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </div>
       )}
 
-      {/* Turn lock banner */}
-      {!isActiveTurn && !winner && (
-        <div className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-center text-gray-400 flex-shrink-0">
-          Waiting for opponent…
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex items-center justify-between px-1">
-        <h1 className="text-lg font-bold text-amber-400 tracking-wide">GRIDHOLM</h1>
-        <div className="flex gap-2 items-center">
+      <div className="flex items-center px-1 flex-shrink-0">
+        <h1 className="text-lg font-bold text-amber-400 tracking-wide flex-shrink-0">GRIDHOLM</h1>
+        <div className="flex-1 text-center">
+          {!isActiveTurn && !winner && (
+            <span className="text-xs text-gray-400">Waiting for opponent…</span>
+          )}
+        </div>
+        <div className="flex gap-2 items-center flex-shrink-0">
           <span className="text-xs text-gray-500 hidden sm:inline">#{gameId}</span>
           <button
             className="text-xs text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 px-2 py-1 rounded"
@@ -623,11 +621,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             Lobby
           </button>
         </div>
-      </div>
-
-      {/* Player identity indicator */}
-      <div className={`text-xs font-semibold px-2 py-0.5 rounded text-center flex-shrink-0 ${myPlayerIndex === 0 ? 'text-blue-300 bg-blue-950/60 border border-blue-800' : 'text-red-300 bg-red-950/60 border border-red-800'}`}>
-        You are {myPlayerIndex === 0 ? 'Player 1' : 'Player 2'}
       </div>
 
       {/* Status Bar */}
@@ -739,9 +732,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       {/* Opponent hand (face down) */}
       {/* NEVER RENDER OPPONENT RESOURCES - game design decision */}
       <div className="bg-gray-800/50 border border-gray-700 rounded-lg flex-shrink-0">
-        <div className="text-xs text-red-400 px-2 pt-1 font-semibold">
-          {oppPlayer.name}
-        </div>
         <Hand
           player={oppPlayer}
           resources={oppPlayer.resources}
@@ -757,13 +747,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
       {/* My hand (face up) */}
       <div className={`bg-gray-800/50 border rounded-lg flex-shrink-0 ${pendingDiscard && isActiveTurn ? 'border-yellow-500' : 'border-gray-700'}`}>
-        <div className="text-xs text-blue-400 px-2 pt-1 font-semibold">
-          {myPlayer.name} (you)
-          <span className="hidden sm:inline">
-            {phase === 'action' && isActiveTurn ? '  (click cards to play)' : ''}
-            {pendingDiscard && isActiveTurn ? '  — click a card to discard' : ''}
-          </span>
-        </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
           {/* Resource panel */}
           <div style={{
