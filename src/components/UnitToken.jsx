@@ -178,42 +178,28 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.id === 'pip' && <SmallPill label="↑" bg="#78350f" color="#fcd34d" title="Growing each turn" />}
       </div>
 
-      {/* ATK badge bottom left */}
+      {/* ATK/HP pill centered bottom */}
       <div style={{
         position: 'absolute',
         bottom: '2px',
-        left: '2px',
-        background: '#3a1010',
-        color: '#e05050',
-        fontSize: '9px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0, 0, 0, 0.80)',
+        color: '#fff',
+        fontSize: '10px',
         fontFamily: 'var(--font-sans)',
         fontWeight: 700,
-        padding: '1px 4px',
+        padding: '1px 6px',
         borderRadius: '99px',
         zIndex: 2,
-        lineHeight: 1.3,
-      }}>⚔{effectiveAtk}</div>
-
-      {/* HP badge bottom right */}
-      <div style={{
-        position: 'absolute',
-        bottom: '2px',
-        right: '2px',
-        background: '#101a10',
-        color: '#50c050',
-        fontSize: '9px',
-        fontFamily: 'var(--font-sans)',
-        fontWeight: 700,
-        padding: '1px 4px',
-        borderRadius: '99px',
-        zIndex: 2,
-        lineHeight: 1.3,
+        lineHeight: 1.4,
+        whiteSpace: 'nowrap',
         display: 'flex',
         alignItems: 'center',
         gap: '1px',
       }}>
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
-        ♥{effectiveHp}
+        {effectiveAtk}/{effectiveHp}
       </div>
     </div>
   );
