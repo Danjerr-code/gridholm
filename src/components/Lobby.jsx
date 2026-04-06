@@ -27,6 +27,22 @@ const btnPrimary = {
   cursor: 'pointer',
 };
 
+const btnSilver = {
+  background: 'linear-gradient(135deg, #8A8A8A, #C0C0C0)',
+  color: '#0a0a0f',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '13px',
+  fontWeight: 600,
+  border: 'none',
+  borderRadius: '4px',
+  boxShadow: '0 2px 8px #C0C0C040',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  padding: '12px 24px',
+  width: '100%',
+  cursor: 'pointer',
+};
+
 const btnSecondary = {
   background: 'transparent',
   color: '#C9A84C',
@@ -145,7 +161,7 @@ export default function Lobby({ onNavigate }) {
           </button>
 
           <button
-            style={{ ...btnPrimary, opacity: creating ? 0.6 : 1 }}
+            style={{ ...btnSilver, opacity: creating ? 0.6 : 1 }}
             onClick={handleCreateGame}
             disabled={creating}
           >
