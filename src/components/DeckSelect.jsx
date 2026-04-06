@@ -2,6 +2,13 @@ import { FACTION_INFO } from '../engine/cards.js';
 
 const FACTIONS = Object.values(FACTION_INFO);
 
+const FACTION_GRADIENTS = {
+  human: 'linear-gradient(135deg, #74aef9, #3B82F6, #1a4b99)',
+  beast: 'linear-gradient(135deg, #5edb8a, #22C55E, #0f6b30)',
+  elf:   'linear-gradient(135deg, #c988fb, #A855F7, #6b1fa8)',
+  demon: 'linear-gradient(135deg, #f47a7a, #EF4444, #8b1a1a)',
+};
+
 export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false, isRematch = false }) {
   if (waitingForOpponent) {
     return (
@@ -192,8 +199,9 @@ function FactionCard({ faction, onSelect }) {
           fontSize: '12px',
           fontWeight: 600,
           color: '#0a0a0f',
-          background: faction.color,
+          background: FACTION_GRADIENTS[faction.id] || faction.color,
           border: 'none',
+          boxShadow: `0 2px 8px ${faction.color}60`,
           cursor: 'pointer',
           letterSpacing: '0.04em',
         }}
