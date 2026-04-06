@@ -1,3 +1,9 @@
+// CARD POOL RULES:
+// Each card has a unique ID. There are no faction-specific variants of the same card.
+// Decks are compositions of cards drawn from the shared card pool.
+// A card like Smite can appear in any deck. Its ID is always 'smite'.
+// When building the deck builder UI show the full card pool and let players filter by faction affinity.
+
 // ── Card Database ──────────────────────────────────────────────────────────
 
 export const CARD_DB = {
@@ -49,8 +55,6 @@ export const CARD_DB = {
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
 
   // Beast spells
-  beastsmite:      { id: 'beastsmite',      name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Beast', rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: null },
-  beastironshield: { id: 'beastironshield', name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: 'Beast', rules: 'Give a friendly unit a shield absorbing up to 5 damage from the next attack.', image: null },
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly Beast unit battles an adjacent enemy unit.', image: 'ambush.webp' },
   packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 2, effect: 'packhowl',        unitType: 'Beast', rules: 'All friendly Beast units gain +1 SPD this turn.', image: 'packhowl.webp' },
   pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', rules: 'Move a friendly Beast unit up to 2 tiles ignoring summoning sickness.', image: 'pounce.webp' },
@@ -73,7 +77,6 @@ export const CARD_DB = {
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion permanently gains +2 max HP.', legendary: true, image: 'sistersiofra.webp' },
 
   // Elf spells
-  elfsmite:        { id: 'elfsmite',        name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Elf',   rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: null },
   moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: 'Elf',   rules: 'Increase the current and max HP of a friendly combat unit by the number of cards in your hand.', image: 'moonleaf.webp' },
   overgrowth:      { id: 'overgrowth',      name: 'Overgrowth',          type: 'spell', cost: 4, effect: 'overgrowth',      unitType: 'Elf',   rules: 'Restore 2 HP to all friendly units.', image: 'overgrowth.webp' },
   bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   rules: 'Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP restored this turn.', image: 'bloom.webp' },
@@ -95,8 +98,6 @@ export const CARD_DB = {
   zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn deal 1 damage to all units.', legendary: true, image: 'zmore.webp' },
 
   // Demon spells
-  demonsmite:      { id: 'demonsmite',      name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Demon', rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: null },
-  demonironshield: { id: 'demonironshield', name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: 'Demon', rules: 'Give a friendly unit a shield absorbing up to 5 damage from the next attack.', image: null },
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: 'Demon', rules: 'Discard a card. Deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
   darksentence:    { id: 'darksentence',    name: 'Dark Sentence',       type: 'spell', cost: 5, effect: 'darksentence',    unitType: 'Demon', rules: 'Destroy an enemy combat unit.', image: 'darksentence.webp' },
@@ -147,8 +148,8 @@ const BEAST_DECK = [
   'plaguehog',
   'sabretooth', 'sabretooth',
   'razorfang',
-  'beastsmite', 'beastsmite',
-  'beastironshield',
+  'smite', 'smite',
+  'ironshield',
   'ambush', 'ambush',
   'packhowl',
   'pounce',
@@ -170,7 +171,7 @@ const ELF_DECK = [
   'moonveilmystic', 'moonveilmystic',
   'elfarcher', 'elfarcher',
   'sistersiofra',
-  'elfsmite', 'elfsmite',
+  'smite', 'smite',
   'moonleaf', 'moonleaf',
   'overgrowth', 'overgrowth',
   'bloom', 'bloom',
@@ -191,8 +192,8 @@ const DEMON_DECK = [
   'fleshtithe',
   'dreadshade', 'dreadshade',
   'zmore',
-  'demonsmite', 'demonsmite',
-  'demonironshield',
+  'smite', 'smite',
+  'ironshield',
   'bloodoffering',
   'pactofruin',
   'darksentence',
