@@ -540,7 +540,7 @@ export function playCard(state, cardUid) {
     // No-target spells: execute via registry directly
     const NO_TARGET_SPELLS = new Set([
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
-      'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
+      'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= card.cost;
@@ -612,8 +612,15 @@ export function summonUnit(state, cardUid, row, col) {
     addLog(s, `Sergeant buff applied: ${unit.name} gains +1/+1.`);
   }
 
+  // Apply Shadow Veil pending flag
+  if (s.pendingShadowVeil && s.pendingShadowVeil[s.activePlayer]) {
+    unit.hidden = true;
+    unit.shadowVeiled = true;
+    s.pendingShadowVeil[s.activePlayer] = false;
+  }
+
   s.units.push(unit);
-  addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
+  addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}${unit.shadowVeiled ? ' (Hidden)' : ''}`);
 
   // ON SUMMON TRIGGERS
   fireOnSummonTriggers(unit, s);
@@ -813,10 +820,6 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   // ── Devour ──
   else if (effect === 'devour') {
     if (target) s = _dispatchSpell(s, s.activePlayer, 'devour', [target]);
-  }
-  // ── Shadow Veil ──
-  else if (effect === 'shadowveil') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'shadowveil', [target]);
   }
   // ── Soul Drain ──
   else if (effect === 'souldrain') {
@@ -1146,6 +1149,7 @@ function completeTurnAdvance(state) {
   s.archerShot = [];
   s.recalledThisTurn = [];
   s.players[s.activePlayer].sergeantBuff = false;
+  if (s.pendingShadowVeil) s.pendingShadowVeil[s.activePlayer] = false;
 
   champ.moved = false;
 
@@ -1199,10 +1203,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
-    // Forge Weapon, Iron Shield, Shadow Veil, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden for most)
+    // Forge Weapon, Iron Shield, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden for most)
     case 'forgeweapon':
     case 'ironshield':
-    case 'shadowveil':
     case 'savagegrowth':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
     case 'recall':

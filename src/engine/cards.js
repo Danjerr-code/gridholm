@@ -103,7 +103,7 @@ export const CARD_DB = {
   darksentence:    { id: 'darksentence',    name: 'Dark Sentence',       type: 'spell', cost: 5, effect: 'darksentence',    unitType: 'Demon', rules: 'Destroy an enemy combat unit.', image: 'darksentence.webp' },
   devour:          { id: 'devour',          name: 'Devour',              type: 'spell', cost: 3, effect: 'devour',          unitType: 'Demon', rules: 'Destroy an enemy combat unit with 2 or less HP.', image: 'devour.webp' },
   infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: 'Demon', rules: 'Deal 3 damage to your champion. All friendly Demon units gain +2 ATK this turn.', image: 'infernalpact.webp' },
-  shadowveil:      { id: 'shadowveil',      name: 'Shadow Veil',         type: 'spell', cost: 2, effect: 'shadowveil',      unitType: 'Demon', rules: 'Give a friendly unit Hidden until it moves or attacks.', image: 'shadowveil.webp' },
+  shadowveil:      { id: 'shadowveil',      name: 'Shadow Veil',         type: 'spell', cost: 2, effect: 'shadowveil',      unitType: 'Demon', rules: 'The next combat unit you play this turn is summoned with Hidden.', image: 'shadowveil.webp' },
   souldrain:       { id: 'souldrain',       name: 'Soul Drain',          type: 'spell', cost: 3, effect: 'souldrain',       unitType: 'Demon', rules: 'Deal 2 damage to an enemy combat unit. Restore HP to your champion equal to the damage dealt.', image: 'souldrain.webp' },
 };
 

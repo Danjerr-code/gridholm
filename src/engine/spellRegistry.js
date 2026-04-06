@@ -304,12 +304,10 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
-  shadowveil: (state, caster, targets) => {
-    const target = targets[0];
-    if (!target) return state;
-    target.hidden = true;
-    target.shadowVeiled = true;
-    addLog(state, `Shadow Veil: ${target.name} becomes Hidden.`);
+  shadowveil: (state, caster) => {
+    if (!state.pendingShadowVeil) state.pendingShadowVeil = {};
+    state.pendingShadowVeil[caster] = true;
+    addLog(state, `Shadow Veil: next combat unit summoned by ${state.players[caster].name} will be Hidden.`);
     return state;
   },
 
