@@ -1116,36 +1116,49 @@ function getActiveKeywords(source) {
 }
 
 function KeywordBubbles({ keywords }) {
+  const [openKey, setOpenKey] = useState(null);
   if (!keywords || keywords.length === 0) return null;
+  const activeKw = keywords.find(kw => kw.key === openKey);
   return (
     <div style={{ marginTop: '6px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
-        {keywords.map(kw => (
-          <div
-            key={kw.key}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: `${kw.color}26`,
-              border: `0.5px solid ${kw.color}`,
-              borderRadius: '99px',
-              padding: '4px 10px',
-              marginRight: '6px',
-              marginBottom: '6px',
-              cursor: 'default',
-            }}
-          >
-            <span style={{ fontSize: '11px', fontWeight: 500, color: kw.color, fontFamily: 'var(--font-sans)' }}>
-              {kw.label}
-            </span>
-          </div>
-        ))}
+        {keywords.map(kw => {
+          const isOpen = openKey === kw.key;
+          return (
+            <div
+              key={kw.key}
+              onClick={() => setOpenKey(isOpen ? null : kw.key)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isOpen ? `${kw.color}40` : `${kw.color}26`,
+                border: `0.5px solid ${kw.color}`,
+                borderRadius: '99px',
+                padding: '4px 10px',
+                marginRight: '6px',
+                marginBottom: '6px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <span style={{ fontSize: '11px', fontWeight: 500, color: kw.color, fontFamily: 'var(--font-sans)' }}>
+                {kw.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {keywords.map(kw => (
+      <div
+        style={{
+          overflow: 'hidden',
+          maxHeight: activeKw ? '120px' : '0',
+          opacity: activeKw ? 1 : 0,
+          transition: 'max-height 0.2s ease, opacity 0.2s ease',
+        }}
+      >
+        {activeKw && (
           <div
-            key={kw.key}
             style={{
               fontSize: '12px',
               color: '#9090b8',
@@ -1153,14 +1166,14 @@ function KeywordBubbles({ keywords }) {
               padding: '6px 8px',
               background: '#1a1a2e',
               borderRadius: '4px',
-              borderLeft: `2px solid ${kw.color}`,
+              borderLeft: `2px solid ${activeKw.color}`,
               fontFamily: 'var(--font-sans)',
             }}
           >
-            <span style={{ fontWeight: 500, color: kw.color }}>{kw.label}: </span>
-            {kw.reminder}
+            <span style={{ fontWeight: 500, color: activeKw.color }}>{activeKw.label}: </span>
+            {activeKw.reminder}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
