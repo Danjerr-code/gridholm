@@ -202,6 +202,25 @@ export function useMultiplayerGame(gameId) {
     if (updated) setSession(updated);
   }, [session, gameId]);
 
+  const concedeGame = useCallback(async () => {
+    if (!session || !supabase) return;
+    const firstPlayerId = session.game_state?.firstPlayerId ?? session.player1_id;
+    const isSwapped = firstPlayerId === session.player2_id;
+    const myIndex = session.player1_id === getGuestId()
+      ? (isSwapped ? 1 : 0)
+      : session.player2_id === getGuestId()
+      ? (isSwapped ? 0 : 1)
+      : null;
+    if (myIndex === null) return;
+    const opponentId = myIndex === 0
+      ? (isSwapped ? session.player1_id : session.player2_id)
+      : (isSwapped ? session.player2_id : session.player1_id);
+    await supabase
+      .from('game_sessions')
+      .update({ status: 'complete', winner: opponentId, updated_at: new Date().toISOString() })
+      .eq('id', gameId);
+  }, [session, gameId]);
+
   const abandonGame = useCallback(async () => {
     if (!session || !supabase) return;
     await supabase
@@ -276,6 +295,7 @@ export function useMultiplayerGame(gameId) {
     dispatchAction,
     guestId,
     opponentDisconnected,
+    concedeGame,
     abandonGame,
     cancelWaiting,
     playAgain,

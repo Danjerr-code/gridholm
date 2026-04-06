@@ -52,6 +52,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     dispatchAction,
     guestId,
     opponentDisconnected,
+    concedeGame,
     abandonGame,
     playAgain,
     selectDeck,
@@ -72,6 +73,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
   const [playAgainLoading, setPlayAgainLoading] = useState(false);
   const [isRematch, setIsRematch] = useState(false);
+  const [showConcedeConfirm, setShowConcedeConfirm] = useState(false);
   const [opponentLeftCountdown, setOpponentLeftCountdown] = useState(null);
   const prevStatusRef = useRef(null);
   const countdownRef = useRef(null);
@@ -643,6 +645,25 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', fontWeight: 600, color: '#C9A84C', letterSpacing: '0.1em' }}>GRIDHOLM</h1>
         <div className="flex gap-2 items-center">
           <span className="hidden sm:inline" style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#4a4a6a' }}>#{gameId}</span>
+          {session?.status === 'active' && (
+            <button
+              style={{
+                fontSize: '11px',
+                color: '#4a3a3a',
+                background: 'transparent',
+                border: '1px solid #2a1a1a',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+              }}
+              onMouseEnter={e => { e.target.style.color = '#8a4a4a'; e.target.style.borderColor = '#3a2a2a'; }}
+              onMouseLeave={e => { e.target.style.color = '#4a3a3a'; e.target.style.borderColor = '#2a1a1a'; }}
+              onClick={() => setShowConcedeConfirm(true)}
+            >
+              Concede
+            </button>
+          )}
           <button
             style={{
               fontSize: '12px',
@@ -662,6 +683,58 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           </button>
         </div>
       </div>
+
+      {/* Concede confirmation dialog */}
+      {showConcedeConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div style={{
+            background: '#0d0d1a',
+            border: '1px solid #2a2a3a',
+            borderRadius: '10px',
+            padding: '28px 32px',
+            textAlign: 'center',
+            maxWidth: '320px',
+            width: '90%',
+          }}>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#c0c0d8', marginBottom: '20px', lineHeight: 1.5 }}>
+              Are you sure you want to concede?<br />This will end the game.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                style={{
+                  background: '#2a1a1a',
+                  color: '#bf6060',
+                  border: '1px solid #3a2a2a',
+                  borderRadius: '4px',
+                  padding: '8px 20px',
+                  cursor: 'pointer',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+                onClick={async () => { setShowConcedeConfirm(false); await concedeGame(); }}
+              >
+                Concede
+              </button>
+              <button
+                style={{
+                  background: 'transparent',
+                  color: '#6a6a8a',
+                  border: '1px solid #2a2a3a',
+                  borderRadius: '4px',
+                  padding: '8px 20px',
+                  cursor: 'pointer',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                }}
+                onClick={() => setShowConcedeConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Bar */}
       <StatusBar state={state} myPlayerIndex={myPlayerIndex} />
