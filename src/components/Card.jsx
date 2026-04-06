@@ -1,3 +1,5 @@
+import { getCardImageUrl } from '../supabase.js';
+
 export default function Card({ card, isSelected, isPlayable, onClick }) {
   const isSpell = card.type === 'spell';
   const typeBorder = card.legendary ? 'border-amber-400' : isSpell ? 'border-purple-500' : 'border-gray-500';
@@ -7,6 +9,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
   const borderStyle = isSelected ? { borderColor: '#C9A84C' } : undefined;
 
   const artTypeChar = isSpell ? '✦' : (card.unitType ? card.unitType[0] : '?');
+  const imageUrl = getCardImageUrl(card.image);
 
   return (
     <div
@@ -66,13 +69,44 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
           <span className="text-yellow-400 font-bold text-[10px] leading-none flex-shrink-0 ml-auto">{card.cost}</span>
         </div>
 
-        {/* Art placeholder: ~40% of card height (~56px) */}
+        {/* Art area: ~40% of card height (~56px) */}
         <div
-          className="flex items-center justify-center rounded mb-1 flex-shrink-0"
-          style={{ height: '56px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="rounded mb-1 flex-shrink-0 overflow-hidden"
+          style={{ height: '56px' }}
           data-art-slot="true"
         >
-          <span className="text-gray-500 text-xs">{artTypeChar}</span>
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={card.name}
+              onError={(e) => { e.target.style.display = 'none'; }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: 'var(--border-radius-md)',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 'var(--border-radius-md)',
+                border: '0.5px solid rgba(255,255,255,0.1)',
+                color: 'rgba(156,163,175,1)',
+                fontSize: '11px',
+                fontWeight: 500,
+              }}
+            >
+              {card.unitType || 'Spell'}
+            </div>
+          )}
         </div>
 
         {/* Stats row */}

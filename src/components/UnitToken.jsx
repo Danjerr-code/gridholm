@@ -1,4 +1,5 @@
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
+import { getCardImageUrl } from '../supabase.js';
 
 export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, myPlayerIndex, onClick }) {
   const isP1 = unit.owner === 0;
@@ -43,6 +44,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const bg = baseBg + auraTint;
 
   const abbr = unit.name.split(' ').map(w => w[0]).join('').slice(0, 3);
+  // Only show image when unit is visible (not hidden to opponent)
+  const imageUrl = !isOpponentHidden ? getCardImageUrl(unit.image) : null;
   const effectiveAtk = state ? getEffectiveAtk(state, unit) : unit.atk + (unit.atkBonus || 0);
   const effectiveHp = state ? getEffectiveHp(state, unit) : unit.hp;
   const effectiveMaxHp = state ? getEffectiveMaxHp(state, unit) : unit.maxHp;
@@ -56,6 +59,23 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       onClick={onClick}
       title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={unit.name}
+          onError={(e) => { e.target.style.display = 'none'; }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: '50%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            opacity: unit.hidden ? 0 : 1,
+          }}
+        />
+      )}
       {isLegendary && (
         <span className="absolute top-0 right-0 text-[8px] leading-none text-amber-400" title="Legendary">♛</span>
       )}

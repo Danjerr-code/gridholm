@@ -1,5 +1,6 @@
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
+import { getCardImageUrl } from './supabase.js';
 import StatusBar from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
@@ -261,8 +262,32 @@ function CardDetailPanel({ inspectedItem, state }) {
       const ownerColor = unit.owner === 0 ? 'text-blue-400' : 'text-red-400';
       const auraBonus = getAuraAtkBonus(state, unit);
       const displayAtk = unit.atk + (unit.atkBonus || 0) + auraBonus;
+      const unitImageUrl = getCardImageUrl(unit.image);
       content = (
         <div className="flex flex-col gap-1">
+          {/* Detail panel image area */}
+          <div
+            style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}
+            data-art-slot="true"
+          >
+            {unitImageUrl ? (
+              <img
+                src={unitImageUrl}
+                alt={unit.name}
+                onError={(e) => { e.target.style.display = 'none'; }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <div style={{
+                width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', background: 'rgba(255,255,255,0.05)',
+                border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(156,163,175,1)',
+                fontSize: '11px', fontWeight: 500,
+              }}>
+                {unit.unitType || 'Unit'}
+              </div>
+            )}
+          </div>
           <div className="flex justify-between items-start">
             <span className="font-bold text-white text-xs leading-tight">{unit.name}</span>
             <span className={`text-[10px] ${ownerColor}`}>{ownerLabel}</span>
@@ -300,8 +325,32 @@ function CardDetailPanel({ inspectedItem, state }) {
     );
   } else if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
+    const cardImageUrl = getCardImageUrl(card.image);
     content = (
       <div className="flex flex-col gap-1">
+        {/* Detail panel image area */}
+        <div
+          style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}
+          data-art-slot="true"
+        >
+          {cardImageUrl ? (
+            <img
+              src={cardImageUrl}
+              alt={card.name}
+              onError={(e) => { e.target.style.display = 'none'; }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{
+              width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', background: 'rgba(255,255,255,0.05)',
+              border: '0.5px solid rgba(255,255,255,0.1)', color: 'rgba(156,163,175,1)',
+              fontSize: '11px', fontWeight: 500,
+            }}>
+              {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
+            </div>
+          )}
+        </div>
         <div className="flex justify-between items-start">
           <span className="font-bold text-white text-xs leading-tight">{card.name}</span>
           <span className="text-yellow-400 font-bold text-xs">{card.cost}💎</span>
