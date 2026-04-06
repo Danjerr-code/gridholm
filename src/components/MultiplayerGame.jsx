@@ -15,11 +15,10 @@ import {
   resolveHandSelect,
   resolveFleshtitheSacrifice,
   cancelSpell,
-  endActionPhase,
+  endActionAndTurn,
   getUnitMoveTiles,
   moveUnit,
   archerShoot,
-  endTurn,
   discardCard,
   getSpellTargets,
   getArcherShootTargets,
@@ -35,8 +34,7 @@ import PhaseTracker from './PhaseTracker.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
-  action: 'Move your champion, play cards, and move units in any order. Click End Phase when done.',
-  'end-turn': 'Click "End Turn" to pass to opponent.',
+  action: 'Move your champion, play cards, and move units in any order. Click End Turn when done.',
   discard: 'You have too many cards. Click a card to discard.',
 };
 
@@ -263,7 +261,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleEndAction = useCallback(async () => {
     if (!gameState) return;
-    await dispatch(endActionPhase(gameState));
+    await dispatch(endActionAndTurn(gameState));
   }, [gameState, dispatch]);
 
   const handleSelectChampion = useCallback(() => {
@@ -291,11 +289,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!gameState || !selectedUnit) return;
     await dispatch(archerShoot(gameState, selectedUnit, targetUid));
   }, [gameState, selectedUnit, dispatch]);
-
-  const handleEndTurn = useCallback(async () => {
-    if (!gameState) return;
-    await dispatch(endTurn(gameState));
-  }, [gameState, dispatch]);
 
   const handleDiscardCard = useCallback(async (cardUid) => {
     if (!gameState) return;
@@ -632,7 +625,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleConfirmAction,
     handleRevealUnit,
     handleFleshtitheSacrifice,
-    handleEndTurn,
     handleDiscardCard,
     handleNewGame: onBackToLobby,
     clearSelection,
@@ -945,10 +937,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                     <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" fullWidth />
                   )}
                   {phase === 'action' && (
-                    <ActionBtn onClick={handleEndAction} label="End Phase →" variant="endphase" fullWidth />
-                  )}
-                  {phase === 'end-turn' && !pendingDiscard && (
-                    <ActionBtn onClick={handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
+                    <ActionBtn onClick={handleEndAction} label="End Turn →" variant="endphase" fullWidth />
                   )}
                   {pendingDiscard && (
                     <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
@@ -995,10 +984,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && (
-            <ActionBtn onClick={handleEndAction} label="End Phase →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
-          )}
-          {phase === 'end-turn' && !pendingDiscard && (
-            <ActionBtn onClick={handleEndTurn} label="End Turn ⏎" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+            <ActionBtn onClick={handleEndAction} label="End Turn →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
         </div>
       )}

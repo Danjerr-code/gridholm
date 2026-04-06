@@ -1100,6 +1100,10 @@ export function archerShoot(state, archerUid, targetUid) {
 
 // ── end phase ──────────────────────────────────────────────────────────────
 
+export function endActionAndTurn(state) {
+  return endTurn(endActionPhase(state));
+}
+
 export function endTurn(state) {
   const s = cloneState(state);
   const p = s.players[s.activePlayer];

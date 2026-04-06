@@ -11,8 +11,7 @@ import useIsMobile from './hooks/useIsMobile.js';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
-  action: 'Move your champion, play cards, and move units in any order. Click End Phase when done.',
-  'end-turn': 'Click "End Turn" to pass to opponent.',
+  action: 'Move your champion, play cards, and move units in any order. Click End Turn when done.',
   discard: 'You have too many cards. Click a card to discard.',
 };
 
@@ -326,11 +325,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
                   <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" fullWidth />
                 )}
                 {phase === 'action' && (
-                  <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" fullWidth />
-                )}
-
-                {phase === 'end-turn' && !pendingDiscard && (
-                  <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" fullWidth />
+                  <ActionBtn onClick={handlers.handleEndAction} label="End Turn →" variant="endphase" fullWidth />
                 )}
                 {pendingDiscard && (
                   <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
@@ -376,10 +371,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && (
-            <ActionBtn onClick={handlers.handleEndAction} label="End Phase →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
-          )}
-          {phase === 'end-turn' && !pendingDiscard && (
-            <ActionBtn onClick={handlers.handleEndTurn} label="End Turn ⏎" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+            <ActionBtn onClick={handlers.handleEndAction} label="End Turn →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
         </div>
       )}

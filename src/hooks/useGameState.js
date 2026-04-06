@@ -11,11 +11,10 @@ import {
   resolveHandSelect,
   resolveFleshtitheSacrifice,
   cancelSpell,
-  endActionPhase,
+  endActionAndTurn,
   getUnitMoveTiles,
   moveUnit,
   archerShoot,
-  endTurn,
   discardCard,
   getSpellTargets,
   getArcherShootTargets,
@@ -188,9 +187,19 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [clearSelection]);
 
   const handleEndAction = useCallback(() => {
-    setState(prev => endActionPhase(prev));
+    setState(prev => endActionAndTurn(prev));
     clearSelection();
-  }, [clearSelection]);
+    if (state.activePlayer !== AI_PLAYER) {
+      setTimeout(() => {
+        setState(prev => {
+          if (prev.activePlayer === AI_PLAYER && !prev.winner) {
+            return runAITurn(prev);
+          }
+          return prev;
+        });
+      }, 600);
+    }
+  }, [state.activePlayer, clearSelection]);
 
   const handleSelectChampion = useCallback(() => {
     setSelectedUnit(null);
@@ -219,24 +228,6 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => archerShoot(prev, selectedUnit, targetUid));
     clearSelection();
   }, [selectedUnit, clearSelection]);
-
-  const handleEndTurn = useCallback(() => {
-    setState(prev => {
-      const s = endTurn(prev);
-      return s;
-    });
-    clearSelection();
-    if (state.activePlayer !== AI_PLAYER) {
-      setTimeout(() => {
-        setState(prev => {
-          if (prev.activePlayer === AI_PLAYER && !prev.winner) {
-            return runAITurn(prev);
-          }
-          return prev;
-        });
-      }, 600);
-    }
-  }, [state.activePlayer, clearSelection]);
 
   const handleDiscardCard = useCallback((cardUid) => {
     setState(prev => {
@@ -361,7 +352,6 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleMoveUnit,
       handleArcherSelectTarget,
       handleArcherShoot,
-      handleEndTurn,
       handleDiscardCard,
       handleRevealUnit,
       handleTriggerUnitAction,
