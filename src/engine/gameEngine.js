@@ -144,13 +144,35 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   // Remove from board
   state.units = state.units.filter(u => u.uid !== unit.uid);
 
-  // Thornweave: restore 3 HP to owner's champion
+  // Fire death triggers
+  fireDeathTriggers(unit, state, source, destroyingUids);
+
+  addLog(state, `${unit.name} destroyed`);
+  return state;
+}
+
+// ============================================
+// DEATH TRIGGERS
+// Fires from destroyUnit whenever any unit is destroyed
+// ADD NEW DEATH TRIGGERS HERE
+// ============================================
+function fireDeathTriggers(unit, state, source, destroyingUids) {
+  // 1. Thornweave: restore 3 HP to controlling player champion
   if (unit.id === 'thornweave') {
     const healed = restoreHP('champion' + unit.owner, 3, state, 'thornweave');
     if (healed > 0) addLog(state, `Thornweave: champion restores ${healed} HP.`);
   }
 
-  // Plague Hog: deal 2 damage to cardinal adjacent units, chain-destroy any at 0
+  // 2. Sister Siofra: controlling player champion gains +2 max HP
+  const siofra = state.units.find(u => u.owner === unit.owner && u.id === 'sistersiofra');
+  if (siofra && unit.id !== 'sistersiofra') {
+    const champ = state.champions[unit.owner];
+    champ.maxHp += 2;
+    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
+    addLog(state, `Sister Siofra: champion gains +2 max HP permanently.`);
+  }
+
+  // 3. Plague Hog: deal 2 damage to all adjacent units, chain-destroy at 0
   if (unit.id === 'plaguehog') {
     const adj = cardinalNeighbors(unit.row, unit.col);
     const nearby = state.units.filter(u => adj.some(([r, c]) => u.row === r && u.col === c));
@@ -162,24 +184,199 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
     state.units = state.units.filter(u => u.hp > 0);
   }
 
-  // Shadow Trap: when shadow trap itself is destroyed, kill the triggering enemy
+  // 4. Shadow Trap: destroy the enemy unit that triggered the reveal
   if (unit.id === 'shadowtrap' && source !== 'shadowtrap' && state.shadowTrapTriggerUid) {
     const triggerEnemy = state.units.find(u => u.uid === state.shadowTrapTriggerUid);
     if (triggerEnemy) destroyUnit(triggerEnemy, state, 'shadowtrap', destroyingUids);
     state.shadowTrapTriggerUid = null;
   }
+}
 
-  // Sister Siofra: champion gains +2 max HP when a friendly unit is destroyed
-  const siofra = state.units.find(u => u.owner === unit.owner && u.id === 'sistersiofra');
-  if (siofra && unit.id !== 'sistersiofra') {
-    const champ = state.champions[unit.owner];
-    champ.maxHp += 2;
-    champ.hp = Math.min(champ.maxHp, champ.hp + 2);
-    addLog(state, `Sister Siofra: champion gains +2 max HP permanently.`);
+// ============================================
+// BEGIN TURN TRIGGERS
+// Fires after draw and resource gain, before action phase
+// ADD NEW BEGIN TURN TRIGGERS HERE
+// ============================================
+function fireBeginTurnTriggers(state, playerIdx) {
+  // Paladin Aura: permanently increase max HP of adjacent friendly combat units by 1
+  const paladins = state.units.filter(u => u.owner === playerIdx && u.id === 'paladin');
+  for (const pal of paladins) {
+    const adj = cardinalNeighbors(pal.row, pal.col);
+    const nearby = state.units.filter(u =>
+      u.owner === playerIdx &&
+      u.uid !== pal.uid &&
+      adj.some(([r, c]) => u.row === r && u.col === c)
+    );
+    for (const u of nearby) {
+      const wasAtMax = u.hp === u.maxHp;
+      u.maxHp += 1;
+      if (wasAtMax) u.hp += 1;
+    }
+    if (nearby.length) addLog(state, `Paladin Aura: ${nearby.length} adjacent unit(s) gain +1 max HP.`);
+  }
+}
+
+// ============================================
+// END TURN TRIGGERS
+// Fires before passing turn to opponent
+// ADD NEW END TURN TRIGGERS HERE
+// ============================================
+function fireEndTurnTriggers(state, playerIdx) {
+  const p = state.players[playerIdx];
+  const champ = state.champions[playerIdx];
+
+  // 1. Seedling: restore 1 HP to champion for each friendly cannotMove unit
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.cannotMove) {
+      const healed = restoreHP(champ, 1, state);
+      if (healed > 0) addLog(state, `Seedling restores 1 HP to champion.`);
+    }
+  });
+
+  // 2. Sentinel Aura: restore 1 HP to other friendly combat units within 1 tile
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.id === 'sentinel') {
+      const adj = cardinalNeighbors(u.row, u.col);
+      const nearby = state.units.filter(n =>
+        n.owner === playerIdx &&
+        n.uid !== u.uid &&
+        adj.some(([r, c]) => n.row === r && n.col === c)
+      );
+      for (const n of nearby) {
+        const healed = restoreHP(n, 1, state);
+        if (healed > 0) addLog(state, `Sentinel Aura: ${n.name} restores ${healed} HP.`);
+      }
+    }
+  });
+
+  // 3. Pip the Hungry: +1/+1
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.id === 'pip') {
+      u.atk += 1;
+      u.hp += 1;
+      u.maxHp += 1;
+      addLog(state, `Pip the Hungry grows! Now ${u.atk}/${u.hp}.`);
+    }
+  });
+
+  // 4. Zmore: deal 1 damage to all units
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.id === 'zmore') {
+      addLog(state, `Zmore, Sleeping Ash stirs. All units take 1 damage.`);
+      const allUnits = [...state.units];
+      for (const t of allUnits) {
+        if (state.units.find(x => x.uid === t.uid)) {
+          t.hp -= 1;
+          if (t.hp <= 0) {
+            destroyUnit(t, state, 'zmore');
+          }
+        }
+      }
+      state.units = state.units.filter(u => u.hp > 0);
+    }
+  });
+
+  // 5. Throne damage: deal 4 damage to opponent champion (cannot reduce below 1 HP)
+  if (champ.row === 2 && champ.col === 2) {
+    const oppIdx = 1 - playerIdx;
+    const maxDamage = Math.max(0, state.champions[oppIdx].hp - 1);
+    const actualDamage = Math.min(4, maxDamage);
+    if (actualDamage > 0) {
+      state.champions[oppIdx].hp -= actualDamage;
+      addLog(state, `${p.name}'s champion controls the Throne! ${state.players[oppIdx].name}'s champion takes ${actualDamage} damage.`);
+    } else {
+      addLog(state, `${p.name}'s champion controls the Throne, but the enemy champion is protected at 1 HP.`);
+    }
+    checkWinner(state);
+  }
+}
+
+// ============================================
+// ATTACK TRIGGERS
+// Fires when a unit initiates combat movement
+// killedDefender is true if the defender was destroyed in this combat
+// ADD NEW ATTACK TRIGGERS HERE
+// ============================================
+function fireAttackTriggers(attacker, defender, state, killedDefender) {
+  const defenderIsChampion = !defender.uid;
+  // Find live attacker (may have died in combat)
+  const liveAttacker = state.units.find(u => u.uid === attacker.uid);
+
+  // 1. Whisper: restore 2 HP to controlling champion
+  if (liveAttacker && liveAttacker.id === 'whisper') {
+    const champ = state.champions[liveAttacker.owner];
+    const healed = restoreHP(champ, 2, state);
+    addLog(state, `Whisper: champion restores ${healed} HP.`);
   }
 
-  addLog(state, `${unit.name} destroyed`);
-  return state;
+  // 2. Crossbowman: draw 1 card on kill
+  if (attacker.id === 'crossbowman' && killedDefender && !defenderIsChampion) {
+    const unitPlayer = state.players[attacker.owner];
+    const drawn = unitPlayer.deck.shift();
+    if (drawn) {
+      unitPlayer.hand.push(drawn);
+      addLog(state, `Crossbowman: drew ${drawn.name}.`);
+    }
+  }
+
+  // 3. Dread Knight: if defender is champion, opponent discards random card
+  if (liveAttacker && liveAttacker.id === 'dreadknight' && defenderIsChampion) {
+    const oppPlayer = state.players[defender.owner];
+    if (oppPlayer.hand.length > 0) {
+      const randIdx = Math.floor(Math.random() * oppPlayer.hand.length);
+      const [discarded] = oppPlayer.hand.splice(randIdx, 1);
+      oppPlayer.discard.push(discarded);
+      addLog(state, `Dread Knight: ${state.players[defender.owner].name} discards ${discarded.name} at random.`);
+    }
+  }
+
+  // 4. Razorfang: reset action on kill
+  if (liveAttacker && liveAttacker.id === 'razorfang' && killedDefender && !liveAttacker.razorfangResetUsed) {
+    liveAttacker.moved = false;
+    liveAttacker.razorfangResetUsed = true;
+    addLog(state, `Razorfang, Alpha: action reset!`);
+  }
+}
+
+// ============================================
+// ON SUMMON TRIGGERS
+// Fires when a unit enters the board
+// ADD NEW SUMMON TRIGGERS HERE
+// ============================================
+function fireOnSummonTriggers(unit, state) {
+  const p = state.players[unit.owner];
+
+  // 1. Elf Elder: restore 2 HP to controlling champion
+  if (unit.id === 'elfelder') {
+    const champ = state.champions[unit.owner];
+    const healed = restoreHP(champ, 2, state);
+    addLog(state, `Elf Elder: champion restores ${healed} HP.`);
+  }
+
+  // 2. Chaos Spawn: prompt discard then draw
+  if (unit.id === 'chaospawn') {
+    if (p.hand.length > 0) {
+      state.pendingHandSelect = { reason: 'chaospawn', cardUid: unit.uid, data: {} };
+    } else {
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(state, `Chaos Spawn: drew ${drawn.name}.`);
+      }
+    }
+  }
+
+  // 3. Flesh Tithe: prompt optional sacrifice
+  if (unit.id === 'fleshtithe') {
+    const friendlyUnits = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid);
+    if (friendlyUnits.length > 0) {
+      state.pendingFleshtitheSacrifice = { unitUid: unit.uid };
+    } else {
+      addLog(state, `Flesh Tithe: enters as 3/3 (no units to sacrifice).`);
+    }
+  }
+
+  // 4. Void Walker: deal 1 damage to controlling champion (not yet implemented)
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -291,23 +488,7 @@ function doBeginTurnPhase(state) {
   p.hpRestoredThisTurn = 0;
 
   // BEGIN TURN TRIGGERS
-
-  // Paladin Aura: permanent max HP for adjacent friendly combat units
-  const paladins = state.units.filter(u => u.owner === state.activePlayer && u.id === 'paladin');
-  for (const pal of paladins) {
-    const adj = cardinalNeighbors(pal.row, pal.col);
-    const nearby = state.units.filter(u =>
-      u.owner === state.activePlayer &&
-      u.uid !== pal.uid &&
-      adj.some(([r, c]) => u.row === r && u.col === c)
-    );
-    for (const u of nearby) {
-      const wasAtMax = u.hp === u.maxHp;
-      u.maxHp += 1;
-      if (wasAtMax) u.hp += 1;
-    }
-    if (nearby.length) addLog(state, `Paladin Aura: ${nearby.length} adjacent unit(s) gain +1 max HP.`);
-  }
+  fireBeginTurnTriggers(state, state.activePlayer);
 
   // Clear martial law from the opponent's units (applied last turn)
   state.units.forEach(u => {
@@ -588,36 +769,8 @@ export function summonUnit(state, cardUid, row, col) {
   s.units.push(unit);
   addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
 
-  // Elf Elder on-summon: restore 2 HP to champion
-  if (card.id === 'elfelder') {
-    const champ = s.champions[s.activePlayer];
-    const healed = restoreHP(champ, 2, s);
-    addLog(s, `Elf Elder: champion restores ${healed} HP.`);
-  }
-
-  // Chaos Spawn on-summon: prompt to discard a card and draw
-  if (card.id === 'chaospawn') {
-    if (p.hand.length > 0) {
-      s.pendingHandSelect = { reason: 'chaospawn', cardUid: unit.uid, data: {} };
-    } else {
-      // No cards to discard, just draw
-      const drawn = p.deck.shift();
-      if (drawn) {
-        p.hand.push(drawn);
-        addLog(s, `Chaos Spawn: drew ${drawn.name}.`);
-      }
-    }
-  }
-
-  // Flesh Tithe on-summon: ask if player wants to sacrifice a unit
-  if (card.id === 'fleshtithe') {
-    const friendlyUnits = s.units.filter(u => u.owner === s.activePlayer && u.uid !== unit.uid);
-    if (friendlyUnits.length > 0) {
-      s.pendingFleshtitheSacrifice = { unitUid: unit.uid };
-    } else {
-      addLog(s, `Flesh Tithe: enters as 3/3 (no units to sacrifice).`);
-    }
-  }
+  // ON SUMMON TRIGGERS
+  fireOnSummonTriggers(unit, s);
 
   return s;
 }
@@ -1148,34 +1301,13 @@ export function moveUnit(state, unitUid, row, col) {
         if (defenderDestroyed) {
           stillAlive2.row = row;
           stillAlive2.col = col;
-          // Razorfang reset on kill
-          if (stillAlive2.id === 'razorfang' && !stillAlive2.razorfangResetUsed) {
-            stillAlive2.moved = false;
-            stillAlive2.razorfangResetUsed = true;
-            addLog(s, `Razorfang, Alpha: action reset!`);
-            return s; // don't mark moved yet
-          }
         }
         stillAlive2.moved = true;
-
-        // Whisper attack restore
-        if (stillAlive2.id === 'whisper') {
-          const champ = s.champions[s.activePlayer];
-          const healed = restoreHP(champ, 2, s);
-          addLog(s, `Whisper: champion restores ${healed} HP.`);
-        }
       }
     }
-
-    // Crossbowman draw trigger
-    if (unit.id === 'crossbowman' && !s.units.find(u => u.uid === enemyUnit.uid)) {
-      const unitPlayer = s.players[unit.owner];
-      const drawn = unitPlayer.deck.shift();
-      if (drawn) {
-        unitPlayer.hand.push(drawn);
-        addLog(s, `Crossbowman: drew ${drawn.name}.`);
-      }
-    }
+    // Fire attack triggers (Whisper, Crossbowman, Razorfang)
+    const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
+    fireAttackTriggers(unit, enemyUnit, s, killedDefender);
   } else if (enemyChamp) {
     // Reveal hidden attacker
     if (unit.hidden) revealUnit(s, unit);
@@ -1198,19 +1330,10 @@ export function moveUnit(state, unitUid, row, col) {
     enemyChamp.hp -= champDmg;
     addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
 
-    // Dread Knight: champion damage → opponent discards random card
-    if (unit.id === 'dreadknight' && champDmg > 0) {
-      const oppPlayer = s.players[enemyChamp.owner];
-      if (oppPlayer.hand.length > 0) {
-        const randIdx = Math.floor(Math.random() * oppPlayer.hand.length);
-        const [discarded] = oppPlayer.hand.splice(randIdx, 1);
-        oppPlayer.discard.push(discarded);
-        addLog(s, `Dread Knight: ${s.players[enemyChamp.owner].name} discards ${discarded.name} at random.`);
-      }
-    }
-
     const unitAfterThorn = s.units.find(u => u.uid === unitUid);
     if (unitAfterThorn) unitAfterThorn.moved = true;
+    // Fire attack triggers (Dread Knight)
+    if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
   } else {
     // Regular move — clear shadow-veil hidden if moving
@@ -1264,76 +1387,10 @@ export function archerShoot(state, archerUid, targetUid) {
 export function endTurn(state) {
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
-  const champ = s.champions[s.activePlayer];
-
-  // Throne check
-  if (champ.row === 2 && champ.col === 2) {
-    const oppIdx = 1 - s.activePlayer;
-    const maxDamage = Math.max(0, s.champions[oppIdx].hp - 1);
-    const actualDamage = Math.min(4, maxDamage);
-    if (actualDamage > 0) {
-      s.champions[oppIdx].hp -= actualDamage;
-      addLog(s, `${p.name}'s champion controls the Throne! ${s.players[oppIdx].name}'s champion takes ${actualDamage} damage.`);
-    } else {
-      addLog(s, `${p.name}'s champion controls the Throne, but the enemy champion is protected at 1 HP.`);
-    }
-    checkWinner(s);
-    if (s.winner) return s;
-  }
 
   // END TURN TRIGGERS
-
-  // Pip the Hungry: +1/+1
-  s.units.forEach(u => {
-    if (u.owner === s.activePlayer && u.id === 'pip') {
-      u.atk += 1;
-      u.hp += 1;
-      u.maxHp += 1;
-      addLog(s, `Pip the Hungry grows! Now ${u.atk}/${u.hp}.`);
-    }
-  });
-
-  // Seedling end of turn: restore 1 HP to champion
-  s.units.forEach(u => {
-    if (u.owner === s.activePlayer && u.cannotMove) {
-      const healed = restoreHP(champ, 1, s);
-      if (healed > 0) addLog(s, `Seedling restores 1 HP to champion.`);
-    }
-  });
-
-  // Sentinel Aura end of turn: restore 1 HP to other adjacent friendly units
-  s.units.forEach(u => {
-    if (u.owner === s.activePlayer && u.id === 'sentinel') {
-      const adj = cardinalNeighbors(u.row, u.col);
-      const nearby = s.units.filter(n =>
-        n.owner === s.activePlayer &&
-        n.uid !== u.uid &&
-        adj.some(([r, c]) => n.row === r && n.col === c)
-      );
-      for (const n of nearby) {
-        const healed = restoreHP(n, 1, s);
-        if (healed > 0) addLog(s, `Sentinel Aura: ${n.name} restores ${healed} HP.`);
-      }
-    }
-  });
-
-  // Zmore: deal 1 damage to all units on the board
-  s.units.forEach(u => {
-    if (u.owner === s.activePlayer && u.id === 'zmore') {
-      addLog(s, `Zmore, Sleeping Ash stirs. All units take 1 damage.`);
-      // Damage all units (snapshot loop — copy array first)
-      const allUnits = [...s.units];
-      for (const t of allUnits) {
-        if (s.units.find(x => x.uid === t.uid)) {
-          t.hp -= 1;
-          if (t.hp <= 0) {
-            destroyUnit(t, s, 'zmore');
-          }
-        }
-      }
-      s.units = s.units.filter(u => u.hp > 0);
-    }
-  });
+  fireEndTurnTriggers(s, s.activePlayer);
+  if (s.winner) return s;
 
   // Hand limit: 6
   if (p.hand.length > 6) {
