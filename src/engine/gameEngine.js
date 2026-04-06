@@ -5,6 +5,7 @@ import {
   getEffectiveSpd,
 } from './statUtils.js';
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
+import { SPELL_REGISTRY } from './spellRegistry.js';
 
 // Phases in order
 export const PHASES = ['begin-turn', 'action', 'end-turn'];
@@ -48,7 +49,7 @@ export function cloneState(state) {
 // Single point of HP restoration for the entire engine.
 // target: unit/champion object OR 'champion0'/'champion1' string.
 // Returns actual amount healed.
-function restoreHP(target, amount, state, source = 'effect') {
+export function restoreHP(target, amount, state, source = 'effect') {
   let holder;
   if (typeof target === 'string') {
     const idx = parseInt(target.replace('champion', ''), 10);
@@ -354,8 +355,20 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
 
 // ── log helper ─────────────────────────────────────────────────────────────
 
-function addLog(state, msg) {
+export function addLog(state, msg) {
   state.log = [...state.log, msg].slice(-50);
+}
+
+// ── spell dispatch ─────────────────────────────────────────────────────────
+// Single dispatch point for all spell effects. Looks up the resolver in
+// SPELL_REGISTRY and delegates. Returns updated state.
+function _dispatchSpell(state, caster, spellId, targets, options = {}) {
+  const resolver = SPELL_REGISTRY[spellId];
+  if (!resolver) {
+    console.error(`No resolver found for spell: ${spellId}`);
+    return state;
+  }
+  return resolver(state, caster, targets, options);
 }
 
 // ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
@@ -497,7 +510,7 @@ export function getSummonTiles(state) {
 }
 
 export function playCard(state, cardUid) {
-  const s = cloneState(state);
+  let s = cloneState(state);
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
   if (cardIdx === -1) return s;
@@ -511,135 +524,16 @@ export function playCard(state, cardUid) {
   }
 
   if (card.type === 'spell') {
-    // Spells that resolve immediately without a target
-    if (card.effect === 'overgrowth') {
+    // No-target spells: execute via registry directly
+    const NO_TARGET_SPELLS = new Set([
+      'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
+      'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
+    ]);
+    if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= card.cost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer && !u.hidden) {
-          const healed = restoreHP(u, 2, s);
-          if (healed > 0) addLog(s, `${u.name} restored ${healed} HP.`);
-        }
-      });
-      // Also restore champion
-      const champ = s.champions[s.activePlayer];
-      const champHealed = restoreHP(champ, 2, s);
-      if (champHealed > 0) addLog(s, `${p.name}'s champion restored ${champHealed} HP.`);
-      addLog(s, `${p.name} casts Overgrowth. All friendly units restore 2 HP.`);
-      return s;
-    }
-
-    if (card.effect === 'packhowl') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer && u.unitType === 'Beast') {
-          u.speedBonus = (u.speedBonus || 0) + 1;
-        }
-      });
-      addLog(s, `${p.name} casts Pack Howl. All friendly Beasts gain +1 SPD this turn.`);
-      return s;
-    }
-
-    if (card.effect === 'callofthesnakes') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      const champ = s.champions[s.activePlayer];
-      const adj = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) => !isTileOccupied(s, r, c));
-      for (const [r, c] of adj) {
-        s.units.push({
-          id: 'snake', name: 'Snake', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
-          unitType: 'Beast', rules: '', owner: s.activePlayer, row: r, col: c,
-          summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
-          uid: `snake_${Math.random().toString(36).slice(2)}`,
-        });
-      }
-      addLog(s, `${p.name} casts Call of the Snakes. ${adj.length} Snake(s) summoned.`);
-      return s;
-    }
-
-    if (card.effect === 'rally') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer) {
-          u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
-        }
-      });
-      addLog(s, `${p.name} casts Rally. All friendly units gain +1 ATK this turn.`);
-      return s;
-    }
-
-    if (card.effect === 'crusade') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer) {
-          u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
-        }
-      });
-      addLog(s, `${p.name} casts Crusade. All friendly units gain +2 ATK this turn.`);
-      return s;
-    }
-
-    if (card.effect === 'ironthorns') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      const champ = s.champions[s.activePlayer];
-      champ.thornShield = { absorb: 3, thornDamage: 3 };
-      addLog(s, `${p.name} casts Iron Thorns. Champion gains a thorn shield (absorb 3, thorn 3).`);
-      return s;
-    }
-
-    if (card.effect === 'infernalpact') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      const champ = s.champions[s.activePlayer];
-      champ.hp = Math.max(1, champ.hp - 3);
-      addLog(s, `${p.name} casts Infernal Pact. Champion takes 3 damage.`);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer && u.unitType === 'Demon') {
-          u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
-        }
-      });
-      addLog(s, `All friendly Demons gain +2 ATK this turn.`);
-      return s;
-    }
-
-    if (card.effect === 'martiallaw') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      const champ = s.champions[s.activePlayer];
-      const affected = s.units.filter(u =>
-        u.owner !== s.activePlayer &&
-        manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
-      );
-      for (const u of affected) {
-        u.martialLaw = true;
-      }
-      addLog(s, `${p.name} casts Martial Law. ${affected.length} enemy unit(s) affected.`);
-      return s;
-    }
-
-    if (card.effect === 'fortify') {
-      p.resources -= card.cost;
-      p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
-      s.units.forEach(u => {
-        if (u.owner === s.activePlayer) {
-          u.hp = Math.min(u.maxHp + 2, u.hp + 2);
-          u.fortifyBonus = (u.fortifyBonus || 0) + 2;
-        }
-      });
-      addLog(s, `${p.name} casts Fortify. All friendly units gain +2 HP until next turn.`);
+      s = _dispatchSpell(s, s.activePlayer, card.effect, []);
       return s;
     }
 
@@ -792,7 +686,7 @@ export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
 // ── spell resolution ──────────────────────────────────────────────────────
 
 export function resolveSpell(state, cardUid, targetUnitUid) {
-  const s = cloneState(state);
+  let s = cloneState(state);
   const pending = s.pendingSpell;
   if (!pending) return s;
 
@@ -821,256 +715,128 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
 
   // ── Smite ──
   if (effect === 'smite') {
-    if (target) {
-      const champ = s.champions[s.activePlayer];
-      if (manhattan([champ.row, champ.col], [target.row, target.col]) <= 2) {
-        applyDamageToUnit(s, target, 4, 'Smite');
-      }
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'smite', [target]);
   }
   // ── Forge Weapon ──
   else if (effect === 'forgeweapon') {
-    if (target) {
-      target.atkBonus = (target.atkBonus || 0) + 3;
-      addLog(s, `${p.name} forges weapon on ${target.name}. +3 ATK.`);
-    }
+    s = _dispatchSpell(s, s.activePlayer, 'forgeweapon', [target]);
   }
   // ── Iron Shield ──
   else if (effect === 'ironshield') {
-    if (target) {
-      target.shield = (target.shield || 0) + 5;
-      addLog(s, `${p.name} gives Iron Shield to ${target.name}.`);
-    }
+    s = _dispatchSpell(s, s.activePlayer, 'ironshield', [target]);
   }
   // ── Recall ──
   else if (effect === 'recall') {
-    if (target) {
-      const { owner: _o, row: _r, col: _c, maxHp: _mh, summoned: _s, moved: _mv,
-              atkBonus: _ab, shield: _sh, speedBonus: _sb, turnAtkBonus: _ta, ...baseFields } = target;
-      const recalledCard = { ...baseFields, hp: target.maxHp, uid: `${target.id}_${Math.random().toString(36).slice(2)}` };
-      s.units = s.units.filter(u => u.uid !== target.uid);
-      p.hand.push(recalledCard);
-      s.recalledThisTurn = [...(s.recalledThisTurn || []), recalledCard.id];
-      addLog(s, `${target.name} recalled to hand. Cannot be played this turn.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'recall', [target]);
   }
   // ── Moonleaf ──
   else if (effect === 'moonleaf') {
-    if (target) {
-      const handCount = p.hand.length; // hand size AFTER playing moonleaf (already removed)
-      target.maxHp += handCount;
-      const healed = restoreHP(target, handCount, s);
-      addLog(s, `Moonleaf: ${target.name} gains +${handCount} HP.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'moonleaf', [target]);
   }
   // ── Bloom (step 0: friendly, step 1: enemy) ──
   else if (effect === 'bloom') {
     if (step === 0) {
-      // Friendly unit selected: restore 2 HP
-      if (target) {
-        const healed = restoreHP(target, 2, s);
-        addLog(s, `Bloom: ${target.name} restored ${healed} HP.`);
-      }
-      // Now pick enemy target
+      if (target) s = _dispatchSpell(s, s.activePlayer, 'bloom', [target], { step: 0 });
       s.pendingSpell = { cardUid, effect: 'bloom', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
     } else {
-      // Step 1: enemy target — deal damage equal to hpRestoredThisTurn
-      if (target) {
-        const dmg = p.hpRestoredThisTurn || 0;
-        addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
-        applyDamageToUnit(s, target, dmg, 'Bloom');
-      }
-    }
-  }
-  // ── Bloom step 1 can come back through resolveSpell after s.pendingSpell is set ──
-  else if (effect === 'bloom' && step === 1) {
-    if (target) {
-      const dmg = p.hpRestoredThisTurn || 0;
-      addLog(s, `Bloom: deals ${dmg} damage to ${target.name}.`);
-      applyDamageToUnit(s, target, dmg, 'Bloom');
+      if (target) s = _dispatchSpell(s, s.activePlayer, 'bloom', [target], { step: 1 });
     }
   }
   // ── Entangle ──
   else if (effect === 'entangle') {
-    if (target) {
-      const adj = cardinalNeighbors(target.row, target.col);
-      const affected = s.units.filter(u =>
-        u.owner !== s.activePlayer &&
-        adj.some(([r, c]) => u.row === r && u.col === c)
-      );
-      for (const u of affected) u.martialLaw = true;
-      addLog(s, `Entangle: ${affected.length} enemy unit(s) around ${target.name} cannot move next turn.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'entangle', [target]);
   }
   // ── Predator's Mark ──
   else if (effect === 'predatorsmark') {
-    if (target) {
-      target.martialLaw = true;
-      addLog(s, `Predator's Mark: ${target.name} cannot act next turn.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'predatorsmark', [target]);
   }
   // ── Pounce ──
   else if (effect === 'pounce') {
-    if (target) {
-      // Select this unit: mark as pending for movement (handled by UI selecting tiles)
-      // Engine-side: just mark the unit as pounce-ready (engine resolves actual move via moveUnit)
-      target.pounceReady = true;
-      addLog(s, `Pounce: ${target.name} may move up to 2 tiles ignoring sickness.`);
-      // The UI will trigger moveUnit which respects pounceReady
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'pounce', [target]);
   }
   // ── Savage Growth ──
   else if (effect === 'savagegrowth') {
-    if (target) {
-      target.atk += 2;
-      target.hp += 2;
-      target.maxHp += 2;
-      addLog(s, `Savage Growth: ${target.name} gains +2/+2 permanently.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'savagegrowth', [target]);
   }
-  // ── Ambush (step 0: friendly Beast, step 1: adjacent enemy) ──
+  // ── Ambush (step 0: select friendly Beast, step 1: resolve combat) ──
   else if (effect === 'ambush') {
     if (step === 0) {
-      // Select a friendly Beast unit
       if (target) {
         s.pendingSpell = { cardUid, effect: 'ambush', playerIdx: s.activePlayer, step: 1, data: { beastUid: target.uid, paid: true } };
       }
     } else {
-      // Step 1: select adjacent enemy (unit or champion implied via uid)
       const beast = s.units.find(u => u.uid === data.beastUid);
       if (beast && target) {
-        // Resolve combat: beast attacks target without moving
-        const attackerAtk = getEffectiveAtk(s, beast);
-        addLog(s, `Ambush: ${beast.name} battles ${target.name}!`);
-        applyDamageToUnit(s, target, attackerAtk, beast.name);
-        // Beast does NOT take counterattack from enemy unit combat in Ambush
+        s = _dispatchSpell(s, s.activePlayer, 'ambush', [beast, target], { step: 1 });
       }
     }
   }
-  // ── Blood Offering (step 0: sacrifice, step 1: enemy target) ──
+  // ── Blood Offering (step 0: sacrifice friendly, step 1: damage enemy) ──
   else if (effect === 'bloodoffering') {
     if (step === 0) {
-      // Select friendly unit to sacrifice
       if (target) {
         const sacrificeAtk = target.atk;
-        addLog(s, `Blood Offering: ${target.name} (${sacrificeAtk} ATK) sacrificed.`);
-        destroyUnit(target, s, 'sacrifice');
+        s = _dispatchSpell(s, s.activePlayer, 'bloodoffering', [target], { step: 0 });
         s.pendingSpell = { cardUid, effect: 'bloodoffering', playerIdx: s.activePlayer, step: 1, data: { sacrificeAtk, paid: true } };
       }
     } else {
-      // Step 1: deal sacrifice ATK damage to enemy target
       if (target) {
-        const dmg = data.sacrificeAtk || 0;
-        addLog(s, `Blood Offering: ${dmg} damage to ${target.name}.`);
-        applyDamageToUnit(s, target, dmg, 'Blood Offering');
+        s = _dispatchSpell(s, s.activePlayer, 'bloodoffering', [target], { step: 1, sacrificeAtk: data.sacrificeAtk || 0 });
       }
     }
   }
   // ── Pact of Ruin damage ──
   else if (effect === 'pactofruin_damage') {
-    if (target) {
-      addLog(s, `Pact of Ruin: 3 damage to ${target.name}.`);
-      applyDamageToUnit(s, target, 3, 'Pact of Ruin');
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'pactofruin_damage', [target]);
   }
   // ── Dark Sentence ──
   else if (effect === 'darksentence') {
-    if (target) {
-      addLog(s, `Dark Sentence: ${target.name} destroyed.`);
-      destroyUnit(target, s, 'darksentence');
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'darksentence', [target]);
   }
   // ── Devour ──
   else if (effect === 'devour') {
-    if (target && target.hp <= 2) {
-      addLog(s, `Devour: ${target.name} consumed.`);
-      destroyUnit(target, s, 'devour');
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'devour', [target]);
   }
   // ── Shadow Veil ──
   else if (effect === 'shadowveil') {
-    if (target) {
-      target.hidden = true;
-      addLog(s, `Shadow Veil: ${target.name} becomes Hidden.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'shadowveil', [target]);
   }
   // ── Soul Drain ──
   else if (effect === 'souldrain') {
-    if (target) {
-      const actualDmg = Math.min(2, target.hp);
-      addLog(s, `Soul Drain: 2 damage to ${target.name}.`);
-      applyDamageToUnit(s, target, 2, 'Soul Drain');
-      const champ = s.champions[s.activePlayer];
-      const healed = restoreHP(champ, actualDmg, s);
-      addLog(s, `Soul Drain: champion restores ${healed} HP.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'souldrain', [target]);
   }
   // ── Woodland Guard action ──
   else if (effect === 'woodlandguard_action') {
-    if (target) {
-      addLog(s, `Woodland Guard: deals 2 damage to ${target.name}.`);
-      applyDamageToUnit(s, target, 2, 'Woodland Guard');
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'woodlandguard_action', [target]);
   }
   // ── Battle Priest action (step 0: enemy, step 1: friendly) ──
   else if (effect === 'battlepriestunit_action') {
     if (step === 0) {
-      // Enemy target selected
-      if (target) {
-        addLog(s, `Battle Priest: deals 2 damage to ${target.name}.`);
-        applyDamageToUnit(s, target, 2, 'Battle Priest');
-      }
+      if (target) s = _dispatchSpell(s, s.activePlayer, 'battlepriestunit_action', [target], { step: 0 });
       s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, paid: true } };
     } else {
-      // Friendly target selected: restore 2 HP
-      if (target) {
-        const healed = restoreHP(target, 2, s);
-        addLog(s, `Battle Priest: restores ${healed} HP to ${target.name}.`);
-      }
+      if (target) s = _dispatchSpell(s, s.activePlayer, 'battlepriestunit_action', [target], { step: 1 });
     }
   }
   // ── Grove Warden action ──
   else if (effect === 'grovewarden_action') {
-    const elfCount = s.units.filter(u => u.owner === s.activePlayer && u.unitType === 'Elf' && u.id !== 'grovewarden').length;
-    const champ = s.champions[s.activePlayer];
-    const healed = restoreHP(champ, elfCount, s);
-    addLog(s, `Grove Warden: champion restores ${elfCount} HP (${elfCount} friendly Elves).`);
+    s = _dispatchSpell(s, s.activePlayer, 'grovewarden_action', []);
   }
   // ── Pack Runner action ──
   else if (effect === 'packrunner_action') {
-    if (target && target.id !== 'packrunner') {
-      target.moved = false;
-      // Don't clear summoning sickness
-      addLog(s, `Pack Runner: ${target.name} action reset.`);
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'packrunner_action', [target]);
   }
   // ── Dark Dealer action ──
   else if (effect === 'darkdealer_action') {
-    const champ = s.champions[s.activePlayer];
-    champ.hp = Math.max(1, champ.hp - 2);
-    addLog(s, `Dark Dealer: champion takes 2 damage.`);
-    const drawn = p.deck.shift();
-    if (drawn && p.hand.length < 6) {
-      p.hand.push(drawn);
-      addLog(s, `Dark Dealer: drew ${drawn.name}.`);
-    }
+    s = _dispatchSpell(s, s.activePlayer, 'darkdealer_action', []);
   }
   // ── Sergeant action ──
   else if (effect === 'sergeant_action') {
-    p.sergeantBuff = true;
-    addLog(s, `Sergeant: next unit played this turn gains +1/+1.`);
+    s = _dispatchSpell(s, s.activePlayer, 'sergeant_action', []);
   }
   // ── Elf Archer action (ranged 2 damage) ──
   else if (effect === 'elfarcher_action') {
-    if (target) {
-      applyDamageToUnit(s, target, 2, 'Elf Archer');
-      addLog(s, `Elf Archer fires at ${target.name}!`);
-    }
-    // Mark the archer as moved
-    if (data.archerUid) {
-      const archer = s.units.find(u => u.uid === data.archerUid);
-      if (archer) archer.moved = true;
-    }
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'elfarcher_action', [target], { archerUid: data.archerUid });
   }
 
   return s;
@@ -1288,7 +1054,7 @@ export function moveUnit(state, unitUid, row, col) {
   return s;
 }
 
-function applyDamageToUnit(state, unit, dmg, sourceName) {
+export function applyDamageToUnit(state, unit, dmg, sourceName) {
   let actualDmg = dmg;
   if (unit.shield > 0) {
     const absorbed = Math.min(unit.shield, dmg);
