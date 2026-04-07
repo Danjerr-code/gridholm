@@ -25,6 +25,7 @@ const btnPrimary = {
   padding: '12px 24px',
   width: '100%',
   cursor: 'pointer',
+  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
 };
 
 const btnSilver = {
@@ -41,6 +42,7 @@ const btnSilver = {
   padding: '12px 24px',
   width: '100%',
   cursor: 'pointer',
+  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
 };
 
 const btnSecondary = {
@@ -67,7 +69,26 @@ const btnCancel = {
   padding: '8px 24px',
   width: '100%',
   cursor: 'pointer',
+  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
 };
+
+const lobbyHoverStyles = `
+  .lobby-btn-primary:hover {
+    box-shadow: 0 0 14px 4px #C9A84C80 !important;
+    transform: translateY(1px);
+    filter: brightness(0.92);
+  }
+  .lobby-btn-silver:hover {
+    box-shadow: 0 0 14px 4px #C0C0C080 !important;
+    transform: translateY(1px);
+    filter: brightness(0.92);
+  }
+  .lobby-btn-muted:hover {
+    box-shadow: 0 0 10px 3px #C9A84C30 !important;
+    transform: translateY(1px);
+    filter: brightness(0.92);
+  }
+`;
 
 export default function Lobby({ onNavigate }) {
   const [joinInput, setJoinInput] = useState('');
@@ -137,6 +158,7 @@ export default function Lobby({ onNavigate }) {
       justifyContent: 'center',
       padding: '16px',
     }}>
+      <style>{lobbyHoverStyles}</style>
       <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{
@@ -156,11 +178,12 @@ export default function Lobby({ onNavigate }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button style={btnPrimary} onClick={() => onNavigate('/ai')}>
+          <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onNavigate('/ai')}>
             Play vs AI
           </button>
 
           <button
+            className="lobby-btn-silver"
             style={{ ...btnSilver, opacity: creating ? 0.6 : 1 }}
             onClick={handleCreateGame}
             disabled={creating}
@@ -171,7 +194,7 @@ export default function Lobby({ onNavigate }) {
             <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
           )}
 
-          <button style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
+          <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
             How to Play
           </button>
 
@@ -201,6 +224,7 @@ export default function Lobby({ onNavigate }) {
               />
               <button
                 type="submit"
+                className="lobby-btn-muted"
                 style={{
                   background: 'transparent',
                   color: '#C9A84C',
@@ -211,6 +235,7 @@ export default function Lobby({ onNavigate }) {
                   padding: '12px 16px',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
                 }}
               >
                 Join
