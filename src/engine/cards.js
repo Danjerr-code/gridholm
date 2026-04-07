@@ -18,7 +18,7 @@ export const CARD_DB = {
   standardbearer:  { id: 'standardbearer',  name: 'Standard Bearer',     type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Human',  rules: 'Aura 2: Friendly units within 2 tiles gain +1 ATK in combat and +1 HP while in range.', aura: { range: 2, stat: 'both', value: 1, target: 'friendly' }, image: 'standardbearer.webp' },
   sentinel:        { id: 'sentinel',        name: 'Sentinel',            type: 'unit',  cost: 3, atk: 1, hp: 3, spd: 1, unitType: 'Human',  rules: 'Aura 1: Restore 1 HP to other friendly combat units within 1 tile at end of turn.', aura: { range: 1, stat: 'hp', value: 1, target: 'friendly', trigger: 'endturn', excludeSelf: true }, image: 'sentinel.webp' },
   warlord:         { id: 'warlord',         name: 'Warlord',             type: 'unit',  cost: 4, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: '', image: 'warlord.webp' },
-  battlepriestunit:{ id: 'battlepriestunit',name: 'Battle Priest',       type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When summoned: deal 2 damage to an adjacent enemy unit and restore 2 HP to an adjacent friendly unit.', image: 'battlepriestunit.webp' },
+  battlepriestunit:{ id: 'battlepriestunit',name: 'Battle Priest',       type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When summoned deal 2 damage to an adjacent enemy unit and restore 2 HP to an adjacent friendly unit.', image: 'battlepriestunit.webp' },
   paladin:         { id: 'paladin',         name: 'Paladin',             type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile permanently gain +1 max HP at the beginning of your turn.', aura: { range: 1, stat: 'maxhp', value: 1, target: 'friendlycombat', trigger: 'beginturn', permanent: true }, image: 'paladin.webp' },
   // HOW TO ADD CARD ART:
   // 1. Generate art at 512x512px, export as WebP
@@ -26,7 +26,7 @@ export const CARD_DB = {
   // 3. Set image field to the filename: image: 'captain.webp'
   // 4. The UI will automatically display it using getCardImageUrl()
   // Cards without art show a placeholder with the unit type label
-  captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly units within 1 tile gain +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
+  captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile have +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
   aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Human',  rules: 'Aura 1: Enemy units within 1 tile have -1 ATK in combat.', aura: { range: 1, stat: 'atk', value: -1, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
   waddles:         { id: 'waddles',         name: 'Waddles, Trusted Aide', type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: 'Penguin', rules: 'While Waddles is adjacent to your champion, combat damage dealt to your champion is reduced to 2.', legendary: true, image: 'waddles.webp' },
 
@@ -75,8 +75,8 @@ export const CARD_DB = {
   elfranger:       { id: 'elfranger',       name: 'Elf Ranger',          type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 2, unitType: 'Elf',    rules: '', image: 'elfranger.webp' },
   grovewarden:     { id: 'grovewarden',     name: 'Grove Warden',        type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Elf',    rules: 'Action: Restore 1 HP to your champion for each friendly Elf combat unit you control.', action: true, image: 'grovewarden.webp' },
   moonveilmystic:  { id: 'moonveilmystic',  name: 'Moonveil Mystic',     type: 'unit',  cost: 4, atk: 1, hp: 2, spd: 1, unitType: 'Elf',    rules: 'Whenever you restore HP to your champion or a friendly unit this unit gains +1/+1. Triggers once per restore event.', image: 'moonveilmystic.webp' },
-  elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Skip moving this unit to deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
-  sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion permanently gains +2 max HP.', legendary: true, image: 'sistersiofra.webp' },
+  elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
+  sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion gains +2 HP.', legendary: true, image: 'sistersiofra.webp' },
   grovechampion:   { id: 'grovechampion',   name: 'Grove Champion',      type: 'unit',  cost: 5, atk: 5, hp: 5, spd: 1, unitType: 'Elf',    rules: '', image: 'grovechampion.webp' },
   yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 7, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'At the end of your turn summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
   sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1,                    rules: 'When this unit is destroyed restore 1 HP to your champion.', token: true, image: null },
@@ -87,7 +87,7 @@ export const CARD_DB = {
   bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   rules: "Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP you've restored this turn.", image: 'bloom.webp' },
   entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: 'Elf',   rules: 'Choose a friendly Elf. Adjacent enemy combat units cannot move next turn.', image: 'entangle.webp' },
   ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: 'Elf',   rules: 'Draw 2 cards.', image: 'ancientspring.webp' },
-  verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   rules: 'Friendly units within 2 tiles of your champion gain +2/+2 this turn.', image: 'verdantsurge.webp' },
+  verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   rules: 'Give your champion and friendly units within 2 tiles of your champion +2/+2 this turn.', image: 'verdantsurge.webp' },
   spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: 'Elf',   rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
 
   // Demon units
