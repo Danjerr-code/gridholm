@@ -98,7 +98,7 @@ export const CHAMPIONS = {
         name: 'Dark Pact',
         type: 'activated',
         cost: { type: 'hp', amount: 2 },
-        description: 'Pay 2 HP: draw a card. Replaces Corrupt.',
+        description: 'Pay 2 HP: draw a card.',
         replacesAbility: 'corrupt',
         targetRequired: false,
       },
