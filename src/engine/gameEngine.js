@@ -442,11 +442,11 @@ function fireOnSummonTriggers(unit, state) {
   if (unit.id === 'battlepriestunit') {
     const adj = cardinalNeighbors(unit.row, unit.col);
     const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c));
-    const hasFriendlies = state.units.some(u => u.owner === unit.owner && u.uid !== unit.uid && adj.some(([r, c]) => u.row === r && u.col === c));
+    const hasFriendlies = state.units.some(u => u.owner === unit.owner && u.uid !== unit.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c));
     if (hasEnemies) {
-      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid } };
+      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid, paid: true } };
     } else if (hasFriendlies) {
-      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 1, data: { sourceUid: unit.uid, enemyUid: null } };
+      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 1, data: { sourceUid: unit.uid, enemyUid: null, paid: true } };
     }
   }
 
@@ -1052,9 +1052,9 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       const enemyUid = target ? target.uid : null;
       if (priest) {
         const adj = cardinalNeighbors(priest.row, priest.col);
-        const hasFriendlies = s.units.some(u => u.owner === s.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c));
+        const hasFriendlies = s.units.some(u => u.owner === s.activePlayer && u.uid !== priest.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c));
         if (hasFriendlies) {
-          s.pendingSpell = { cardUid, effect: 'battlepriestunit_summon', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid } };
+          s.pendingSpell = { cardUid, effect: 'battlepriestunit_summon', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid, paid: true } };
         } else {
           // No friendly targets — execute now with enemy only
           const enemy = enemyUid ? s.units.find(u => u.uid === enemyUid) : null;
@@ -1525,7 +1525,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       if (step === 0) {
         return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
       }
-      return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
     }
 
     // Pack Runner action: friendly unit (not packrunner itself)
