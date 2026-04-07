@@ -599,16 +599,16 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
       {/* Sheet */}
       <div className="no-scrollbar" style={{
         position: 'fixed',
-        bottom: 0,
+        top: 80,
         left: 0,
         right: 0,
         zIndex: 50,
         background: '#0d0d1a',
         border: '1px solid #C9A84C40',
-        borderBottom: 'none',
-        borderRadius: '16px 16px 0 0',
+        borderTop: 'none',
+        borderRadius: '0 0 16px 16px',
         padding: '16px',
-        maxHeight: '65vh',
+        maxHeight: 'calc(50vh - 80px)',
         overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
