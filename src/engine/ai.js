@@ -149,8 +149,8 @@ function aiChampionAbility(state) {
   const p = s.players[AI_PLAYER];
   const champ = s.champions[AI_PLAYER];
 
-  // Skip if ability already used this turn
-  if (s.championAbilityUsed && s.championAbilityUsed[AI_PLAYER]) return s;
+  // Skip if champion has already moved/acted this turn (ability uses the action)
+  if (champ.moved) return s;
 
   // Prioritize board development in the first 4 turns
   if (s.turn <= 4) return s;
@@ -271,9 +271,9 @@ function aiChampionAbility(state) {
 export function runAITurn(state) {
   let s = cloneState(state);
 
+  s = aiChampionAbility(s);
   s = aiChampionMove(s);
   s = aiSummonCast(s);
-  s = aiChampionAbility(s);
   s = aiUnitMove(s);
 
   s = endActionPhase(s);

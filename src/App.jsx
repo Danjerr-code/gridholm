@@ -513,7 +513,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
     const player = state.players[playerIdx];
     const champDef = getChampionDef(player);
     const tier = player.resonance?.tier ?? 'none';
-    const abilityUsed = state.championAbilityUsed?.[playerIdx] ?? false;
+    const abilityUsed = champ.moved;
     const ownerLabel = playerIdx === 0 ? 'Friendly' : 'Enemy';
     const ownerColor = playerIdx === 0 ? '#4a8abf' : '#bf4a4a';
     content = (
@@ -765,6 +765,9 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
 
   return (
     <div style={{ borderTop: '0.5px solid #1e1e2e', paddingTop: 6, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: '10px', fontWeight: 600, color: '#9090b8', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
+        Champion Action:
+      </div>
       {activatedAbility && (
         <button
           disabled={btnDisabled}
@@ -791,7 +794,7 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
             {activatedAbility.description}
           </div>
           {abilityUsed && (
-            <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: 2 }}>Used this turn</div>
+            <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: 2 }}>Action used — cannot move this turn</div>
           )}
         </button>
       )}
@@ -818,7 +821,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
     const player = state.players[playerIdx];
     const champDef = getChampionDef(player);
     const tier = player.resonance?.tier ?? 'none';
-    const abilityUsed = state.championAbilityUsed?.[playerIdx] ?? false;
+    const abilityUsed = champ.moved;
     const ownerLabel = playerIdx === 0 ? 'Friendly' : 'Enemy';
     const ownerColor = playerIdx === 0 ? '#4a8abf' : '#bf4a4a';
     const champImageUrl = getCardImageUrl(champDef.image);

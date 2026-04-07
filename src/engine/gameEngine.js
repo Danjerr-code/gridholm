@@ -1844,6 +1844,9 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
   const p = s.players[playerIdx];
   const champ = s.champions[playerIdx];
 
+  // Ability uses the champion's action — cannot activate if champion already moved/acted
+  if (champ.moved) return s;
+
   switch (abilityId) {
     case 'shield': {
       const unit = s.units.find(u => u.uid === targetUid);
@@ -1903,5 +1906,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
 
   if (!s.championAbilityUsed) s.championAbilityUsed = [false, false];
   s.championAbilityUsed[playerIdx] = true;
+  // Using the ability consumes the champion's action — prevents movement this turn
+  champ.moved = true;
   return s;
 }
