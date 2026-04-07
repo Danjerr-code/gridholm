@@ -1,5 +1,6 @@
-import { buildDeck, shuffle } from './cards.js';
+import { buildDeck, shuffle, TOKENS } from './cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
+import { CHAMPIONS } from './champions.js';
 
 const FACTION_ATTRIBUTE = {
   human: 'light',
@@ -23,6 +24,16 @@ export const PHASES = ['begin-turn', 'action', 'end-turn'];
 
 export function manhattan(a, b) {
   return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+}
+
+// Returns 1 if the unit benefits from Fortitude damage reduction, else 0.
+// Fortitude: Light/ascended player's unit within 2 tiles of their champion.
+function getFortitudeReduction(state, unit) {
+  const ownerIdx = unit.owner;
+  const p = state.players[ownerIdx];
+  if (!p || FACTION_ATTRIBUTE[p.deckId] !== 'light' || p.resonance?.tier !== 'ascended') return 0;
+  const champ = state.champions[ownerIdx];
+  return manhattan([champ.row, champ.col], [unit.row, unit.col]) <= 2 ? 1 : 0;
 }
 
 export function cardinalNeighbors(row, col) {
@@ -230,6 +241,24 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
       removeStandardBearerAura(friendly, state);
     }
   }
+
+  // 9. Soul Harvest (Dark, Attuned passive): when any enemy unit is destroyed,
+  //    restore 1 HP to the Dark player's champion (capped at 20).
+  for (let pIdx = 0; pIdx < 2; pIdx++) {
+    const p = state.players[pIdx];
+    if (
+      FACTION_ATTRIBUTE[p.deckId] === 'dark' &&
+      (p.resonance?.tier === 'attuned' || p.resonance?.tier === 'ascended') &&
+      unit.owner !== pIdx
+    ) {
+      const champ = state.champions[pIdx];
+      const healed = Math.min(1, 20 - champ.hp);
+      if (healed > 0) {
+        champ.hp += healed;
+        addLog(state, `Soul Harvest: ${p.name}'s champion restores 1 HP.`);
+      }
+    }
+  }
 }
 
 // ============================================
@@ -238,6 +267,31 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
 // ADD NEW BEGIN TURN TRIGGERS HERE
 // ============================================
 function fireBeginTurnTriggers(state, playerIdx) {
+  // Grove (Mystic, Ascended passive): summon a Sapling adjacent to champion if fewer than 2 exist.
+  const grovePLayer = state.players[playerIdx];
+  if (FACTION_ATTRIBUTE[grovePLayer.deckId] === 'mystic' && grovePLayer.resonance?.tier === 'ascended') {
+    const saplingCount = state.units.filter(u => u.owner === playerIdx && u.id === 'token_sapling').length;
+    if (saplingCount < 2) {
+      const champ = state.champions[playerIdx];
+      const openTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (openTiles.length > 0) {
+        const [r, c] = openTiles[Math.floor(Math.random() * openTiles.length)];
+        state.units.push({
+          ...TOKENS.sapling,
+          owner: playerIdx, row: r, col: c,
+          maxHp: TOKENS.sapling.hp,
+          summoned: true, moved: false,
+          atkBonus: 0, shield: 0, speedBonus: 0, hidden: false, turnAtkBonus: 0,
+          uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
+        });
+        addLog(state, `Grove: ${grovePLayer.name}'s champion summons a Sapling at (${r},${c}).`);
+      }
+    }
+  }
+
   // Paladin Aura: permanently increase max HP of adjacent friendly combat units by 1
   const paladins = state.units.filter(u => u.owner === playerIdx && u.id === 'paladin');
   for (const pal of paladins) {
@@ -398,6 +452,20 @@ function fireAttackTriggers(attacker, defender, state, killedDefender) {
     liveAttacker.razorfangResetUsed = true;
     addLog(state, `Razorfang, Alpha: action reset!`);
   }
+
+  // 5. Hunger (Primal, Ascended passive): gain 1 temporary mana on kill, cap 3 per turn
+  if (killedDefender && !defenderIsChampion) {
+    const ownerIdx = attacker.owner;
+    const p = state.players[ownerIdx];
+    if (FACTION_ATTRIBUTE[p.deckId] === 'primal' && p.resonance?.tier === 'ascended') {
+      const currentTemp = p.hungerTempMana || 0;
+      if (currentTemp < 3) {
+        p.hungerTempMana = currentTemp + 1;
+        p.resources = Math.min(p.resources + 1, 10);
+        addLog(state, `Hunger: ${p.name} gains 1 temporary mana (${p.resources} total).`);
+      }
+    }
+  }
 }
 
 // ============================================
@@ -528,8 +596,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance },
-      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance },
+      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId },
+      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -543,6 +611,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     archerShot: [],
     recalledThisTurn: [],
     waddlesActive: [false, false],
+    championAbilityUsed: [false, false],
   };
 }
 
@@ -651,6 +720,9 @@ function doBeginTurnPhase(state) {
   // Reset hpRestoredThisTurn
   p.hpRestoredThisTurn = 0;
 
+  // Reset Hunger temp mana tracking (temp mana already wiped by the resources reset above)
+  p.hungerTempMana = 0;
+
   // BEGIN TURN TRIGGERS
   fireBeginTurnTriggers(state, state.activePlayer);
 
@@ -721,7 +793,11 @@ export function moveChampion(state, row, col) {
     const champAtk = getEffectiveAtk(s, champ, combatTile);
     const enemyAtk = getEffectiveAtk(s, enemyUnit, combatTile);
     addLog(s, `${getPlayer(s).name}'s champion attacks ${enemyUnit.name}!`);
-    applyDamageToUnit(s, enemyUnit, champAtk, 'Champion', combatTile);
+    // Fortitude: reduce damage to enemy unit if they're Light/ascended and within 2 of their champion
+    const unitFortRed = getFortitudeReduction(s, enemyUnit);
+    const effectiveChampAtk = unitFortRed > 0 && champAtk > 0 ? Math.max(1, champAtk - unitFortRed) : champAtk;
+    if (unitFortRed > 0 && champAtk > 0) addLog(s, `Fortitude: ${enemyUnit.name} takes 1 less damage.`);
+    applyDamageToUnit(s, enemyUnit, effectiveChampAtk, 'Champion', combatTile);
     // Apply enemy's pre-combat ATK to champion (simultaneous)
     if (enemyAtk > 0) {
       let champIncomingDmg = enemyAtk;
@@ -1237,6 +1313,7 @@ function reachableTiles(state, unit, speed) {
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
       if (friendlyOccupied) continue;
+      if (unit.canAttack === false && (enemyUnit || enemyChamp)) continue;
       result.push([nr, nc]);
       if (remaining > 1 && !enemyUnit && !enemyChamp && !friendlyOccupied) {
         frontier.push([nr, nc, remaining - 1]);
@@ -1290,11 +1367,19 @@ export function moveUnit(state, unitUid, row, col) {
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);
     const defenderAtk = getEffectiveAtk(s, enemyUnit, combatTile);
     addLog(s, `${unit.name} attacks ${enemyUnit.name}!`);
-    applyDamageToUnit(s, enemyUnit, attackerAtk, unit.name, combatTile);
+    // Fortitude: reduce damage to defending enemy unit if they're Light/ascended and within 2 of their champion
+    const enemyFortRed = getFortitudeReduction(s, enemyUnit);
+    const effectiveAttackerAtk = enemyFortRed > 0 && attackerAtk > 0 ? Math.max(1, attackerAtk - enemyFortRed) : attackerAtk;
+    if (enemyFortRed > 0 && attackerAtk > 0) addLog(s, `Fortitude: ${enemyUnit.name} takes 1 less damage.`);
+    applyDamageToUnit(s, enemyUnit, effectiveAttackerAtk, unit.name, combatTile);
 
     const stillAlive = s.units.find(u => u.uid === unitUid);
     if (stillAlive) {
-      applyDamageToUnit(s, stillAlive, defenderAtk, enemyUnit.name, combatTile);
+      // Fortitude: reduce counter-damage to attacking unit if they're Light/ascended and within 2 of their champion
+      const attackerFortRed = getFortitudeReduction(s, stillAlive);
+      const effectiveDefenderAtk = attackerFortRed > 0 && defenderAtk > 0 ? Math.max(1, defenderAtk - attackerFortRed) : defenderAtk;
+      if (attackerFortRed > 0 && defenderAtk > 0) addLog(s, `Fortitude: ${stillAlive.name} takes 1 less damage.`);
+      applyDamageToUnit(s, stillAlive, effectiveDefenderAtk, enemyUnit.name, combatTile);
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
@@ -1453,8 +1538,17 @@ function completeTurnAdvance(state) {
         u.hp = Math.max(1, u.hp - u.verdantSurgeBonus);
         u.verdantSurgeBonus = 0;
       }
+      // Clear Shield ability HP bonus
+      if (u.shieldHpBonus) {
+        u.hp = Math.max(1, u.hp - u.shieldHpBonus);
+        u.maxHp = Math.max(1, u.maxHp - u.shieldHpBonus);
+        u.shieldHpBonus = 0;
+      }
     }
   });
+
+  // Reset champion ability used flag
+  if (s.championAbilityUsed) s.championAbilityUsed[s.activePlayer] = false;
 
   // Clear champion per-turn bonuses
   if (champ.turnAtkBonus) champ.turnAtkBonus = 0;
@@ -1710,4 +1804,94 @@ export function getArcherShootTargets(state, archerUid) {
   return state.units
     .filter(u => u.owner !== state.activePlayer && manhattan([archer.row, archer.col], [u.row, u.col]) <= 2)
     .map(u => u.uid);
+}
+
+// ── champion ability helpers ───────────────────────────────────────────────
+
+export function getChampionDef(player) {
+  const attr = FACTION_ATTRIBUTE[player.deckId] ?? 'light';
+  return CHAMPIONS[attr] ?? CHAMPIONS.light;
+}
+
+export function getChampionAbilityTargets(state, playerIdx, targetFilter) {
+  const champ = state.champions[playerIdx];
+  switch (targetFilter) {
+    case 'friendly_unit_within_2':
+      return state.units
+        .filter(u => u.owner === playerIdx && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .map(u => u.uid);
+    case 'friendly_unit':
+      return state.units.filter(u => u.owner === playerIdx && !u.hidden).map(u => u.uid);
+    case 'enemy_unit':
+      return state.units.filter(u => u.owner !== playerIdx && !u.hidden).map(u => u.uid);
+    default:
+      return [];
+  }
+}
+
+export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
+  const s = cloneState(state);
+  const p = s.players[playerIdx];
+  const champ = s.champions[playerIdx];
+
+  switch (abilityId) {
+    case 'shield': {
+      const unit = s.units.find(u => u.uid === targetUid);
+      if (!unit) return s;
+      const bonus = 2;
+      unit.shieldHpBonus = (unit.shieldHpBonus || 0) + bonus;
+      unit.hp += bonus;
+      unit.maxHp += bonus;
+      p.resources -= 2;
+      addLog(s, `${p.name} uses Shield: ${unit.name} gains +2 HP until end of turn.`);
+      break;
+    }
+    case 'howl': {
+      const unit = s.units.find(u => u.uid === targetUid);
+      if (!unit) return s;
+      unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
+      p.resources -= 2;
+      addLog(s, `${p.name} uses Howl: ${unit.name} gains +2 ATK until end of turn.`);
+      break;
+    }
+    case 'nurture': {
+      const unit = s.units.find(u => u.uid === targetUid);
+      if (!unit) return s;
+      unit.atk += 1;
+      unit.hp += 1;
+      unit.maxHp += 1;
+      p.resources -= 2;
+      addLog(s, `${p.name} uses Nurture: ${unit.name} gains +1/+1 permanently.`);
+      break;
+    }
+    case 'corrupt': {
+      const unit = s.units.find(u => u.uid === targetUid);
+      if (!unit) return s;
+      unit.hp -= 1;
+      p.resources -= 2;
+      addLog(s, `${p.name} uses Corrupt: ${unit.name} takes 1 damage (${unit.hp} HP remaining).`);
+      if (unit.hp <= 0) {
+        destroyUnit(unit, s, 'corrupt');
+      }
+      break;
+    }
+    case 'dark_pact': {
+      champ.hp -= 2;
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(s, `${p.name} uses Dark Pact: pays 2 HP and draws ${drawn.name}.`);
+      } else {
+        addLog(s, `${p.name} uses Dark Pact: pays 2 HP but deck is empty.`);
+      }
+      checkWinner(s);
+      break;
+    }
+    default:
+      return s;
+  }
+
+  if (!s.championAbilityUsed) s.championAbilityUsed = [false, false];
+  s.championAbilityUsed[playerIdx] = true;
+  return s;
 }
