@@ -157,6 +157,13 @@ export function useMultiplayerGame(gameId) {
       const p2DeckId = isSwapped ? player1ChosenDeck : player2ChosenDeck;
 
       const s = createInitialState(p1DeckId, p2DeckId);
+      // The deck assignment above already maps the intended first player to engine
+      // index 0 (via isSwapped). Override the engine's random coin flip so that
+      // activePlayer always starts at 0 — preventing a mismatch between the
+      // session's active_player (guest ID) and the engine's activePlayer index.
+      s.activePlayer = 0;
+      s.firstPlayer = 0;
+      s.log[0] = 'Game started. Player 1 goes first. Both players start with 5 cards. Player 1 skips draw on turn 1.';
       s.players[0].name = 'Player 1';
       s.players[1].name = 'Player 2';
       const initialState = autoAdvancePhase(s);
