@@ -68,9 +68,6 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
             </div>
           </>
         )}
-        {card.type === 'spell' && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8a4abf', marginTop: 'auto' }}>Spell</div>
-        )}
         {card.aura && (
           <div className="mt-0.5">
             <span style={{ fontSize: '8px', background: '#134e4a', color: '#5eead4', padding: '1px 4px', borderRadius: '4px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
@@ -158,9 +155,6 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
             <span style={{ color: '#ffffff' }}>⚡{card.spd}</span>
           </div>
         )}
-        {card.type === 'spell' && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8a4abf', marginBottom: '2px' }}>Spell</div>
-        )}
 
         {/* Keyword badges */}
         {card.aura && (
@@ -177,9 +171,11 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         )}
 
         {/* Card type label */}
-        <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: `${factionColor}cc`, textTransform: 'capitalize' }}>
-          {card.unitType || (isSpell ? 'Spell' : '')}
-        </div>
+        {!isSpell && (
+          <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: `${factionColor}cc`, textTransform: 'capitalize' }}>
+            {card.unitType}
+          </div>
+        )}
       </div>
     </div>
   );

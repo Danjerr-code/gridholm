@@ -108,9 +108,11 @@ function CardModal({ card, onClose }) {
         </div>
 
         {/* Type / Faction */}
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
-          {card.type === 'spell' ? 'Spell' : card.unitType}
-        </div>
+        {card.type !== 'spell' && (
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
+            {card.unitType}
+          </div>
+        )}
 
         {/* Stats */}
         {card.type === 'unit' && (
