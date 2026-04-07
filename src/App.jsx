@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
 import { getCardImageUrl } from './supabase.js';
+import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
@@ -528,6 +529,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
               {unit.shield > 0 && <div style={{ fontSize: 12, color: '#67e8f9', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>}
             </div>
           </div>
+          <KeywordPills item={unit} />
           {unit.rules && (
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
               {unit.rules}
@@ -573,11 +575,9 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
                 <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div><div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>{card.spd}</div></div>
               </div>
             )}
-            {card.aura && (
-              <span style={{ fontSize: 11, background: '#134e4a', color: '#5eead4', padding: '2px 6px', borderRadius: 4, fontWeight: 600, alignSelf: 'flex-start' }}>Aura {card.aura.range}</span>
-            )}
           </div>
         </div>
+        <KeywordPills item={card} />
         {card.rules && (
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
             {card.rules}
@@ -621,6 +621,65 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
         {content}
       </div>
     </>
+  );
+}
+
+function KeywordPills({ item }) {
+  const [openPill, setOpenPill] = useState(null);
+  const activeKeywords = [];
+  if (item.rush) activeKeywords.push('rush');
+  if (item.hidden) activeKeywords.push('hidden');
+  if (item.action) activeKeywords.push('action');
+  if (item.aura) activeKeywords.push('aura');
+  if (item.legendary) activeKeywords.push('legendary');
+  if (item.stunned) activeKeywords.push('stunned');
+  if (activeKeywords.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+      {activeKeywords.map(kw => {
+        const def = KEYWORD_REMINDERS[kw];
+        if (!def) return null;
+        const label = kw === 'aura' ? `Aura ${item.aura.range}` : def.label;
+        const isOpen = openPill === kw;
+        return (
+          <div key={kw} style={{ width: '100%' }}>
+            <span
+              onClick={() => setOpenPill(isOpen ? null : kw)}
+              style={{
+                display: 'inline-block',
+                fontSize: '10px',
+                background: `${def.color}22`,
+                color: def.color,
+                border: `1px solid ${def.color}55`,
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: 600,
+                fontFamily: 'var(--font-sans)',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              {label}
+            </span>
+            {isOpen && (
+              <div style={{
+                fontSize: '10px',
+                color: '#c0c0d0',
+                fontFamily: 'var(--font-sans)',
+                lineHeight: 1.5,
+                padding: '4px 6px',
+                marginTop: '2px',
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: '4px',
+                borderLeft: `2px solid ${def.color}55`,
+              }}>
+                {def.reminder}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -683,6 +742,7 @@ function CardDetailPanel({ inspectedItem, state }) {
           {unit.shield > 0 && (
             <div style={{ fontSize: '11px', color: '#67e8f9', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>🛡 Shield: {unit.shield}</div>
           )}
+          <KeywordPills item={unit} />
           {unit.rules && (
             <div style={{
               fontFamily: 'var(--font-sans)',
@@ -781,6 +841,7 @@ function CardDetailPanel({ inspectedItem, state }) {
             </div>
           </div>
         )}
+        <KeywordPills item={card} />
         {card.rules && (
           <div style={{
             fontFamily: 'var(--font-sans)',
