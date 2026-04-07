@@ -1077,8 +1077,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             justifyContent: 'center',
             alignItems: 'center',
             gap: 8,
-            padding: '6px 0',
-            marginBottom: 4,
+            padding: '4px 0',
+            marginBottom: 0,
           }}>
             <ResourceDisplay current={myPlayer.resources} max={10} playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'} singleRow={true} />
           </div>
@@ -1419,13 +1419,13 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
 function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
   return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.75)', zIndex: 9999 }}
+      className="fixed inset-0 flex items-start justify-center"
+      style={{ background: 'rgba(0,0,0,0.75)', zIndex: 9999, paddingTop: 80 }}
       onClick={onClose}
     >
       <div
         className="relative bg-gray-900 border-2 border-amber-500 rounded-xl p-4 overflow-y-auto"
-        style={{ width: 280, maxHeight: '80vh', zIndex: 10000 }}
+        style={{ width: 280, maxHeight: '70vh', zIndex: 10000 }}
         onClick={e => e.stopPropagation()}
       >
         <button

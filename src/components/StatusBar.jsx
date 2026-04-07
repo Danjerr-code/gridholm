@@ -13,9 +13,19 @@ export function ResourceDisplay({ current, max = 10, playerColor, small = false,
   const size = small ? 8 : 10;
 
   if (singleRow) {
-    const pipSize = 7;
+    const pipSize = 9;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <div style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: '#C9A84C',
+          fontFamily: 'var(--font-sans)',
+          marginRight: 4,
+          whiteSpace: 'nowrap',
+        }}>
+          {current}/{max}
+        </div>
         {diamonds.map((filled, i) => (
           <div key={i} style={{
             width: pipSize, height: pipSize,
@@ -26,16 +36,6 @@ export function ResourceDisplay({ current, max = 10, playerColor, small = false,
             boxShadow: filled ? `0 0 3px ${playerColor}60` : 'none',
           }} />
         ))}
-        <div style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: '#C9A84C',
-          fontFamily: 'var(--font-sans)',
-          marginLeft: 4,
-          whiteSpace: 'nowrap',
-        }}>
-          {current}/{max}
-        </div>
       </div>
     );
   }

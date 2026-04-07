@@ -32,16 +32,17 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
       className={`relative rounded-lg text-xs select-none transition-transform
         ${selectedStyle} ${playableStyle} ${dimStyle}
         ${isLegendary && !isSelected ? 'legendary-card' : ''}
-        flex flex-col p-1.5 w-[30vw] max-w-[120px]
+        flex flex-col p-1.5 h-[130px] w-[30vw] max-w-[120px]
         md:w-[124px] md:h-[172px]`}
       style={cardBaseStyle}
       onClick={onClick}
       title={card.rules || card.name}
     >
       {/* === MOBILE LAYOUT (hidden on md+) === */}
-      <div className="md:hidden flex flex-col">
-        <div className="flex justify-between items-start mb-0.5">
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2 }}>
+      <div className="md:hidden flex flex-col h-full">
+        {/* Name + Cost row */}
+        <div className="flex justify-between items-start mb-1" style={{ flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
             {card.legendary && <span style={{ color: '#C9A84C', marginRight: '2px' }}>♛</span>}
             {card.name}
           </span>
@@ -58,26 +59,42 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
             marginLeft: '2px',
           }}>{card.cost}</span>
         </div>
-        {card.type === 'unit' && (
-          <>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: `${factionColor}cc`, marginBottom: '2px' }}>{card.unitType}</div>
-            <div className="flex justify-between" style={{ fontFamily: 'var(--font-sans)', fontSize: '10px' }}>
-              <span style={{ color: '#ffffff' }}>⚔{card.atk}</span>
-              <span style={{ color: '#ffffff' }}>♥{card.hp}</span>
-              <span style={{ color: '#ffffff' }}>⚡{card.spd}</span>
+        {/* Art area */}
+        <div className="rounded overflow-hidden" style={{ flex: 1, minHeight: 0 }} data-art-slot="true">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={card.name}
+              onError={(e) => { e.target.style.display = 'none'; }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: 'var(--border-radius-md)',
+                display: 'block',
+                WebkitTouchCallout: 'none',
+                userSelect: 'none',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#252538',
+              borderRadius: 'var(--border-radius-md)',
+              border: '0.5px solid rgba(255,255,255,0.07)',
+              color: '#4a4a6a',
+              fontSize: '11px',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 600,
+            }}>
+              {(card.unitType || 'Spell')[0]}
             </div>
-          </>
-        )}
-        {card.aura && (
-          <div className="mt-0.5">
-            <span style={{ fontSize: '8px', background: '#134e4a', color: '#5eead4', padding: '1px 4px', borderRadius: '4px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
-              Aura {card.aura.range}
-            </span>
-          </div>
-        )}
-        {card.rules && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* === DESKTOP LAYOUT (hidden on mobile, shown on md+) === */}
