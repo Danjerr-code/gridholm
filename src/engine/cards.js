@@ -35,9 +35,9 @@ export const CARD_DB = {
   ironshield:      { id: 'ironshield',      name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: 'Human', rules: 'Give a friendly unit a shield absorbing up to 5 damage from the next attack.', image: 'ironshield.webp' },
   ironthorns:      { id: 'ironthorns',      name: 'Iron Thorns',         type: 'spell', cost: 2, effect: 'ironthorns',      unitType: 'Human', rules: 'Give your champion a shield absorbing up to 3 damage from the next attack. The attacking unit takes 3 damage.', image: 'ironthorns.webp' },
   forgeweapon:     { id: 'forgeweapon',     name: 'Forge Weapon',        type: 'spell', cost: 2, effect: 'forgeweapon',     unitType: 'Human', rules: 'Give a friendly unit +3 ATK permanently.', image: 'forgeweapon.webp' },
-  fortify:         { id: 'fortify',         name: 'Fortify',             type: 'spell', cost: 3, effect: 'fortify',         unitType: 'Human', rules: 'Give all friendly units +2 HP until start of your next turn.', image: 'fortify.webp' },
-  rally:           { id: 'rally',           name: 'Rally',               type: 'spell', cost: 3, effect: 'rally',           unitType: 'Human', rules: 'All friendly units gain +1 ATK until end of turn.', image: 'rally.webp' },
-  crusade:         { id: 'crusade',         name: 'Crusade',             type: 'spell', cost: 5, effect: 'crusade',         unitType: 'Human', rules: 'All friendly units gain +2 ATK this turn.', image: 'crusade.webp' },
+  fortify:         { id: 'fortify',         name: 'Fortify',             type: 'spell', cost: 3, effect: 'fortify',         unitType: 'Human', rules: 'All friendly combat units gain +2 HP until end of turn.', image: 'fortify.webp' },
+  rally:           { id: 'rally',           name: 'Rally',               type: 'spell', cost: 3, effect: 'rally',           unitType: 'Human', rules: 'All friendly combat units gain +1 ATK until end of turn.', image: 'rally.webp' },
+  crusade:         { id: 'crusade',         name: 'Crusade',             type: 'spell', cost: 5, effect: 'crusade',         unitType: 'Human', rules: 'All friendly combat units gain +2 ATK until end of turn.', image: 'crusade.webp' },
   martiallaw:      { id: 'martiallaw',      name: 'Martial Law',         type: 'spell', cost: 4, effect: 'martiallaw',      unitType: 'Human', rules: 'Enemy combat units within 2 tiles of your champion skip their action next turn.', image: 'martiallaw.webp' },
 
   // Beast units
