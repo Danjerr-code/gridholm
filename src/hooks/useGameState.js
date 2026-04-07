@@ -141,7 +141,13 @@ export function useGameState({ deckId = 'human' } = {}) {
         return base;
       }
 
+      if (card.effect === 'pactofruin') {
+        console.log('[PactOfRuin] useGameState handlePlayCard: calling playCard for pactofruin. cardUid:', cardUid, 'hand size:', p.hand.length, 'resources:', p.resources);
+      }
       const s = playCard(base, cardUid);
+      if (card.effect === 'pactofruin') {
+        console.log('[PactOfRuin] useGameState handlePlayCard: playCard returned. pendingHandSelect:', JSON.stringify(s.pendingHandSelect), 'pendingSpell:', JSON.stringify(s.pendingSpell));
+      }
       if (s.pendingHandSelect) {
         setSelectedCard(cardUid);
         setSelectMode('hand_select');
