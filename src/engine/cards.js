@@ -54,6 +54,7 @@ export const CARD_DB = {
   plaguehog:       { id: 'plaguehog',       name: 'Plague Hog',          type: 'unit',  cost: 4, atk: 4, hp: 1, spd: 1, unitType: 'Beast',  rules: 'Rush. When this unit is destroyed deal 2 damage to all adjacent units.', rush: true, image: 'plaguehog.webp' },
   sabretooth:      { id: 'sabretooth',      name: 'Sabretooth',          type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 2, unitType: 'Beast',  rules: '', image: 'sabretooth.webp' },
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
+  wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  rules: 'Aura 1: Adjacent friendly Beast units gain +1 ATK in combat and +1 HP while in range.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: null },
 
   // Beast spells
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
@@ -103,6 +104,7 @@ export const CARD_DB = {
   fleshtithe:      { id: 'fleshtithe',      name: 'Flesh Tithe',         type: 'unit',  cost: 4, atk: 3, hp: 3, spd: 1, unitType: 'Demon',  rules: 'When summoned you may sacrifice a friendly combat unit. If you do this unit gains +2/+2.', image: 'fleshtithe.webp' },
   dreadshade:      { id: 'dreadshade',      name: 'Dread Shade',         type: 'unit',  cost: 5, atk: 5, hp: 4, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: this unit gains +2 ATK this turn.', hidden: true, image: 'dreadshade.webp' },
   zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn deal 1 damage to all other combat units.', legendary: true, image: 'zmore.webp' },
+  voidtitan:       { id: 'voidtitan',       name: 'Void Titan',          type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: 'Demon',  rules: '', image: null },
 
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy unit.', image: 'bloodoffering.webp' },
@@ -146,7 +148,8 @@ const BEAST_DECK = [
   'boar', 'boar',
   'swiftpaw', 'swiftpaw',
   'wolf', 'wolf',
-  'razorclaw', 'razorclaw',
+  'razorclaw',
+  'wildborne',
   'pip',
   'eagerbeaver',
   'stalker', 'stalker',
@@ -195,7 +198,8 @@ const DEMON_DECK = [
   'imp', 'imp',
   'darkdealer',
   'dreadknight',
-  'chaospawn', 'chaospawn',
+  'chaospawn',
+  'voidtitan',
   'hellhound', 'hellhound',
   'brutedemon', 'brutedemon',
   'shadowtrap',

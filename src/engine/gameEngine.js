@@ -28,6 +28,36 @@ function unitAt(state, row, col) {
   return state.units.find(u => u.row === row && u.col === col) || null;
 }
 
+// ── Wildborne Aura helpers ─────────────────────────────────────────────────
+
+function applyWildbornAura(unit, state) {
+  if (unit.wildborneBuff) return;
+  unit.wildborneBuff = true;
+  unit.maxHp += 1;
+  unit.hp += 1;
+  addLog(state, `Wildborne Aura: ${unit.name} gains +1 HP and +1 max HP.`);
+}
+
+function removeWildbornAura(unit, state) {
+  if (!unit.wildborneBuff) return;
+  unit.wildborneBuff = false;
+  unit.maxHp = Math.max(1, unit.maxHp - 1);
+  unit.hp = Math.max(1, unit.hp - 1);
+  addLog(state, `Wildborne Aura: ${unit.name} loses +1 HP and +1 max HP.`);
+}
+
+// Reconcile which friendly Beast units have the Wildborne HP buff.
+// Called after any movement so entering/leaving range is handled automatically.
+function updateWildbornAura(state) {
+  for (const wb of state.units.filter(u => u.id === 'wildborne')) {
+    for (const beast of state.units.filter(u => u.owner === wb.owner && u.uid !== wb.uid && u.unitType === 'Beast' && !u.hidden)) {
+      const inRange = manhattan([wb.row, wb.col], [beast.row, beast.col]) <= wb.aura.range;
+      if (inRange) applyWildbornAura(beast, state);
+      else removeWildbornAura(beast, state);
+    }
+  }
+}
+
 function championAt(state, row, col) {
   return state.champions.find(c => c.row === row && c.col === col) || null;
 }
@@ -143,6 +173,17 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   if (unit.id === 'sapling') {
     const healed = restoreHP('champion' + unit.owner, 1, state, 'sapling');
     if (healed > 0) addLog(state, `Sapling: champion restores ${healed} HP.`);
+  }
+
+  // 7. Wildborne: remove HP aura from all buffed friendly Beast units
+  if (unit.id === 'wildborne') {
+    const range = unit.aura ? unit.aura.range : 1;
+    const [wr, wc] = combatTile || [unit.row, unit.col];
+    for (const beast of state.units.filter(u => u.owner === unit.owner && u.unitType === 'Beast' && !u.hidden)) {
+      if (manhattan([wr, wc], [beast.row, beast.col]) <= range) {
+        removeWildbornAura(beast, state);
+      }
+    }
   }
 }
 
@@ -369,6 +410,22 @@ function fireOnSummonTriggers(unit, state) {
       state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid } };
     } else if (hasFriendlies) {
       state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 1, data: { sourceUid: unit.uid, enemyUid: null } };
+    }
+  }
+
+  // 6. Wildborne summon: apply HP aura to Beast units already in range,
+  //    and apply aura to Wildborne itself if a Wildborne is already on the board
+  if (unit.unitType === 'Beast') {
+    const wb = state.units.find(u => u.id === 'wildborne' && u.owner === unit.owner && u.uid !== unit.uid);
+    if (wb && manhattan([wb.row, wb.col], [unit.row, unit.col]) <= wb.aura.range) {
+      applyWildbornAura(unit, state);
+    }
+  }
+  if (unit.id === 'wildborne') {
+    for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType === 'Beast' && !u.hidden)) {
+      if (manhattan([unit.row, unit.col], [beast.row, beast.col]) <= unit.aura.range) {
+        applyWildbornAura(beast, state);
+      }
     }
   }
 }
@@ -1180,6 +1237,7 @@ export function moveUnit(state, unitUid, row, col) {
     unit.moved = true;
   }
 
+  updateWildbornAura(s);
   return s;
 }
 
