@@ -2,6 +2,7 @@ export const CHAMPIONS = {
   light: {
     name: 'Valorian',
     attribute: 'light',
+    image: null,
     hp: 20,
     atk: 0,
     abilities: {
@@ -25,6 +26,7 @@ export const CHAMPIONS = {
   primal: {
     name: 'Kragor',
     attribute: 'primal',
+    image: null,
     hp: 20,
     atk: 0,
     abilities: {
@@ -48,6 +50,7 @@ export const CHAMPIONS = {
   mystic: {
     name: 'Sylara',
     attribute: 'mystic',
+    image: null,
     hp: 20,
     atk: 0,
     abilities: {
@@ -71,6 +74,7 @@ export const CHAMPIONS = {
   dark: {
     name: 'Malachar',
     attribute: 'dark',
+    image: null,
     hp: 20,
     atk: 0,
     abilities: {

@@ -1,5 +1,7 @@
 import { FACTION_INFO, buildDeck } from '../engine/cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
+import { CHAMPIONS } from '../engine/champions.js';
+import { getCardImageUrl } from '../supabase.js';
 
 const FACTION_ATTRIBUTE = {
   human: 'light',
@@ -185,6 +187,9 @@ function ResonanceBadge({ tier, score }) {
 }
 
 function FactionCard({ faction, resonance, onSelect }) {
+  const champAttribute = FACTION_ATTRIBUTE[faction.id];
+  const champImage = champAttribute ? CHAMPIONS[champAttribute]?.image : null;
+  const champImageUrl = getCardImageUrl(champImage);
   return (
     <div
       style={{
@@ -203,6 +208,11 @@ function FactionCard({ faction, resonance, onSelect }) {
       onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
     >
+      {champImageUrl && (
+        <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          <img src={champImageUrl} alt={CHAMPIONS[champAttribute]?.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
       <div>
         <h2
           style={{

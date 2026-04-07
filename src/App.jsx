@@ -821,8 +821,16 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
     const abilityUsed = state.championAbilityUsed?.[playerIdx] ?? false;
     const ownerLabel = playerIdx === 0 ? 'Friendly' : 'Enemy';
     const ownerColor = playerIdx === 0 ? '#4a8abf' : '#bf4a4a';
+    const champImageUrl = getCardImageUrl(champDef.image);
     content = (
       <div className="flex flex-col gap-1">
+        <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          {champImageUrl ? (
+            <img src={champImageUrl} alt={champDef.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)' }} />
+          )}
+        </div>
         <div className="flex justify-between items-start">
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#C9A84C', lineHeight: 1.2 }}>{champDef.name}</span>
           <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
