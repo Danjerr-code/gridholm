@@ -203,7 +203,10 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleHandSelect = useCallback((cardUid) => {
     setState(prev => {
+      const hs = prev.pendingHandSelect;
+      console.log('[PactOfRuin] handleHandSelect: card clicked while pendingHandSelect active. cardUid:', cardUid, 'reason:', hs?.reason, 'isPactOfRuin:', hs?.reason === 'pactofruin');
       const s = resolveHandSelect(prev, cardUid);
+      console.log('[PactOfRuin] handleHandSelect: resolveHandSelect returned. pendingHandSelect:', JSON.stringify(s.pendingHandSelect), 'pendingSpell:', JSON.stringify(s.pendingSpell));
       if (s.pendingSpell) {
         setSelectMode('spell');
       } else {
