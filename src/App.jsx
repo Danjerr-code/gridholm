@@ -764,7 +764,9 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
 
   const hasValidTargets = activatedAbility?.targetFilter === 'friendly_unit_within_2'
     ? (state?.units ?? []).some(u => u.owner === champ.owner && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
-    : true;
+    : activatedAbility?.targetFilter === 'friendly_unit'
+      ? (state?.units ?? []).some(u => u.owner === champ.owner && !u.hidden)
+      : true;
 
   const btnDisabled = !canAfford || abilityUsed || !hasValidTargets;
 
