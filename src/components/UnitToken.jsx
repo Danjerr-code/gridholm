@@ -44,6 +44,17 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         onClick={onClick}
         title="Hidden Unit"
       >
+        {/* Dark overlay to fade the hidden-art image */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0, 0, 0, 0.45)',
+          borderRadius: '50%',
+          zIndex: 1,
+        }} />
         <div style={{
           position: 'absolute',
           top: '2px',
