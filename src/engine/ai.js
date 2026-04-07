@@ -12,6 +12,9 @@ import {
   resolveSpell,
   resolveHandSelect,
   getSpellTargets,
+  getChampionDef,
+  getChampionAbilityTargets,
+  applyChampionAbility,
 } from './gameEngine.js';
 
 // AI deck selection: always Human for now.
@@ -140,6 +143,129 @@ function aiUnitMove(state) {
   return s;
 }
 
+// ── Champion ability: evaluated after summoning, before unit move ──────────
+function aiChampionAbility(state) {
+  const s = cloneState(state);
+  const p = s.players[AI_PLAYER];
+  const champ = s.champions[AI_PLAYER];
+
+  // Skip if ability already used this turn
+  if (s.championAbilityUsed && s.championAbilityUsed[AI_PLAYER]) return s;
+
+  // Prioritize board development in the first 4 turns
+  if (s.turn <= 4) return s;
+
+  const champDef = getChampionDef(p);
+  const isAscended = p.resonance?.tier === 'ascended';
+  const ability = isAscended && champDef.abilities.ascended?.type === 'activated'
+    ? champDef.abilities.ascended
+    : champDef.abilities.attuned;
+
+  if (!ability || ability.type !== 'activated') return s;
+
+  // Determine mana cost (dark_pact costs HP not mana)
+  const manaCost = ability.cost?.type === 'mana' ? ability.cost.amount : 0;
+
+  // Skip if using ability would leave insufficient mana to summon any unit in hand
+  if (manaCost > 0) {
+    const unitsInHand = p.hand.filter(c => c.type === 'unit');
+    if (unitsInHand.length > 0) {
+      const cheapestUnit = Math.min(...unitsInHand.map(c => c.cost));
+      if (p.resources - manaCost < cheapestUnit) return s;
+    }
+    if (p.resources < manaCost) return s;
+  }
+
+  const attr = champDef.attribute;
+
+  if (attr === 'light') {
+    // Shield: use on a friendly unit adjacent to an enemy that would die without the +2 HP
+    // Prioritize units with aura keyword
+    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_unit_within_2');
+    const enemyUnits = s.units.filter(u => u.owner !== AI_PLAYER);
+
+    const vulnerable = targets
+      .map(uid => s.units.find(u => u.uid === uid))
+      .filter(Boolean)
+      .filter(unit => {
+        // Must be adjacent to at least one enemy
+        const adjacentEnemy = enemyUnits.find(e => manhattan([unit.row, unit.col], [e.row, e.col]) <= 1);
+        if (!adjacentEnemy) return false;
+        // Would die without the shield bonus
+        return adjacentEnemy.atk >= unit.hp;
+      });
+
+    if (vulnerable.length === 0) return s;
+
+    // Prioritize aura units, then by how close they are to dying
+    vulnerable.sort((a, b) => {
+      const auraA = a.rules && a.rules.toLowerCase().includes('aura') ? 1 : 0;
+      const auraB = b.rules && b.rules.toLowerCase().includes('aura') ? 1 : 0;
+      if (auraB !== auraA) return auraB - auraA;
+      return a.hp - b.hp; // lower HP first (most at risk)
+    });
+
+    return applyChampionAbility(s, AI_PLAYER, 'shield', vulnerable[0].uid);
+
+  } else if (attr === 'primal') {
+    // Howl: use on a unit about to attack (adjacent to an enemy).
+    // Prioritize the unit that can now kill an enemy it couldn't before.
+    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_unit_within_2');
+    const enemyUnits = s.units.filter(u => u.owner !== AI_PLAYER);
+
+    const attackers = targets
+      .map(uid => s.units.find(u => u.uid === uid))
+      .filter(Boolean)
+      .filter(unit => enemyUnits.some(e => manhattan([unit.row, unit.col], [e.row, e.col]) <= 1));
+
+    if (attackers.length === 0) return s;
+
+    // Score: prefer a unit that can now kill an enemy it couldn't before
+    attackers.sort((a, b) => {
+      const gainA = enemyUnits.some(e => a.atk < e.hp && (a.atk + 2) >= e.hp) ? 1 : 0;
+      const gainB = enemyUnits.some(e => b.atk < e.hp && (b.atk + 2) >= e.hp) ? 1 : 0;
+      return gainB - gainA;
+    });
+
+    return applyChampionAbility(s, AI_PLAYER, 'howl', attackers[0].uid);
+
+  } else if (attr === 'mystic') {
+    // Nurture: use on the friendly unit with the highest HP. Skip Saplings.
+    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_unit');
+    const eligible = targets
+      .map(uid => s.units.find(u => u.uid === uid))
+      .filter(Boolean)
+      .filter(unit => unit.id !== 'sapling' && unit.id !== 'token_sapling');
+
+    if (eligible.length === 0) return s;
+
+    eligible.sort((a, b) => b.hp - a.hp);
+    return applyChampionAbility(s, AI_PLAYER, 'nurture', eligible[0].uid);
+
+  } else if (attr === 'dark') {
+    if (isAscended) {
+      // Dark Pact: use if champion has more than 10 HP and fewer than 3 cards in hand
+      if (champ.hp > 10 && p.hand.length < 3) {
+        return applyChampionAbility(s, AI_PLAYER, 'dark_pact', null);
+      }
+    } else {
+      // Corrupt: target the enemy unit with the lowest HP
+      const targets = getChampionAbilityTargets(s, AI_PLAYER, 'enemy_unit');
+      if (targets.length === 0) return s;
+
+      const lowestHp = targets
+        .map(uid => s.units.find(u => u.uid === uid))
+        .filter(Boolean)
+        .sort((a, b) => a.hp - b.hp)[0];
+
+      if (!lowestHp) return s;
+      return applyChampionAbility(s, AI_PLAYER, 'corrupt', lowestHp.uid);
+    }
+  }
+
+  return s;
+}
+
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {
@@ -147,6 +273,7 @@ export function runAITurn(state) {
 
   s = aiChampionMove(s);
   s = aiSummonCast(s);
+  s = aiChampionAbility(s);
   s = aiUnitMove(s);
 
   s = endActionPhase(s);
