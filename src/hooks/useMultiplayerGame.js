@@ -12,6 +12,7 @@ export function useMultiplayerGame(gameId) {
   const [error, setError] = useState(null);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const disconnectTimerRef = useRef(null);
+  const retryTimerRef = useRef(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -128,6 +129,68 @@ export function useMultiplayerGame(gameId) {
     }
   }, [session?.active_player, session?.status, guestId]);
 
+  // Player 1 retry: if both decks are selected but game_state hasn't appeared
+  // within 5 seconds (e.g. Player 1's first selectDeck write happened before
+  // Player 2 had chosen), Player 1 re-generates and writes the initial state.
+  useEffect(() => {
+    if (!session || !supabase) return;
+    const isP1 = session.player1_id === guestId;
+    if (!isP1) return;
+    if (session.status !== 'deck_select') return;
+    if (!session.player1_deck || !session.player2_deck) return;
+
+    console.log('[DeckSelect] Both decks set; scheduling Player 1 retry in 5s if game has not started');
+
+    retryTimerRef.current = setTimeout(async () => {
+      const { data: latest, error: fetchError } = await supabase
+        .from('game_sessions')
+        .select('*')
+        .eq('id', gameId)
+        .single();
+
+      if (fetchError) {
+        console.error('[DeckSelect] Retry fetch failed:', fetchError);
+        return;
+      }
+      if (!latest || latest.status === 'active') return;
+
+      console.log('[DeckSelect] Retry: generating initial game state (Player 1)');
+      const firstPlayerGuestId = latest.active_player || latest.player1_id;
+      const isSwapped = firstPlayerGuestId === latest.player2_id;
+      const p1DeckId = isSwapped ? latest.player2_deck : latest.player1_deck;
+      const p2DeckId = isSwapped ? latest.player1_deck : latest.player2_deck;
+
+      const s = createInitialState(p1DeckId, p2DeckId);
+      s.activePlayer = 0;
+      s.firstPlayer = 0;
+      s.log[0] = 'Game started. Player 1 goes first. Both players start with 5 cards. Player 1 skips draw on turn 1.';
+      s.players[0].name = 'Player 1';
+      s.players[1].name = 'Player 2';
+      const initialState = autoAdvancePhase(s);
+      initialState.firstPlayerId = firstPlayerGuestId;
+
+      const { error: retryError } = await supabase
+        .from('game_sessions')
+        .update({
+          game_state: initialState,
+          status: 'active',
+          active_player: firstPlayerGuestId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', gameId);
+
+      if (retryError) {
+        console.error('[DeckSelect] Retry write failed:', retryError);
+      } else {
+        console.log('[DeckSelect] Retry succeeded');
+      }
+    }, 5000);
+
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [session?.status, session?.player1_deck, session?.player2_deck, gameId, guestId]);
+
   // Deck selection: called when this player picks their faction
   const selectDeck = useCallback(async (deckId) => {
     if (!session || !supabase) return;
@@ -141,49 +204,53 @@ export function useMultiplayerGame(gameId) {
       updated_at: new Date().toISOString(),
     };
 
-    // Check if opponent's deck is already set — if so, initialize game
-    const opponentDeck = isP1 ? session.player2_deck : session.player1_deck;
+    // Only Player 1 is responsible for detecting both-decks-ready and initializing
+    // game state. Player 2 just writes their deck and waits for the Realtime update.
+    // This prevents both clients from racing to write game_state simultaneously.
+    if (isP1) {
+      const p2Deck = session.player2_deck;
+      if (p2Deck) {
+        console.log('[DeckSelect] Both decks selected — Player 1 generating initial game state');
+        // session.active_player during deck_select holds the intended first player
+        // (player1_id for game 1, swapped for rematches).
+        const firstPlayerGuestId = session.active_player || session.player1_id;
+        const isSwapped = firstPlayerGuestId === session.player2_id;
 
-    if (opponentDeck) {
-      // Determine who goes first. session.active_player during deck_select holds
-      // the intended first player (player1_id for game 1, swapped for rematches).
-      const firstPlayerGuestId = session.active_player || session.player1_id;
-      const isSwapped = firstPlayerGuestId === session.player2_id;
+        // Map each player's deck to the correct engine index (0 = first player)
+        const p1DeckId = isSwapped ? p2Deck : deckId;
+        const p2DeckId = isSwapped ? deckId : p2Deck;
 
-      // Deck assigned to game engine index 0 (first player) vs index 1 (second player)
-      const player1ChosenDeck = isP1 ? deckId : opponentDeck;
-      const player2ChosenDeck = isP1 ? opponentDeck : deckId;
-      const p1DeckId = isSwapped ? player2ChosenDeck : player1ChosenDeck;
-      const p2DeckId = isSwapped ? player1ChosenDeck : player2ChosenDeck;
+        const s = createInitialState(p1DeckId, p2DeckId);
+        // Override the engine's random coin flip so activePlayer always starts at 0,
+        // preventing a mismatch between session.active_player (guest ID) and engine index.
+        s.activePlayer = 0;
+        s.firstPlayer = 0;
+        s.log[0] = 'Game started. Player 1 goes first. Both players start with 5 cards. Player 1 skips draw on turn 1.';
+        s.players[0].name = 'Player 1';
+        s.players[1].name = 'Player 2';
+        const initialState = autoAdvancePhase(s);
 
-      const s = createInitialState(p1DeckId, p2DeckId);
-      // The deck assignment above already maps the intended first player to engine
-      // index 0 (via isSwapped). Override the engine's random coin flip so that
-      // activePlayer always starts at 0 — preventing a mismatch between the
-      // session's active_player (guest ID) and the engine's activePlayer index.
-      s.activePlayer = 0;
-      s.firstPlayer = 0;
-      s.log[0] = 'Game started. Player 1 goes first. Both players start with 5 cards. Player 1 skips draw on turn 1.';
-      s.players[0].name = 'Player 1';
-      s.players[1].name = 'Player 2';
-      const initialState = autoAdvancePhase(s);
+        // Track who goes first (guest ID) so rematches can alternate correctly
+        initialState.firstPlayerId = firstPlayerGuestId;
 
-      // Track who goes first (guest ID) so rematches can alternate correctly
-      initialState.firstPlayerId = firstPlayerGuestId;
-
-      updatePayload.game_state = initialState;
-      updatePayload.status = 'active';
-      updatePayload.active_player = firstPlayerGuestId;
+        updatePayload.game_state = initialState;
+        updatePayload.status = 'active';
+        updatePayload.active_player = firstPlayerGuestId;
+      }
     }
 
-    const { data: updated } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('game_sessions')
       .update(updatePayload)
       .eq('id', gameId)
       .select()
       .single();
 
-    if (updated) setSession(updated);
+    if (updateError) {
+      console.error('[DeckSelect] Failed to write deck selection:', updateError);
+    } else if (updated) {
+      setSession(updated);
+    }
   }, [session, gameId, guestId]);
 
   const dispatchAction = useCallback(async (newGameState) => {
