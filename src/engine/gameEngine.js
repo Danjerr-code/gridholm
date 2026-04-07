@@ -447,7 +447,7 @@ function doBeginTurnPhase(state) {
     : drawnCard
       ? `Drew ${drawnCard.name}.`
       : 'No cards left to draw.';
-  addLog(state, `${p.name} begins turn ${p.turnCount}. ${drawnPart} Resources: ${p.resources}/10.`);
+  addLog(state, `${p.name} begins turn ${p.turnCount}. ${drawnPart} Mana: ${p.resources}/10.`);
 
   // Reset hpRestoredThisTurn
   p.hpRestoredThisTurn = 0;

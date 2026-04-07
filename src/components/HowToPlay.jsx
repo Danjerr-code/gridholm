@@ -98,7 +98,7 @@ export default function HowToPlay() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px 0' }}>
             {[
               'Move your champion one tile in any cardinal direction',
-              'Play cards from your hand if you have enough resources',
+              'Play cards from your hand if you have enough mana',
               'Move each of your units one time',
             ].map((line, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -176,7 +176,7 @@ export default function HowToPlay() {
             {[
               'Watch the Throne. If your opponent reaches it first you are already behind. Contesting it early forces them to respond to you.',
               'Summoning sickness is not a weakness. A unit that cannot move is still a blocker. Place it between your champion and the enemy.',
-              'Resources reset each turn. Unspent resources are lost. Spend them.',
+              'Mana resets each turn. Unspent mana is lost. Spend it.',
               "Read your opponent's Hidden units. They placed them somewhere for a reason. Do not walk your best unit into an unknown tile.",
               'Pip the Hungry does not look scary on turn one. By turn four it is everyone\'s problem.',
             ].map((tip, i) => (
@@ -228,7 +228,7 @@ function Divider() {
 
 function AnnotatedCard() {
   const annotations = [
-    { num: 1, label: 'Cost', desc: 'Resources needed to play this card. You gain 1 more each turn up to 10.', top: '4%', right: '-130px', lineTop: '14px', lineRight: '130px' },
+    { num: 1, label: 'Cost', desc: 'Mana needed to play this card. You gain 1 more each turn up to 10.', top: '4%', right: '-130px', lineTop: '14px', lineRight: '130px' },
     { num: 2, label: 'Art', desc: 'Card illustration. Each faction has a distinct visual identity.', top: '22%', right: '-130px', lineTop: '8px', lineRight: '130px' },
     { num: 3, label: 'Name', desc: "The card's name. Legendary cards have a gold border.", top: '46%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
     { num: 4, label: 'Type', desc: 'Human, Beast, Elf, or Demon. Faction matters for synergies.', top: '54%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
@@ -440,7 +440,7 @@ function TurnFlowDiagram() {
   const steps = [
     {
       label: 'Begin Turn',
-      items: ['Draw a card', 'Gain resources'],
+      items: ['Draw a card', 'Gain mana'],
     },
     {
       label: 'Action',
