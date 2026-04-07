@@ -84,8 +84,10 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const abbr = UNIT_TYPE_ABBR[unit.unitType] || unit.name[0];
   const imageUrl = !isOpponentHidden ? getCardImageUrl(unit.image) : null;
   const effectiveAtk = state ? getEffectiveAtk(state, unit) : unit.atk + (unit.atkBonus || 0);
-  const effectiveHp = state ? getEffectiveHp(state, unit) : unit.hp;
-  const effectiveMaxHp = state ? getEffectiveMaxHp(state, unit) : unit.maxHp;
+  // Own hidden units: use raw values — getEffectiveHp/getEffectiveMaxHp return '?' for all hidden units
+  // to hide stats from opponents, but the controller should always see their own unit's real stats.
+  const effectiveHp = isOwnHidden ? unit.hp : (state ? getEffectiveHp(state, unit) : unit.hp);
+  const effectiveMaxHp = isOwnHidden ? unit.maxHp : (state ? getEffectiveMaxHp(state, unit) : unit.maxHp);
   const effectiveSpd = getEffectiveSpd(unit);
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
