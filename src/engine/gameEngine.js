@@ -320,6 +320,18 @@ function fireOnSummonTriggers(unit, state) {
   }
 
   // 4. Void Walker: deal 1 damage to controlling champion (not yet implemented)
+
+  // 5. Battle Priest: prompt adjacent enemy (step 0) then adjacent friendly (step 1)
+  if (unit.id === 'battlepriestunit') {
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c));
+    const hasFriendlies = state.units.some(u => u.owner === unit.owner && u.uid !== unit.uid && adj.some(([r, c]) => u.row === r && u.col === c));
+    if (hasEnemies) {
+      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid } };
+    } else if (hasFriendlies) {
+      state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 1, data: { sourceUid: unit.uid, enemyUid: null } };
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -833,18 +845,41 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const unit = s.units.find(u => u.uid === data.sourceUid);
     if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
-  // ── Battle Priest action (step 0: collect enemy, step 1: collect friendly + dispatch) ──
-  else if (effect === 'battlepriestunit_action') {
+  // ── Battle Priest summon trigger (step 0: collect enemy, step 1: collect friendly + execute) ──
+  else if (effect === 'battlepriestunit_summon') {
+    const priest = s.units.find(u => u.uid === data.sourceUid);
     if (step === 0) {
-      // Collect enemy target — store uid and wait for friendly target
-      if (target) {
-        s.pendingSpell = { cardUid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid: target.uid, paid: true } };
+      const enemyUid = target ? target.uid : null;
+      if (priest) {
+        const adj = cardinalNeighbors(priest.row, priest.col);
+        const hasFriendlies = s.units.some(u => u.owner === s.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c));
+        if (hasFriendlies) {
+          s.pendingSpell = { cardUid, effect: 'battlepriestunit_summon', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid } };
+        } else {
+          // No friendly targets — execute now with enemy only
+          const enemy = enemyUid ? s.units.find(u => u.uid === enemyUid) : null;
+          if (enemy) {
+            addLog(s, `Battle Priest: deals 2 damage to ${enemy.name}.`);
+            applyDamageToUnit(s, enemy, 2, 'Battle Priest');
+          }
+          addLog(s, `Battle Priest: no friendly target in range.`);
+        }
       }
     } else {
-      // All targets collected — dispatch to ACTION_REGISTRY
-      const unit = s.units.find(u => u.uid === data.sourceUid);
-      const enemy = s.units.find(u => u.uid === data.enemyUid);
-      if (unit) s = _dispatchAction(unit, s, [enemy, target]);
+      // step 1 — execute with stored enemy + selected friendly
+      const enemy = data.enemyUid ? s.units.find(u => u.uid === data.enemyUid) : null;
+      if (enemy) {
+        addLog(s, `Battle Priest: deals 2 damage to ${enemy.name}.`);
+        applyDamageToUnit(s, enemy, 2, 'Battle Priest');
+      } else {
+        addLog(s, `Battle Priest: no enemy target in range.`);
+      }
+      if (target) {
+        const healed = restoreHP(target, 2, s, 'battlepriestunit');
+        addLog(s, `Battle Priest: restores ${healed} HP to ${target.name}.`);
+      } else {
+        addLog(s, `Battle Priest: no friendly target in range.`);
+      }
     }
   }
   // ── Pack Runner action ──
@@ -902,10 +937,6 @@ export function triggerUnitAction(state, unitUid) {
 
   // Target-needing actions — use pendingSpell for UI target collection,
   // then resolveSpell routes to _dispatchAction via ACTION_REGISTRY.
-  if (unit.id === 'battlepriestunit') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
-    return s;
-  }
   if (unit.id === 'woodlandguard') {
     s.pendingSpell = { cardUid: unit.uid, effect: 'woodlandguard_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
@@ -1265,15 +1296,14 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
     }
 
-    // Battle Priest action step 0: enemy within 1 tile; step 1: friendly within 1 tile
-    case 'battlepriestunit_action': {
+    // Battle Priest summon trigger step 0: enemy within 1 tile; step 1: friendly within 1 tile
+    case 'battlepriestunit_summon': {
       const priest = state.units.find(u => u.uid === (data.sourceUid || ''));
       if (!priest) return [];
+      const adj = cardinalNeighbors(priest.row, priest.col);
       if (step === 0) {
-        const adj = cardinalNeighbors(priest.row, priest.col);
         return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
       }
-      const adj = cardinalNeighbors(priest.row, priest.col);
       return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
     }
 

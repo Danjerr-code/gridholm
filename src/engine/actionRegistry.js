@@ -25,26 +25,6 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
-  // targets[0]: enemy unit within 1 tile (optional)
-  // targets[1]: friendly unit within 1 tile excluding self (optional)
-  battlepriestunit: (unit, state, targets) => {
-    const enemyTarget = targets[0];
-    const friendlyTarget = targets[1];
-    if (enemyTarget) {
-      addLog(state, `Battle Priest: deals 2 damage to ${enemyTarget.name}.`);
-      applyDamageToUnit(state, enemyTarget, 2, 'Battle Priest');
-    } else {
-      addLog(state, `Battle Priest: no enemy target in range.`);
-    }
-    if (friendlyTarget) {
-      const healed = restoreHP(friendlyTarget, 2, state, 'battlepriestunit');
-      addLog(state, `Battle Priest: restores ${healed} HP to ${friendlyTarget.name}.`);
-    } else {
-      addLog(state, `Battle Priest: no friendly target in range.`);
-    }
-    return state;
-  },
-
   darkdealer: (unit, state) => {
     // Deal 2 damage to own champion then draw 1 card
     const champ = state.champions[unit.owner];
