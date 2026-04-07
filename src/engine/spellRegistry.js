@@ -25,7 +25,7 @@ export const SPELL_REGISTRY = {
 
   smite: (state, caster, targets) => {
     const target = targets[0];
-    if (!target) return state;
+    if (!target || !target.uid) return state; // champions have no uid; only combat units are valid targets
     const champ = state.champions[caster];
     if (manhattan([champ.row, champ.col], [target.row, target.col]) <= 2) {
       applyDamageToUnit(state, target, 4, 'Smite');

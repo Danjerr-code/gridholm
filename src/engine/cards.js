@@ -31,7 +31,7 @@ export const CARD_DB = {
   waddles:         { id: 'waddles',         name: 'Waddles, Trusted Aide', type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: 'Penguin', rules: 'While Waddles is adjacent to your champion, combat damage dealt to your champion is reduced to 2.', legendary: true, image: 'waddles.webp' },
 
   // Human spells
-  smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Human', rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: 'smite.webp' },
+  smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Human', rules: 'Deal 4 damage to one enemy combat unit within 2 tiles of your champion.', image: 'smite.webp' },
   ironshield:      { id: 'ironshield',      name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: 'Human', rules: 'Give a friendly unit a shield absorbing up to 5 damage from the next attack.', image: 'ironshield.webp' },
   ironthorns:      { id: 'ironthorns',      name: 'Iron Thorns',         type: 'spell', cost: 2, effect: 'ironthorns',      unitType: 'Human', rules: 'Give your champion a shield absorbing up to 3 damage from the next attack. The attacking unit takes 3 damage.', image: 'ironthorns.webp' },
   forgeweapon:     { id: 'forgeweapon',     name: 'Forge Weapon',        type: 'spell', cost: 2, effect: 'forgeweapon',     unitType: 'Human', rules: 'Give a friendly unit +3 ATK permanently.', image: 'forgeweapon.webp' },
@@ -44,7 +44,7 @@ export const CARD_DB = {
   boar:            { id: 'boar',            name: 'Boar',                type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: 'Beast',  rules: 'Rush.', rush: true, image: 'boar.webp' },
   swiftpaw:        { id: 'swiftpaw',        name: 'Swiftpaw',            type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'swiftpaw.webp' },
   wolf:            { id: 'wolf',            name: 'Wolf',                type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'wolf.webp' },
-  razorclaw:       { id: 'razorclaw',       name: 'Razorclaw',           type: 'unit',  cost: 2, atk: 3, hp: 1, spd: 2, unitType: 'Beast',  rules: '', image: 'razorclaw.webp' },
+  razorclaw:       { id: 'razorclaw',       name: 'Razorclaw',           type: 'unit',  cost: 2, atk: 3, hp: 1, spd: 1, unitType: 'Beast',  rules: '', image: 'razorclaw.webp' },
   pip:             { id: 'pip',             name: 'Pip the Hungry',      type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Beast',  rules: 'At the end of your turn this unit gains +1/+1.', legendary: true, image: 'pip.webp' },
   eagerbeaver:     { id: 'eagerbeaver',     name: 'Eager Beaver',        type: 'unit',  cost: 3, atk: 3, hp: 3, spd: 1, unitType: 'Beast',  rules: 'Rush.', rush: true, image: 'eagerbeaver.webp' },
   stalker:         { id: 'stalker',         name: 'Stalker',             type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'stalker.webp' },
