@@ -29,13 +29,14 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ? { ring: '#3b82f6', glow: 'rgba(59,130,246,0.55)' }
     : { ring: '#ef4444', glow: 'rgba(239,68,68,0.55)' };
 
-  // Opponent's hidden unit: dark face-down token
+  // Opponent's hidden unit: face-down token with hidden-art image
   if (isOpponentHidden) {
+    const hiddenArtUrl = getCardImageUrl('hidden-art.webp');
     return (
       <div
         className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer select-none relative"
         style={{
-          background: '#1e2d45',
+          background: hiddenArtUrl ? `url(${hiddenArtUrl}) center/cover no-repeat` : '#1e2d45',
           border: '1px solid #3a2a5a60',
           borderRadius: '50%',
           boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`,
