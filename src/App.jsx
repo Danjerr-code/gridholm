@@ -8,6 +8,7 @@ import Hand from './components/Hand.jsx';
 import Log from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
+import GameEndOverlay from './components/GameEndOverlay.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -82,39 +83,27 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
       {/* Winner overlay */}
       {winner && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.85)' }}>
-          <div style={{
-            background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
-            border: '1px solid #C9A84C',
-            borderRadius: '12px',
-            padding: '40px',
-            textAlign: 'center',
-            boxShadow: '0 0 40px #C9A84C20',
-          }}>
-            <div className="text-4xl mb-4">⚔️</div>
-            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', fontWeight: 700, color: '#C9A84C', marginBottom: '8px' }}>{winner} wins!</h2>
-            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#8a8aaa', marginBottom: '24px' }}>The champion has fallen.</p>
-            <button
-              style={{
-                background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-                color: '#0a0a0f',
-                fontFamily: "'Cinzel', serif",
-                fontSize: '13px',
-                fontWeight: 600,
-                border: 'none',
-                borderRadius: '4px',
-                padding: '10px 24px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px #C9A84C40',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-              }}
-              onClick={handlers.handleNewGame}
-            >
-              New Game
-            </button>
-          </div>
-        </div>
+        <GameEndOverlay isWinner={winner === p1.name}>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+              color: '#0a0a0f',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px 24px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px #C9A84C40',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+            onClick={handlers.handleNewGame}
+          >
+            New Game
+          </button>
+        </GameEndOverlay>
       )}
 
       {/* Mobile log drawer */}

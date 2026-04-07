@@ -31,6 +31,7 @@ import Board from './Board.jsx';
 import Hand from './Hand.jsx';
 import Log from './Log.jsx';
 import PhaseTracker from './PhaseTracker.jsx';
+import GameEndOverlay from './GameEndOverlay.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -653,60 +654,46 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
       {/* Winner overlay */}
       {winner && opponentLeftCountdown === null && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.85)' }}>
-          <div style={{
-            background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
-            border: '1px solid #C9A84C',
-            borderRadius: '12px',
-            padding: '40px',
-            textAlign: 'center',
-            boxShadow: '0 0 40px #C9A84C20',
-          }}>
-            <div className="text-4xl mb-4">⚔️</div>
-            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', fontWeight: 700, color: '#C9A84C', marginBottom: '8px' }}>{winner} wins!</h2>
-            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#8a8aaa', marginBottom: '24px' }}>The champion has fallen.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                style={{
-                  background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-                  color: '#0a0a0f',
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '10px 24px',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px #C9A84C40',
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                }}
-                onClick={handlePlayAgain}
-                disabled={playAgainLoading}
-              >
-                {playAgainLoading ? 'Resetting…' : 'Play Again'}
-              </button>
-              <button
-                style={{
-                  background: 'transparent',
-                  color: '#6a6a8a',
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  border: '1px solid #2a2a3a',
-                  borderRadius: '4px',
-                  padding: '10px 24px',
-                  cursor: 'pointer',
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                }}
-                onClick={async () => { await abandonGame(); onBackToLobby(); }}
-              >
-                Leave Game
-              </button>
-            </div>
-          </div>
-        </div>
+        <GameEndOverlay isWinner={winner === myPlayer.name}>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+              color: '#0a0a0f',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px 24px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px #C9A84C40',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+            onClick={handlePlayAgain}
+            disabled={playAgainLoading}
+          >
+            {playAgainLoading ? 'Resetting…' : 'Play Again'}
+          </button>
+          <button
+            style={{
+              background: 'transparent',
+              color: '#6a6a8a',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+              padding: '10px 24px',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+            onClick={async () => { await abandonGame(); onBackToLobby(); }}
+          >
+            Leave Game
+          </button>
+        </GameEndOverlay>
       )}
 
       {/* Opponent disconnected overlay */}
