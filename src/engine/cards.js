@@ -79,7 +79,7 @@ export const CARD_DB = {
   elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion gains +2 HP.', legendary: true, image: 'sistersiofra.webp' },
   grovechampion:   { id: 'grovechampion',   name: 'Grove Champion',      type: 'unit',  cost: 5, atk: 5, hp: 5, spd: 1, unitType: 'Elf',    rules: '', image: 'grovechampion.webp' },
-  yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 7, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'At the end of your turn summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
+  yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 8, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'At the end of your turn summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
   sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1,                    rules: 'When this unit is destroyed restore 1 HP to your champion.', token: true, image: null },
 
   // Elf spells
