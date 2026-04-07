@@ -20,6 +20,8 @@ import {
   getArcherShootTargets,
   playerRevealUnit,
   triggerUnitAction,
+  getChampionAbilityTargets,
+  applyChampionAbility,
 } from '../engine/gameEngine.js';
 import { runAITurn } from '../engine/ai.js';
 import { playTurnStartSound } from '../audio.js';
@@ -34,8 +36,10 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm'
+  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm' | 'champion_ability'
   const [selectMode, setSelectMode] = useState(null);
+  // Active champion ability targeting: { abilityId, targetFilter } | null
+  const [pendingChampionAbility, setPendingChampionAbility] = useState(null);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
   const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
@@ -83,6 +87,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     setSelectedCard(null);
     setSelectedUnit(null);
     setSelectMode(null);
+    setPendingChampionAbility(null);
   }, []);
 
   const NO_TARGET_SPELL_EFFECTS = new Set([
@@ -93,6 +98,10 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleInspectUnit = useCallback((unit) => {
     setInspectedItem({ type: 'unit', uid: unit.uid });
+  }, []);
+
+  const handleInspectChampion = useCallback((playerIdx = 0) => {
+    setInspectedItem({ type: 'champion', playerIdx });
   }, []);
 
   const handleInspectCard = useCallback((card) => {
@@ -244,7 +253,32 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleSelectChampion = useCallback(() => {
     setSelectedUnit(null);
     setSelectedCard(null);
+    setPendingChampionAbility(null);
     setSelectMode('champion_move');
+  }, []);
+
+  // Activate a champion ability. If it requires targeting, enters champion_ability mode.
+  // If targetless (dark_pact), applies immediately.
+  const handleChampionAbilityActivate = useCallback((abilityId, targetFilter) => {
+    if (!targetFilter) {
+      // Targetless — apply immediately (e.g. Dark Pact)
+      setState(prev => applyChampionAbility(prev, 0, abilityId, null));
+      return;
+    }
+    setPendingChampionAbility({ abilityId, targetFilter });
+    setSelectMode('champion_ability');
+  }, []);
+
+  const handleChampionAbilityTarget = useCallback((targetUid) => {
+    if (!pendingChampionAbility) return;
+    setState(prev => applyChampionAbility(prev, 0, pendingChampionAbility.abilityId, targetUid));
+    setPendingChampionAbility(null);
+    setSelectMode(null);
+  }, [pendingChampionAbility]);
+
+  const handleChampionAbilityCancel = useCallback(() => {
+    setPendingChampionAbility(null);
+    setSelectMode(null);
   }, []);
 
   const handleSelectUnit = useCallback((unitUid) => {
@@ -340,6 +374,10 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getChampionMoveTiles(state)
     : [];
 
+  const championAbilityTargetUids = selectMode === 'champion_ability' && pendingChampionAbility
+    ? getChampionAbilityTargets(state, 0, pendingChampionAbility.targetFilter)
+    : [];
+
   const summonTiles = selectMode === 'summon'
     ? getSummonTiles(state)
     : [];
@@ -371,7 +409,9 @@ export function useGameState({ deckId = 'human' } = {}) {
     selectedUnit,
     selectMode,
     inspectedItem,
+    pendingChampionAbility,
     championMoveTiles,
+    championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
     spellTargetUids,
@@ -388,6 +428,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleCancelSpell,
       handleEndAction,
       handleSelectChampion,
+      handleChampionAbilityActivate,
+      handleChampionAbilityTarget,
+      handleChampionAbilityCancel,
       handleSelectUnit,
       handleMoveUnit,
       handleArcherSelectTarget,
@@ -400,6 +443,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleNewGame,
       clearSelection,
       handleInspectUnit,
+      handleInspectChampion,
       handleInspectCard,
       handleClearInspect,
       handleInspectTerrain,

@@ -15,7 +15,7 @@ function getFactionColors(unitType) {
   return FACTION_COLORS[unitType] || { border: '#2a2a3a', text: '#6a6a8a' };
 }
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss }) {
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
@@ -134,7 +134,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ringStyle = { outline: '2px solid #C9A84C', boxShadow: `0 0 8px #C9A84C60, ${teamRingShadow}` };
   } else if (isSacrificeTarget) {
     ringStyle = { outline: '2px solid #d97706' };
-  } else if (isSpellTarget) {
+  } else if (isSpellTarget || isAbilityTarget) {
     ringStyle = { outline: '2px solid #f97316' };
   } else if (isArcherTarget) {
     ringStyle = { outline: '2px solid #ec4899' };

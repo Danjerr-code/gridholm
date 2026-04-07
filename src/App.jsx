@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameState } from './hooks/useGameState.js';
-import { getAuraAtkBonus, playerRevealUnit } from './engine/gameEngine.js';
+import { getAuraAtkBonus, playerRevealUnit, getChampionDef } from './engine/gameEngine.js';
 import { getCardImageUrl } from './supabase.js';
 import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
@@ -26,6 +26,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     selectMode,
     inspectedItem,
     championMoveTiles,
+    championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
     spellTargetUids,
@@ -66,8 +67,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
+  if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to apply the ability, or Cancel.';
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -244,7 +246,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             phase={phase}
             phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
           />
-          <CardDetailPanel inspectedItem={inspectedItem} state={state} />
+          <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
         {/* Center: board only */}
@@ -254,6 +256,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             selectedUnit={selectedUnit}
             selectMode={selectMode}
             championMoveTiles={championMoveTiles}
+            championAbilityTargetUids={championAbilityTargetUids}
             summonTiles={summonTiles}
             unitMoveTiles={unitMoveTiles}
             spellTargetUids={spellTargetUids}
@@ -304,6 +307,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
                 )}
                 {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
                   <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (3/3)" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'champion_ability' && (
+                  <ActionBtn onClick={handlers.handleChampionAbilityCancel} label="Cancel" variant="cancel" fullWidth />
                 )}
                 {phase === 'action' && selectMode === 'targetless_spell' && (
                   <>
@@ -372,6 +378,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           )}
           {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
             <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'champion_ability' && (
+            <ActionBtn onClick={handlers.handleChampionAbilityCancel} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && selectMode === 'targetless_spell' && (
             <>
@@ -486,16 +495,56 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           inspectedItem={inspectedItem}
           state={state}
           onDismiss={handlers.handleClearInspect}
+          handlers={handlers}
+          phase={phase}
+          isP1Turn={isP1Turn}
         />
       )}
     </div>
   );
 }
 
-function MobileBottomSheet({ inspectedItem, state, onDismiss }) {
+function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, isP1Turn }) {
   let content = null;
 
-  if (inspectedItem?.type === 'unit') {
+  if (inspectedItem?.type === 'champion') {
+    const playerIdx = inspectedItem.playerIdx ?? 0;
+    const champ = state.champions[playerIdx];
+    const player = state.players[playerIdx];
+    const champDef = getChampionDef(player);
+    const tier = player.resonance?.tier ?? 'none';
+    const abilityUsed = state.championAbilityUsed?.[playerIdx] ?? false;
+    const ownerLabel = playerIdx === 0 ? 'Friendly' : 'Enemy';
+    const ownerColor = playerIdx === 0 ? '#4a8abf' : '#bf4a4a';
+    content = (
+      <div className="flex flex-col gap-2">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#C9A84C', lineHeight: 1.2 }}>{champDef.name}</span>
+          <span style={{ fontSize: 11, color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
+        </div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Champion · {tier !== 'none' ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unbound'}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 4, fontFamily: 'var(--font-sans)' }}>
+          <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div><div style={{ fontSize: 14, fontWeight: 700, color: champ.hp <= 5 ? '#f87171' : '#ffffff' }}>{champ.hp}/{champ.maxHp}</div></div>
+          <div><div style={{ fontSize: 10, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resonance</div><div style={{ fontSize: 13, fontWeight: 700, color: '#C9A84C' }}>{player.resonance?.score ?? 0}</div></div>
+        </div>
+        {playerIdx === 0 && (
+          <ChampionAbilitySection
+            champDef={champDef}
+            tier={tier}
+            champ={champ}
+            player={player}
+            abilityUsed={abilityUsed}
+            isP1Turn={isP1Turn}
+            phase={phase}
+            onActivate={(abilityId, targetFilter) => {
+              handlers?.handleChampionAbilityActivate(abilityId, targetFilter);
+              onDismiss();
+            }}
+          />
+        )}
+      </div>
+    );
+  } else if (inspectedItem?.type === 'unit') {
     const unit = state.units.find(u => u.uid === inspectedItem.uid)
       || state.champions.find(c => c.uid === inspectedItem.uid);
     if (unit) {
@@ -683,10 +732,127 @@ function KeywordPills({ item }) {
   );
 }
 
-function CardDetailPanel({ inspectedItem, state }) {
+function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, isP1Turn, phase, onActivate }) {
+  if (tier === 'none' || !isP1Turn || phase !== 'action') return null;
+
+  const ascended = champDef.abilities.ascended;
+  const attuned = champDef.abilities.attuned;
+  const attunedPassive = champDef.abilities.attunedPassive;
+
+  // Determine activated ability
+  let activatedAbility = attuned;
+  if (tier === 'ascended' && ascended?.type === 'activated' && ascended?.replacesAbility) {
+    activatedAbility = ascended;
+  }
+
+  // Determine passive at ascended tier
+  let passiveAbility = null;
+  if (tier === 'ascended' && ascended?.type === 'passive') {
+    passiveAbility = ascended;
+  }
+
+  const costLabel = activatedAbility?.cost
+    ? `${activatedAbility.cost.amount} ${activatedAbility.cost.type}`
+    : null;
+
+  const canAfford = activatedAbility?.cost
+    ? (activatedAbility.cost.type === 'mana'
+        ? player.resources >= activatedAbility.cost.amount
+        : champ.hp > activatedAbility.cost.amount)
+    : true;
+
+  const btnDisabled = !canAfford || abilityUsed;
+
+  return (
+    <div style={{ borderTop: '0.5px solid #1e1e2e', paddingTop: 6, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {activatedAbility && (
+        <button
+          disabled={btnDisabled}
+          onClick={() => !btnDisabled && onActivate(activatedAbility.id, activatedAbility.targetRequired ? activatedAbility.targetFilter : null)}
+          style={{
+            background: btnDisabled ? 'transparent' : 'linear-gradient(135deg, #5a3a00, #8a6a00)',
+            color: btnDisabled ? '#4a4a6a' : '#C9A84C',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            fontWeight: 600,
+            border: `1px solid ${btnDisabled ? '#2a2a3a' : '#C9A84C60'}`,
+            borderRadius: '4px',
+            padding: '5px 8px',
+            cursor: btnDisabled ? 'not-allowed' : 'pointer',
+            textAlign: 'left',
+            width: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+            <span>{activatedAbility.name}</span>
+            {costLabel && <span style={{ fontSize: '10px', opacity: 0.8 }}>{costLabel}</span>}
+          </div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 400, lineHeight: 1.4, opacity: 0.85 }}>
+            {activatedAbility.description}
+          </div>
+          {abilityUsed && (
+            <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: 2 }}>Used this turn</div>
+          )}
+        </button>
+      )}
+      {passiveAbility && (
+        <div style={{ fontSize: '11px', color: '#9090b8', fontFamily: 'var(--font-sans)', fontStyle: 'italic', lineHeight: 1.4, paddingLeft: 2 }}>
+          <span style={{ fontWeight: 600, fontStyle: 'normal', color: '#b0a0c0' }}>{passiveAbility.name}:</span> {passiveAbility.description}
+        </div>
+      )}
+      {attunedPassive && (
+        <div style={{ fontSize: '11px', color: '#9090b8', fontFamily: 'var(--font-sans)', fontStyle: 'italic', lineHeight: 1.4, paddingLeft: 2 }}>
+          <span style={{ fontWeight: 600, fontStyle: 'normal', color: '#b0a0c0' }}>{attunedPassive.name}:</span> {attunedPassive.description}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
   let content = null;
 
-  if (inspectedItem?.type === 'unit') {
+  if (inspectedItem?.type === 'champion') {
+    const playerIdx = inspectedItem.playerIdx ?? 0;
+    const champ = state.champions[playerIdx];
+    const player = state.players[playerIdx];
+    const champDef = getChampionDef(player);
+    const tier = player.resonance?.tier ?? 'none';
+    const abilityUsed = state.championAbilityUsed?.[playerIdx] ?? false;
+    const ownerLabel = playerIdx === 0 ? 'Friendly' : 'Enemy';
+    const ownerColor = playerIdx === 0 ? '#4a8abf' : '#bf4a4a';
+    content = (
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between items-start">
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#C9A84C', lineHeight: 1.2 }}>{champDef.name}</span>
+          <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
+        </div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>Champion · {tier !== 'none' ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unbound'}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: champ.hp <= 5 ? '#f87171' : '#ffffff' }}>{champ.hp}/{champ.maxHp}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resonance</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#C9A84C' }}>{player.resonance?.score ?? 0}</div>
+          </div>
+        </div>
+        {playerIdx === 0 && (
+          <ChampionAbilitySection
+            champDef={champDef}
+            tier={tier}
+            champ={champ}
+            player={player}
+            abilityUsed={abilityUsed}
+            isP1Turn={isP1Turn}
+            phase={phase}
+            onActivate={handlers?.handleChampionAbilityActivate}
+          />
+        )}
+      </div>
+    );
+  } else if (inspectedItem?.type === 'unit') {
     const unit = state.units.find(u => u.uid === inspectedItem.uid);
     if (unit) {
       const ownerLabel = unit.owner === 0 ? 'Friendly' : 'Enemy';

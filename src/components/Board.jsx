@@ -10,6 +10,7 @@ export default function Board({
   spellTargetUids,
   archerShootTargets,
   sacrificeTargetUids = [],
+  championAbilityTargetUids = [],
   opponentMoveTiles = new Set(),
   handlers,
   onInspectUnit,
@@ -73,6 +74,12 @@ export default function Board({
     if (!isMobile && onInspectUnit) onInspectUnit(unit);
 
     if (!canInteract) return;
+    if (selectMode === 'champion_ability') {
+      if (championAbilityTargetUids.includes(unit.uid)) {
+        handlers.handleChampionAbilityTarget(unit.uid);
+      }
+      return;
+    }
     if (selectMode === 'fleshtithe_sacrifice') {
       if (sacrificeTargetUids.includes(unit.uid)) {
         handlers.handleFleshtitheSacrifice('yes', unit.uid);
@@ -121,6 +128,7 @@ export default function Board({
             const isSpellTarget = spellTargetUids.includes(unit?.uid);
             const isArcherTarget = archerShootTargets.includes(unit?.uid);
             const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
+            const isAbilityTarget = championAbilityTargetUids.includes(unit?.uid);
             const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
 
             return (
@@ -141,6 +149,7 @@ export default function Board({
                 isChampionSpellTarget={isChampionSpellTarget}
                 isArcherTarget={isArcherTarget}
                 isSacrificeTarget={isSacrificeTarget}
+                isAbilityTarget={isAbilityTarget}
                 state={state}
                 myPlayerIndex={myPlayerIndex}
                 isMobile={isMobile}
@@ -154,12 +163,18 @@ export default function Board({
                     handlers.handleSpellTarget('champion' + champion.owner);
                     return;
                   }
+                  if (selectMode === 'champion_ability') {
+                    return;
+                  }
                   if (selectMode === 'unit_move' && champion && champion.owner !== activePlayer) {
                     const key = `${row},${col}`;
                     if (unitMoveSet.has(key)) {
                       handlers.handleMoveUnit(row, col);
                       return;
                     }
+                  }
+                  if (handlers.handleInspectChampion && champion) {
+                    handlers.handleInspectChampion(champion.owner);
                   }
                   if (!canInteract) return;
                   if (phase === 'action' && champion && champion.owner === activePlayer && handlers.handleSelectChampion) {
