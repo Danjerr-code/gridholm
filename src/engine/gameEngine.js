@@ -554,7 +554,7 @@ function doBeginTurnPhase(state) {
 
   // Gain resources
   p.turnCount = (p.turnCount || 0) + 1;
-  const bonus = state.activePlayer === 1 ? 1 : 0;
+  const bonus = state.activePlayer !== state.firstPlayer ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
 
   const drawnPart = skipDraw

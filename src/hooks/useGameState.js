@@ -41,6 +41,19 @@ export function useGameState({ deckId = 'human' } = {}) {
   const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
   const [inspectedItem, setInspectedItem] = useState(null);
 
+  // Trigger AI turn if AI wins the coin flip and goes first on initial mount or new game.
+  useEffect(() => {
+    if (state.activePlayer === AI_PLAYER && !state.winner) {
+      const timeout = setTimeout(() => {
+        setState(prev => {
+          if (prev.activePlayer !== AI_PLAYER || prev.winner) return prev;
+          return runAITurn(prev);
+        });
+      }, 600);
+      return () => clearTimeout(timeout);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Play a chime when control returns to the local player (player 0) after the AI acts.
   const prevActivePlayerRef = useRef(null);
   useEffect(() => {
@@ -304,9 +317,9 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleNewGame = useCallback(() => {
     const s = createInitialState(deckId, 'human');
-    setState(autoAdvancePhase(s));
+    applyAndMaybeAI(autoAdvancePhase(s));
     clearSelection();
-  }, [clearSelection, deckId]);
+  }, [clearSelection, deckId, applyAndMaybeAI]);
 
   // ── Derived highlight data ─────────────────────────────────────────────
 
