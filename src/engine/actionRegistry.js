@@ -49,7 +49,7 @@ export const ACTION_REGISTRY = {
     // Deal 2 damage to own champion then draw 1 card
     const champ = state.champions[unit.owner];
     const p = state.players[unit.owner];
-    champ.hp = Math.max(1, champ.hp - 2);
+    champ.hp -= 2;
     addLog(state, `Dark Dealer: champion takes 2 damage.`);
     const drawn = p.deck.shift();
     if (drawn && p.hand.length < 6) {

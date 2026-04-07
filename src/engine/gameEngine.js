@@ -553,6 +553,7 @@ export function playCard(state, cardUid) {
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
+      checkWinner(s);
       return s;
     }
 
@@ -894,7 +895,9 @@ export function triggerUnitAction(state, unitUid) {
     return _dispatchAction(unit, s, []);
   }
   if (unit.id === 'darkdealer') {
-    return _dispatchAction(unit, s, []);
+    const result = _dispatchAction(unit, s, []);
+    checkWinner(result);
+    return result;
   }
 
   // Target-needing actions — use pendingSpell for UI target collection,

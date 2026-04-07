@@ -295,7 +295,7 @@ export const SPELL_REGISTRY = {
 
   infernalpact: (state, caster) => {
     const champ = state.champions[caster];
-    champ.hp = Math.max(1, champ.hp - 3);
+    champ.hp -= 3;
     addLog(state, `${state.players[caster].name} casts Infernal Pact. Champion takes 3 damage.`);
     state.units.forEach(u => {
       if (u.owner === caster && u.unitType === 'Demon') {
