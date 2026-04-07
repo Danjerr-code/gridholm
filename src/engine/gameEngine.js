@@ -1571,6 +1571,10 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'souldrain':
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
 
+    // Spirit Bolt: any enemy unit on the board (no range restriction)
+    case 'spiritbolt':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+
     // Woodland Guard action: enemy within 2 tiles
     case 'woodlandguard_action': {
       const src = state.units.find(u => u.uid === (data.sourceUid || ''));
