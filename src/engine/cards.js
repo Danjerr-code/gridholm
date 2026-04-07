@@ -99,7 +99,7 @@ export const CARD_DB = {
 
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy unit.', image: 'bloodoffering.webp' },
-  pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: 'Demon', rules: 'Discard a card. Deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
+  pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: 'Demon', rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
   darksentence:    { id: 'darksentence',    name: 'Dark Sentence',       type: 'spell', cost: 5, effect: 'darksentence',    unitType: 'Demon', rules: 'Destroy an enemy combat unit.', image: 'darksentence.webp' },
   devour:          { id: 'devour',          name: 'Devour',              type: 'spell', cost: 3, effect: 'devour',          unitType: 'Demon', rules: 'Destroy an enemy combat unit with 2 or less HP.', image: 'devour.webp' },
   infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: 'Demon', rules: 'Deal 3 damage to your champion. All friendly Demon units gain +2 ATK this turn.', image: 'infernalpact.webp' },

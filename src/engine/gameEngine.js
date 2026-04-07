@@ -553,11 +553,7 @@ export function playCard(state, cardUid) {
     // Pact of Ruin: needs hand card selection first, then enemy target
     if (card.effect === 'pactofruin') {
       if (p.hand.length <= 1) {
-        // No other cards to discard — skip the discard step and deal damage directly
-        p.resources -= card.cost;
-        p.hand.splice(cardIdx, 1);
-        p.discard.push(card);
-        s.pendingSpell = { cardUid: null, effect: 'pactofruin_damage', playerIdx: s.activePlayer, step: 0, data: {} };
+        // No cards to discard — cancel with no effect
         return s;
       }
       // Need to select a card to discard first
@@ -1252,9 +1248,12 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
 
-    // Pact of Ruin damage: any enemy unit
+    // Pact of Ruin damage: any enemy unit or enemy champion
     case 'pactofruin_damage':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid);
+      return [
+        'champion' + (1 - state.activePlayer),
+        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden).map(u => u.uid),
+      ];
 
     // Dark Sentence: any enemy unit
     case 'darksentence':
