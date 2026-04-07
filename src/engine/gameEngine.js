@@ -552,7 +552,7 @@ function _dispatchAction(unit, state, targets) {
 
 // ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
 
-function revealUnit(state, unit) {
+function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
   unit.hidden = false;
   addLog(state, `${unit.name} revealed!`);
   // On-reveal effects
@@ -560,9 +560,16 @@ function revealUnit(state, unit) {
     // On reveal: destroy the enemy unit that revealed this unit (handled at call site)
   }
   if (unit.id === 'veilfiend') {
-    // On reveal: deal 2 damage to all adjacent enemy units
-    const adj = cardinalNeighbors(unit.row, unit.col);
-    const targets = state.units.filter(u => u.owner !== unit.owner && adj.some(([r, c]) => u.row === r && u.col === c));
+    // On reveal: deal 2 damage to all adjacent enemy units.
+    // revealTile defaults to unit's current position.
+    // excludeUnit is the direct combat opponent (already taking combat damage, skip splash).
+    const [rRow, rCol] = revealTile ?? [unit.row, unit.col];
+    const adj = cardinalNeighbors(rRow, rCol);
+    const targets = state.units.filter(u =>
+      u.owner !== unit.owner &&
+      adj.some(([r, c]) => u.row === r && u.col === c) &&
+      (!excludeUnit || u.uid !== excludeUnit.uid)
+    );
     for (const t of targets) {
       applyDamageToUnit(state, t, 2, unit.name);
     }
@@ -1216,9 +1223,14 @@ export function moveUnit(state, unitUid, row, col) {
   const combatTile = [row, col];
 
   if (enemyUnit) {
+    // Reveal hidden attacking unit before combat (e.g. Veil Fiend moving into enemy tile).
+    // Reveal tile is the destination; the defender is the excluded combat unit.
+    if (unit.hidden) {
+      revealUnit(s, unit, enemyUnit, [row, col]);
+    }
     // Reveal hidden enemy unit before resolving combat
     const wasHidden = enemyUnit.hidden;
-    if (wasHidden) revealUnit(s, enemyUnit);
+    if (wasHidden) revealUnit(s, enemyUnit, unit);
 
     // Shadow Trap on reveal: destroy the attacker
     if (wasHidden && enemyUnit.id === 'shadowtrap' && s.units.find(u => u.uid === enemyUnit.uid)) {
