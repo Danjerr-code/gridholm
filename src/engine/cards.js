@@ -6,6 +6,13 @@
 
 // ── Card Database ──────────────────────────────────────────────────────────
 
+  // HOW TO ADD CARD ART:
+  // 1. Generate art at 512x512px, export as WebP
+  // 2. Upload to Supabase Storage bucket 'card-art'
+  // 3. Set image field to the filename: image: 'captain.webp'
+  // 4. The UI will automatically display it using getCardImageUrl()
+  // Cards without art show a placeholder with the unit type label
+
 export const CARD_DB = {
   // Human units
   militia:         { id: 'militia',         name: 'Militia',             type: 'unit',  cost: 1, atk: 1, hp: 3, spd: 1, unitType: 'Human',  rules: '', image: 'militia.webp' },
@@ -20,12 +27,6 @@ export const CARD_DB = {
   warlord:         { id: 'warlord',         name: 'Warlord',             type: 'unit',  cost: 4, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: '', image: 'warlord.webp' },
   battlepriestunit:{ id: 'battlepriestunit',name: 'Battle Priest',       type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When summoned deal 2 damage to an adjacent enemy unit and restore 2 HP to an adjacent friendly unit.', image: 'battlepriestunit.webp' },
   paladin:         { id: 'paladin',         name: 'Paladin',             type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile permanently gain +1 HP at the beginning of your turn.', aura: { range: 1, stat: 'maxhp', value: 1, target: 'friendlycombat', trigger: 'beginturn', permanent: true }, image: 'paladin.webp' },
-  // HOW TO ADD CARD ART:
-  // 1. Generate art at 512x512px, export as WebP
-  // 2. Upload to Supabase Storage bucket 'card-art'
-  // 3. Set image field to the filename: image: 'captain.webp'
-  // 4. The UI will automatically display it using getCardImageUrl()
-  // Cards without art show a placeholder with the unit type label
   captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile have +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
   aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Human',  rules: 'Aura 1: Enemy units within 1 tile have -1 ATK in combat.', aura: { range: 1, stat: 'atk', value: -1, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
   waddles:         { id: 'waddles',         name: 'Waddles, Trusted Aide', type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: 'Penguin', rules: 'While Waddles is adjacent to your champion, combat damage dealt to your champion is reduced to 2.', legendary: true, image: 'waddles.webp' },
