@@ -130,10 +130,11 @@ export const SPELL_REGISTRY = {
   packhowl: (state, caster) => {
     state.units.forEach(u => {
       if (u.owner === caster && u.unitType === 'Beast') {
+        u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
         u.speedBonus = (u.speedBonus || 0) + 1;
       }
     });
-    addLog(state, `${state.players[caster].name} casts Pack Howl. All friendly Beasts gain +1 SPD this turn.`);
+    addLog(state, `${state.players[caster].name} casts Pack Howl. All friendly Beast combat units gain +1 ATK and +1 SPD this turn.`);
     return state;
   },
 
