@@ -329,9 +329,13 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
   const p1Hand = p1Deck.splice(0, 5);
   const p2Hand = p2Deck.splice(0, 5);
 
+  const firstPlayer = Math.random() < 0.5 ? 0 : 1;
+  const firstPlayerLabel = firstPlayer === 0 ? 'Player 1' : 'Player 2';
+
   return {
     turn: 1,
-    activePlayer: 0,
+    activePlayer: firstPlayer,
+    firstPlayer,
     phase: 'begin-turn',
     phaseStep: 0,
     winner: null,
@@ -345,7 +349,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
       { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false },
     ],
     units: [],
-    log: ['Game started. P1 goes first. Both players start with 5 cards. P1 skips draw on turn 1.'],
+    log: [`Game started. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`],
     pendingSpell: null,   // { cardUid, effect, playerIdx, step, data }
     pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
@@ -431,7 +435,7 @@ function doBeginTurnPhase(state) {
 
   // Draw
   let drawnCard = null;
-  const skipDraw = state.turn === 1 && state.activePlayer === 0;
+  const skipDraw = state.turn === 1 && state.activePlayer === state.firstPlayer;
   if (!skipDraw) {
     drawnCard = p.deck.shift() || null;
     if (drawnCard) p.hand.push(drawnCard);
