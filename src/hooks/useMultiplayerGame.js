@@ -215,10 +215,17 @@ export function useMultiplayerGame(gameId) {
     const opponentId = myIndex === 0
       ? (isSwapped ? session.player1_id : session.player2_id)
       : (isSwapped ? session.player2_id : session.player1_id);
-    await supabase
+    const opponentEngineIndex = myIndex === 0 ? 1 : 0;
+    const winnerName = session.game_state?.players?.[opponentEngineIndex]?.name
+      ?? (opponentEngineIndex === 0 ? 'Player 1' : 'Player 2');
+    const updatedGameState = { ...session.game_state, winner: winnerName };
+    const { data: updated } = await supabase
       .from('game_sessions')
-      .update({ status: 'complete', winner: opponentId, updated_at: new Date().toISOString() })
-      .eq('id', gameId);
+      .update({ status: 'complete', winner: opponentId, game_state: updatedGameState, updated_at: new Date().toISOString() })
+      .eq('id', gameId)
+      .select()
+      .single();
+    if (updated) setSession(updated);
   }, [session, gameId]);
 
   const abandonGame = useCallback(async () => {
