@@ -140,8 +140,10 @@ export const SPELL_REGISTRY = {
   pounce: (state, caster, targets) => {
     const target = targets[0];
     if (!target) return state;
-    target.pounceReady = true;
-    addLog(state, `Pounce: ${target.name} may move up to 2 tiles ignoring sickness.`);
+    target.moved = false;
+    target.summoned = false;
+    target.actioned = false;
+    addLog(state, `Pounce: ${target.name}'s action has been reset.`);
     return state;
   },
 

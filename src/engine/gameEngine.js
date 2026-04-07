@@ -201,12 +201,13 @@ function fireEndTurnTriggers(state, playerIdx) {
     }
   });
 
-  // 4. Zmore: deal 1 damage to all units
+  // 4. Zmore: deal 1 damage to all other combat units (excludes Zmore itself)
   state.units.forEach(u => {
     if (u.owner === playerIdx && u.id === 'zmore') {
-      addLog(state, `Zmore, Sleeping Ash stirs. All units take 1 damage.`);
+      addLog(state, `Zmore, Sleeping Ash stirs. All other combat units take 1 damage.`);
       const allUnits = [...state.units];
       for (const t of allUnits) {
+        if (t.uid === u.uid) continue; // Zmore does not damage itself
         if (state.units.find(x => x.uid === t.uid)) {
           t.hp -= 1;
           if (t.hp <= 0) {
@@ -926,11 +927,6 @@ export function getUnitMoveTiles(state, unitUid) {
   // cannotMove units (Seedling) cannot be selected for movement
   if (unit.cannotMove) return [];
   if (unit.summoned || unit.moved) {
-    // Pounce: Beast unit can move ignoring sickness
-    if (unit.pounceReady) {
-      const speed = 2;
-      return reachableTiles(state, unit, speed);
-    }
     return [];
   }
   const speed = getEffectiveSpd(unit);
@@ -980,10 +976,6 @@ export function moveUnit(state, unitUid, row, col) {
   const s = cloneState(state);
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
-
-  // Clear pounce ready flag
-  const wasPounce = unit.pounceReady;
-  unit.pounceReady = false;
 
   const enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
@@ -1052,7 +1044,6 @@ export function moveUnit(state, unitUid, row, col) {
     // Regular move — hidden units (including shadow-veil'd) do not reveal on move
     unit.row = row;
     unit.col = col;
-    unit.moved = !wasPounce; // if pounce, stay moveable? No — pounce marks moved after
     unit.moved = true;
   }
 
@@ -1225,13 +1216,13 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
-    // Pounce: friendly Beast unit
+    // Pounce: friendly Beast unit (resets its action)
     case 'pounce':
       return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Beast').map(u => u.uid);
 
-    // Ambush step 0: friendly Beast; step 1: enemy adjacent to selected Beast
+    // Ambush step 0: any friendly combat unit; step 1: enemy adjacent to selected unit
     case 'ambush':
-      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Beast').map(u => u.uid);
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
       if (data.beastUid) {
         const beast = state.units.find(u => u.uid === data.beastUid);
         if (!beast) return [];

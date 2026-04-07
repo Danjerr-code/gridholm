@@ -27,7 +27,7 @@ export const CARD_DB = {
   // 4. The UI will automatically display it using getCardImageUrl()
   // Cards without art show a placeholder with the unit type label
   captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly units within 1 tile gain +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
-  aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Human',  rules: 'Aura 1: Enemy units within 1 tile have -2 ATK in combat.', aura: { range: 1, stat: 'atk', value: -2, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
+  aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Human',  rules: 'Aura 1: Enemy units within 1 tile have -1 ATK in combat.', aura: { range: 1, stat: 'atk', value: -1, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
 
   // Human spells
   smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Human', rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: 'smite.webp' },
@@ -55,9 +55,9 @@ export const CARD_DB = {
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
 
   // Beast spells
-  ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly Beast unit battles an adjacent enemy unit.', image: 'ambush.webp' },
+  ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
   packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 2, effect: 'packhowl',        unitType: 'Beast', rules: 'All friendly Beast units gain +1 SPD this turn.', image: 'packhowl.webp' },
-  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', rules: 'Move a friendly Beast unit up to 2 tiles ignoring summoning sickness.', image: 'pounce.webp' },
+  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', rules: 'Reset the action of a friendly Beast unit.', image: 'pounce.webp' },
   predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: 'Beast', rules: 'An enemy unit within 2 tiles of your champion cannot move next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: 'Beast', rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: 'Beast', rules: 'Summon a 1/1 Snake Beast combat unit in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
@@ -95,7 +95,7 @@ export const CARD_DB = {
   veilfiend:       { id: 'veilfiend',       name: 'Veil Fiend',          type: 'unit',  cost: 4, atk: 3, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: deal 2 damage to all adjacent enemy units.', hidden: true, image: 'veilfiend.webp' },
   fleshtithe:      { id: 'fleshtithe',      name: 'Flesh Tithe',         type: 'unit',  cost: 4, atk: 3, hp: 3, spd: 1, unitType: 'Demon',  rules: 'When summoned you may sacrifice a friendly combat unit. If you do this unit gains +2/+2.', image: 'fleshtithe.webp' },
   dreadshade:      { id: 'dreadshade',      name: 'Dread Shade',         type: 'unit',  cost: 5, atk: 5, hp: 4, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: this unit gains +2 ATK this turn.', hidden: true, image: 'dreadshade.webp' },
-  zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn deal 1 damage to all units.', legendary: true, image: 'zmore.webp' },
+  zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn deal 1 damage to all other combat units.', legendary: true, image: 'zmore.webp' },
 
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy unit.', image: 'bloodoffering.webp' },
