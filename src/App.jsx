@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameState } from './hooks/useGameState.js';
-import { getAuraAtkBonus, playerRevealUnit, getChampionDef } from './engine/gameEngine.js';
+import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan } from './engine/gameEngine.js';
 import { getCardImageUrl } from './supabase.js';
 import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
@@ -536,6 +536,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
             abilityUsed={abilityUsed}
             isP1Turn={isP1Turn}
             phase={phase}
+            state={state}
             onActivate={(abilityId, targetFilter) => {
               handlers?.handleChampionAbilityActivate(abilityId, targetFilter);
               onDismiss();
@@ -732,7 +733,7 @@ function KeywordPills({ item }) {
   );
 }
 
-function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, isP1Turn, phase, onActivate }) {
+function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, isP1Turn, phase, onActivate, state }) {
   if (tier === 'none' || !isP1Turn || phase !== 'action') return null;
 
   const ascended = champDef.abilities.ascended;
@@ -761,7 +762,11 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
         : champ.hp > activatedAbility.cost.amount)
     : true;
 
-  const btnDisabled = !canAfford || abilityUsed;
+  const hasValidTargets = activatedAbility?.targetFilter === 'friendly_unit_within_2'
+    ? (state?.units ?? []).some(u => u.owner === champ.owner && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+    : true;
+
+  const btnDisabled = !canAfford || abilityUsed || !hasValidTargets;
 
   return (
     <div style={{ borderTop: '0.5px solid #1e1e2e', paddingTop: 6, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -858,6 +863,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
             abilityUsed={abilityUsed}
             isP1Turn={isP1Turn}
             phase={phase}
+            state={state}
             onActivate={handlers?.handleChampionAbilityActivate}
           />
         )}
