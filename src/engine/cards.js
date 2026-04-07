@@ -28,6 +28,7 @@ export const CARD_DB = {
   // Cards without art show a placeholder with the unit type label
   captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly units within 1 tile gain +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
   aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Human',  rules: 'Aura 1: Enemy units within 1 tile have -1 ATK in combat.', aura: { range: 1, stat: 'atk', value: -1, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
+  waddles:         { id: 'waddles',         name: 'Waddles, Trusted Aide', type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: 'Penguin', rules: 'While Waddles is adjacent to your champion, combat damage dealt to your champion is reduced to 2.', legendary: true, image: null },
 
   // Human spells
   smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: 'Human', rules: 'Deal 4 damage to one enemy unit within 2 tiles of your champion.', image: 'smite.webp' },
@@ -119,7 +120,8 @@ const HUMAN_DECK = [
   'militia', 'militia',
   'footsoldier', 'footsoldier',
   'squire', 'squire',
-  'crossbowman', 'crossbowman',
+  'crossbowman',
+  'waddles',
   'shieldwall',
   'sergeant',
   'knight', 'knight',

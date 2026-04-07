@@ -133,7 +133,13 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     state.shadowTrapTriggerUid = null;
   }
 
-  // 5. Sapling token: restore 1 HP to controlling champion
+  // 5. Waddles: deactivate damage reduction for owner's champion
+  if (unit.id === 'waddles') {
+    state.waddlesActive[unit.owner] = false;
+    addLog(state, `Waddles, Trusted Aide: champion damage reduction lost.`);
+  }
+
+  // 6. Sapling token: restore 1 HP to controlling champion
   if (unit.id === 'sapling') {
     const healed = restoreHP('champion' + unit.owner, 1, state, 'sapling');
     if (healed > 0) addLog(state, `Sapling: champion restores ${healed} HP.`);
@@ -348,6 +354,12 @@ function fireOnSummonTriggers(unit, state) {
 
   // 4. Void Walker: deal 1 damage to controlling champion (not yet implemented)
 
+  // 4b. Waddles: activate damage reduction for owner's champion
+  if (unit.id === 'waddles') {
+    state.waddlesActive[unit.owner] = true;
+    addLog(state, `Waddles, Trusted Aide: champion damage reduction active.`);
+  }
+
   // 5. Battle Priest: prompt adjacent enemy (step 0) then adjacent friendly (step 1)
   if (unit.id === 'battlepriestunit') {
     const adj = cardinalNeighbors(unit.row, unit.col);
@@ -396,6 +408,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     archerShot: [],
     recalledThisTurn: [],
+    waddlesActive: [false, false],
   };
 }
 
@@ -561,8 +574,16 @@ export function moveChampion(state, row, col) {
     applyDamageToUnit(s, enemyUnit, champAtk, 'Champion', combatTile);
     // Apply enemy's pre-combat ATK to champion (simultaneous)
     if (enemyAtk > 0) {
-      champ.hp -= enemyAtk;
-      addLog(s, `${enemyUnit.name} counterattacks champion for ${enemyAtk} damage.`);
+      let champIncomingDmg = enemyAtk;
+      // Waddles: cap incoming combat damage at 2 if adjacent to champion
+      if (s.waddlesActive && s.waddlesActive[s.activePlayer]) {
+        const waddlesUnit = s.units.find(u => u.owner === s.activePlayer && u.id === 'waddles');
+        if (waddlesUnit && manhattan([waddlesUnit.row, waddlesUnit.col], [champ.row, champ.col]) === 1) {
+          champIncomingDmg = Math.min(champIncomingDmg, 2);
+        }
+      }
+      champ.hp -= champIncomingDmg;
+      addLog(s, `${enemyUnit.name} counterattacks champion for ${champIncomingDmg} damage.`);
     }
     // If enemy was destroyed, champion advances to that tile
     const enemyDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
@@ -1129,6 +1150,13 @@ export function moveUnit(state, unitUid, row, col) {
       unit.col = mc;
     }
     let champDmg = attackerAtk;
+    // Waddles: cap incoming combat damage at 2 if adjacent to champion
+    if (s.waddlesActive && s.waddlesActive[enemyChamp.owner]) {
+      const waddlesUnit = s.units.find(u => u.owner === enemyChamp.owner && u.id === 'waddles');
+      if (waddlesUnit && manhattan([waddlesUnit.row, waddlesUnit.col], [enemyChamp.row, enemyChamp.col]) === 1) {
+        champDmg = Math.min(champDmg, 2);
+      }
+    }
     if (enemyChamp.thornShield) {
       const absorbed = Math.min(enemyChamp.thornShield.absorb, champDmg);
       champDmg -= absorbed;
