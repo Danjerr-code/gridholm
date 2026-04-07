@@ -92,7 +92,7 @@ export const CARD_DB = {
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden.', hidden: true, image: 'imp.webp' },
-  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 0, unitType: 'Demon',  rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, legendary: true, image: 'darkdealer.webp' },
+  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 0, unitType: 'Demon',  rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, legendary: true, image: 'darkdealer.webp' },
   dreadknight:     { id: 'dreadknight',     name: 'Dread Knight',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. When this unit deals damage to the enemy champion that player discards a card at random.', hidden: true, image: 'dreadknight.webp' },
   chaospawn:       { id: 'chaospawn',       name: 'Chaos Spawn',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'When summoned discard a card to draw a card.', image: 'chaospawn.webp' },
   hellhound:       { id: 'hellhound',       name: 'Hellhound',           type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Demon',  rules: '', image: 'hellhound.webp' },
@@ -107,7 +107,7 @@ export const CARD_DB = {
   voidtitan:       { id: 'voidtitan',       name: 'Void Titan',          type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: 'Demon',  rules: '', image: 'voidtitan.webp' },
 
   // Demon spells
-  bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy unit.', image: 'bloodoffering.webp' },
+  bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: 'Demon', rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: 'Demon', rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
   darksentence:    { id: 'darksentence',    name: 'Dark Sentence',       type: 'spell', cost: 5, effect: 'darksentence',    unitType: 'Demon', rules: 'Destroy an enemy combat unit.', image: 'darksentence.webp' },
   devour:          { id: 'devour',          name: 'Devour',              type: 'spell', cost: 3, effect: 'devour',          unitType: 'Demon', rules: 'Destroy an enemy combat unit with 2 or less HP.', image: 'devour.webp' },
