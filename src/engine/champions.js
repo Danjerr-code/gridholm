@@ -67,7 +67,7 @@ export const CHAMPIONS = {
         id: 'grove',
         name: 'Grove Tend',
         type: 'passive',
-        description: 'Grove Tend: At the start of your turn, summon a 1/1 Sapling in a random open tile adjacent to your champion.',
+        description: 'At the start of your turn, summon a 1/1 Sapling in a random open tile adjacent to your champion.',
       },
     },
   },
