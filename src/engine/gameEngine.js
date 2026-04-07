@@ -984,8 +984,6 @@ export function moveUnit(state, unitUid, row, col) {
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
 
   if (enemyUnit) {
-    // Reveal shadow veil-given hidden before combat
-    if (unit.hidden) revealUnit(s, unit);
     // Reveal hidden enemy unit before resolving combat
     const wasHidden = enemyUnit.hidden;
     if (wasHidden) revealUnit(s, enemyUnit);
@@ -1020,8 +1018,6 @@ export function moveUnit(state, unitUid, row, col) {
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
   } else if (enemyChamp) {
-    // Reveal hidden attacker
-    if (unit.hidden) revealUnit(s, unit);
     const attackerAtk = getEffectiveAtk(s, unit);
     const dist = manhattan([unit.row, unit.col], [row, col]);
     if (dist > 1) {
@@ -1047,12 +1043,7 @@ export function moveUnit(state, unitUid, row, col) {
     if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
   } else {
-    // Regular move — shadow-veil'd units reveal on move; naturally hidden do not
-    if (unit.hidden && unit.shadowVeiled) {
-      unit.hidden = false;
-      unit.shadowVeiled = false;
-      addLog(s, `${unit.name} revealed!`);
-    }
+    // Regular move — hidden units (including shadow-veil'd) do not reveal on move
     unit.row = row;
     unit.col = col;
     unit.moved = !wasPounce; // if pounce, stay moveable? No — pounce marks moved after
