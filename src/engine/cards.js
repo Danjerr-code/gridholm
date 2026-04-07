@@ -54,7 +54,7 @@ export const CARD_DB = {
   plaguehog:       { id: 'plaguehog',       name: 'Plague Hog',          type: 'unit',  cost: 4, atk: 4, hp: 1, spd: 1, unitType: 'Beast',  rules: 'Rush. When this unit is destroyed deal 2 damage to all adjacent units.', rush: true, image: 'plaguehog.webp' },
   sabretooth:      { id: 'sabretooth',      name: 'Sabretooth',          type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 2, unitType: 'Beast',  rules: '', image: 'sabretooth.webp' },
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
-  wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  rules: 'Aura 1: Adjacent friendly Beast units gain +1 ATK in combat and +1 HP while in range.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
+  wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  rules: 'Aura 1: Friendly Beast units within 1 tile gain +1/+1.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
 
   // Beast spells
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
