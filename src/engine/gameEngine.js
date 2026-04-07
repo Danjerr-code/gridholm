@@ -422,7 +422,7 @@ function fireEndTurnTriggers(state, playerIdx) {
 // killedDefender is true if the defender was destroyed in this combat
 // ADD NEW ATTACK TRIGGERS HERE
 // ============================================
-function fireAttackTriggers(attacker, defender, state, killedDefender) {
+export function fireAttackTriggers(attacker, defender, state, killedDefender) {
   const defenderIsChampion = !defender.uid;
   // Find live attacker (may have died in combat)
   const liveAttacker = state.units.find(u => u.uid === attacker.uid);

@@ -3,6 +3,7 @@ import {
   restoreHP,
   addLog,
   applyDamageToUnit,
+  fireAttackTriggers,
   manhattan,
   cardinalNeighbors,
 } from './gameEngine.js';
@@ -116,14 +117,20 @@ export const SPELL_REGISTRY = {
       // Step 0 is just target selection — no state change here
       return state;
     }
-    // Step 1: beast (targets[0]) attacks enemy (targets[1])
+    // Step 1: simultaneous combat — beast (targets[0]) vs enemy (targets[1])
     const beast = targets[0];
     const enemy = targets[1];
     if (!beast || !enemy) return state;
-    const attackerAtk = getEffectiveAtk(state, beast);
+    // Capture both ATKs before any damage (simultaneous resolution)
+    const beastAtk = getEffectiveAtk(state, beast);
+    const enemyAtk = getEffectiveAtk(state, enemy);
     addLog(state, `Ambush: ${beast.name} battles ${enemy.name}!`);
-    applyDamageToUnit(state, enemy, attackerAtk, beast.name);
-    // Beast does NOT take counterattack in Ambush
+    // Deal damage simultaneously — neither unit moves
+    applyDamageToUnit(state, enemy, beastAtk, beast.name);
+    applyDamageToUnit(state, beast, enemyAtk, enemy.name);
+    // Fire attack triggers (e.g. Crossbowman draw on kill)
+    const killedEnemy = !state.units.find(u => u.uid === enemy.uid);
+    fireAttackTriggers(beast, enemy, state, killedEnemy);
     return state;
   },
 
