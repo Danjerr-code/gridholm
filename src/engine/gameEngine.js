@@ -319,7 +319,7 @@ function fireEndTurnTriggers(state, playerIdx) {
       for (const [r, c] of adj) {
         state.units.push({
           id: 'sapling', name: 'Sapling', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
-          rules: 'When this unit is destroyed restore 1 HP to your champion.', image: null,
+          rules: 'When this unit is destroyed restore 1 HP to your champion.', image: 'sapling-token.webp',
           token: true, owner: playerIdx, row: r, col: c,
           summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
           turnAtkBonus: 0,
