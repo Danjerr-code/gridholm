@@ -112,7 +112,7 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
         }}>GRIDHOLM</h1>
         {isRematch
           ? <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', fontSize: '15px' }}>Rematch! Select your faction.</p>
-          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#4a4a6a', fontSize: '15px' }}>Choose your faction</p>
+          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>Choose your faction</p>
         }
       </div>
 
@@ -175,6 +175,7 @@ function ResonanceBadge({ tier, score }) {
       }}>
         {label}
       </span>
+      <span style={{ width: '1px', height: '10px', background: '#3a3a5a', display: 'inline-block', flexShrink: 0 }} />
       <span style={{
         fontFamily: "'Crimson Text', serif",
         fontSize: '11px',
@@ -205,8 +206,14 @@ function FactionCard({ faction, resonance, onSelect }) {
         transition: 'transform 0.15s, border-color 0.15s',
       }}
       onClick={onSelect}
-      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(1.02)';
+        e.currentTarget.style.boxShadow = `inset 0 0 16px ${faction.color}33`;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '';
+      }}
     >
       {champImageUrl && (
         <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
@@ -239,7 +246,7 @@ function FactionCard({ faction, resonance, onSelect }) {
 
       <p style={{
         fontFamily: "'Crimson Text', serif",
-        fontSize: '13px',
+        fontSize: '14px',
         color: '#8a8aaa',
         lineHeight: 1.6,
         flex: 1,
