@@ -19,7 +19,7 @@ export const CARD_DB = {
   sentinel:        { id: 'sentinel',        name: 'Sentinel',            type: 'unit',  cost: 3, atk: 1, hp: 3, spd: 1, unitType: 'Human',  rules: 'Aura 1: Restore 1 HP to other friendly combat units within 1 tile at end of turn.', aura: { range: 1, stat: 'hp', value: 1, target: 'friendly', trigger: 'endturn', excludeSelf: true }, image: 'sentinel.webp' },
   warlord:         { id: 'warlord',         name: 'Warlord',             type: 'unit',  cost: 4, atk: 4, hp: 5, spd: 1, unitType: 'Human',  rules: '', image: 'warlord.webp' },
   battlepriestunit:{ id: 'battlepriestunit',name: 'Battle Priest',       type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When summoned deal 2 damage to an adjacent enemy unit and restore 2 HP to an adjacent friendly unit.', image: 'battlepriestunit.webp' },
-  paladin:         { id: 'paladin',         name: 'Paladin',             type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile permanently gain +1 max HP at the beginning of your turn.', aura: { range: 1, stat: 'maxhp', value: 1, target: 'friendlycombat', trigger: 'beginturn', permanent: true }, image: 'paladin.webp' },
+  paladin:         { id: 'paladin',         name: 'Paladin',             type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 1, unitType: 'Human',  rules: 'Aura 1: Friendly combat units within 1 tile permanently gain +1 HP at the beginning of your turn.', aura: { range: 1, stat: 'maxhp', value: 1, target: 'friendlycombat', trigger: 'beginturn', permanent: true }, image: 'paladin.webp' },
   // HOW TO ADD CARD ART:
   // 1. Generate art at 512x512px, export as WebP
   // 2. Upload to Supabase Storage bucket 'card-art'
