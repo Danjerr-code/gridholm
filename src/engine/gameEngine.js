@@ -1246,6 +1246,17 @@ export function moveUnit(state, unitUid, row, col) {
         stillAlive2.moved = true;
       }
     }
+    // Iron Shield is a one-battle effect: clear any remaining shield after combat resolves
+    const survivingAttacker = s.units.find(u => u.uid === unitUid);
+    if (survivingAttacker && survivingAttacker.shield > 0) {
+      addLog(s, `${survivingAttacker.name}'s Iron Shield fades after combat.`);
+      survivingAttacker.shield = 0;
+    }
+    const survivingDefender = s.units.find(u => u.uid === enemyUnit.uid);
+    if (survivingDefender && survivingDefender.shield > 0) {
+      addLog(s, `${survivingDefender.name}'s Iron Shield fades after combat.`);
+      survivingDefender.shield = 0;
+    }
     // Fire attack triggers (Whisper, Crossbowman, Razorfang)
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);

@@ -82,12 +82,12 @@ export const CARD_DB = {
   sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1,                    rules: 'When this unit is destroyed restore 1 HP to your champion.', token: true, image: null },
 
   // Elf spells
-  moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: 'Elf',   rules: 'Increase the current and max HP of a friendly combat unit by the number of cards in your hand.', image: 'moonleaf.webp' },
+  moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: 'Elf',   rules: 'Increase the HP of a friendly combat unit equal to the number of cards in your hand.', image: 'moonleaf.webp' },
   overgrowth:      { id: 'overgrowth',      name: 'Overgrowth',          type: 'spell', cost: 4, effect: 'overgrowth',      unitType: 'Elf',   rules: 'Restore 2 HP to all friendly units.', image: 'overgrowth.webp' },
-  bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   rules: 'Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP restored this turn.', image: 'bloom.webp' },
+  bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   rules: "Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP you've restored this turn.", image: 'bloom.webp' },
   entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: 'Elf',   rules: 'Choose a friendly Elf. Adjacent enemy combat units cannot move next turn.', image: 'entangle.webp' },
   ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: 'Elf',   rules: 'Draw 2 cards.', image: 'ancientspring.webp' },
-  verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   rules: 'Friendly units within 2 tiles of your champion gain +2 ATK and +2 HP this turn.', image: 'verdantsurge.webp' },
+  verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   rules: 'Friendly units within 2 tiles of your champion gain +2/+2 this turn.', image: 'verdantsurge.webp' },
   spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: 'Elf',   rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
 
   // Demon units
