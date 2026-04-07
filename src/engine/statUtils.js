@@ -9,7 +9,7 @@ import { manhattan } from './gameEngine.js';
 
 // Returns effective ATK bonus from friendly auras (stat === 'atk') and
 // enemy debuff auras (stat === 'atk', target === 'enemy').
-export function getAuraAtkBonus(state, unit) {
+export function getAuraAtkBonus(state, unit, combatTile = null) {
   let bonus = 0;
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
@@ -18,11 +18,12 @@ export function getAuraAtkBonus(state, unit) {
       bonus += other.aura.value;
     }
   }
-  // Enemy debuff auras (e.g. Aendor)
+  // Enemy debuff auras (e.g. Aendor): check combat tile position, not stored unit position
   for (const other of state.units) {
     if (other.owner === unit.owner) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target !== 'enemy') continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+    const [checkRow, checkCol] = combatTile || [unit.row, unit.col];
+    if (manhattan([other.row, other.col], [checkRow, checkCol]) <= other.aura.range) {
       bonus -= Math.abs(other.aura.value);
     }
   }
@@ -57,8 +58,8 @@ export function getPackBonus(state, unit) {
 
 // Returns effective ATK for a unit including all aura bonuses, temporary buffs,
 // and turn-based bonuses. Never writes to unit state.
-export function getEffectiveAtk(state, unit) {
-  const base = unit.atk + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit);
+export function getEffectiveAtk(state, unit, combatTile = null) {
+  const base = unit.atk + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit, combatTile);
   const sbBonus = getStandardBearerBonus(state, unit).atk;
   const packBonus = getPackBonus(state, unit);
   return Math.max(0, base + sbBonus + packBonus);

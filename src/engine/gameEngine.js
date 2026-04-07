@@ -78,7 +78,7 @@ export function restoreHP(target, amount, state, source = 'effect') {
 
 // ── Unit destruction ────────────────────────────────────────────────────────
 // Single point of unit removal for the entire engine. Fires death triggers.
-export function destroyUnit(unit, state, source = 'combat', destroyingUids = new Set()) {
+export function destroyUnit(unit, state, source = 'combat', destroyingUids = new Set(), combatTile = null) {
   if (destroyingUids.has(unit.uid)) return state;
   destroyingUids.add(unit.uid);
 
@@ -86,7 +86,7 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   state.units = state.units.filter(u => u.uid !== unit.uid);
 
   // Fire death triggers
-  fireDeathTriggers(unit, state, source, destroyingUids);
+  fireDeathTriggers(unit, state, source, destroyingUids, combatTile);
 
   addLog(state, `${unit.name} destroyed`);
   return state;
@@ -97,7 +97,7 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
 // Fires from destroyUnit whenever any unit is destroyed
 // ADD NEW DEATH TRIGGERS HERE
 // ============================================
-function fireDeathTriggers(unit, state, source, destroyingUids) {
+function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   // 1. Thornweave: restore 3 HP to controlling player champion
   if (unit.id === 'thornweave') {
     const healed = restoreHP('champion' + unit.owner, 3, state, 'thornweave');
@@ -115,7 +115,8 @@ function fireDeathTriggers(unit, state, source, destroyingUids) {
 
   // 3. Plague Hog: deal 2 damage to all adjacent units, chain-destroy at 0
   if (unit.id === 'plaguehog') {
-    const adj = cardinalNeighbors(unit.row, unit.col);
+    const [r, c] = combatTile || [unit.row, unit.col];
+    const adj = cardinalNeighbors(r, c);
     const nearby = state.units.filter(u => adj.some(([r, c]) => u.row === r && u.col === c));
     for (const t of nearby) {
       t.hp -= 2;
@@ -986,6 +987,7 @@ export function moveUnit(state, unitUid, row, col) {
 
   const enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
+  const combatTile = [row, col];
 
   if (enemyUnit) {
     // Reveal hidden enemy unit before resolving combat
@@ -1000,14 +1002,14 @@ export function moveUnit(state, unitUid, row, col) {
       return s;
     }
 
-    const attackerAtk = getEffectiveAtk(s, unit);
-    const defenderAtk = getEffectiveAtk(s, enemyUnit);
+    const attackerAtk = getEffectiveAtk(s, unit, combatTile);
+    const defenderAtk = getEffectiveAtk(s, enemyUnit, combatTile);
     addLog(s, `${unit.name} attacks ${enemyUnit.name}!`);
-    applyDamageToUnit(s, enemyUnit, attackerAtk, unit.name);
+    applyDamageToUnit(s, enemyUnit, attackerAtk, unit.name, combatTile);
 
     const stillAlive = s.units.find(u => u.uid === unitUid);
     if (stillAlive) {
-      applyDamageToUnit(s, stillAlive, defenderAtk, enemyUnit.name);
+      applyDamageToUnit(s, stillAlive, defenderAtk, enemyUnit.name, combatTile);
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
@@ -1022,7 +1024,7 @@ export function moveUnit(state, unitUid, row, col) {
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
   } else if (enemyChamp) {
-    const attackerAtk = getEffectiveAtk(s, unit);
+    const attackerAtk = getEffectiveAtk(s, unit, combatTile);
     const dist = manhattan([unit.row, unit.col], [row, col]);
     if (dist > 1) {
       const [mr, mc] = findIntermediateTile(s, unit, row, col);
@@ -1057,7 +1059,7 @@ export function moveUnit(state, unitUid, row, col) {
   return s;
 }
 
-export function applyDamageToUnit(state, unit, dmg, sourceName) {
+export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null) {
   let actualDmg = dmg;
   if (unit.shield > 0) {
     const absorbed = Math.min(unit.shield, dmg);
@@ -1069,7 +1071,7 @@ export function applyDamageToUnit(state, unit, dmg, sourceName) {
   unit.hp -= actualDmg;
   if (actualDmg > 0) addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
   if (unit.hp <= 0) {
-    destroyUnit(unit, state, 'combat');
+    destroyUnit(unit, state, 'combat', undefined, combatTile);
   }
 }
 
