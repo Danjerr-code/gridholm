@@ -1050,6 +1050,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               resources={myPlayer.resources}
               isActive={true}
               canPlay={isActiveTurn && phase === 'action'}
+              gameState={gameState}
+              playerIndex={myPlayerIndex}
               pendingDiscard={pendingDiscard && isActiveTurn}
               pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
               selectedCard={selectedCard}
@@ -1081,6 +1083,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             resources={myPlayer.resources}
             isActive={true}
             canPlay={isActiveTurn && phase === 'action'}
+            gameState={gameState}
+            playerIndex={myPlayerIndex}
             pendingDiscard={pendingDiscard && isActiveTurn}
             pendingHandSelect={isActiveTurn && selectMode === 'hand_select'}
             selectedCard={selectedCard}

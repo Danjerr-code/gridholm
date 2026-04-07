@@ -1,5 +1,6 @@
 import Card from './Card.jsx';
 import useLongPress from '../hooks/useLongPress.js';
+import { hasValidTargets } from '../engine/gameEngine.js';
 
 function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss, onClick, children }) {
   const longPress = useLongPress(() => {
@@ -36,7 +37,7 @@ function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss
   );
 }
 
-export default function Hand({ player, resources, isActive, canPlay, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss }) {
+export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss }) {
   if (!isActive) {
     // Opponent face-down count
     return (
@@ -80,7 +81,7 @@ export default function Hand({ player, resources, isActive, canPlay, pendingDisc
           <Card
             card={card}
             isSelected={canPlay && selectedCard === card.uid}
-            isPlayable={canPlay && resources >= card.cost}
+            isPlayable={canPlay && resources >= card.cost && (!gameState || hasValidTargets(card, gameState, playerIndex))}
           />
           {pendingDiscard && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded border-2 border-yellow-400 bg-yellow-900/20">

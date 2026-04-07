@@ -1583,6 +1583,76 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
   }
 }
 
+// ── spell playability pre-validation ──────────────────────────────────────
+// Returns true if the card has at least one valid target given the current
+// board state. Used to dim unplayable spells in the hand UI before the player
+// even attempts to cast them. Does NOT change state.
+
+export function hasValidTargets(card, state, playerIndex) {
+  if (card.type !== 'spell') return true;
+
+  const effect = card.effect;
+  const champ = state.champions[playerIndex];
+  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden);
+  const friendlyUnits = state.units.filter(u => u.owner === playerIndex);
+
+  switch (effect) {
+    case 'smite':
+      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
+
+    case 'devour':
+      return enemyUnits.some(u => u.hp <= 2);
+
+    case 'darksentence':
+      return enemyUnits.length > 0;
+
+    case 'bloodoffering':
+      return friendlyUnits.length > 0;
+
+    case 'pactofruin':
+      return state.players[playerIndex].hand.length > 1 && enemyUnits.length > 0;
+
+    case 'entangle': {
+      const elfFriendly = friendlyUnits.filter(u => u.unitType === 'Elf' && !u.hidden);
+      if (elfFriendly.length === 0) return false;
+      return enemyUnits.some(enemy =>
+        elfFriendly.some(elf => {
+          const adj = cardinalNeighbors(elf.row, elf.col);
+          return adj.some(([r, c]) => enemy.row === r && enemy.col === c);
+        })
+      );
+    }
+
+    case 'souldrain':
+      return enemyUnits.length > 0;
+
+    case 'bloom': {
+      const champBelowMax = champ.hp < champ.maxHp;
+      const unitBelowMax = friendlyUnits.some(u => !u.hidden && u.hp < u.maxHp);
+      return champBelowMax || unitBelowMax;
+    }
+
+    case 'ambush': {
+      return friendlyUnits.some(friendly => {
+        const adj = cardinalNeighbors(friendly.row, friendly.col);
+        return state.units.some(u => u.owner !== playerIndex && adj.some(([r, c]) => u.row === r && u.col === c));
+      });
+    }
+
+    case 'spiritbolt':
+      return !champ.moved && enemyUnits.length > 0;
+
+    case 'predatorsmark':
+      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
+
+    case 'martiallaw':
+      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
+
+    default:
+      return true;
+  }
+}
+
 // ── archer shoot targets ───────────────────────────────────────────────────
 
 export function getArcherShootTargets(state, archerUid) {
