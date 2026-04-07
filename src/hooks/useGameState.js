@@ -125,6 +125,8 @@ export function useGameState({ deckId = 'human' } = {}) {
     setSelectMode(null);
 
     setState(prev => {
+      // Block normal card play while awaiting a hand-card selection (e.g. Pact of Ruin, Chaos Spawn)
+      if (prev.pendingHandSelect) return prev;
       // Cancel any leftover pending state from a previous selection
       const base = (prev.pendingSpell || prev.pendingSummon) ? cancelSpell(prev) : prev;
       const p = base.players[base.activePlayer];
@@ -168,13 +170,14 @@ export function useGameState({ deckId = 'human' } = {}) {
         setSelectMode('hand_select');
       } else if (s.pendingFleshtitheSacrifice) {
         setSelectMode('fleshtithe_sacrifice');
+      } else {
+        setSelectedCard(null);
+        setSelectedUnit(null);
+        setSelectMode(null);
       }
       return s;
     });
-    if (!state.pendingHandSelect && !state.pendingFleshtitheSacrifice) {
-      clearSelection();
-    }
-  }, [selectedCard, clearSelection, state]);
+  }, [selectedCard]);
 
   const handleSpellTarget = useCallback((targetUid) => {
     if (!selectedCard && !state.pendingSpell) return;

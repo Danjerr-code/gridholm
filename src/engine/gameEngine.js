@@ -737,6 +737,8 @@ export function getSummonTiles(state) {
 
 export function playCard(state, cardUid) {
   let s = cloneState(state);
+  // Block card play while awaiting a hand-card selection (discard prompt must resolve first)
+  if (s.pendingHandSelect) return s;
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
   if (cardIdx === -1) return s;
