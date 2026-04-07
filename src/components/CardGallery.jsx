@@ -20,7 +20,8 @@ function getGroupedCards() {
     for (const id of deckCards) {
       copyCount[id] = (copyCount[id] || 0) + 1;
     }
-    const cards = all.filter(c => c.unitType === faction.unitType);
+    const deckCardIds = new Set(deckCards);
+    const cards = all.filter(c => deckCardIds.has(c.id));
     const units = cards.filter(c => c.type === 'unit').sort((a, b) => a.cost - b.cost);
     const spells = cards.filter(c => c.type === 'spell').sort((a, b) => a.cost - b.cost);
     return { ...faction, units, spells, copyCount };
