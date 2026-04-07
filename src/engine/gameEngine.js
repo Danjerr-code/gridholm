@@ -219,7 +219,7 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   }
 
   // 6. Sapling token: restore 1 HP to controlling champion
-  if (unit.id === 'sapling') {
+  if (unit.id === 'sapling' || unit.id === 'token_sapling') {
     const healed = restoreHP('champion' + unit.owner, 1, state, 'sapling');
     if (healed > 0) addLog(state, `Sapling: champion restores ${healed} HP.`);
   }
@@ -277,11 +277,10 @@ function fireBeginTurnTriggers(state, playerIdx) {
     state.soulHarvestUsed = false;
   }
 
-  // Grove (Mystic, Ascended passive): summon a Sapling adjacent to champion if fewer than 2 exist.
+  // Grove Tend (Mystic, Ascended passive): summon a Sapling adjacent to champion each turn (skip turn 1).
   const grovePLayer = state.players[playerIdx];
   if (FACTION_ATTRIBUTE[grovePLayer.deckId] === 'mystic' && grovePLayer.resonance?.tier === 'ascended') {
-    const saplingCount = state.units.filter(u => u.owner === playerIdx && u.id === 'token_sapling').length;
-    if (saplingCount < 2) {
+    if (grovePLayer.turnCount !== 1) {
       const champ = state.champions[playerIdx];
       const openTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
         !state.units.some(u => u.row === r && u.col === c) &&
@@ -297,7 +296,7 @@ function fireBeginTurnTriggers(state, playerIdx) {
           atkBonus: 0, shield: 0, speedBonus: 0, hidden: false, turnAtkBonus: 0,
           uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
         });
-        addLog(state, `Grove: ${grovePLayer.name}'s champion summons a Sapling at (${r},${c}).`);
+        addLog(state, `Grove Tend: ${grovePLayer.name}'s champion summons a Sapling at (${r},${c}).`);
       }
     }
   }

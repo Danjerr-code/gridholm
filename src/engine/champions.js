@@ -65,9 +65,9 @@ export const CHAMPIONS = {
       },
       ascended: {
         id: 'grove',
-        name: 'Grove',
+        name: 'Grove Tend',
         type: 'passive',
-        description: 'At the start of your turn, summon a 1/1 Sapling in a random open tile adjacent to your champion. Saplings cannot attack. Maximum 2 Saplings on the board.',
+        description: 'Grove Tend: At the start of your turn, summon a 1/1 Sapling in a random open tile adjacent to your champion.',
       },
     },
   },

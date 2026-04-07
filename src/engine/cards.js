@@ -130,9 +130,8 @@ export const TOKENS = {
     hp: 1,
     spd: 1,
     unitType: 'Elf',
-    rules: 'Cannot attack.',
+    rules: 'When this unit is destroyed, restore 1 HP to your champion.',
     isToken: true,
-    canAttack: false,
   },
 };
 
