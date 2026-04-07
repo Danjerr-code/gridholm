@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import UnitToken from './UnitToken.jsx';
+import useLongPress from '../hooks/useLongPress.js';
 
 export default function Cell({
   row, col,
@@ -22,6 +24,7 @@ export default function Cell({
   isMobile,
   onUnitLongPress,
   onLongPressDismiss,
+  onThroneLongPress,
 }) {
   let tileStyle;
   let tileClass = 'relative w-full aspect-square transition-colors';
@@ -64,6 +67,31 @@ export default function Cell({
     };
   }
 
+  // Long-press on the Throne tile (mobile only) shows terrain detail instead of tapping.
+  const throneLongPressCallback = useCallback(() => {
+    if (onThroneLongPress) onThroneLongPress();
+  }, [onThroneLongPress]);
+  const throneLongPress = useLongPress(throneLongPressCallback);
+  const throneActive = isCenter && isMobile && !!onThroneLongPress;
+  const tilePointerHandlers = throneActive ? {
+    onPointerDown: throneLongPress.onPointerDown,
+    onPointerUp: () => {
+      const fired = throneLongPress.firedRef.current;
+      throneLongPress.onPointerUp();
+      if (fired && onLongPressDismiss) onLongPressDismiss();
+    },
+    onPointerCancel: throneLongPress.onPointerCancel,
+  } : {};
+  const handleTileClick = throneActive
+    ? (e) => {
+        if (throneLongPress.firedRef.current) {
+          throneLongPress.firedRef.current = false;
+          return;
+        }
+        onClick && onClick(e);
+      }
+    : onClick;
+
   const isP1Champion = champion && champion.owner === 0;
   const champColor = isP1Champion ? '#185FA5' : '#993C1D';
   const isMyChampion = myPlayerIndex !== undefined && champion && champion.owner === myPlayerIndex;
@@ -72,8 +100,9 @@ export default function Cell({
     <div
       className={tileClass}
       style={{ minWidth: 0, ...tileStyle }}
-      title={isCenter ? 'Throne — click to inspect' : undefined}
-      onClick={onClick}
+      title={isCenter ? (isMobile ? 'Throne — long press to inspect' : 'Throne — click to inspect') : undefined}
+      {...tilePointerHandlers}
+      onClick={handleTileClick}
     >
       {/* Opponent move flash overlay */}
       {isOpponentMoveTile && (

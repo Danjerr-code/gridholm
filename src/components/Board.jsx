@@ -46,10 +46,11 @@ export default function Board({
     const cellUnit = units.find(u => u.row === row && u.col === col);
     const cellChamp = champions.find(c => c.row === row && c.col === col);
 
-    // Throne tile always shows terrain detail; other empty cells clear the panel
-    if (isThrone && onInspectTerrain) {
+    // Desktop: Throne tile always shows terrain detail on tap.
+    // Mobile: Throne inspect is triggered by long-press (not tap), so treat tap as a normal move target.
+    if (isThrone && onInspectTerrain && !isMobile) {
       onInspectTerrain();
-    } else if (!cellUnit && !cellChamp && onClearInspect) {
+    } else if (!isThrone && !cellUnit && !cellChamp && onClearInspect) {
       onClearInspect();
     }
 
@@ -145,6 +146,7 @@ export default function Board({
                 isMobile={isMobile}
                 onUnitLongPress={onLongPressUnit}
                 onLongPressDismiss={onLongPressDismiss}
+                onThroneLongPress={onInspectTerrain}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => {
