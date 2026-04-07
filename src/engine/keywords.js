@@ -19,11 +19,6 @@ export const KEYWORD_REMINDERS = {
     reminder: 'Passive bonus to nearby units. Calculated at combat time. Range shown as Aura 1 or Aura 2.',
     color: '#3B82F6', // blue
   },
-  cannotMove: {
-    label: 'Rooted',
-    reminder: 'This unit cannot move from its summoned position.',
-    color: '#78716C', // stone
-  },
   legendary: {
     label: 'Legendary',
     reminder: 'A powerful unique card. Only one copy allowed per deck.',

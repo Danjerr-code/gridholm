@@ -77,11 +77,9 @@ export function getEffectiveMaxHp(state, unit) {
   return unit.maxHp;
 }
 
-// Returns effective SPD including speed bonuses, with hidden/cannotMove handling.
-// Hidden units move at SPD 1; cannotMove units effectively have SPD 0.
+// Returns effective SPD including speed bonuses. Hidden units move at SPD 1.
 export function getEffectiveSpd(unit) {
   if (unit.hidden) return 1;
-  if (unit.cannotMove) return 0;
   return unit.spd + (unit.speedBonus || 0);
 }
 

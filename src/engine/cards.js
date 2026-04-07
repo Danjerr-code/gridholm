@@ -65,7 +65,7 @@ export const CARD_DB = {
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Elf',    rules: '', image: 'elfscout.webp' },
-  seedling:        { id: 'seedling',        name: 'Seedling',            type: 'unit',  cost: 1, atk: 0, hp: 3, spd: 1,                    rules: 'Cannot move. At the end of your turn restore 1 HP to your champion.', cannotMove: true, image: 'seedling.webp' },
+  seedling:        { id: 'seedling',        name: 'Seedling',            type: 'unit',  cost: 1, atk: 0, hp: 3, spd: 0,                    rules: 'At the end of your turn restore 1 HP to your champion.', image: 'seedling.webp' },
   woodlandguard:   { id: 'woodlandguard',   name: 'Woodland Guard',      type: 'unit',  cost: 2, atk: 1, hp: 3, spd: 1, unitType: 'Elf',    rules: 'Action: Deal 1 damage to enemy combat unit within 2 tiles.', action: true, image: 'woodlandguard.webp' },
   whisper:         { id: 'whisper',         name: 'Whisper',             type: 'unit',  cost: 2, atk: 1, hp: 4, spd: 1, unitType: 'Elf',    rules: 'When this unit attacks restore 2 HP to your champion.', image: 'whisper.webp' },
   verdantarcher:   { id: 'verdantarcher',   name: 'Verdant Archer',      type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: 'Elf',    rules: '', image: 'verdantarcher.webp' },
@@ -77,7 +77,7 @@ export const CARD_DB = {
   elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Skip moving this unit to deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion permanently gains +2 max HP.', legendary: true, image: 'sistersiofra.webp' },
   grovechampion:   { id: 'grovechampion',   name: 'Grove Champion',      type: 'unit',  cost: 5, atk: 5, hp: 5, spd: 1, unitType: 'Elf',    rules: '', image: 'grovechampion.webp' },
-  yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 7, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'Cannot move. At the end of your turn summon a 1/1 Sapling in each adjacent tile.', cannotMove: true, legendary: true, image: 'yggara.webp' },
+  yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 7, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'At the end of your turn summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
   sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1,                    rules: 'When this unit is destroyed restore 1 HP to your champion.', token: true, image: null },
 
   // Elf spells
@@ -91,12 +91,12 @@ export const CARD_DB = {
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden.', hidden: true, image: 'imp.webp' },
-  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: 'Demon',  rules: 'Cannot move. Action: Deal 2 damage to your champion. Draw a card.', action: true, cannotMove: true, legendary: true, image: 'darkdealer.webp' },
+  darkdealer:      { id: 'darkdealer',      name: 'Dark Dealer',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 0, unitType: 'Demon',  rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, legendary: true, image: 'darkdealer.webp' },
   dreadknight:     { id: 'dreadknight',     name: 'Dread Knight',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. When this unit deals damage to the enemy champion that player discards a card at random.', hidden: true, image: 'dreadknight.webp' },
   chaospawn:       { id: 'chaospawn',       name: 'Chaos Spawn',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Demon',  rules: 'When summoned discard a card to draw a card.', image: 'chaospawn.webp' },
   hellhound:       { id: 'hellhound',       name: 'Hellhound',           type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Demon',  rules: '', image: 'hellhound.webp' },
   brutedemon:      { id: 'brutedemon',      name: 'Brute Demon',         type: 'unit',  cost: 3, atk: 5, hp: 1, spd: 1, unitType: 'Demon',  rules: '', image: 'brutedemon.webp' },
-  shadowtrap:      { id: 'shadowtrap',      name: 'Shadow Trap',         type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Demon',  rules: 'Cannot Move. Hidden. On reveal: destroy the enemy unit that revealed this unit.', hidden: true, cannotMove: true, image: 'shadowtrap.webp' },
+  shadowtrap:      { id: 'shadowtrap',      name: 'Shadow Trap',         type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 0, unitType: 'Demon',  rules: 'Hidden. On reveal: destroy the enemy unit that revealed this unit.', hidden: true, image: 'shadowtrap.webp' },
   shadowstalker:   { id: 'shadowstalker',   name: 'Shadow Stalker',      type: 'unit',  cost: 3, atk: 3, hp: 3, spd: 1, unitType: 'Demon',  rules: 'Hidden.', hidden: true, image: 'shadowstalker.webp' },
   shadowfiend:     { id: 'shadowfiend',     name: 'Shadow Fiend',        type: 'unit',  cost: 4, atk: 4, hp: 5, spd: 1, unitType: 'Demon',  rules: '', image: 'shadowfiend.webp' },
   veilfiend:       { id: 'veilfiend',       name: 'Veil Fiend',          type: 'unit',  cost: 4, atk: 3, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: deal 2 damage to all adjacent enemy units.', hidden: true, image: 'veilfiend.webp' },

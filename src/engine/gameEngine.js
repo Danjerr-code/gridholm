@@ -179,9 +179,9 @@ function fireEndTurnTriggers(state, playerIdx) {
   const p = state.players[playerIdx];
   const champ = state.champions[playerIdx];
 
-  // 1. Seedling: restore 1 HP to champion for each friendly cannotMove unit
+  // 1. Seedling: restore 1 HP to champion for each friendly SPD 0 unit
   state.units.forEach(u => {
-    if (u.owner === playerIdx && u.cannotMove) {
+    if (u.owner === playerIdx && u.spd === 0) {
       const healed = restoreHP(champ, 1, state);
       if (healed > 0) addLog(state, `Seedling restores 1 HP to champion.`);
     }
@@ -1050,8 +1050,8 @@ export function triggerUnitAction(state, unitUid) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer) return [];
-  // cannotMove units (Seedling) cannot be selected for movement
-  if (unit.cannotMove) return [];
+  // SPD 0 units cannot be selected for movement
+  if (unit.spd === 0) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }

@@ -109,7 +109,7 @@ function aiUnitMove(state) {
   let s = cloneState(state);
   // TODO: AI Hidden strategy — teach AI to place Hidden units strategically and
   // reveal at optimal moments. For now, Hidden AI units are treated as normal units.
-  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.summoned && !u.moved && !u.cannotMove);
+  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.summoned && !u.moved);
 
   for (const unit of aiUnits) {
     const liveUnit = s.units.find(u => u.uid === unit.uid);
