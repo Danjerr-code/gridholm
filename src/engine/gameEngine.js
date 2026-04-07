@@ -628,14 +628,6 @@ function doBeginTurnPhase(state) {
   // BEGIN TURN TRIGGERS
   fireBeginTurnTriggers(state, state.activePlayer);
 
-  // Clear martial law from the opponent's units (applied last turn)
-  state.units.forEach(u => {
-    if (u.owner !== state.activePlayer && u.martialLaw) {
-      u.moved = true; // skip action
-      u.martialLaw = false;
-    }
-  });
-
   // Clear summoning sickness and per-turn bonuses for active player
   state.units.forEach(u => {
     if (u.owner === state.activePlayer) {
@@ -650,6 +642,18 @@ function doBeginTurnPhase(state) {
 
   // Reset champion moved state
   state.champions[state.activePlayer].moved = false;
+
+  // Apply skipNextAction: lock units and champion that were marked last turn
+  state.units.forEach(u => {
+    if (u.owner === state.activePlayer && u.skipNextAction) {
+      u.moved = true;
+      u.skipNextAction = false;
+    }
+  });
+  if (state.champions[state.activePlayer].skipNextAction) {
+    state.champions[state.activePlayer].moved = true;
+    state.champions[state.activePlayer].skipNextAction = false;
+  }
 
   // Clear recalled-this-turn
   state.recalledThisTurn = [];
@@ -1515,11 +1519,18 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'entangle':
       return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Elf' && !u.hidden).map(u => u.uid);
 
-    // Predator's Mark: enemy within 2 tiles of champion
-    case 'predatorsmark':
-      return state.units
+    // Predator's Mark: enemy unit or champion within 2 tiles of caster's champion
+    case 'predatorsmark': {
+      const enemyChampIdx = 1 - state.activePlayer;
+      const enemyChamp = state.champions[enemyChampIdx];
+      const unitTargets = state.units
         .filter(u => u.owner !== state.activePlayer && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
+      const champTarget = manhattan([champ.row, champ.col], [enemyChamp.row, enemyChamp.col]) <= 2
+        ? ['champion' + enemyChampIdx]
+        : [];
+      return [...unitTargets, ...champTarget];
+    }
 
     // Pounce: friendly Beast unit (resets its action)
     case 'pounce':
@@ -1653,8 +1664,11 @@ export function hasValidTargets(card, state, playerIndex) {
     case 'spiritbolt':
       return !champ.moved && enemyUnits.length > 0;
 
-    case 'predatorsmark':
-      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
+    case 'predatorsmark': {
+      const enemyChamp = state.champions[1 - playerIndex];
+      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        || manhattan([champ.row, champ.col], [enemyChamp.row, enemyChamp.col]) <= 2;
+    }
 
     case 'martiallaw':
       return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);

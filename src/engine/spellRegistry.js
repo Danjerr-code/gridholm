@@ -151,8 +151,8 @@ export const SPELL_REGISTRY = {
   predatorsmark: (state, caster, targets) => {
     const target = targets[0];
     if (!target) return state;
-    target.martialLaw = true;
-    addLog(state, `Predator's Mark: ${target.name} cannot act next turn.`);
+    target.skipNextAction = true;
+    addLog(state, `Predator's Mark: ${target.name} will skip its action next turn.`);
     return state;
   },
 

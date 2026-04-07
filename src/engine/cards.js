@@ -61,7 +61,7 @@ export const CARD_DB = {
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
   packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 3, effect: 'packhowl',        unitType: 'Beast', rules: 'All friendly Beast combat units gain +1 ATK and +1 SPD this turn.', image: 'packhowl.webp' },
   pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', rules: 'Reset the action of a friendly Beast unit.', image: 'pounce.webp' },
-  predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: 'Beast', rules: 'An enemy unit within 2 tiles of your champion cannot move next turn.', image: 'predatorsmark.webp' },
+  predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: 'Beast', rules: 'An enemy unit within 2 tiles of your champion skips its action next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: 'Beast', rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: 'Beast', rules: 'Summon a 1/1 Snake Beast combat unit in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
 
