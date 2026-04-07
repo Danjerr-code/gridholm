@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   createInitialState,
   autoAdvancePhase,
@@ -22,6 +22,7 @@ import {
   triggerUnitAction,
 } from '../engine/gameEngine.js';
 import { runAITurn } from '../engine/ai.js';
+import { playTurnStartSound } from '../audio.js';
 
 const AI_PLAYER = 1;
 
@@ -39,6 +40,19 @@ export function useGameState({ deckId = 'human' } = {}) {
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
   const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
   const [inspectedItem, setInspectedItem] = useState(null);
+
+  // Play a chime when control returns to the local player (player 0) after the AI acts.
+  const prevActivePlayerRef = useRef(null);
+  useEffect(() => {
+    if (prevActivePlayerRef.current === null) {
+      prevActivePlayerRef.current = state.activePlayer;
+      return;
+    }
+    if (prevActivePlayerRef.current !== state.activePlayer && state.activePlayer !== AI_PLAYER && !state.winner) {
+      playTurnStartSound();
+    }
+    prevActivePlayerRef.current = state.activePlayer;
+  }, [state.activePlayer, state.winner]);
 
   const applyAndMaybeAI = useCallback((newState) => {
     setState(newState);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
+import { playTurnStartSound } from '../audio.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
 const DISCONNECT_TIMEOUT_MS = 60_000;
@@ -113,6 +114,18 @@ export function useMultiplayerGame(gameId) {
     return () => {
       if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
+  }, [session?.active_player, session?.status, guestId]);
+
+  // Play a chime when active_player transitions to the local player.
+  const prevActivePlayerRef = useRef(null);
+  useEffect(() => {
+    if (!session || session.status !== 'active') return;
+    const prev = prevActivePlayerRef.current;
+    prevActivePlayerRef.current = session.active_player;
+    if (prev === null) return; // skip initial load
+    if (prev !== session.active_player && session.active_player === guestId) {
+      playTurnStartSound();
+    }
   }, [session?.active_player, session?.status, guestId]);
 
   // Deck selection: called when this player picks their faction
