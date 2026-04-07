@@ -1039,7 +1039,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             flexShrink: 0,
           }}>
             <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
-              RESOURCES
+              MANA
             </div>
             <ResourceDisplay
               current={myPlayer.resources}

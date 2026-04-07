@@ -425,7 +425,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             flexShrink: 0,
           }}>
             <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
-              RESOURCES
+              MANA
             </div>
             <ResourceDisplay current={p1.resources} max={10} playerColor="#185FA5" small={false} />
           </div>
