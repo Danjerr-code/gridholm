@@ -87,7 +87,7 @@ export const CHAMPIONS = {
         id: 'soul_harvest',
         name: 'Soul Harvest',
         type: 'passive',
-        description: 'When an enemy unit is destroyed, your champion gains 1 HP (cannot exceed starting HP).',
+        description: 'The first time an enemy unit is destroyed during your turn, your champion restores 1 HP.',
       },
       ascended: {
         id: 'dark_pact',

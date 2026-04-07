@@ -242,22 +242,23 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
-  // 9. Soul Harvest (Dark, Attuned passive): when any enemy unit is destroyed,
-  //    restore 1 HP to the Dark player's champion (capped at 20).
-  for (let pIdx = 0; pIdx < 2; pIdx++) {
-    const p = state.players[pIdx];
-    if (
-      FACTION_ATTRIBUTE[p.deckId] === 'dark' &&
-      (p.resonance?.tier === 'attuned' || p.resonance?.tier === 'ascended') &&
-      unit.owner !== pIdx
-    ) {
-      const champ = state.champions[pIdx];
-      const healed = Math.min(1, 20 - champ.hp);
-      if (healed > 0) {
-        champ.hp += healed;
-        addLog(state, `Soul Harvest: ${p.name}'s champion restores 1 HP.`);
-      }
+  // 9. Soul Harvest (Dark, Attuned passive): the first time an enemy unit is destroyed
+  //    during the Dark player's own turn, restore 1 HP to their champion (capped at 20).
+  const ap = state.activePlayer;
+  const darkPlayer = state.players[ap];
+  if (
+    FACTION_ATTRIBUTE[darkPlayer.deckId] === 'dark' &&
+    (darkPlayer.resonance?.tier === 'attuned' || darkPlayer.resonance?.tier === 'ascended') &&
+    unit.owner !== ap &&
+    !state.soulHarvestUsed
+  ) {
+    const champ = state.champions[ap];
+    const healed = Math.min(1, 20 - champ.hp);
+    if (healed > 0) {
+      champ.hp += healed;
+      addLog(state, `Soul Harvest: ${darkPlayer.name}'s champion restores 1 HP.`);
     }
+    state.soulHarvestUsed = true;
   }
 }
 
@@ -267,6 +268,15 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
 // ADD NEW BEGIN TURN TRIGGERS HERE
 // ============================================
 function fireBeginTurnTriggers(state, playerIdx) {
+  // Soul Harvest (Dark, Attuned passive): reset once-per-turn flag at the start of Malachar's turn.
+  const shPlayer = state.players[playerIdx];
+  if (
+    FACTION_ATTRIBUTE[shPlayer.deckId] === 'dark' &&
+    (shPlayer.resonance?.tier === 'attuned' || shPlayer.resonance?.tier === 'ascended')
+  ) {
+    state.soulHarvestUsed = false;
+  }
+
   // Grove (Mystic, Ascended passive): summon a Sapling adjacent to champion if fewer than 2 exist.
   const grovePLayer = state.players[playerIdx];
   if (FACTION_ATTRIBUTE[grovePLayer.deckId] === 'mystic' && grovePLayer.resonance?.tier === 'ascended') {
