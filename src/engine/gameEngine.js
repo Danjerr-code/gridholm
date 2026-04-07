@@ -605,8 +605,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId },
-      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -718,6 +718,7 @@ function doBeginTurnPhase(state) {
   p.turnCount = (p.turnCount || 0) + 1;
   const bonus = state.activePlayer !== state.firstPlayer ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
+  p.maxResourcesThisTurn = p.resources;
 
   const drawnPart = skipDraw
     ? 'Skipped draw (turn 1 rule).'

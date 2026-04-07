@@ -1077,6 +1077,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <ResourceDisplay
               current={myPlayer.resources}
               max={10}
+              maxThisTurn={myPlayer.maxResourcesThisTurn}
               playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'}
               small={false}
             />
@@ -1123,7 +1124,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             padding: '4px 0',
             marginBottom: 0,
           }}>
-            <ResourceDisplay current={myPlayer.resources} max={10} playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'} singleRow={true} />
+            <ResourceDisplay current={myPlayer.resources} max={10} maxThisTurn={myPlayer.maxResourcesThisTurn} playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'} singleRow={true} />
           </div>
           <Hand
             player={myPlayer}
