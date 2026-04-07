@@ -105,6 +105,23 @@ export default function Cell({
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.hp}
           </span>
+          {champion.skipNextAction && (
+            <span style={{
+              position: 'absolute',
+              top: '-2px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#44403c',
+              color: '#fbbf24',
+              fontSize: '7px',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 600,
+              padding: '1px 4px',
+              borderRadius: '99px',
+              whiteSpace: 'nowrap',
+              zIndex: 3,
+            }} title="Stunned — cannot move or use action this turn">Stunned</span>
+          )}
           {isMyChampion && (
             <span style={{
               position: 'absolute',

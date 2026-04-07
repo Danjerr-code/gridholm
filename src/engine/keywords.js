@@ -29,4 +29,9 @@ export const KEYWORD_REMINDERS = {
     reminder: 'End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.',
     color: '#92400E', // amber brown
   },
+  stunned: {
+    label: 'Stunned',
+    reminder: 'This unit cannot move or use its action this turn.',
+    color: '#D97706', // amber
+  },
 }
