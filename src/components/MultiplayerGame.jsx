@@ -84,6 +84,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const highlightTimerRef = useRef(null);
   const [opponentMoveTiles, setOpponentMoveTiles] = useState(new Set());
   const [extraLogEntries, setExtraLogEntries] = useState([]);
+  const [handExpanded, setHandExpanded] = useState(true);
+  const touchStartYRef = useRef(null);
 
   // Detect status transitions: rematch and opponent-left
   useEffect(() => {
@@ -177,8 +179,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleChampionMoveTile = useCallback(async (row, col) => {
     if (!gameState) return;
+    if (isMobile && !selectedCard) setHandExpanded(false);
     await dispatch(moveChampion(gameState, row, col));
-  }, [gameState, dispatch]);
+  }, [gameState, dispatch, isMobile, selectedCard]);
 
   const handlePlayCard = useCallback(async (cardUid) => {
     if (!gameState) return;
@@ -275,12 +278,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectedUnit(null);
     setSelectedCard(null);
     setSelectMode('champion_move');
-  }, []);
+    if (isMobile && !selectedCard) setHandExpanded(false);
+  }, [isMobile, selectedCard]);
 
   const handleSelectUnit = useCallback((unitUid) => {
     setSelectedUnit(unitUid);
     setSelectMode('unit_move');
-  }, []);
+    if (isMobile && !selectedCard) setHandExpanded(false);
+  }, [isMobile, selectedCard]);
 
   const handleMoveUnit = useCallback(async (row, col) => {
     if (!gameState || !selectedUnit) return;
@@ -1005,12 +1010,40 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </div>
       )}
 
+      {/* Mobile hand toggle button */}
+      {isMobile && (
+        <button
+          style={{
+            position: 'fixed',
+            bottom: '68px',
+            right: '12px',
+            zIndex: 41,
+            width: '36px',
+            height: '36px',
+            background: '#0a0a14',
+            border: '1px solid #2a2a3a',
+            borderRadius: '6px',
+            color: '#6a6a8a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: '16px',
+            lineHeight: 1,
+          }}
+          onClick={() => setHandExpanded(v => !v)}
+        >
+          {handExpanded ? '▼' : '▲'}
+        </button>
+      )}
+
       {/* My hand (face up) */}
       <div style={{
         background: pendingDiscard && isActiveTurn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
         border: `1px solid ${pendingDiscard && isActiveTurn ? '#C9A84C' : '#1e1e2e'}`,
         borderRadius: '6px',
         flexShrink: 0,
+        ...(isMobile && { transition: 'transform 0.3s ease', transform: handExpanded ? 'translateY(0)' : 'translateY(120%)' }),
       }}>
         <div style={{
           fontFamily: "'Cinzel', serif",
@@ -1071,7 +1104,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           </div>
         </div>
         {/* Mobile: resources on top, hand scrollable below */}
-        <div className="flex flex-col sm:hidden" style={{ padding: '4px 8px 8px' }}>
+        <div
+          className="flex flex-col sm:hidden"
+          style={{ padding: '4px 8px 8px' }}
+          onTouchStart={e => { touchStartYRef.current = e.touches[0].clientY; }}
+          onTouchEnd={e => {
+            if (touchStartYRef.current === null) return;
+            const delta = e.changedTouches[0].clientY - touchStartYRef.current;
+            touchStartYRef.current = null;
+            if (Math.abs(delta) > 30) setHandExpanded(delta < 0);
+          }}
+        >
           <div style={{
             display: 'flex',
             justifyContent: 'center',
