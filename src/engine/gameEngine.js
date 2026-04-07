@@ -407,17 +407,23 @@ function fireOnSummonTriggers(unit, state) {
     addLog(state, `Elf Elder: champion restores ${healed} HP.`);
   }
 
-  // 2. Chaos Spawn: prompt discard then draw
+  // 2. Chaos Spawn: draw first, then prompt discard
   if (unit.id === 'chaospawn') {
-    if (p.hand.length > 0) {
-      state.pendingHandSelect = { reason: 'chaospawn', cardUid: unit.uid, data: {} };
-    } else {
-      const drawn = p.deck.shift();
-      if (drawn) {
-        p.hand.push(drawn);
-        addLog(state, `Chaos Spawn: drew ${drawn.name}.`);
-      }
+    // Draw first
+    const drawn = p.deck.shift();
+    if (drawn) {
+      p.hand.push(drawn);
+      addLog(state, `Chaos Spawn: drew ${drawn.name}.`);
     }
+    // Then handle discard
+    if (p.hand.length > 1) {
+      state.pendingHandSelect = { reason: 'chaospawn', cardUid: unit.uid, data: {} };
+    } else if (p.hand.length === 1) {
+      const [discarded] = p.hand.splice(0, 1);
+      p.discard.push(discarded);
+      addLog(state, `Chaos Spawn: ${discarded.name} discarded.`);
+    }
+    // If hand is empty after drawing, skip discard
   }
 
   // 3. Flesh Tithe: prompt optional sacrifice
@@ -888,18 +894,12 @@ export function resolveHandSelect(state, selectedCardUid) {
   }
 
   if (hs.reason === 'chaospawn') {
-    // Discard the selected card
+    // Discard the selected card (draw already happened on summon)
     const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
     if (idx !== -1) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Chaos Spawn: ${discarded.name} discarded.`);
-    }
-    // Draw a card
-    const drawn = p.deck.shift();
-    if (drawn) {
-      p.hand.push(drawn);
-      addLog(s, `Chaos Spawn: drew ${drawn.name}.`);
     }
     s.pendingHandSelect = null;
     return s;
