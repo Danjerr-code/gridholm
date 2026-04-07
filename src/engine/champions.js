@@ -1,0 +1,103 @@
+export const CHAMPIONS = {
+  light: {
+    name: 'Valorian',
+    attribute: 'light',
+    hp: 20,
+    atk: 0,
+    abilities: {
+      attuned: {
+        id: 'shield',
+        name: 'Shield',
+        type: 'activated',
+        cost: { type: 'mana', amount: 2 },
+        description: 'Give a friendly unit within 2 tiles +2 HP until end of turn.',
+        targetRequired: true,
+        targetFilter: 'friendly_unit_within_2',
+      },
+      ascended: {
+        id: 'fortitude',
+        name: 'Fortitude',
+        type: 'passive',
+        description: 'Friendly units within 2 tiles of your champion take 1 less damage during combat (minimum 1).',
+      },
+    },
+  },
+  primal: {
+    name: 'Kragor',
+    attribute: 'primal',
+    hp: 20,
+    atk: 0,
+    abilities: {
+      attuned: {
+        id: 'howl',
+        name: 'Howl',
+        type: 'activated',
+        cost: { type: 'mana', amount: 2 },
+        description: 'Give a friendly unit within 2 tiles +2 ATK until end of turn.',
+        targetRequired: true,
+        targetFilter: 'friendly_unit_within_2',
+      },
+      ascended: {
+        id: 'hunger',
+        name: 'Hunger',
+        type: 'passive',
+        description: 'When a friendly unit destroys an enemy unit in combat, gain 1 temporary mana this turn.',
+      },
+    },
+  },
+  mystic: {
+    name: 'Sylara',
+    attribute: 'mystic',
+    hp: 20,
+    atk: 0,
+    abilities: {
+      attuned: {
+        id: 'nurture',
+        name: 'Nurture',
+        type: 'activated',
+        cost: { type: 'mana', amount: 2 },
+        description: 'Give a friendly unit +1/+1 permanently.',
+        targetRequired: true,
+        targetFilter: 'friendly_unit',
+      },
+      ascended: {
+        id: 'grove',
+        name: 'Grove',
+        type: 'passive',
+        description: 'At the start of your turn, summon a 1/1 Sapling in a random open tile adjacent to your champion. Saplings cannot attack. Maximum 2 Saplings on the board.',
+      },
+    },
+  },
+  dark: {
+    name: 'Malachar',
+    attribute: 'dark',
+    hp: 20,
+    atk: 0,
+    abilities: {
+      attuned: {
+        id: 'corrupt',
+        name: 'Corrupt',
+        type: 'activated',
+        cost: { type: 'mana', amount: 2 },
+        description: 'Deal 1 damage to an enemy unit.',
+        targetRequired: true,
+        targetFilter: 'enemy_unit',
+      },
+      attunedPassive: {
+        id: 'soul_harvest',
+        name: 'Soul Harvest',
+        type: 'passive',
+        description: 'When an enemy unit is destroyed, your champion gains 1 HP (cannot exceed starting HP).',
+      },
+      ascended: {
+        id: 'dark_pact',
+        name: 'Dark Pact',
+        type: 'activated',
+        cost: { type: 'hp', amount: 2 },
+        description: 'Pay 2 HP: draw a card. Replaces Corrupt.',
+        replacesAbility: 'corrupt',
+        targetRequired: false,
+      },
+    },
+  },
+};

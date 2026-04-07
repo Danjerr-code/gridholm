@@ -117,6 +117,25 @@ export const CARD_DB = {
   souldrain:       { id: 'souldrain',       name: 'Soul Drain',          type: 'spell', cost: 3, effect: 'souldrain',       unitType: 'Demon', attribute: 'dark',    rules: 'Deal 2 damage to an enemy combat unit. Restore HP to your champion equal to the damage dealt.', image: 'souldrain.webp' },
 };
 
+// ── Token Definitions ──────────────────────────────────────────────────────
+
+export const TOKENS = {
+  sapling: {
+    id: 'token_sapling',
+    name: 'Sapling',
+    type: 'unit',
+    attribute: 'mystic',
+    cost: 0,
+    atk: 1,
+    hp: 1,
+    spd: 1,
+    unitType: 'Elf',
+    rules: 'Cannot attack.',
+    isToken: true,
+    canAttack: false,
+  },
+};
+
 // ── Faction Deck Compositions ──────────────────────────────────────────────
 
 const HUMAN_DECK = [
