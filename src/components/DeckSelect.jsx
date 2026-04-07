@@ -1,4 +1,21 @@
-import { FACTION_INFO } from '../engine/cards.js';
+import { FACTION_INFO, buildDeck } from '../engine/cards.js';
+import { calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
+
+const FACTION_ATTRIBUTE = {
+  human: 'light',
+  beast: 'primal',
+  elf:   'mystic',
+  demon: 'dark',
+};
+
+function getResonanceInfo(factionId) {
+  const cards = buildDeck(factionId);
+  const score = calculateResonance(cards, FACTION_ATTRIBUTE[factionId]);
+  const tier = score >= RESONANCE_THRESHOLDS.ascended ? 'ascended'
+    : score >= RESONANCE_THRESHOLDS.attuned ? 'attuned'
+    : 'none';
+  return { score, tier };
+}
 
 const FACTIONS = Object.values(FACTION_INFO);
 
@@ -106,6 +123,7 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
           <FactionCard
             key={faction.id}
             faction={faction}
+            resonance={getResonanceInfo(faction.id)}
             onSelect={() => onSelect(faction.id)}
           />
         ))}
@@ -138,7 +156,35 @@ function PlayerStatusRow({ youSelected, opponentSelected }) {
   );
 }
 
-function FactionCard({ faction, onSelect }) {
+function ResonanceBadge({ tier, score }) {
+  const TIER_STYLE = {
+    ascended: { color: '#C9A84C', label: 'Ascended' },
+    attuned:  { color: '#ffffff', label: 'Attuned'  },
+    none:     { color: '#4a4a6a', label: 'Unaligned' },
+  };
+  const { color, label } = TIER_STYLE[tier] ?? TIER_STYLE.none;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <span style={{
+        fontFamily: "'Cinzel', serif",
+        fontSize: '11px',
+        color,
+        letterSpacing: '0.06em',
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontFamily: "'Crimson Text', serif",
+        fontSize: '11px',
+        color: '#4a4a6a',
+      }}>
+        {score}
+      </span>
+    </div>
+  );
+}
+
+function FactionCard({ faction, resonance, onSelect }) {
   return (
     <div
       style={{
@@ -169,6 +215,7 @@ function FactionCard({ faction, onSelect }) {
         >
           {faction.name}
         </h2>
+        {resonance && <ResonanceBadge tier={resonance.tier} score={resonance.score} />}
         <span style={{
           fontFamily: "'Cinzel', serif",
           fontSize: '10px',

@@ -1,4 +1,12 @@
 import { buildDeck, shuffle } from './cards.js';
+import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
+
+const FACTION_ATTRIBUTE = {
+  human: 'light',
+  beast: 'primal',
+  elf:   'mystic',
+  demon: 'dark',
+};
 import {
   getAuraAtkBonus,
   getEffectiveAtk,
@@ -489,9 +497,21 @@ function fireOnSummonTriggers(unit, state) {
 
 // ── initializer ────────────────────────────────────────────────────────────
 
+function computeResonance(deckId, cards) {
+  const attr = FACTION_ATTRIBUTE[deckId] ?? 'light';
+  const score = calculateResonance(cards, attr);
+  const tier = score >= RESONANCE_THRESHOLDS.ascended ? 'ascended'
+    : score >= RESONANCE_THRESHOLDS.attuned ? 'attuned'
+    : 'none';
+  return { score, tier };
+}
+
 export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
   const p1Deck = shuffle(buildDeck(p1DeckId));
   const p2Deck = shuffle(buildDeck(p2DeckId));
+
+  const p1Resonance = computeResonance(p1DeckId, [...p1Deck]);
+  const p2Resonance = computeResonance(p2DeckId, [...p2Deck]);
 
   const p1Hand = p1Deck.splice(0, 5);
   const p2Hand = p2Deck.splice(0, 5);
@@ -508,8 +528,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0 },
-      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0 },
+      { id: 0, name: 'Player 1', resources: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance },
+      { id: 1, name: 'AI',       resources: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
