@@ -64,7 +64,7 @@ export const CARD_DB = {
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Elf',    rules: '', image: 'elfscout.webp' },
-  seedling:        { id: 'seedling',        name: 'Seedling',            type: 'unit',  cost: 1, atk: 0, hp: 3, spd: 1, unitType: 'Elf',    rules: 'Cannot move. At the end of your turn restore 1 HP to your champion.', cannotMove: true, image: 'seedling.webp' },
+  seedling:        { id: 'seedling',        name: 'Seedling',            type: 'unit',  cost: 1, atk: 0, hp: 3, spd: 1,                    rules: 'Cannot move. At the end of your turn restore 1 HP to your champion.', cannotMove: true, image: 'seedling.webp' },
   woodlandguard:   { id: 'woodlandguard',   name: 'Woodland Guard',      type: 'unit',  cost: 2, atk: 1, hp: 3, spd: 1, unitType: 'Elf',    rules: 'Action: Deal 1 damage to enemy combat unit within 2 tiles.', action: true, image: 'woodlandguard.webp' },
   whisper:         { id: 'whisper',         name: 'Whisper',             type: 'unit',  cost: 2, atk: 1, hp: 4, spd: 1, unitType: 'Elf',    rules: 'When this unit attacks restore 2 HP to your champion.', image: 'whisper.webp' },
   verdantarcher:   { id: 'verdantarcher',   name: 'Verdant Archer',      type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: 'Elf',    rules: '', image: 'verdantarcher.webp' },
