@@ -508,24 +508,56 @@ function doBeginTurnPhase(state) {
 export function getChampionMoveTiles(state) {
   const champ = state.champions[state.activePlayer];
   if (champ.moved) return [];
+  const champAtk = getEffectiveAtk(state, champ);
   return cardinalNeighbors(champ.row, champ.col)
-    .filter(([r, c]) => !isTileOccupied(state, r, c));
+    .filter(([r, c]) => {
+      if (isTileOccupied(state, r, c)) {
+        // Allow enemy unit tiles only when champion has ATK > 0
+        const enemyUnit = state.units.find(u => u.owner !== state.activePlayer && u.row === r && u.col === c);
+        return !!enemyUnit && champAtk > 0;
+      }
+      return true;
+    });
 }
 
 export function moveChampion(state, row, col) {
   const s = cloneState(state);
   const champ = s.champions[s.activePlayer];
-  champ.row = row;
-  champ.col = col;
-  champ.moved = true;
-  addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
-  // Reveal Hidden enemy units adjacent to champion's new position
-  for (const [nr, nc] of cardinalNeighbors(row, col)) {
-    const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
-    if (hiddenEnemy) {
-      revealUnit(s, hiddenEnemy);
-      if (hiddenEnemy.id === 'shadowtrap') {
-        // Shadow Trap: destroy the unit that revealed it (champion can't be destroyed, skip)
+  const enemyUnit = s.units.find(u => u.owner !== s.activePlayer && u.row === row && u.col === col);
+
+  if (enemyUnit) {
+    // Combat: champion moves into enemy unit tile — simultaneous damage
+    const combatTile = [row, col];
+    const champAtk = getEffectiveAtk(s, champ, combatTile);
+    const enemyAtk = getEffectiveAtk(s, enemyUnit, combatTile);
+    addLog(s, `${getPlayer(s).name}'s champion attacks ${enemyUnit.name}!`);
+    applyDamageToUnit(s, enemyUnit, champAtk, 'Champion', combatTile);
+    // Apply enemy's pre-combat ATK to champion (simultaneous)
+    if (enemyAtk > 0) {
+      champ.hp -= enemyAtk;
+      addLog(s, `${enemyUnit.name} counterattacks champion for ${enemyAtk} damage.`);
+    }
+    // If enemy was destroyed, champion advances to that tile
+    const enemyDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
+    if (enemyDestroyed) {
+      champ.row = row;
+      champ.col = col;
+    }
+    champ.moved = true;
+    checkWinner(s);
+  } else {
+    champ.row = row;
+    champ.col = col;
+    champ.moved = true;
+    addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
+    // Reveal hidden enemy units adjacent to champion's new position
+    for (const [nr, nc] of cardinalNeighbors(row, col)) {
+      const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
+      if (hiddenEnemy) {
+        revealUnit(s, hiddenEnemy);
+        if (hiddenEnemy.id === 'shadowtrap') {
+          // Shadow Trap: destroy the unit that revealed it (champion can't be destroyed, skip)
+        }
       }
     }
   }

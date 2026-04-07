@@ -59,7 +59,7 @@ export function getPackBonus(state, unit) {
 // Returns effective ATK for a unit including all aura bonuses, temporary buffs,
 // and turn-based bonuses. Never writes to unit state.
 export function getEffectiveAtk(state, unit, combatTile = null) {
-  const base = unit.atk + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit, combatTile);
+  const base = (unit.atk || 0) + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit, combatTile);
   const sbBonus = getStandardBearerBonus(state, unit).atk;
   const packBonus = getPackBonus(state, unit);
   return Math.max(0, base + sbBonus + packBonus);
