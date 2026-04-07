@@ -681,6 +681,11 @@ export function moveChampion(state, row, col) {
   const enemyUnit = s.units.find(u => u.owner !== s.activePlayer && u.row === row && u.col === col);
 
   if (enemyUnit) {
+    // Reveal hidden enemy unit before champion combat
+    if (enemyUnit.hidden) {
+      revealUnit(s, enemyUnit);
+      // Shadow Trap on reveal: destroy the revealer — champion can't be destroyed, skip
+    }
     // Combat: champion moves into enemy unit tile — simultaneous damage
     const combatTile = [row, col];
     const champAtk = getEffectiveAtk(s, champ, combatTile);
@@ -1129,6 +1134,11 @@ export function triggerUnitAction(state, unitUid) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== s.activePlayer || unit.moved || unit.summoned) return s;
 
+  // Reveal hidden unit when it uses an action ability
+  if (unit.hidden) {
+    revealUnit(s, unit);
+  }
+
   unit.moved = true;
 
   // No-target actions — dispatch immediately via ACTION_REGISTRY
@@ -1275,6 +1285,10 @@ export function moveUnit(state, unitUid, row, col) {
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
   } else if (enemyChamp) {
+    // Reveal hidden attacking unit before champion combat
+    if (unit.hidden) {
+      revealUnit(s, unit, null, [row, col]);
+    }
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);
     const dist = manhattan([unit.row, unit.col], [row, col]);
     if (dist > 1) {
