@@ -129,7 +129,6 @@ export const TOKENS = {
     atk: 1,
     hp: 1,
     spd: 1,
-    unitType: 'Elf',
     rules: 'When this unit is destroyed, restore 1 HP to your champion.',
     isToken: true,
     image: 'sapling-token.webp',
