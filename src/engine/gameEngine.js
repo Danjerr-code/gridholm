@@ -58,6 +58,36 @@ function updateWildbornAura(state) {
   }
 }
 
+// ── Standard Bearer Aura helpers ───────────────────────────────────────────
+
+function applyStandardBearerAura(unit, state) {
+  if (unit.standardBearerBuff) return;
+  unit.standardBearerBuff = true;
+  unit.maxHp += 1;
+  unit.hp += 1;
+  addLog(state, `Standard Bearer Aura: ${unit.name} gains +1 HP and +1 max HP.`);
+}
+
+function removeStandardBearerAura(unit, state) {
+  if (!unit.standardBearerBuff) return;
+  unit.standardBearerBuff = false;
+  unit.maxHp = Math.max(1, unit.maxHp - 1);
+  unit.hp = Math.max(1, unit.hp - 1);
+  addLog(state, `Standard Bearer Aura: ${unit.name} loses +1 HP and +1 max HP.`);
+}
+
+// Reconcile which friendly units have the Standard Bearer HP buff.
+// Called after any movement so entering/leaving range is handled automatically.
+function updateStandardBearerAura(state) {
+  for (const sb of state.units.filter(u => u.id === 'standardbearer')) {
+    for (const friendly of state.units.filter(u => u.owner === sb.owner && u.uid !== sb.uid && !u.hidden)) {
+      const inRange = manhattan([sb.row, sb.col], [friendly.row, friendly.col]) <= sb.aura.range;
+      if (inRange) applyStandardBearerAura(friendly, state);
+      else removeStandardBearerAura(friendly, state);
+    }
+  }
+}
+
 function championAt(state, row, col) {
   return state.champions.find(c => c.row === row && c.col === col) || null;
 }
@@ -183,6 +213,13 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
       if (manhattan([wr, wc], [beast.row, beast.col]) <= range) {
         removeWildbornAura(beast, state);
       }
+    }
+  }
+
+  // 8. Standard Bearer: remove persistent HP bonus from all buffed friendly units
+  if (unit.id === 'standardbearer') {
+    for (const friendly of state.units.filter(u => u.owner === unit.owner && u.standardBearerBuff)) {
+      removeStandardBearerAura(friendly, state);
     }
   }
 }
@@ -425,6 +462,20 @@ function fireOnSummonTriggers(unit, state) {
     for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType === 'Beast' && !u.hidden)) {
       if (manhattan([unit.row, unit.col], [beast.row, beast.col]) <= unit.aura.range) {
         applyWildbornAura(beast, state);
+      }
+    }
+  }
+
+  // 7. Standard Bearer summon: apply HP aura to friendly units already in range,
+  //    and apply HP bonus to this unit if a Standard Bearer is already on the board
+  const existingSb = state.units.find(u => u.id === 'standardbearer' && u.owner === unit.owner && u.uid !== unit.uid);
+  if (existingSb && manhattan([existingSb.row, existingSb.col], [unit.row, unit.col]) <= existingSb.aura.range) {
+    applyStandardBearerAura(unit, state);
+  }
+  if (unit.id === 'standardbearer') {
+    for (const friendly of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.hidden)) {
+      if (manhattan([unit.row, unit.col], [friendly.row, friendly.col]) <= unit.aura.range) {
+        applyStandardBearerAura(friendly, state);
       }
     }
   }
@@ -1238,6 +1289,7 @@ export function moveUnit(state, unitUid, row, col) {
   }
 
   updateWildbornAura(s);
+  updateStandardBearerAura(s);
   return s;
 }
 
