@@ -242,6 +242,50 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  ancientspring: (state, caster) => {
+    const p = state.players[caster];
+    for (let i = 0; i < 2; i++) {
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(state, `Ancient Spring: drew ${drawn.name}.`);
+      }
+    }
+    return state;
+  },
+
+  verdantsurge: (state, caster) => {
+    const champ = state.champions[caster];
+    // Apply to champion
+    champ.turnAtkBonus = (champ.turnAtkBonus || 0) + 2;
+    champ.hp = Math.min(champ.maxHp + 2, champ.hp + 2);
+    champ.verdantSurgeBonus = (champ.verdantSurgeBonus || 0) + 2;
+    // Apply to friendly units within 2 tiles of champion
+    state.units.forEach(u => {
+      if (u.owner === caster && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2) {
+        u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
+        u.hp = Math.min(u.maxHp + 2, u.hp + 2);
+        u.verdantSurgeBonus = (u.verdantSurgeBonus || 0) + 2;
+      }
+    });
+    addLog(state, `${state.players[caster].name} casts Verdant Surge. Nearby friendly units gain +2 ATK and +2 HP this turn.`);
+    return state;
+  },
+
+  spiritbolt: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    const champ = state.champions[caster];
+    const nearbyCount = state.units.filter(u =>
+      u.owner === caster &&
+      manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
+    ).length;
+    const dmg = nearbyCount + 1; // +1 for the champion itself
+    addLog(state, `Spirit Bolt: deals ${dmg} damage to ${target.name}.`);
+    applyDamageToUnit(state, target, dmg, 'Spirit Bolt');
+    return state;
+  },
+
   // ==========================================
   // DEMON SPELLS
   // ==========================================

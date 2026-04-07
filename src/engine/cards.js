@@ -75,12 +75,18 @@ export const CARD_DB = {
   moonveilmystic:  { id: 'moonveilmystic',  name: 'Moonveil Mystic',     type: 'unit',  cost: 4, atk: 1, hp: 2, spd: 1, unitType: 'Elf',    rules: 'Whenever you restore HP to your champion or a friendly unit this unit gains +1/+1. Triggers once per restore event.', image: 'moonveilmystic.webp' },
   elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    rules: 'Action: Skip moving this unit to deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', rules: 'When a friendly combat unit is destroyed your champion permanently gains +2 max HP.', legendary: true, image: 'sistersiofra.webp' },
+  grovechampion:   { id: 'grovechampion',   name: 'Grove Champion',      type: 'unit',  cost: 5, atk: 5, hp: 5, spd: 1, unitType: 'Elf',    rules: '', image: null },
+  yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 7, atk: 1, hp: 6, spd: 0, unitType: 'Elf',    rules: 'Cannot move. At the end of your turn summon a 1/1 Sapling in each adjacent tile.', cannotMove: true, legendary: true, image: null },
+  sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1,                    rules: 'When this unit is destroyed restore 1 HP to your champion.', token: true, image: null },
 
   // Elf spells
   moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: 'Elf',   rules: 'Increase the current and max HP of a friendly combat unit by the number of cards in your hand.', image: 'moonleaf.webp' },
   overgrowth:      { id: 'overgrowth',      name: 'Overgrowth',          type: 'spell', cost: 4, effect: 'overgrowth',      unitType: 'Elf',   rules: 'Restore 2 HP to all friendly units.', image: 'overgrowth.webp' },
   bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   rules: 'Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP restored this turn.', image: 'bloom.webp' },
   entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: 'Elf',   rules: 'Choose a friendly Elf. Adjacent enemy combat units cannot move next turn.', image: 'entangle.webp' },
+  ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: 'Elf',   rules: 'Draw 2 cards.', image: null },
+  verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   rules: 'Friendly units within 2 tiles of your champion gain +2 ATK and +2 HP this turn.', image: null },
+  spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: 'Elf',   rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: null },
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden.', hidden: true, image: 'imp.webp' },
@@ -168,14 +174,19 @@ const ELF_DECK = [
   'thornweave', 'thornweave',
   'elfranger', 'elfranger',
   'grovewarden',
-  'moonveilmystic', 'moonveilmystic',
-  'elfarcher', 'elfarcher',
+  'moonveilmystic',
+  'elfarcher',
   'sistersiofra',
+  'grovechampion',
+  'yggara',
   'smite', 'smite',
-  'moonleaf', 'moonleaf',
-  'overgrowth', 'overgrowth',
-  'bloom', 'bloom',
+  'moonleaf',
+  'overgrowth',
+  'bloom',
   'entangle',
+  'ancientspring',
+  'verdantsurge',
+  'spiritbolt',
 ];
 
 const DEMON_DECK = [

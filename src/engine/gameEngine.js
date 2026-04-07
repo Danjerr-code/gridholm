@@ -132,6 +132,12 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     if (triggerEnemy) destroyUnit(triggerEnemy, state, 'shadowtrap', destroyingUids);
     state.shadowTrapTriggerUid = null;
   }
+
+  // 5. Sapling token: restore 1 HP to controlling champion
+  if (unit.id === 'sapling') {
+    const healed = restoreHP('champion' + unit.owner, 1, state, 'sapling');
+    if (healed > 0) addLog(state, `Sapling: champion restores ${healed} HP.`);
+  }
 }
 
 // ============================================
@@ -219,7 +225,28 @@ function fireEndTurnTriggers(state, playerIdx) {
     }
   });
 
-  // 5. Throne damage: deal 4 damage to opponent champion (cannot reduce below 1 HP)
+  // 5. Yggara, Rootmother: summon a 1/1 Sapling in each adjacent empty tile
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.id === 'yggara') {
+      const adj = cardinalNeighbors(u.row, u.col).filter(([r, c]) =>
+        !state.units.some(x => x.row === r && x.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      for (const [r, c] of adj) {
+        state.units.push({
+          id: 'sapling', name: 'Sapling', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
+          rules: 'When this unit is destroyed restore 1 HP to your champion.', image: null,
+          token: true, owner: playerIdx, row: r, col: c,
+          summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
+          turnAtkBonus: 0,
+          uid: `sapling_${Math.random().toString(36).slice(2)}`,
+        });
+      }
+      if (adj.length) addLog(state, `Yggara, Rootmother: summoned ${adj.length} Sapling(s).`);
+    }
+  });
+
+  // 6. Throne damage: deal 4 damage to opponent champion (cannot reduce below 1 HP)
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - playerIdx;
     const maxDamage = Math.max(0, state.champions[oppIdx].hp - 1);
@@ -587,10 +614,16 @@ export function playCard(state, cardUid) {
   }
 
   if (card.type === 'spell') {
+    // Spirit Bolt: champion must not have acted yet this turn
+    if (card.effect === 'spiritbolt') {
+      if (s.champions[s.activePlayer].moved) return s;
+    }
+
     // No-target spells: execute via registry directly
     const NO_TARGET_SPELLS = new Set([
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
+      'ancientspring', 'verdantsurge',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= card.cost;
@@ -871,6 +904,12 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   // ── Soul Drain ──
   else if (effect === 'souldrain') {
     if (target) s = _dispatchSpell(s, s.activePlayer, 'souldrain', [target]);
+  }
+  // ── Spirit Bolt ──
+  else if (effect === 'spiritbolt') {
+    const champ = s.champions[s.activePlayer];
+    champ.moved = true;
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'spiritbolt', [target]);
   }
   // ── Woodland Guard action ──
   else if (effect === 'woodlandguard_action') {
@@ -1197,8 +1236,20 @@ function completeTurnAdvance(state) {
         u.hp = Math.max(1, u.hp - u.fortifyBonus);
         u.fortifyBonus = 0;
       }
+      // Clear verdant surge bonus (revert temporary HP increase)
+      if (u.verdantSurgeBonus) {
+        u.hp = Math.max(1, u.hp - u.verdantSurgeBonus);
+        u.verdantSurgeBonus = 0;
+      }
     }
   });
+
+  // Clear champion per-turn bonuses
+  if (champ.turnAtkBonus) champ.turnAtkBonus = 0;
+  if (champ.verdantSurgeBonus) {
+    champ.hp = Math.max(1, champ.hp - champ.verdantSurgeBonus);
+    champ.verdantSurgeBonus = 0;
+  }
 
   s.archerShot = [];
   s.recalledThisTurn = [];
