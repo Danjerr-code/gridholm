@@ -732,10 +732,9 @@ function doBeginTurnPhase(state) {
   // Reset Hunger temp mana tracking (temp mana already wiped by the resources reset above)
   p.hungerTempMana = 0;
 
-  // BEGIN TURN TRIGGERS
-  fireBeginTurnTriggers(state, state.activePlayer);
-
   // Clear summoning sickness and per-turn bonuses for active player
+  // Must run before begin-turn triggers so that units summoned by triggers
+  // (e.g. Grove Tend Sapling) retain their summoning sickness this turn.
   state.units.forEach(u => {
     if (u.owner === state.activePlayer) {
       u.summoned = false;
@@ -746,6 +745,9 @@ function doBeginTurnPhase(state) {
       if (u.id === 'razorfang') u.razorfangResetUsed = false;
     }
   });
+
+  // BEGIN TURN TRIGGERS
+  fireBeginTurnTriggers(state, state.activePlayer);
 
   // Reset champion moved state
   state.champions[state.activePlayer].moved = false;
