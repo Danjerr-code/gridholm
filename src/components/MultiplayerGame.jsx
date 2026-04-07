@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { isMuted, setMuted } from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
@@ -62,6 +63,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   } = useMultiplayerGame(gameId);
 
   const isMobile = useIsMobile();
+  const [muted, setMutedState] = useState(() => isMuted());
 
   // Local UI selection state
   const [selectedCard, setSelectedCard] = useState(null);
@@ -746,6 +748,26 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               Concede
             </button>
           )}
+          <button
+            title={muted ? 'Unmute' : 'Mute'}
+            style={{
+              fontSize: '14px',
+              color: muted ? '#4a4a6a' : '#C9A84C',
+              background: 'transparent',
+              border: '1px solid ' + (muted ? '#2a2a3a' : '#C9A84C60'),
+              borderRadius: '4px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
+            onClick={() => {
+              const next = !muted;
+              setMuted(next);
+              setMutedState(next);
+            }}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
           <button
             style={{
               fontSize: '12px',

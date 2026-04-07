@@ -9,6 +9,7 @@ import Log from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
+import { isMuted, setMuted } from './audio.js';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -34,6 +35,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
   const isMobile = useIsMobile();
   const [logOpen, setLogOpen] = useState(false);
+  const [muted, setMutedState] = useState(() => isMuted());
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
 
@@ -192,6 +194,26 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
               ← Lobby
             </button>
           )}
+          <button
+            title={muted ? 'Unmute' : 'Mute'}
+            style={{
+              fontSize: '14px',
+              color: muted ? '#4a4a6a' : '#C9A84C',
+              background: 'transparent',
+              border: '1px solid ' + (muted ? '#2a2a3a' : '#C9A84C60'),
+              borderRadius: '4px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
+            onClick={() => {
+              const next = !muted;
+              setMuted(next);
+              setMutedState(next);
+            }}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
           <button
             style={{
               fontSize: '12px',

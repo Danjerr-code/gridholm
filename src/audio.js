@@ -1,5 +1,24 @@
+const MUTE_KEY = 'gridholm_muted';
+
+export function isMuted() {
+  try {
+    return localStorage.getItem(MUTE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setMuted(value) {
+  try {
+    localStorage.setItem(MUTE_KEY, value ? 'true' : 'false');
+  } catch {
+    // localStorage not available
+  }
+}
+
 // Programmatic chime using the Web Audio API — no external file needed.
 export function playTurnStartSound() {
+  if (isMuted()) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
