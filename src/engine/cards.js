@@ -18,7 +18,7 @@ export const CARD_DB = {
   militia:         { id: 'militia',         name: 'Militia',             type: 'unit',  cost: 1, atk: 1, hp: 3, spd: 1, unitType: 'Human',  rules: '', image: 'militia.webp' },
   footsoldier:     { id: 'footsoldier',     name: 'Footsoldier',         type: 'unit',  cost: 1, atk: 2, hp: 1, spd: 1, unitType: 'Human',  rules: '', image: 'footsoldier.webp' },
   squire:          { id: 'squire',          name: 'Squire',              type: 'unit',  cost: 2, atk: 1, hp: 4, spd: 2, unitType: 'Human',  rules: '', image: 'squire.webp' },
-  crossbowman:     { id: 'crossbowman',     name: 'Crossbowman',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When this unit destroys an enemy unit draw 1 card.', image: 'crossbowman.webp' },
+  crossbowman:     { id: 'crossbowman',     name: 'Crossbowman',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'When this unit destroys an enemy unit, draw 1 card.', image: 'crossbowman.webp' },
   shieldwall:      { id: 'shieldwall',      name: 'Shield Wall',         type: 'unit',  cost: 2, atk: 1, hp: 5, spd: 1, unitType: 'Human',  rules: '', image: 'shieldwall.webp' },
   sergeant:        { id: 'sergeant',        name: 'Sergeant',            type: 'unit',  cost: 3, atk: 2, hp: 2, spd: 1, unitType: 'Human',  rules: 'Action: The next combat unit you play this turn gains +1/+1.', action: true, image: 'sergeant.webp' },
   knight:          { id: 'knight',          name: 'Knight',              type: 'unit',  cost: 3, atk: 3, hp: 4, spd: 1, unitType: 'Human',  rules: '', image: 'knight.webp' },
@@ -46,7 +46,7 @@ export const CARD_DB = {
   swiftpaw:        { id: 'swiftpaw',        name: 'Swiftpaw',            type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'swiftpaw.webp' },
   wolf:            { id: 'wolf',            name: 'Wolf',                type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'wolf.webp' },
   razorclaw:       { id: 'razorclaw',       name: 'Razorclaw',           type: 'unit',  cost: 2, atk: 3, hp: 1, spd: 1, unitType: 'Beast',  rules: '', image: 'razorclaw.webp' },
-  pip:             { id: 'pip',             name: 'Pip the Hungry',      type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Beast',  rules: 'At the end of your turn this unit gains +1/+1.', legendary: true, image: 'pip.webp' },
+  pip:             { id: 'pip',             name: 'Pip the Hungry',      type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: 'Beast',  rules: 'At the end of your turn, this unit gains +1/+1.', legendary: true, image: 'pip.webp' },
   eagerbeaver:     { id: 'eagerbeaver',     name: 'Eager Beaver',        type: 'unit',  cost: 3, atk: 3, hp: 3, spd: 1, unitType: 'Beast',  rules: 'Rush.', rush: true, image: 'eagerbeaver.webp' },
   stalker:         { id: 'stalker',         name: 'Stalker',             type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Beast',  rules: '', image: 'stalker.webp' },
   packrunner:      { id: 'packrunner',      name: 'Pack Runner',         type: 'unit',  cost: 3, atk: 1, hp: 3, spd: 1, unitType: 'Beast',  rules: 'Action: Reset the action of a different friendly combat unit.', action: true, image: 'packrunner.webp' },
@@ -54,7 +54,7 @@ export const CARD_DB = {
   rockhorn:        { id: 'rockhorn',        name: 'Rockhorn',            type: 'unit',  cost: 4, atk: 4, hp: 2, spd: 1, unitType: 'Beast',  rules: 'Rush.', rush: true, image: 'rockhorn.webp' },
   plaguehog:       { id: 'plaguehog',       name: 'Plague Hog',          type: 'unit',  cost: 4, atk: 4, hp: 1, spd: 1, unitType: 'Beast',  rules: 'Rush. When this unit dies deal 2 damage to all adjacent units.', rush: true, image: 'plaguehog.webp' },
   sabretooth:      { id: 'sabretooth',      name: 'Sabretooth',          type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 2, unitType: 'Beast',  rules: '', image: 'sabretooth.webp' },
-  razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
+  razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  rules: "Rush. When this unit destroys an enemy combat unit, reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
   wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  rules: 'Aura 1: Friendly Beast units within 1 tile gain +1/+1.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
 
   // Beast spells
@@ -104,7 +104,7 @@ export const CARD_DB = {
   veilfiend:       { id: 'veilfiend',       name: 'Veil Fiend',          type: 'unit',  cost: 4, atk: 3, hp: 2, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: deal 2 damage to all adjacent enemy units.', hidden: true, image: 'veilfiend.webp' },
   fleshtithe:      { id: 'fleshtithe',      name: 'Flesh Tithe',         type: 'unit',  cost: 4, atk: 3, hp: 3, spd: 1, unitType: 'Demon',  rules: 'When summoned you may sacrifice a friendly combat unit. If you do this unit gains +2/+2.', image: 'fleshtithe.webp' },
   dreadshade:      { id: 'dreadshade',      name: 'Dread Shade',         type: 'unit',  cost: 5, atk: 5, hp: 4, spd: 1, unitType: 'Demon',  rules: 'Hidden. On reveal: this unit gains +2 ATK this turn.', hidden: true, image: 'dreadshade.webp' },
-  zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn deal 1 damage to all other combat units.', legendary: true, image: 'zmore.webp' },
+  zmore:           { id: 'zmore',           name: 'Zmore, Sleeping Ash', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: 'Demon',  rules: 'At the end of your turn, deal 1 damage to all other combat units.', legendary: true, image: 'zmore.webp' },
   voidtitan:       { id: 'voidtitan',       name: 'Void Titan',          type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: 'Demon',  rules: '', image: 'voidtitan.webp' },
 
   // Demon spells
