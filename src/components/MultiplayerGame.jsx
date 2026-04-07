@@ -164,6 +164,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const NO_TARGET_SPELL_EFFECTS = new Set([
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
+    'ancientspring', 'shadowveil',
   ]);
 
   // Dispatch helper: compute new state then write to Supabase
@@ -987,7 +988,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && selectMode === 'targetless_spell' && (
-            <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+            <>
+              <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" style={{ minHeight: '44px' }} />
+              <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+            </>
           )}
           {phase === 'action' && selectMode === 'action_confirm' && (
             <ActionBtn onClick={clearSelection} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
