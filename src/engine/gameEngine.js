@@ -931,10 +931,10 @@ export function playCard(state, cardUid) {
 
     // Pact of Ruin: needs hand card selection first, then enemy target
     if (card.effect === 'pactofruin') {
-      console.log('[PactOfRuin] playCard: pactofruin entered. hand size:', p.hand.length, 'cardUid:', cardUid);
+      if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: pactofruin entered. hand size:', p.hand.length, 'cardUid:', cardUid);
       if (p.hand.length <= 1) {
         // No cards to discard — cancel with no effect
-        console.log('[PactOfRuin] playCard: hand.length <= 1, cancelling — no discard available');
+        if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: hand.length <= 1, cancelling — no discard available');
         return s;
       }
       // Need to select a card to discard first
@@ -942,7 +942,7 @@ export function playCard(state, cardUid) {
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
-      console.log('[PactOfRuin] playCard: pendingHandSelect set:', JSON.stringify(s.pendingHandSelect));
+      if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: pendingHandSelect set:', JSON.stringify(s.pendingHandSelect));
       return s;
     }
 
@@ -1016,22 +1016,22 @@ export function resolveHandSelect(state, selectedCardUid) {
   const p = s.players[s.activePlayer];
 
   if (hs.reason === 'pactofruin') {
-    console.log('[PactOfRuin] resolveHandSelect: pactofruin — selectedCardUid:', selectedCardUid, 'hand:', p.hand.map(c => c.uid));
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: pactofruin — selectedCardUid:', selectedCardUid, 'hand:', p.hand.map(c => c.uid));
     // Discard the selected card
     const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
     if (idx !== -1) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Pact of Ruin: ${discarded.name} discarded.`);
-      console.log('[PactOfRuin] resolveHandSelect: discarded', discarded.name);
+      if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: discarded', discarded.name);
     } else {
-      console.log('[PactOfRuin] resolveHandSelect: selectedCardUid not found in hand — no discard');
+      if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: selectedCardUid not found in hand — no discard');
     }
     s.pendingHandSelect = null;
-    console.log('[PactOfRuin] resolveHandSelect: pendingHandSelect cleared, setting pendingSpell for damage target');
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: pendingHandSelect cleared, setting pendingSpell for damage target');
     // Now need to select an enemy target for 3 damage
     s.pendingSpell = { cardUid: null, effect: 'pactofruin_damage', playerIdx: s.activePlayer, step: 0, data: {} };
-    console.log('[PactOfRuin] resolveHandSelect: pendingSpell set:', JSON.stringify(s.pendingSpell));
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: pendingSpell set:', JSON.stringify(s.pendingSpell));
     return s;
   }
 
@@ -1267,7 +1267,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
 
 export function cancelSpell(state) {
   const s = cloneState(state);
-  if (s.pendingHandSelect) console.log('[PactOfRuin] cancelSpell: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
+  if (s.pendingHandSelect && typeof window !== 'undefined') console.log('[PactOfRuin] cancelSpell: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
@@ -1276,7 +1276,7 @@ export function cancelSpell(state) {
 
 export function endActionPhase(state) {
   const s = cloneState(state);
-  if (s.pendingHandSelect) console.log('[PactOfRuin] endActionPhase: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
+  if (s.pendingHandSelect && typeof window !== 'undefined') console.log('[PactOfRuin] endActionPhase: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;

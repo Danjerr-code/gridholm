@@ -437,7 +437,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
 
   if (result.timedOut || result.action === null) {
     if (result.timedOut) {
-      console.warn('[strategicAI] Search timed out — falling back to first legal action');
+      if (typeof window !== 'undefined') console.warn('[strategicAI] Search timed out — falling back to first legal action');
     }
     const actions = getLegalActions(gameState);
     return actions[0] ?? { type: 'endTurn' };

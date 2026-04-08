@@ -329,19 +329,19 @@ export const SPELL_REGISTRY = {
   // pactofruin card handling is special-cased in playCard (hand selection flow).
   // This entry exists so deck validation passes. The damage step is pactofruin_damage.
   pactofruin: (state) => {
-    console.log('[PactOfRuin] pactofruin resolver entered (no-op stub)');
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] pactofruin resolver entered (no-op stub)');
     return state;
   },
 
   pactofruin_damage: (state, caster, targets) => {
-    console.log('[PactOfRuin] pactofruin_damage resolver entered. targets:', targets?.map(t => t?.name));
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] pactofruin_damage resolver entered. targets:', targets?.map(t => t?.name));
     const target = targets[0];
     if (!target) {
-      console.log('[PactOfRuin] pactofruin_damage: no target — early return');
+      if (typeof window !== 'undefined') console.log('[PactOfRuin] pactofruin_damage: no target — early return');
       return state;
     }
     addLog(state, `Pact of Ruin: 3 damage to ${target.name}.`);
-    console.log('[PactOfRuin] Applying 3 damage to', target.name, '(hp before:', target.hp, ')');
+    if (typeof window !== 'undefined') console.log('[PactOfRuin] Applying 3 damage to', target.name, '(hp before:', target.hp, ')');
     applyDamageToUnit(state, target, 3, 'Pact of Ruin');
     return state;
   },
