@@ -81,8 +81,12 @@ export function useGameState({ deckId = 'human' } = {}) {
         aiRunningRef.current = false;
         return;
       }
-      // Compute all steps synchronously outside of setState to avoid blocking React's commit phase.
-      const steps = runAITurnSteps(currentState);
+      // Yield to the event loop once more before computation begins so any queued
+      // UI interactions (inspect clicks, log scrolls) are processed first.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      // Compute all steps asynchronously; runAITurnSteps yields between each action
+      // so the UI thread is never blocked for more than one minimax search at a time.
+      const steps = await runAITurnSteps(currentState);
       // AI has decided — stop showing "Thinking…" and start executing visually.
       setAiThinking(false);
       for (let i = 0; i < steps.length; i++) {
