@@ -16,17 +16,20 @@
 import { writeFileSync } from 'fs';
 import { createGame, applyAction, isGameOver, getGameStats, getLegalActions } from './headlessEngine.js';
 import { chooseAction } from './simAI.js';
+import { chooseActionMinimax } from './minimaxAI.js';
 
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json' };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'heuristic', depth: 2 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--p1':     args.p1     = argv[++i]; break;
       case '--p2':     args.p2     = argv[++i]; break;
       case '--games':  args.games  = parseInt(argv[++i], 10); break;
       case '--output': args.output = argv[++i]; break;
+      case '--ai':     args.ai     = argv[++i]; break;
+      case '--depth':  args.depth  = parseInt(argv[++i], 10); break;
     }
   }
   return args;
@@ -204,7 +207,10 @@ function serializeCardStats(tracker) {
 const MAX_TURNS         = 50;
 const MAX_ACTIONS_GAME  = 500;
 
-export function runGame(gameId, p1Deck, p2Deck) {
+export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
+  const useMinimaxAI = opts.ai === 'minimax';
+  const minimaxDepth = opts.depth ?? 2;
+
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
 
@@ -221,6 +227,7 @@ export function runGame(gameId, p1Deck, p2Deck) {
   let actionCount        = 0;
   let commandsUsedThisTurn = 0;
   let forceDraw          = false;
+  let minimaxTotalMs     = 0;
 
   while (true) {
     const { over } = isGameOver(state);
@@ -232,7 +239,14 @@ export function runGame(gameId, p1Deck, p2Deck) {
       break;
     }
 
-    const action = chooseAction(state, commandsUsedThisTurn);
+    let action;
+    if (useMinimaxAI) {
+      const t0 = performance.now();
+      action = chooseActionMinimax(state, commandsUsedThisTurn, { depth: minimaxDepth });
+      minimaxTotalMs += performance.now() - t0;
+    } else {
+      action = chooseAction(state, commandsUsedThisTurn);
+    }
 
     // Track played cards before applying (recordCardPlayed handles timesPlayed + turnsInHand)
     if (action.type === 'summon' || action.type === 'cast') {
@@ -281,6 +295,7 @@ export function runGame(gameId, p1Deck, p2Deck) {
       p2: [...(tracker.p2)].filter(([, s]) => s.timesPlayed > 0).map(([id]) => id),
     },
     cardStats: serializeCardStats(tracker),
+    ...(useMinimaxAI ? { minimaxMs: minimaxTotalMs } : {}),
   };
 }
 
@@ -401,17 +416,20 @@ const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 
 const args = parseArgs(process.argv);
-const { p1: p1Deck, p2: p2Deck, games: totalGames, output } = args;
+const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth } = args;
+const gameOpts = { ai: aiMode, depth: minimaxDepth };
 
-console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck}`);
+console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}]`);
 
 const results = [];
 let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0;
 let winnerHPSum = 0, winnerHPCount = 0;
+let totalMinimaxMs = 0;
 
 for (let i = 0; i < totalGames; i++) {
-  const result = runGame(i + 1, p1Deck, p2Deck);
+  const result = runGame(i + 1, p1Deck, p2Deck, gameOpts);
   results.push(result);
+  if (result.minimaxMs != null) totalMinimaxMs += result.minimaxMs;
 
   if      (result.winner === 'p1') { p1Wins++; winnerHPSum += result.p1FinalHP; winnerHPCount++; }
   else if (result.winner === 'p2') { p2Wins++; winnerHPSum += result.p2FinalHP; winnerHPCount++; }
@@ -441,6 +459,13 @@ console.log(`  P2 wins      : ${p2Wins} (${((p2Wins / totalGames) * 100).toFixed
 console.log(`  Draws        : ${draws} (${((draws / totalGames) * 100).toFixed(1)}%)`);
 console.log(`  Avg turns    : ${avgTurns}`);
 console.log(`  Avg winner HP: ${avgWinnerHP}`);
+if (aiMode === 'minimax') {
+  const avgDecisionMs = totalGames > 0 ? totalMinimaxMs / totalGames : 0;
+  console.log(`  Avg AI time/game: ${avgDecisionMs.toFixed(0)}ms`);
+  if (avgDecisionMs > 1000) {
+    console.log('  [WARNING] Average decision time exceeds 1s — consider reducing --depth or --games.');
+  }
+}
 console.log('────────────────────────────────────────────');
 
 // Top/bottom 10 by winRateImpact

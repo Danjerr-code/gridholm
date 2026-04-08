@@ -27,9 +27,13 @@ for (let i = 0; i < FACTIONS.length; i++) {
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { games: 500 };
+  const args = { games: 500, ai: 'heuristic', depth: 2 };
   for (let i = 2; i < argv.length; i++) {
-    if (argv[i] === '--games') args.games = parseInt(argv[++i], 10);
+    switch (argv[i]) {
+      case '--games': args.games = parseInt(argv[++i], 10); break;
+      case '--ai':    args.ai    = argv[++i]; break;
+      case '--depth': args.depth = parseInt(argv[++i], 10); break;
+    }
   }
   return args;
 }
@@ -39,17 +43,18 @@ function parseArgs(argv) {
 /**
  * Run one directional matchup (gamesPerDir games) and return aggregate stats.
  */
-function runMatchup(p1Faction, p2Faction, gamesPerDir, globalGameId) {
+function runMatchup(p1Faction, p2Faction, gamesPerDir, globalGameId, opts = {}) {
   const results = [];
-  let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0;
+  let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0, minimaxTotalMs = 0;
 
   for (let i = 0; i < gamesPerDir; i++) {
-    const result = runGame(globalGameId + i, p1Faction, p2Faction);
+    const result = runGame(globalGameId + i, p1Faction, p2Faction, opts);
     results.push(result);
     if      (result.winner === 'p1') { p1Wins++; }
     else if (result.winner === 'p2') { p2Wins++; }
     else draws++;
     totalTurns += result.turns;
+    if (result.minimaxMs != null) minimaxTotalMs += result.minimaxMs;
   }
 
   return {
@@ -60,16 +65,18 @@ function runMatchup(p1Faction, p2Faction, gamesPerDir, globalGameId) {
     p2Wins,
     draws,
     avgTurns: gamesPerDir > 0 ? totalTurns / gamesPerDir : 0,
+    minimaxTotalMs,
     results,
   };
 }
 
-const { games: gamesPerDir } = parseArgs(process.argv);
+const { games: gamesPerDir, ai: aiMode, depth: minimaxDepth } = parseArgs(process.argv);
+const gameOpts = { ai: aiMode, depth: minimaxDepth };
 
 const totalMatchups   = PAIRS.length * 2; // each pair × 2 directions
 const totalGamesAll   = totalMatchups * gamesPerDir;
 
-console.log(`Running matchup matrix: ${FACTIONS.join(', ')}`);
+console.log(`Running matchup matrix: ${FACTIONS.join(', ')} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}]`);
 console.log(`${PAIRS.length} pairs × 2 directions × ${gamesPerDir} games = ${totalGamesAll} total games\n`);
 
 // matchupData[p1][p2] = { p1Wins, p2Wins, draws, avgTurns, gamesRun }
@@ -82,24 +89,27 @@ for (const f of FACTIONS) factionResults[f] = [];
 
 let globalGameId = 1;
 let completedMatchups = 0;
+let totalMinimaxMs = 0;
 
 for (const [fA, fB] of PAIRS) {
   // Direction 1: fA as p1, fB as p2
   process.stdout.write(`  ${fA} vs ${fB} (dir 1)...`);
-  const dir1 = runMatchup(fA, fB, gamesPerDir, globalGameId);
+  const dir1 = runMatchup(fA, fB, gamesPerDir, globalGameId, gameOpts);
   globalGameId += gamesPerDir;
   matchupData[fA][fB] = dir1;
   factionResults[fA].push(...dir1.results);
   factionResults[fB].push(...dir1.results);
+  totalMinimaxMs += dir1.minimaxTotalMs;
   console.log(` done (${fA} wins: ${dir1.p1Wins}/${gamesPerDir})`);
 
   // Direction 2: fB as p1, fA as p2
   process.stdout.write(`  ${fB} vs ${fA} (dir 2)...`);
-  const dir2 = runMatchup(fB, fA, gamesPerDir, globalGameId);
+  const dir2 = runMatchup(fB, fA, gamesPerDir, globalGameId, gameOpts);
   globalGameId += gamesPerDir;
   matchupData[fB][fA] = dir2;
   factionResults[fB].push(...dir2.results);
   factionResults[fA].push(...dir2.results);
+  totalMinimaxMs += dir2.minimaxTotalMs;
   console.log(` done (${fB} wins: ${dir2.p1Wins}/${gamesPerDir})`);
 
   completedMatchups += 2;
@@ -160,6 +170,15 @@ const p1AdvantageRate = allGames > 0 ? allP1Wins / allGames : 0;
 
 console.log('\n── First-Player Advantage ───────────────────');
 console.log(`  Overall P1 win rate: ${(p1AdvantageRate * 100).toFixed(1)}% (${allP1Wins}/${allGames} games)`);
+
+if (aiMode === 'minimax') {
+  const avgDecisionMs = allGames > 0 ? totalMinimaxMs / allGames : 0;
+  console.log('\n── Minimax AI Performance ───────────────────');
+  console.log(`  Avg AI time/game: ${avgDecisionMs.toFixed(0)}ms`);
+  if (avgDecisionMs > 1000) {
+    console.log('  [WARNING] Average decision time exceeds 1s — consider reducing --depth or --games.');
+  }
+}
 
 // ── Avg game length per matchup ───────────────────────────────────────────────
 
