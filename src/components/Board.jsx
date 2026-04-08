@@ -27,6 +27,7 @@ export default function Board({
   // In single-player, default to checking if it's P1's turn (local player is always P1).
   // In multiplayer, isMyTurn is passed explicitly from the parent component.
   const canInteract = isMyTurn !== undefined ? isMyTurn : activePlayer === 0;
+  const commandsUsed = state.players[myPlayerIndex]?.commandsUsed ?? 0;
 
   const champMoveSet = new Set(championMoveTiles.map(([r, c]) => `${r},${c}`));
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
@@ -107,7 +108,7 @@ export default function Board({
           return;
         }
       }
-      if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved) {
+      if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved && commandsUsed < 3) {
         if (unit.uid === selectedUnit) {
           handlers.clearSelection();
         } else {

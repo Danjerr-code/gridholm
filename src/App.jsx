@@ -76,7 +76,8 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     && !selectedUnitObj.summoned
     && selectMode === 'unit_move'
     && phase === 'action'
-    && isP1Turn;
+    && isP1Turn
+    && (p1.commandsUsed ?? 0) < 3;
   const showHiddenReveal = selectedUnitObj?.hidden
     && selectedUnitObj.owner === 0
     && !selectedUnitObj.moved
