@@ -6,7 +6,7 @@ import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
-import Log from './components/Log.jsx';
+import Log, { renderLogText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
@@ -169,7 +169,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                       return { color: '#9090b8' };
                     })()),
                   }}
-                >{entry}</div>
+                >{renderLogText(entry, handlers.handleInspectCard)}</div>
               ))}
             </div>
           </div>
@@ -282,7 +282,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
 
         {/* Right sidebar: game log + action buttons */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
-          <Log entries={state.log} />
+          <Log entries={state.log} onCardNameClick={handlers.handleInspectCard} />
 
           {/* Action buttons panel */}
           <div

@@ -1,4 +1,41 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { CARD_DB } from '../engine/cards.js';
+
+// Build a sorted (longest first) list of card names and a lowercase->card lookup.
+const CARD_NAME_LOOKUP = Object.fromEntries(
+  Object.values(CARD_DB).map(card => [card.name.toLowerCase(), card])
+);
+const CARD_NAMES_SORTED = Object.keys(CARD_NAME_LOOKUP).sort((a, b) => b.length - a.length);
+// Escape special regex characters in card names (e.g. commas, parens).
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const CARD_NAME_REGEX = new RegExp(
+  `(${CARD_NAMES_SORTED.map(escapeRegex).join('|')})`,
+  'gi'
+);
+
+export function renderLogText(text, onCardNameClick) {
+  if (!onCardNameClick) return text;
+  const parts = text.split(CARD_NAME_REGEX);
+  return parts.map((part, i) => {
+    const card = CARD_NAME_LOOKUP[part.toLowerCase()];
+    if (card) {
+      return (
+        <span
+          key={i}
+          onClick={(e) => { e.stopPropagation(); onCardNameClick(card); }}
+          style={{
+            color: '#C9A84C',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+          }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
 
 function getEntryStyle(entry) {
   const lower = entry.toLowerCase();
@@ -17,7 +54,7 @@ function getEntryStyle(entry) {
   return { color: '#9090b8' };
 }
 
-export default function Log({ entries }) {
+export default function Log({ entries, onCardNameClick }) {
   const scrollRef = useRef(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
@@ -96,7 +133,7 @@ export default function Log({ entries }) {
                 ...getEntryStyle(entry),
               }}
             >
-              {entry}
+              {renderLogText(entry, onCardNameClick)}
             </div>
           ))}
         </div>

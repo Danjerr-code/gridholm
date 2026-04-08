@@ -369,6 +369,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setInspectedItem({ type: 'card', card });
   }, []);
 
+  const handleLogCardNameClick = useCallback((card) => {
+    setInspectedItem({ type: 'card', card });
+    if (isMobile) {
+      setMobileModalItem({ type: 'card', card });
+    }
+  }, [isMobile]);
+
   const handleClearInspect = useCallback(() => {
     setInspectedItem(null);
   }, []);
@@ -903,7 +910,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         {/* Right sidebar: game log + action buttons */}
         {!isMobile && (
           <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
-            <Log entries={[...state.log, ...extraLogEntries]} />
+            <Log entries={[...state.log, ...extraLogEntries]} onCardNameClick={handleLogCardNameClick} />
 
             {/* Action buttons panel */}
             <div
