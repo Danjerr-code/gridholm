@@ -4,12 +4,6 @@ import { CARD_DB, DECKS } from '../engine/cards.js';
 import Card from './Card.jsx';
 import { getCardImageUrl } from '../supabase.js';
 
-const FACTION_DISPLAY_NAMES = {
-  Human: 'Light',
-  Beast: 'Primal',
-  Elf: 'Mystic',
-  Demon: 'Dark',
-};
 
 const FACTIONS = [
   { name: 'Light',   unitType: 'Human', color: '#4a8abf' },
@@ -115,10 +109,17 @@ function CardModal({ card, onClose }) {
           }}>{card.cost}</span>
         </div>
 
-        {/* Type / Faction */}
+        {/* Type / Attribute */}
         {card.type !== 'spell' && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
-            {FACTION_DISPLAY_NAMES[card.unitType] || card.unitType}
+          <div>
+            {card.attribute && (
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9090b8', textTransform: 'capitalize' }}>
+                {card.attribute}
+              </div>
+            )}
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
+              {card.unitType}
+            </div>
           </div>
         )}
 

@@ -7,12 +7,6 @@ const FACTION_TEXT_COLORS = {
   Demon: '#bf2a2a',
 };
 
-const FACTION_DISPLAY_NAMES = {
-  Human: 'Light',
-  Beast: 'Primal',
-  Elf: 'Mystic',
-  Demon: 'Dark',
-};
 
 function getFactionColor(unitType) {
   return FACTION_TEXT_COLORS[unitType] || '#6a6a8a';
@@ -197,7 +191,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {/* Card type label */}
         {!isSpell && (
           <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: `${factionColor}cc`, textTransform: 'capitalize' }}>
-            {FACTION_DISPLAY_NAMES[card.unitType] || card.unitType}
+            {card.unitType}
           </div>
         )}
       </div>
