@@ -201,7 +201,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
         {/* Card type label */}
         {!isSpell && (
-          <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: `${factionColor}cc`, textTransform: 'capitalize' }}>
+          <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9CA3AF', textTransform: 'capitalize' }}>
             {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
           </div>
         )}

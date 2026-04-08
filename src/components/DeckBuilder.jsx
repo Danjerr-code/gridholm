@@ -707,7 +707,7 @@ function CardPreviewTooltip({ card }) {
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>{card.name}</span>
         <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', flexShrink: 0, marginLeft: '4px' }}>{card.cost}</span>
       </div>
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#e2e8f0', marginBottom: '4px' }}>
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9CA3AF', marginBottom: '4px' }}>
         {card.type === 'spell' ? 'Spell' : (ATTRIBUTES[card.attribute]?.name || (Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType))}
       </div>
       {card.type === 'unit' && (

@@ -117,7 +117,7 @@ function CardModal({ card, onClose }) {
                 {card.attribute}
               </div>
             )}
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9CA3AF' }}>
               {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
             </div>
           </div>
