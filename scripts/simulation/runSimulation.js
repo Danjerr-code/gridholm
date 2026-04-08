@@ -32,50 +32,221 @@ function parseArgs(argv) {
   return args;
 }
 
-// ── Single game runner ────────────────────────────────────────────────────────
-
-const MAX_TURNS = 50;
-const MAX_ACTIONS_PER_GAME = 500;
+// ── Card tracker helpers ──────────────────────────────────────────────────────
 
 /**
- * Runs one game between p1Deck and p2Deck.
- * Returns a result object with winner, turns, HP, and cards played.
+ * Initialize per-player, per-card stat accumulator for one game.
  */
+function initGameTracker() {
+  return {
+    // cardId → stats, separate for p1 and p2
+    p1: new Map(),
+    p2: new Map(),
+    // cardUid → { cardId, playerIdx, turnDrawn } — tracks cards currently in hand
+    inHand: new Map(),
+    // unitUid → { cardId, playerIdx } — tracks summoned units on the board
+    units: new Map(),
+  };
+}
+
+function playerKey(playerIdx) {
+  return playerIdx === 0 ? 'p1' : 'p2';
+}
+
+function getOrInitCardStats(tracker, playerIdx, cardId) {
+  const map = playerIdx === 0 ? tracker.p1 : tracker.p2;
+  if (!map.has(cardId)) {
+    map.set(cardId, {
+      timesDrawn: 0,
+      timesPlayed: 0,
+      turnsInHand: 0,
+      damageDealt: 0,
+      damageAbsorbed: 0,
+      killCount: 0,
+      survivedUntilEnd: false,
+    });
+  }
+  return map.get(cardId);
+}
+
+/**
+ * Diff both players' hands before/after an action to detect draws and plays.
+ * Plays are tracked separately (via action type); this function only detects draws.
+ * Cards that leave hand without being played (discards, spell costs) are noted
+ * but we only record turnsInHand for explicitly played cards.
+ */
+function diffHandsForDraws(beforeState, afterState, turnCount, tracker) {
+  for (let pIdx = 0; pIdx < 2; pIdx++) {
+    const beforeUids = new Set(beforeState.players[pIdx].hand.map(c => c.uid));
+    const afterHand  = afterState.players[pIdx].hand;
+    for (const card of afterHand) {
+      if (!beforeUids.has(card.uid)) {
+        // New card entered hand → drawn
+        const stats = getOrInitCardStats(tracker, pIdx, card.id);
+        stats.timesDrawn++;
+        tracker.inHand.set(card.uid, { cardId: card.id, playerIdx: pIdx, turnDrawn: turnCount });
+      }
+    }
+  }
+}
+
+/**
+ * Record a played card: increment timesPlayed and accumulate turnsInHand.
+ */
+function recordCardPlayed(tracker, cardUid, turnCount) {
+  const entry = tracker.inHand.get(cardUid);
+  if (!entry) return; // card wasn't tracked (dealt in initial hand — tracked below)
+  const stats = getOrInitCardStats(tracker, entry.playerIdx, entry.cardId);
+  stats.timesPlayed++;
+  stats.turnsInHand += turnCount - entry.turnDrawn;
+  tracker.inHand.delete(cardUid);
+}
+
+/**
+ * After a summon action resolves, find the newly placed unit and register it
+ * in the unit tracker so combat can be attributed to its card.
+ */
+function registerSummonedUnit(beforeState, afterState, action, tracker) {
+  if (action.type !== 'summon') return;
+  const ap = beforeState.activePlayer;
+  const card = beforeState.players[ap].hand.find(c => c.uid === action.cardUid);
+  if (!card) return;
+  // Find new unit on board that wasn't there before
+  const beforeUids = new Set(beforeState.units.map(u => u.uid));
+  for (const unit of afterState.units) {
+    if (!beforeUids.has(unit.uid) && unit.owner === ap && unit.id === card.id) {
+      tracker.units.set(unit.uid, { cardId: card.id, playerIdx: ap });
+      break;
+    }
+  }
+}
+
+/**
+ * Diff unit states before/after a move action to track combat damage.
+ */
+function trackCombatDamage(beforeState, afterState, action, tracker) {
+  if (action.type !== 'move') return;
+
+  const ap = beforeState.activePlayer;
+  const enemyIdx = 1 - ap;
+  const [tr, tc] = action.targetTile;
+
+  const movingUnit = beforeState.units.find(u => u.uid === action.unitId);
+  if (!movingUnit) return;
+
+  const movingEntry  = tracker.units.get(action.unitId);
+
+  // Check what was at the target tile
+  const targetUnit  = beforeState.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+  const enemyChamp  = beforeState.champions[enemyIdx];
+  const hitsChamp   = enemyChamp.row === tr && enemyChamp.col === tc;
+
+  if (!targetUnit && !hitsChamp) return; // no combat
+
+  const movingAfter = afterState.units.find(u => u.uid === action.unitId);
+  const movingHpLost = movingAfter ? movingUnit.hp - movingAfter.hp : movingUnit.hp;
+
+  if (targetUnit) {
+    const targetEntry = tracker.units.get(targetUnit.uid);
+    const targetAfter = afterState.units.find(u => u.uid === targetUnit.uid);
+    const targetHpLost = targetAfter ? targetUnit.hp - targetAfter.hp : targetUnit.hp;
+    const targetKilled = !targetAfter;
+
+    if (movingEntry) {
+      const s = getOrInitCardStats(tracker, movingEntry.playerIdx, movingEntry.cardId);
+      s.damageDealt   += Math.max(0, targetHpLost);
+      s.damageAbsorbed += Math.max(0, movingHpLost);
+      if (targetKilled) s.killCount++;
+    }
+    if (targetEntry) {
+      const s = getOrInitCardStats(tracker, targetEntry.playerIdx, targetEntry.cardId);
+      s.damageAbsorbed += Math.max(0, targetHpLost);
+      s.damageDealt    += Math.max(0, movingHpLost);
+      if (!movingAfter) s.killCount++; // moving unit killed by defender
+    }
+  } else if (hitsChamp) {
+    // Champion doesn't have a card entry; only track the attacker's damage dealt
+    const champAfter = afterState.champions[enemyIdx];
+    const champHpLost = enemyChamp.hp - champAfter.hp;
+    if (movingEntry) {
+      const s = getOrInitCardStats(tracker, movingEntry.playerIdx, movingEntry.cardId);
+      s.damageDealt    += Math.max(0, champHpLost);
+      s.damageAbsorbed += Math.max(0, movingHpLost);
+    }
+  }
+}
+
+/**
+ * After the game ends, mark survivedUntilEnd for units still on the board.
+ */
+function markSurvivors(finalState, tracker) {
+  const aliveUids = new Set(finalState.units.map(u => u.uid));
+  for (const [uid, entry] of tracker.units) {
+    if (aliveUids.has(uid)) {
+      getOrInitCardStats(tracker, entry.playerIdx, entry.cardId).survivedUntilEnd = true;
+    }
+  }
+}
+
+/**
+ * Serialize tracker maps into a plain-object cardStats ready for JSON output.
+ * Format: { p1: { cardId: {...} }, p2: { cardId: {...} } }
+ */
+function serializeCardStats(tracker) {
+  const out = { p1: {}, p2: {} };
+  for (const [cardId, stats] of tracker.p1) out.p1[cardId] = { ...stats };
+  for (const [cardId, stats] of tracker.p2) out.p2[cardId] = { ...stats };
+  return out;
+}
+
+// ── Single game runner ────────────────────────────────────────────────────────
+
+const MAX_TURNS         = 50;
+const MAX_ACTIONS_GAME  = 500;
+
 function runGame(gameId, p1Deck, p2Deck) {
   let state = createGame(p1Deck, p2Deck);
-  let turnCount = 0;
-  let actionCount = 0;
-  let commandsUsedThisTurn = 0;
-  let forceDraw = false;
+  const tracker = initGameTracker();
 
-  const cardsPlayed = { p1: [], p2: [] };
+  // Seed initial hands as if they were drawn on turn 0
+  for (let pIdx = 0; pIdx < 2; pIdx++) {
+    for (const card of state.players[pIdx].hand) {
+      const stats = getOrInitCardStats(tracker, pIdx, card.id);
+      stats.timesDrawn++;
+      tracker.inHand.set(card.uid, { cardId: card.id, playerIdx: pIdx, turnDrawn: 0 });
+    }
+  }
+
+  let turnCount          = 0;
+  let actionCount        = 0;
+  let commandsUsedThisTurn = 0;
+  let forceDraw          = false;
 
   while (true) {
-    const { over, winner } = isGameOver(state);
+    const { over } = isGameOver(state);
     if (over) break;
-
     if (turnCount >= MAX_TURNS) break;
-
-    if (actionCount >= MAX_ACTIONS_PER_GAME) {
-      console.warn(`[WARNING] Game ${gameId} hit ${MAX_ACTIONS_PER_GAME}-action limit — forcing draw.`);
+    if (actionCount >= MAX_ACTIONS_GAME) {
+      console.warn(`[WARNING] Game ${gameId} hit ${MAX_ACTIONS_GAME}-action limit — forcing draw.`);
       forceDraw = true;
       break;
     }
 
     const action = chooseAction(state, commandsUsedThisTurn);
 
-    // Track cards played before applying the action
+    // Track played cards before applying (recordCardPlayed handles timesPlayed + turnsInHand)
     if (action.type === 'summon' || action.type === 'cast') {
-      const ap = state.activePlayer;
-      const card = state.players[ap].hand.find(c => c.uid === action.cardUid);
-      if (card) {
-        const playerKey = ap === 0 ? 'p1' : 'p2';
-        cardsPlayed[playerKey].push(card.id);
-      }
+      recordCardPlayed(tracker, action.cardUid, turnCount);
     }
 
+    const beforeState = state;
     state = applyAction(state, action);
     actionCount++;
+
+    // Post-action bookkeeping
+    diffHandsForDraws(beforeState, state, turnCount, tracker);
+    if (action.type === 'summon') registerSummonedUnit(beforeState, state, action, tracker);
+    if (action.type === 'move')   trackCombatDamage(beforeState, state, action, tracker);
 
     if (action.type === 'move') {
       commandsUsedThisTurn++;
@@ -85,26 +256,141 @@ function runGame(gameId, p1Deck, p2Deck) {
     }
   }
 
-  const finalChamps = state.champions;
-  const p1FinalHP = finalChamps[0]?.hp ?? 0;
-  const p2FinalHP = finalChamps[1]?.hp ?? 0;
+  markSurvivors(state, tracker);
 
-  let resolvedWinner = null;
+  const finalChamps = state.champions;
+  const p1FinalHP   = finalChamps[0]?.hp ?? 0;
+  const p2FinalHP   = finalChamps[1]?.hp ?? 0;
+
+  let winner = null;
   if (!forceDraw) {
     const result = isGameOver(state);
-    resolvedWinner = result.over ? result.winner : null;
+    winner = result.over ? result.winner : null;
   }
 
   return {
     gameId,
     p1Deck,
     p2Deck,
-    winner: resolvedWinner,
+    winner,
     turns: turnCount,
     p1FinalHP,
     p2FinalHP,
-    cardsPlayed,
+    cardsPlayed: {
+      p1: [...(tracker.p1)].filter(([, s]) => s.timesPlayed > 0).map(([id]) => id),
+      p2: [...(tracker.p2)].filter(([, s]) => s.timesPlayed > 0).map(([id]) => id),
+    },
+    cardStats: serializeCardStats(tracker),
   };
+}
+
+// ── Aggregate card analysis ───────────────────────────────────────────────────
+
+/**
+ * Compute per-card aggregate statistics across all game results.
+ *
+ * For each cardId, tracks stats from the perspective of the player who had
+ * the card in their deck (p1 side or p2 side in each game).
+ */
+function computeCardAnalysis(results) {
+  // Accumulate per-card across all games and both player sides
+  const agg = new Map(); // cardId → aggregated counts
+
+  function getAgg(cardId) {
+    if (!agg.has(cardId)) {
+      agg.set(cardId, {
+        totalDrawn: 0, totalPlayed: 0, totalTurnsInHand: 0,
+        totalDamageDealt: 0, totalKills: 0,
+        // For win-rate calculations
+        gamesPlayed: 0,      winsWhenPlayed: 0,
+        gamesNotDrawn: 0,    winsWhenNotDrawn: 0,
+      });
+    }
+    return agg.get(cardId);
+  }
+
+  for (const result of results) {
+    const { winner, cardStats } = result;
+
+    for (const [pKey, statsMap] of [['p1', cardStats.p1], ['p2', cardStats.p2]]) {
+      const playerWon = winner === pKey;
+
+      // Collect all cardIds this player drew in this game
+      const drawnIds = new Set(Object.keys(statsMap));
+
+      for (const [cardId, stats] of Object.entries(statsMap)) {
+        const a = getAgg(cardId);
+        a.totalDrawn      += stats.timesDrawn;
+        a.totalPlayed     += stats.timesPlayed;
+        a.totalTurnsInHand += stats.turnsInHand;
+        a.totalDamageDealt += stats.damageDealt;
+        a.totalKills      += stats.killCount;
+
+        if (stats.timesPlayed > 0) {
+          a.gamesPlayed++;
+          if (playerWon) a.winsWhenPlayed++;
+        }
+      }
+
+      // Track games where a card this player "could have" had was never drawn.
+      // We use all cardIds ever seen for this player side across all games.
+      // Done in a second pass below.
+      void drawnIds; // suppress lint; used in second pass
+    }
+  }
+
+  // Second pass: for each cardId, find games where it was never drawn by either side
+  // and track the win rate in those games. We do this by player side.
+  // Collect which player sides each cardId has been observed on.
+  const cardPlayerSides = new Map(); // cardId → Set of 'p1' | 'p2'
+  for (const result of results) {
+    for (const [pKey, statsMap] of [['p1', result.cardStats.p1], ['p2', result.cardStats.p2]]) {
+      for (const cardId of Object.keys(statsMap)) {
+        if (!cardPlayerSides.has(cardId)) cardPlayerSides.set(cardId, new Set());
+        cardPlayerSides.get(cardId).add(pKey);
+      }
+    }
+  }
+
+  for (const result of results) {
+    const { winner } = result;
+    for (const [cardId, sides] of cardPlayerSides) {
+      const a = getAgg(cardId);
+      for (const pKey of sides) {
+        const statsMap = result.cardStats[pKey];
+        if (!statsMap[cardId]) {
+          // Card never drawn by this player in this game
+          a.gamesNotDrawn++;
+          if (winner === pKey) a.winsWhenNotDrawn++;
+        }
+      }
+    }
+  }
+
+  // Build final analysis object
+  const analysis = {};
+  for (const [cardId, a] of agg) {
+    const playRate        = a.totalDrawn > 0 ? a.totalPlayed / a.totalDrawn : 0;
+    const avgTurnsInHand  = a.totalPlayed > 0 ? a.totalTurnsInHand / a.totalPlayed : 0;
+    const avgDamageDealt  = a.gamesPlayed > 0 ? a.totalDamageDealt / a.gamesPlayed : 0;
+    const avgKills        = a.gamesPlayed > 0 ? a.totalKills / a.gamesPlayed : 0;
+    const winRateWhenPlayed   = a.gamesPlayed > 0 ? a.winsWhenPlayed / a.gamesPlayed : null;
+    const winRateWhenNotDrawn = a.gamesNotDrawn > 0 ? a.winsWhenNotDrawn / a.gamesNotDrawn : null;
+    const winRateImpact = (winRateWhenPlayed != null && winRateWhenNotDrawn != null)
+      ? winRateWhenPlayed - winRateWhenNotDrawn
+      : null;
+
+    analysis[cardId] = {
+      playRate: +playRate.toFixed(4),
+      avgTurnsInHand: +avgTurnsInHand.toFixed(2),
+      avgDamageDealt: +avgDamageDealt.toFixed(2),
+      avgKills: +avgKills.toFixed(3),
+      winRateWhenPlayed:   winRateWhenPlayed   != null ? +winRateWhenPlayed.toFixed(4)   : null,
+      winRateWhenNotDrawn: winRateWhenNotDrawn != null ? +winRateWhenNotDrawn.toFixed(4) : null,
+      winRateImpact:       winRateImpact       != null ? +winRateImpact.toFixed(4)       : null,
+    };
+  }
+  return analysis;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -115,28 +401,17 @@ const { p1: p1Deck, p2: p2Deck, games: totalGames, output } = args;
 console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck}`);
 
 const results = [];
-let p1Wins = 0;
-let p2Wins = 0;
-let draws = 0;
-let totalTurns = 0;
-let winnerHPSum = 0;
-let winnerHPCount = 0;
+let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0;
+let winnerHPSum = 0, winnerHPCount = 0;
 
 for (let i = 0; i < totalGames; i++) {
   const result = runGame(i + 1, p1Deck, p2Deck);
   results.push(result);
 
-  if (result.winner === 'p1') {
-    p1Wins++;
-    winnerHPSum += result.p1FinalHP;
-    winnerHPCount++;
-  } else if (result.winner === 'p2') {
-    p2Wins++;
-    winnerHPSum += result.p2FinalHP;
-    winnerHPCount++;
-  } else {
-    draws++;
-  }
+  if      (result.winner === 'p1') { p1Wins++; winnerHPSum += result.p1FinalHP; winnerHPCount++; }
+  else if (result.winner === 'p2') { p2Wins++; winnerHPSum += result.p2FinalHP; winnerHPCount++; }
+  else draws++;
+
   totalTurns += result.turns;
 
   if ((i + 1) % 100 === 0 || i + 1 === totalGames) {
@@ -146,10 +421,12 @@ for (let i = 0; i < totalGames; i++) {
 
 console.log('');
 
-writeFileSync(output, JSON.stringify(results, null, 2));
+const cardAnalysis = computeCardAnalysis(results);
+
+writeFileSync(output, JSON.stringify({ results, cardAnalysis }, null, 2));
 console.log(`Results written to ${output}`);
 
-const avgTurns = totalGames > 0 ? (totalTurns / totalGames).toFixed(2) : 0;
+const avgTurns    = totalGames > 0 ? (totalTurns / totalGames).toFixed(2) : 0;
 const avgWinnerHP = winnerHPCount > 0 ? (winnerHPSum / winnerHPCount).toFixed(2) : 'N/A';
 
 console.log('\n── Simulation Summary ──────────────────────');
@@ -160,3 +437,20 @@ console.log(`  Draws        : ${draws} (${((draws / totalGames) * 100).toFixed(1
 console.log(`  Avg turns    : ${avgTurns}`);
 console.log(`  Avg winner HP: ${avgWinnerHP}`);
 console.log('────────────────────────────────────────────');
+
+// Top/bottom 10 by winRateImpact
+const ranked = Object.entries(cardAnalysis)
+  .filter(([, a]) => a.winRateImpact != null)
+  .sort((a, b) => b[1].winRateImpact - a[1].winRateImpact);
+
+if (ranked.length > 0) {
+  console.log('\n── Top 10 Cards by Win Rate Impact ─────────');
+  for (const [cardId, a] of ranked.slice(0, 10)) {
+    console.log(`  ${cardId.padEnd(20)} impact: ${(a.winRateImpact * 100).toFixed(1).padStart(6)}%  (played: ${(a.winRateWhenPlayed * 100).toFixed(1)}%  not-drawn: ${(a.winRateWhenNotDrawn * 100).toFixed(1)}%)`);
+  }
+  console.log('\n── Bottom 10 Cards by Win Rate Impact ──────');
+  for (const [cardId, a] of ranked.slice(-10).reverse()) {
+    console.log(`  ${cardId.padEnd(20)} impact: ${(a.winRateImpact * 100).toFixed(1).padStart(6)}%  (played: ${(a.winRateWhenPlayed * 100).toFixed(1)}%  not-drawn: ${(a.winRateWhenNotDrawn * 100).toFixed(1)}%)`);
+  }
+  console.log('────────────────────────────────────────────');
+}
