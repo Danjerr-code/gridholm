@@ -159,11 +159,16 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative"
+      className={`w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative${showActionGlow ? ' unit-action-glow' : ''}`}
       style={{
         background: '#1e2d45',
         border: `1px solid ${factionColors.border}4d`,
-        boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
+        ...(showActionGlow ? {
+          '--team-ring': ownerRingColor.ring,
+          '--team-glow': ownerRingColor.glow,
+        } : {
+          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
+        }),
         overflow: 'hidden',
         ...ringStyle,
       }}
@@ -188,20 +193,6 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
             opacity: isOwnHidden ? 0.5 : 1,
             WebkitTouchCallout: 'none',
             userSelect: 'none',
-          }}
-        />
-      )}
-
-      {/* Action glow overlay */}
-      {showActionGlow && (
-        <div
-          className="unit-action-glow"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            pointerEvents: 'none',
-            zIndex: 1,
           }}
         />
       )}
