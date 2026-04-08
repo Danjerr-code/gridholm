@@ -57,6 +57,7 @@ const btnSecondary = {
   padding: '8px 24px',
   width: '100%',
   cursor: 'pointer',
+  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
 };
 
 const btnCancel = {
@@ -90,7 +91,7 @@ const lobbyHoverStyles = `
   }
 `;
 
-export default function Lobby({ onNavigate }) {
+export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [joinInput, setJoinInput] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
@@ -177,75 +178,111 @@ export default function Lobby({ onNavigate }) {
           }}>A tactical card game</p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onNavigate('/ai')}>
-            Play vs AI
-          </button>
-
-          <button
-            className="lobby-btn-silver"
-            style={{ ...btnSilver, opacity: creating ? 0.6 : 1 }}
-            onClick={handleCreateGame}
-            disabled={creating}
-          >
-            {creating ? 'Creating…' : 'Create Online Game'}
-          </button>
-          {createError && (
-            <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
-          )}
-
-          <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
-            How to Play
-          </button>
-
-          <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                style={{
-                  flex: 1,
-                  background: '#0d0d1a',
-                  border: '1px solid #2a2a3a',
-                  borderRadius: '4px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontFamily: 'monospace',
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: '#C9A84C',
-                  outline: 'none',
-                }}
-                placeholder="GAME ID"
-                value={joinInput}
-                onChange={e => setJoinInput(e.target.value.toUpperCase())}
-                maxLength={6}
-                autoCorrect="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-              />
+        {/* Mode selection */}
+        {!playMode ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onModeSelect('quickplay')}>
+              Quick Play
+            </button>
+            <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
+              Build a Deck
+            </button>
+            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
+              How to Play
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Mode indicator with back option */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: '#0d0d1a',
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+            }}>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.08em' }}>
+                QUICK PLAY
+              </span>
               <button
-                type="submit"
-                className="lobby-btn-muted"
-                style={{
-                  background: 'transparent',
-                  color: '#C9A84C',
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '12px',
-                  border: '1px solid #C9A84C60',
-                  borderRadius: '4px',
-                  padding: '12px 16px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
-                }}
+                onClick={() => onModeSelect(null)}
+                style={{ background: 'none', border: 'none', color: '#4a4a6a', fontSize: '12px', cursor: 'pointer', fontFamily: "'Cinzel', serif" }}
               >
-                Join
+                ← change
               </button>
             </div>
-            {joinError && (
-              <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px' }}>{joinError}</p>
+
+            <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onNavigate('/ai')}>
+              Play vs AI
+            </button>
+
+            <button
+              className="lobby-btn-silver"
+              style={{ ...btnSilver, opacity: creating ? 0.6 : 1 }}
+              onClick={handleCreateGame}
+              disabled={creating}
+            >
+              {creating ? 'Creating…' : 'Create Online Game'}
+            </button>
+            {createError && (
+              <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
             )}
-          </form>
-        </div>
+
+            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
+              How to Play
+            </button>
+
+            <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  style={{
+                    flex: 1,
+                    background: '#0d0d1a',
+                    border: '1px solid #2a2a3a',
+                    borderRadius: '4px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: '#C9A84C',
+                    outline: 'none',
+                  }}
+                  placeholder="GAME ID"
+                  value={joinInput}
+                  onChange={e => setJoinInput(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  autoCorrect="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                />
+                <button
+                  type="submit"
+                  className="lobby-btn-muted"
+                  style={{
+                    background: 'transparent',
+                    color: '#C9A84C',
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '12px',
+                    border: '1px solid #C9A84C60',
+                    borderRadius: '4px',
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
+                  }}
+                >
+                  Join
+                </button>
+              </div>
+              {joinError && (
+                <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px' }}>{joinError}</p>
+              )}
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
