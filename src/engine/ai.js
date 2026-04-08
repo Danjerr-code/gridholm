@@ -282,10 +282,10 @@ export function runAITurn(state) {
   return runHeuristicTurn(state);
 }
 
-// Returns a Promise resolving to an array of intermediate states, one per action step.
+// Returns an array of intermediate states, one per action step.
 // Decision logic is identical to runAITurn — this only adds step recording.
-// Async so the browser event loop can process UI interactions between action computations.
-export async function runAITurnSteps(state) {
+// Synchronous so all AI decisions are computed in Phase 1 before any visual replay begins.
+export function runAITurnSteps(state) {
   if (_aiMode === 'strategic') {
     return runStrategicTurnSteps(state);
   }
@@ -334,7 +334,7 @@ function runStrategicTurn(state) {
   return s;
 }
 
-async function runStrategicTurnSteps(state) {
+function runStrategicTurnSteps(state) {
   const steps = [];
   let s = cloneState(state);
   let actionCount = 0;
@@ -347,9 +347,6 @@ async function runStrategicTurnSteps(state) {
     steps.push(s);
     actionCount++;
     if (action.type === 'endTurn') break;
-    // Yield to the browser event loop between action computations so the UI
-    // (card inspection, log scrolling, unit inspection) stays responsive.
-    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return steps;

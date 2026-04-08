@@ -67,13 +67,21 @@ export function useGameState({ deckId = 'human' } = {}) {
   // Guard against double-scheduling a concurrent AI turn.
   const aiRunningRef = useRef(false);
 
-  // Schedules an AI turn: waits 600ms (visual pause / "Thinking…"), runs AI computation outside
-  // setState, then replays each action step with a 700ms delay so moves appear sequentially.
-  // Only blocks game-state actions (card play, unit move, end turn) — inspect/log remain responsive.
+  // Schedules an AI turn in two phases:
+  // Phase 1 — Yield once to the browser event loop (setTimeout 0), then compute all AI
+  //   decisions synchronously and store them as an ordered step list. No state changes yet.
+  //   UI shows "AI is thinking…" throughout.
+  // Phase 2 — Replay each step one at a time with a fixed 800ms delay so the player can
+  //   follow each move, summon, or spell at a predictable rhythm.
+  //   "AI is thinking…" is cleared before replay begins.
+  // Only game-state actions are blocked during both phases; card inspection and log reading
+  // remain available throughout.
   const scheduleAITurn = useCallback(() => {
     if (aiRunningRef.current) return;
     aiRunningRef.current = true;
     setAiThinking(true);
+    // Phase 1: yield to the browser event loop once so any queued UI interactions
+    // (inspect clicks, log scrolls) are processed before computation begins.
     setTimeout(async () => {
       const currentState = latestStateRef.current;
       if (currentState.activePlayer !== AI_PLAYER || currentState.winner) {
@@ -81,23 +89,20 @@ export function useGameState({ deckId = 'human' } = {}) {
         aiRunningRef.current = false;
         return;
       }
-      // Yield to the event loop once more before computation begins so any queued
-      // UI interactions (inspect clicks, log scrolls) are processed first.
-      await new Promise(resolve => setTimeout(resolve, 0));
-      // Compute all steps asynchronously; runAITurnSteps yields between each action
-      // so the UI thread is never blocked for more than one minimax search at a time.
-      const steps = await runAITurnSteps(currentState);
-      // AI has decided — stop showing "Thinking…" and start executing visually.
+      // Compute all AI decisions synchronously — no yielding during computation.
+      const steps = runAITurnSteps(currentState);
+      // AI has decided — clear thinking indicator before starting visual replay.
       setAiThinking(false);
+      // Phase 2: replay each step at a fixed 800ms cadence so the turn duration is
+      // predictable (~800ms × number of actions).
       for (let i = 0; i < steps.length; i++) {
         setState(steps[i]);
         if (i < steps.length - 1) {
-          // 700ms between each action so the player can follow each move, summon, or spell.
-          await new Promise(resolve => setTimeout(resolve, 700));
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
       aiRunningRef.current = false;
-    }, 600);
+    }, 0);
   }, []); // reads only from stable refs — no state deps needed
 
   // Trigger AI turn if AI wins the coin flip and goes first on initial mount or new game.
