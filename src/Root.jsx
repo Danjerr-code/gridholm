@@ -3,6 +3,7 @@ import App from './App.jsx';
 import Lobby from './components/Lobby.jsx';
 import MultiplayerGame from './components/MultiplayerGame.jsx';
 import DeckSelect from './components/DeckSelect.jsx';
+import DeckBuilder from './components/DeckBuilder.jsx';
 import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
 
@@ -38,6 +39,17 @@ export default function Root() {
 
   if (route.view === 'how_to_play') {
     return <HowToPlay />;
+  }
+
+  if (route.view === 'deck_builder') {
+    return (
+      <DeckBuilder
+        onBack={() => navigate('/')}
+        onNext={(champion, secondaryAttr) => {
+          // Card browser wired in Part 3; selections stored in DeckBuilder state
+        }}
+      />
+    );
   }
 
   if (route.view === 'card_gallery') {
