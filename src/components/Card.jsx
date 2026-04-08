@@ -1,4 +1,5 @@
 import { getCardImageUrl } from '../supabase.js';
+import { ATTRIBUTES } from '../engine/attributes.js';
 
 const FACTION_TEXT_COLORS = {
   Human: '#4a8abf',
@@ -20,13 +21,22 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
   const isLegendary = !!card.legendary;
   const factionColor = getFactionColor(card.unitType);
+  const attrColor = card.attribute ? (ATTRIBUTES[card.attribute]?.color ?? null) : null;
 
   const imageUrl = getCardImageUrl(card.image);
 
   const cardBaseStyle = {
     background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
-    border: isSelected ? '2px solid #C9A84C' : isLegendary ? '2px solid #C9A84C80' : '1px solid #2a2a42',
-    boxShadow: isSelected ? '0 0 8px #C9A84C40' : 'none',
+    border: isSelected
+      ? '2px solid #C9A84C'
+      : attrColor
+      ? `2px solid ${attrColor}55`
+      : '1px solid #2a2a42',
+    boxShadow: isSelected
+      ? '0 0 8px #C9A84C40'
+      : attrColor
+      ? `0 0 6px ${attrColor}25`
+      : 'none',
   };
 
   return (
