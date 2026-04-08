@@ -144,7 +144,7 @@ export default function HowToPlay() {
           </p>
           <p style={bodyStyle}>
             End your turn with your champion standing on the Throne and the enemy
-            champion takes 4 damage. This cannot kill them outright but it creates
+            champion takes 2 damage. This cannot kill them outright but it creates
             enormous pressure.
           </p>
           <p style={bodyStyle}>
