@@ -33,17 +33,20 @@ const THRONE_COL = 2;
  * over a copy: { ...WEIGHTS, throneControl: 30 }
  */
 export const WEIGHTS = {
-  championHP:               10,
-  championHPDiff:           15,
+  championHP:               5,
+  championHPDiff:           8,
   unitCountDiff:             8,
   totalATKOnBoard:           3,
   totalHPOnBoard:            2,
   throneControl:            20,
-  unitsThreateningChampion: 12,
+  unitsThreateningChampion: 18,
   unitsAdjacentToAlly:       4,
   cardsInHand:               5,
   hiddenUnits:               6,
   manaEfficiency:            2,
+  lethalThreat:             25,
+  gameLength:               -0.5,
+  championProximity:         6,
 };
 
 /**
@@ -69,8 +72,11 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   // championHP: evaluating player's champion HP
   const championHP = myChamp.hp;
 
-  // championHPDiff: my champion HP minus opponent's champion HP
-  const championHPDiff = myChamp.hp - oppChamp.hp;
+  // championHPDiff: my champion HP minus opponent's champion HP.
+  // Amplify when the opponent is close to death — creates urgency to close the game.
+  const rawChampionHPDiff = myChamp.hp - oppChamp.hp;
+  const hpDiffMultiplier = oppChamp.hp <= 5 ? 3 : 1;
+  const championHPDiff = rawChampionHPDiff * hpDiffMultiplier;
 
   // unitCountDiff: my unit count minus opponent's unit count
   const unitCountDiff = myUnits.length - oppUnits.length;
@@ -118,6 +124,23 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const remainingMana = myPlayer.mana ?? 0;
   const manaEfficiency = (totalMana - remainingMana) / Math.max(totalMana, 1);
 
+  // lethalThreat: sum of ATK of friendly units that can reach the enemy champion next turn.
+  // A unit with SPD >= Manhattan distance to enemy champion can attack it next turn.
+  const lethalThreat = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
+  }, 0);
+
+  // gameLength: penalty per turn elapsed — creates urgency, favors shorter games.
+  const gameLength = gameState.turn ?? 0;
+
+  // championProximity: sum of (5 - Manhattan distance to enemy champion) for each friendly unit.
+  // Rewards advancing toward the enemy champion.
+  const championProximity = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return sum + Math.max(0, 5 - dist);
+  }, 0);
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   const score =
@@ -131,7 +154,10 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     unitsAdjacentToAlly      * weights.unitsAdjacentToAlly      +
     cardsInHand              * weights.cardsInHand              +
     hiddenUnits              * weights.hiddenUnits              +
-    manaEfficiency           * weights.manaEfficiency;
+    manaEfficiency           * weights.manaEfficiency           +
+    lethalThreat             * weights.lethalThreat             +
+    gameLength               * weights.gameLength               +
+    championProximity        * weights.championProximity;
 
   return score;
 }

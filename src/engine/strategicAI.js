@@ -226,17 +226,20 @@ export function applyAction(state, action) {
 // ── Board evaluation ──────────────────────────────────────────────────────────
 
 export const WEIGHTS = {
-  championHP:               10,
-  championHPDiff:           15,
+  championHP:               5,
+  championHPDiff:           8,
   unitCountDiff:             8,
   totalATKOnBoard:           3,
   totalHPOnBoard:            2,
   throneControl:            20,
-  unitsThreateningChampion: 12,
+  unitsThreateningChampion: 18,
   unitsAdjacentToAlly:       4,
   cardsInHand:               5,
   hiddenUnits:               6,
   manaEfficiency:            2,
+  lethalThreat:             25,
+  gameLength:               -0.5,
+  championProximity:         6,
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
@@ -283,6 +286,18 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const remainingMana = myPlayer.mana ?? 0;
   const manaEfficiency = (totalMana - remainingMana) / Math.max(totalMana, 1);
 
+  const lethalThreat = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
+  }, 0);
+
+  const gameLength = gameState.turn ?? 0;
+
+  const championProximity = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return sum + Math.max(0, 5 - dist);
+  }, 0);
+
   return (
     championHP               * weights.championHP               +
     championHPDiff           * weights.championHPDiff           +
@@ -294,7 +309,10 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     unitsAdjacentToAlly      * weights.unitsAdjacentToAlly      +
     cardsInHand              * weights.cardsInHand              +
     hiddenUnits              * weights.hiddenUnits              +
-    manaEfficiency           * weights.manaEfficiency
+    manaEfficiency           * weights.manaEfficiency           +
+    lethalThreat             * weights.lethalThreat             +
+    gameLength               * weights.gameLength               +
+    championProximity        * weights.championProximity
   );
 }
 
