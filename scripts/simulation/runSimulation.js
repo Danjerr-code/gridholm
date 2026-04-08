@@ -204,7 +204,7 @@ function serializeCardStats(tracker) {
 const MAX_TURNS         = 50;
 const MAX_ACTIONS_GAME  = 500;
 
-function runGame(gameId, p1Deck, p2Deck) {
+export function runGame(gameId, p1Deck, p2Deck) {
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
 
@@ -292,7 +292,7 @@ function runGame(gameId, p1Deck, p2Deck) {
  * For each cardId, tracks stats from the perspective of the player who had
  * the card in their deck (p1 side or p2 side in each game).
  */
-function computeCardAnalysis(results) {
+export function computeCardAnalysis(results) {
   // Accumulate per-card across all games and both player sides
   const agg = new Map(); // cardId → aggregated counts
 
@@ -393,7 +393,12 @@ function computeCardAnalysis(results) {
   return analysis;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main (only runs when invoked directly) ────────────────────────────────────
+
+import { fileURLToPath } from 'url';
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMain) {
 
 const args = parseArgs(process.argv);
 const { p1: p1Deck, p2: p2Deck, games: totalGames, output } = args;
@@ -454,3 +459,5 @@ if (ranked.length > 0) {
   }
   console.log('────────────────────────────────────────────');
 }
+
+} // end isMain
