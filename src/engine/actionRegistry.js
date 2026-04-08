@@ -98,6 +98,24 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // targets[0]: adjacent friendly combat unit to sacrifice
+  bloodaltar: (unit, state, targets) => {
+    const target = targets[0];
+    if (!target) {
+      addLog(state, `Blood Altar: no valid target selected.`);
+      return state;
+    }
+    const p = state.players[unit.owner];
+    addLog(state, `Blood Altar: ${target.name} sacrificed.`);
+    destroyUnit(target, state, 'sacrifice');
+    const drawn = p.deck.shift();
+    if (drawn && p.hand.length < 6) {
+      p.hand.push(drawn);
+      addLog(state, `Blood Altar: drew ${drawn.name}.`);
+    }
+    return state;
+  },
+
 };
 
 // ==========================================

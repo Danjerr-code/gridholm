@@ -251,7 +251,40 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
-  // 9. Soul Harvest (Dark, Attuned passive): the first time an enemy unit is destroyed
+  // 9. Soulstone relic: when a friendly combat unit dies, destroy the Soulstone and
+  //    respawn that unit on the Soulstone's tile.
+  if (!unit.isRelic) {
+    const soulstone = state.units.find(u => u.owner === unit.owner && u.id === 'soulstone');
+    if (soulstone) {
+      const respawnRow = soulstone.row;
+      const respawnCol = soulstone.col;
+      destroyUnit(soulstone, state, 'soulstone', destroyingUids);
+      // Respawn the dead unit at Soulstone's tile if not already occupied
+      const tileOccupied = state.units.some(u => u.row === respawnRow && u.col === respawnCol)
+        || state.champions.some(c => c.row === respawnRow && c.col === respawnCol);
+      if (!tileOccupied) {
+        const respawned = {
+          ...unit,
+          hp: unit.maxHp,
+          row: respawnRow,
+          col: respawnCol,
+          summoned: true,
+          moved: false,
+          atkBonus: 0,
+          shield: 0,
+          speedBonus: 0,
+          turnAtkBonus: 0,
+          uid: `${unit.id}_${Math.random().toString(36).slice(2)}`,
+        };
+        state.units.push(respawned);
+        addLog(state, `Soulstone: ${unit.name} respawns at (${respawnRow},${respawnCol})!`);
+      } else {
+        addLog(state, `Soulstone: ${unit.name} could not respawn — tile occupied.`);
+      }
+    }
+  }
+
+  // 10. Soul Harvest (Dark, Attuned passive): the first time an enemy unit is destroyed
   //    during the Dark player's own turn, restore 1 HP to their champion (capped at 20).
   const ap = state.activePlayer;
   const darkPlayer = state.players[ap];
@@ -337,11 +370,19 @@ function fireEndTurnTriggers(state, playerIdx) {
   const p = state.players[playerIdx];
   const champ = state.champions[playerIdx];
 
-  // 1. Seedling: restore 1 HP to champion for each friendly SPD 0 unit
+  // 1. Seedling: restore 1 HP to champion
   state.units.forEach(u => {
-    if (u.owner === playerIdx && u.spd === 0) {
+    if (u.owner === playerIdx && u.id === 'seedling') {
       const healed = restoreHP(champ, 1, state);
       if (healed > 0) addLog(state, `Seedling restores 1 HP to champion.`);
+    }
+  });
+
+  // 1b. Echo Stone relic: restore 1 HP to champion at end of turn
+  state.units.forEach(u => {
+    if (u.owner === playerIdx && u.id === 'echostone') {
+      const healed = restoreHP(champ, 1, state);
+      if (healed > 0) addLog(state, `Echo Stone: champion restores ${healed} HP.`);
     }
   });
 
@@ -902,7 +943,7 @@ export function playCard(state, cardUid) {
   const card = p.hand[cardIdx];
   if (p.resources < card.cost) return s;
 
-  if (card.type === 'unit') {
+  if (card.type === 'unit' || card.type === 'relic') {
     if ((s.recalledThisTurn || []).includes(card.id)) return s;
     s.pendingSummon = { cardUid, card };
     return s;
@@ -1261,6 +1302,11 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const unit = s.units.find(u => u.uid === data.sourceUid);
     if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
+  // ── Blood Altar action (sacrifice adjacent friendly, draw 1 card) ──
+  else if (effect === 'bloodaltar_action') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) s = _dispatchAction(unit, s, [target]);
+  }
 
   return s;
 }
@@ -1330,6 +1376,11 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
+  if (unit.id === 'bloodaltar') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'bloodaltar_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    return s;
+  }
+
   return s;
 }
 
@@ -1338,8 +1389,8 @@ export function triggerUnitAction(state, unitUid) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer) return [];
-  // SPD 0 units cannot be selected for movement
-  if (unit.spd === 0) return [];
+  // Relics and SPD 0 units cannot move
+  if (unit.isRelic || unit.spd === 0) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }
@@ -1776,6 +1827,19 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       const archer = data.sourceUid ? state.units.find(u => u.uid === data.sourceUid) : null;
       if (!archer) return [];
       return state.units.filter(u => u.owner !== state.activePlayer && manhattan([archer.row, archer.col], [u.row, u.col]) <= 2).map(u => u.uid);
+    }
+
+    // Blood Altar action: adjacent friendly combat unit (not the altar itself)
+    case 'bloodaltar_action': {
+      const altar = data.sourceUid ? state.units.find(u => u.uid === data.sourceUid) : null;
+      if (!altar) return [];
+      const adj = cardinalNeighbors(altar.row, altar.col);
+      return state.units.filter(u =>
+        u.owner === state.activePlayer &&
+        u.uid !== altar.uid &&
+        !u.isRelic &&
+        adj.some(([r, c]) => u.row === r && u.col === c)
+      ).map(u => u.uid);
     }
 
     default:

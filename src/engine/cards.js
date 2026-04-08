@@ -117,6 +117,16 @@ export const CARD_DB = {
   infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Deal 3 damage to your champion. All friendly Dark units gain +2 ATK this turn.', image: 'infernalpact.webp' },
   shadowveil:      { id: 'shadowveil',      name: 'Shadow Veil',         type: 'spell', cost: 2, effect: 'shadowveil',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'The next combat unit you play this turn is summoned with Hidden.', image: 'shadowveil.webp' },
   souldrain:       { id: 'souldrain',       name: 'Soul Drain',          type: 'spell', cost: 3, effect: 'souldrain',       unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Deal 2 damage to an enemy combat unit. Restore HP to your champion equal to the damage dealt.', image: 'souldrain.webp' },
+
+  // ── Relics ─────────────────────────────────────────────────────────────────
+  // Relics are non-combat board entities: ATK 0, SPD 0, isRelic: true.
+  // They cannot move or attack. Combat units can move into their tile to attack them.
+  // The relic takes damage equal to the attacker's ATK and deals 0 damage back.
+  // Relics can be targeted by spells. They can have passive/aura/action effects.
+
+  soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.' },
+  bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true },
+  echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 2, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────

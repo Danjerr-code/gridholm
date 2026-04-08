@@ -20,6 +20,7 @@ function getFactionColors(unitType) {
 export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
+  const isRelic = !!unit.isRelic;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
   const isOpponentHidden = unit.hidden && !isMyUnit;
   const isOwnHidden = unit.hidden && isMyUnit;
@@ -204,18 +205,23 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   return (
     <div
-      className={`w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative${showActionGlow ? ' unit-action-glow' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
       draggable={false}
       onDragStart={e => e.preventDefault()}
       style={{
-        background: '#1e2d45',
-        border: `1px solid ${factionColors.border}4d`,
-        ...(showActionGlow ? {
+        background: isRelic ? '#1a1a2e' : '#1e2d45',
+        border: isRelic
+          ? `2px solid ${factionColors.border}bb`
+          : `1px solid ${factionColors.border}4d`,
+        borderRadius: isRelic ? '4px' : undefined,
+        ...(!isRelic && showActionGlow ? {
           '--team-ring': ownerRingColor.ring,
           '--team-glow': ownerRingColor.glow,
-        } : {
+        } : (!isRelic ? {
           boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
-        }),
+        } : {
+          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88`,
+        })),
         overflow: 'hidden',
         ...ringStyle,
       }}
@@ -224,7 +230,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onClick={handleClick}
-      title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
+      title={isRelic
+        ? `${unit.name} [Relic] | HP:${effectiveHp}/${effectiveMaxHp} — ${unit.rules || ''}`
+        : `${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
       {/* Card art fills token */}
       {imageUrl && (
@@ -296,7 +304,27 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.id === 'pip' && <SmallPill label="↑" bg="#78350f" color="#fcd34d" title="Growing each turn" />}
       </div>
 
-      {/* ATK/HP pill centered bottom */}
+      {/* Relic badge */}
+      {isRelic && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#5b21b6',
+          color: '#e9d5ff',
+          fontSize: '7px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 700,
+          padding: '1px 4px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 3,
+          letterSpacing: '0.05em',
+        }}>◆ RELIC</div>
+      )}
+
+      {/* HP pill (relics) or ATK/HP pill (units) — centered bottom */}
       <div style={{
         position: 'absolute',
         bottom: '2px',
@@ -317,7 +345,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         gap: '1px',
       }}>
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
-        {effectiveAtk}/{effectiveHp}
+        {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
     </div>
   );

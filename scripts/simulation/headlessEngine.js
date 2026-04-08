@@ -52,7 +52,7 @@ const NO_TARGET_SPELLS = new Set([
 const TWO_STEP_SPELLS = new Set(['bloom', 'ambush']);
 
 // Unit action IDs that need a target (use pendingSpell mechanism).
-const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher']);
+const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher', 'bloodaltar']);
 
 // ── createGame ────────────────────────────────────────────────────────────────
 
@@ -168,11 +168,11 @@ export function getLegalActions(state) {
     }
   }
 
-  // 3. Summon unit cards
+  // 3. Summon unit and relic cards
   const summonTiles = getSummonTiles(state);
   if (summonTiles.length > 0) {
     for (const card of p.hand) {
-      if (card.type !== 'unit') continue;
+      if (card.type !== 'unit' && card.type !== 'relic') continue;
       if (p.resources < card.cost) continue;
       if ((state.recalledThisTurn || []).includes(card.id)) continue;
       for (const [row, col] of summonTiles) {

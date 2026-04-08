@@ -47,6 +47,7 @@ export const WEIGHTS = {
   lethalThreat:             25,
   gameLength:               -0.5,
   championProximity:         6,
+  relicsOnBoard:             4,
 };
 
 /**
@@ -141,6 +142,10 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     return sum + Math.max(0, 5 - dist);
   }, 0);
 
+  // relicsOnBoard: count of friendly relics alive on the board.
+  // Relics provide persistent value so keeping them alive is a bonus.
+  const relicsOnBoard = myUnits.filter(u => u.isRelic).length;
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   const score =
@@ -157,7 +162,8 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     manaEfficiency           * weights.manaEfficiency           +
     lethalThreat             * weights.lethalThreat             +
     gameLength               * weights.gameLength               +
-    championProximity        * weights.championProximity;
+    championProximity        * weights.championProximity        +
+    relicsOnBoard            * weights.relicsOnBoard;
 
   return score;
 }

@@ -50,8 +50,8 @@ function aiSummonCast(state) {
   let s = cloneState(state);
   const p = s.players[AI_PLAYER];
 
-  // Play units first (highest cost)
-  const units = p.hand.filter(c => c.type === 'unit').sort((a, b) => b.cost - a.cost);
+  // Play units and relics first (highest cost)
+  const units = p.hand.filter(c => c.type === 'unit' || c.type === 'relic').sort((a, b) => b.cost - a.cost);
   for (const card of units) {
     if (p.resources < card.cost) continue;
     const summonTiles = getSummonTiles(s);
