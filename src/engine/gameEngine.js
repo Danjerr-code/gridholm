@@ -575,7 +575,11 @@ function fireOnSummonTriggers(unit, state) {
 // ── initializer ────────────────────────────────────────────────────────────
 
 function computeResonance(deckId, cards) {
-  const attr = FACTION_ATTRIBUTE[deckId] ?? 'light';
+  let attr = FACTION_ATTRIBUTE[deckId] ?? 'light';
+  if (deckId === 'custom') {
+    const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
+    if (saved?.primaryAttr) attr = saved.primaryAttr;
+  }
   const score = calculateResonance(cards, attr);
   const tier = score >= RESONANCE_THRESHOLDS.ascended ? 'ascended'
     : score >= RESONANCE_THRESHOLDS.attuned ? 'attuned'

@@ -280,6 +280,15 @@ export const FACTION_INFO = {
 // ── Deck builder ──────────────────────────────────────────────────────────
 
 export function buildDeck(deckId = 'human') {
+  if (deckId === 'custom') {
+    const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
+    if (saved && Array.isArray(saved.cards) && saved.cards.length > 0) {
+      return saved.cards.map(id => ({
+        ...CARD_DB[id],
+        uid: `${id}_${Math.random().toString(36).slice(2)}`,
+      })).filter(c => c.id);
+    }
+  }
   const deck = DECKS[deckId] ?? DECKS.human;
   return deck.cards.map(id => ({
     ...CARD_DB[id],

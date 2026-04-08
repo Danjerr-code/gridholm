@@ -6,6 +6,15 @@ import DeckSelect from './components/DeckSelect.jsx';
 import DeckBuilder from './components/DeckBuilder.jsx';
 import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
+import { supabase, getGuestId } from './supabase.js';
+import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
+
+function generateGameId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id = '';
+  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
 
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '');
@@ -14,6 +23,8 @@ function parseHash() {
   if (hash === 'how-to-play') return { view: 'how_to_play' };
   if (hash === 'card-gallery') return { view: 'card_gallery' };
   if (hash === 'deck-builder') return { view: 'deck_builder' };
+  if (hash === 'custom-play') return { view: 'custom_play' };
+  if (hash === 'custom-ai') return { view: 'custom_ai' };
   const gameMatch = hash.match(/^game\/([A-Z0-9]{6})$/i);
   if (gameMatch) return { view: 'game', gameId: gameMatch[1].toUpperCase() };
   return { view: 'lobby' };
@@ -45,52 +56,50 @@ export default function Root() {
     return (
       <DeckBuilder
         onBack={() => navigate('/')}
-        onNext={(champion, secondaryAttr) => {
-          // Card browser wired in Part 3; selections stored in DeckBuilder state
+        onNext={() => navigate('/custom-play')}
+      />
+    );
+  }
+
+  if (route.view === 'custom_ai') {
+    return (
+      <App
+        deckId="custom"
+        onBackToLobby={() => navigate('/')}
+      />
+    );
+  }
+
+  if (route.view === 'custom_play') {
+    return (
+      <CustomPlayModeSelect
+        onAI={() => navigate('/custom-ai')}
+        onOnline={async () => {
+          if (!supabase) return;
+          const guestId = getGuestId();
+          const gameId = generateGameId();
+          const placeholderState = autoAdvancePhase(createInitialState('human', 'human'));
+          const { error } = await supabase.from('game_sessions').insert({
+            id: gameId,
+            player1_id: guestId,
+            game_state: placeholderState,
+            active_player: guestId,
+            status: 'waiting',
+            player1_deck: null,
+            player2_deck: null,
+          });
+          if (!error) {
+            localStorage.setItem('gridholm_pending_custom_deck', '1');
+            navigate(`/game/${gameId}`);
+          }
         }}
+        onBack={() => navigate('/deck-builder')}
       />
     );
   }
 
   if (route.view === 'card_gallery') {
     return <CardGallery />;
-  }
-
-  // Deck builder placeholder — implemented in Part 2
-  if (route.view === 'deck_builder') {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0a0a0f',
-        color: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: '24px',
-        fontFamily: "'Cinzel', serif",
-      }}>
-        <h1 style={{ color: '#C9A84C', fontSize: '28px', letterSpacing: '0.2em' }}>DECK BUILDER</h1>
-        <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#4a4a6a', fontSize: '15px' }}>
-          Coming in Part 2
-        </p>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            background: 'transparent',
-            color: '#6a6a8a',
-            fontFamily: "'Cinzel', serif",
-            fontSize: '13px',
-            border: '1px solid #2a2a3a',
-            borderRadius: '4px',
-            padding: '8px 24px',
-            cursor: 'pointer',
-          }}
-        >
-          Back to Lobby
-        </button>
-      </div>
-    );
   }
 
   // Deck selection before AI game
@@ -125,5 +134,97 @@ export default function Root() {
       playMode={playMode}
       onModeSelect={setPlayMode}
     />
+  );
+}
+
+function CustomPlayModeSelect({ onAI, onOnline, onBack }) {
+  const [creating, setCreating] = useState(false);
+
+  async function handleOnline() {
+    setCreating(true);
+    await onOnline();
+    setCreating(false);
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      color: '#f9fafb',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+    }}>
+      <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: '32px', fontWeight: 600, color: '#C9A84C', letterSpacing: '0.2em', marginBottom: '4px' }}>
+            GRIDHOLM
+          </h1>
+          <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>
+            Choose how to play your deck
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+              color: '#0a0a0f',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              border: 'none',
+              borderRadius: '4px',
+              padding: '12px 24px',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+            onClick={onAI}
+          >
+            Play vs AI
+          </button>
+
+          {supabase && (
+            <button
+              style={{
+                background: creating ? '#1a1a2a' : 'linear-gradient(135deg, #8A8A8A, #C0C0C0)',
+                color: creating ? '#4a4a6a' : '#0a0a0f',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '13px',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: '4px',
+                padding: '12px 24px',
+                cursor: creating ? 'default' : 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+              onClick={creating ? undefined : handleOnline}
+              disabled={creating}
+            >
+              {creating ? 'Creating…' : 'Create Online Game'}
+            </button>
+          )}
+
+          <button
+            style={{
+              background: 'transparent',
+              color: '#6a6a8a',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+              padding: '8px 24px',
+              cursor: 'pointer',
+            }}
+            onClick={onBack}
+          >
+            ← Back to Deck Builder
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

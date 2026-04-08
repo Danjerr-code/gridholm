@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { CHAMPIONS } from '../engine/champions.js';
 import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CARD_DB } from '../engine/cards.js';
 import { getCardImageUrl } from '../supabase.js';
 import Card from './Card.jsx';
+
+const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
 
 const ATTRIBUTE_ORDER = ['light', 'primal', 'mystic', 'dark'];
 
@@ -35,6 +37,56 @@ export default function DeckBuilder({ onBack, onNext }) {
   // deck: { [cardId]: count }
   const [deck, setDeck] = useState({});
   const [deckName, setDeckName] = useState('My Deck');
+  const [savedDeckExists, setSavedDeckExists] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
+
+  useEffect(() => {
+    setSavedDeckExists(!!localStorage.getItem(CUSTOM_DECK_KEY));
+  }, []);
+
+  const deckCardIds = useMemo(() => {
+    return Object.entries(deck).flatMap(([id, count]) => Array(count).fill(id));
+  }, [deck]);
+
+  const deckCount = useMemo(() => deckCardIds.length, [deckCardIds]);
+  const isValid = deckCount === 30;
+
+  const handleSaveDeck = useCallback(() => {
+    if (!selectedChampion || !secondaryAttr) return;
+    const cardObjs = deckCardIds.map(id => CARD_DB[id]).filter(Boolean);
+    const resonanceScore = calculateResonance(cardObjs, selectedChampion);
+    const payload = {
+      champion: selectedChampion,
+      primaryAttr: selectedChampion,
+      secondaryAttr,
+      cards: deckCardIds,
+      deckName,
+      resonanceScore,
+    };
+    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify(payload));
+    setSavedDeckExists(true);
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1500);
+  }, [selectedChampion, secondaryAttr, deckCardIds, deckName]);
+
+  function handleLoadDeck() {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_DECK_KEY) || 'null');
+    if (!saved) return;
+    const deckObj = {};
+    for (const id of saved.cards) {
+      deckObj[id] = (deckObj[id] || 0) + 1;
+    }
+    setSelectedChampion(saved.primaryAttr || saved.champion);
+    setSecondaryAttr(saved.secondaryAttr);
+    setDeck(deckObj);
+    setDeckName(saved.deckName || 'My Deck');
+    setStep('browser');
+  }
+
+  function handlePlay() {
+    handleSaveDeck();
+    if (onNext) onNext();
+  }
 
   function handleChampionSelect(attributeKey) {
     setSelectedChampion(attributeKey);
@@ -103,7 +155,7 @@ export default function DeckBuilder({ onBack, onNext }) {
       </div>
 
       {step === 'champion' && (
-        <ChampionStep onSelect={handleChampionSelect} onBack={onBack} />
+        <ChampionStep onSelect={handleChampionSelect} onBack={onBack} onLoadDeck={savedDeckExists ? handleLoadDeck : null} />
       )}
 
       {step === 'secondary' && (
@@ -125,7 +177,13 @@ export default function DeckBuilder({ onBack, onNext }) {
           onRemoveCard={handleRemoveCard}
           onClearDeck={handleClearDeck}
           onBack={() => setStep('secondary')}
-          onNext={onNext ? () => onNext(selectedChampion, secondaryAttr, deck) : null}
+          onSave={handleSaveDeck}
+          onPlay={onNext ? handlePlay : null}
+          savedDeckExists={savedDeckExists}
+          onLoadDeck={handleLoadDeck}
+          isValid={isValid}
+          deckCount={deckCount}
+          saveFlash={saveFlash}
         />
       )}
     </div>
@@ -148,7 +206,7 @@ const COST_RANGES = [
   { label: '5+',  test: c => c.cost >= 5 },
 ];
 
-function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onAddCard, onRemoveCard, onClearDeck, onBack, onNext }) {
+function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onAddCard, onRemoveCard, onClearDeck, onBack, onSave, onPlay, savedDeckExists, onLoadDeck, isValid, deckCount, saveFlash }) {
   const [factionFilter, setFactionFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [costFilter, setCostFilter] = useState(0); // index into COST_RANGES
@@ -211,7 +269,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups, factionFilter, typeFilter, costFilter, keywordFilter]);
 
-  const deckCount = Object.values(deck).reduce((s, n) => s + n, 0);
+
 
   const browserContent = (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -367,25 +425,11 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
         >
           ← Back
         </button>
-        {onNext && (
-          <button
-            style={{
-              background: deckCount > 0 ? 'linear-gradient(135deg, #C9A84C, #a07830)' : '#2a2a3a',
-              color: deckCount > 0 ? '#0a0a0f' : '#4a4a6a',
-              fontFamily: "'Cinzel', serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              border: 'none',
-              borderRadius: '4px',
-              padding: '10px 28px',
-              cursor: deckCount > 0 ? 'pointer' : 'default',
-              letterSpacing: '0.04em',
-            }}
-            onClick={deckCount > 0 ? onNext : undefined}
-          >
-            Continue ({deckCount}) →
-          </button>
-        )}
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '12px', color: deckCount === 30 ? '#22C55E' : deckCount > 30 ? '#EF4444' : '#6a6a8a' }}>
+          {deckCount}/30 cards
+          {deckCount < 30 && ` · need ${30 - deckCount} more`}
+          {deckCount > 30 && ` · remove ${deckCount - 30}`}
+        </span>
       </div>
     </div>
   );
@@ -438,8 +482,13 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
               onDeckNameChange={onDeckNameChange}
               onRemoveCard={onRemoveCard}
               onClearDeck={onClearDeck}
-              onNext={onNext}
               deckCount={deckCount}
+              isValid={isValid}
+              onSave={onSave}
+              onPlay={onPlay}
+              savedDeckExists={savedDeckExists}
+              onLoadDeck={onLoadDeck}
+              saveFlash={saveFlash}
             />
           </div>
         </div>
@@ -470,8 +519,13 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
           onDeckNameChange={onDeckNameChange}
           onRemoveCard={onRemoveCard}
           onClearDeck={onClearDeck}
-          onNext={onNext}
           deckCount={deckCount}
+          isValid={isValid}
+          onSave={onSave}
+          onPlay={onPlay}
+          savedDeckExists={savedDeckExists}
+          onLoadDeck={onLoadDeck}
+          saveFlash={saveFlash}
         />
       </div>
     </div>
@@ -593,7 +647,7 @@ function AttributeWheel({ primaryAttr, secondaryAttr }) {
 
 // ── Deck Panel ────────────────────────────────────────────────────────────────
 
-function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onRemoveCard, onClearDeck, onNext, deckCount }) {
+function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onRemoveCard, onClearDeck, deckCount, isValid, onSave, onPlay, savedDeckExists, onLoadDeck, saveFlash }) {
   const [confirmClear, setConfirmClear] = useState(false);
 
   const primary = ATTRIBUTES[primaryAttr];
@@ -844,6 +898,84 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
           )}
         </div>
       )}
+
+      {/* Divider */}
+      <div style={{ height: '1px', background: '#1a1a2a', marginTop: '8px' }} />
+
+      {/* Validation message */}
+      <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '12px', fontStyle: 'italic', textAlign: 'center', color: isValid ? '#22C55E' : deckCount > 30 ? '#EF4444' : '#6a6a8a', padding: '4px 0' }}>
+        {isValid ? 'Deck is ready!' : deckCount < 30 ? `Add ${30 - deckCount} more card${30 - deckCount === 1 ? '' : 's'}` : `Remove ${deckCount - 30} card${deckCount - 30 === 1 ? '' : 's'}`}
+      </div>
+
+      {/* Save Deck */}
+      <button
+        style={{
+          width: '100%',
+          background: isValid ? (saveFlash ? '#22C55E' : 'linear-gradient(135deg, #C9A84C, #a07830)') : '#1a1a2a',
+          color: isValid ? '#0a0a0f' : '#3a3a5a',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '11px',
+          fontWeight: 600,
+          border: 'none',
+          borderRadius: '3px',
+          padding: '7px',
+          cursor: isValid ? 'pointer' : 'default',
+          letterSpacing: '0.04em',
+          transition: 'background 0.3s',
+        }}
+        onClick={isValid ? onSave : undefined}
+        disabled={!isValid}
+      >
+        {saveFlash ? 'Saved!' : 'Save Deck'}
+      </button>
+
+      {/* Load Deck */}
+      {savedDeckExists && (
+        <button
+          style={{
+            width: '100%',
+            background: 'transparent',
+            color: '#6a8ac9',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '10px',
+            border: '1px solid #2a3a5a',
+            borderRadius: '3px',
+            padding: '5px',
+            cursor: 'pointer',
+            letterSpacing: '0.04em',
+          }}
+          onClick={onLoadDeck}
+          onMouseEnter={e => { e.currentTarget.style.color = '#93b4f5'; e.currentTarget.style.borderColor = '#4a6a9a'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6a8ac9'; e.currentTarget.style.borderColor = '#2a3a5a'; }}
+        >
+          Load Saved Deck
+        </button>
+      )}
+
+      {/* Play with this Deck */}
+      {onPlay && (
+        <button
+          style={{
+            width: '100%',
+            background: isValid ? 'linear-gradient(135deg, #1a3a6a, #2a5aaa)' : '#1a1a2a',
+            color: isValid ? '#e2e8f0' : '#3a3a5a',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            fontWeight: 600,
+            border: isValid ? '1px solid #3a6aaa' : '1px solid #1a1a2a',
+            borderRadius: '3px',
+            padding: '8px',
+            cursor: isValid ? 'pointer' : 'default',
+            letterSpacing: '0.04em',
+          }}
+          onClick={isValid ? onPlay : undefined}
+          disabled={!isValid}
+          onMouseEnter={e => { if (isValid) { e.currentTarget.style.background = 'linear-gradient(135deg, #2a4a7a, #3a6acc)'; } }}
+          onMouseLeave={e => { if (isValid) { e.currentTarget.style.background = 'linear-gradient(135deg, #1a3a6a, #2a5aaa)'; } }}
+        >
+          Play with this Deck →
+        </button>
+      )}
     </div>
   );
 }
@@ -890,7 +1022,7 @@ function FilterBtn({ active, onClick, children }) {
 
 // ── Champion Selection Step ──────────────────────────────────────────────────
 
-function ChampionStep({ onSelect, onBack }) {
+function ChampionStep({ onSelect, onBack, onLoadDeck }) {
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
@@ -912,14 +1044,36 @@ function ChampionStep({ onSelect, onBack }) {
         })}
       </div>
 
-      <button
-        style={backBtnStyle}
-        onClick={onBack}
-        onMouseEnter={e => { e.currentTarget.style.color = '#C9A84C'; e.currentTarget.style.borderColor = '#C9A84C60'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = '#6a6a8a'; e.currentTarget.style.borderColor = '#2a2a3a'; }}
-      >
-        ← Back to Lobby
-      </button>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button
+          style={backBtnStyle}
+          onClick={onBack}
+          onMouseEnter={e => { e.currentTarget.style.color = '#C9A84C'; e.currentTarget.style.borderColor = '#C9A84C60'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6a6a8a'; e.currentTarget.style.borderColor = '#2a2a3a'; }}
+        >
+          ← Back to Lobby
+        </button>
+        {onLoadDeck && (
+          <button
+            style={{
+              background: 'transparent',
+              color: '#6a8ac9',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              border: '1px solid #2a3a5a',
+              borderRadius: '4px',
+              padding: '8px 20px',
+              cursor: 'pointer',
+              letterSpacing: '0.04em',
+            }}
+            onClick={onLoadDeck}
+            onMouseEnter={e => { e.currentTarget.style.color = '#93b4f5'; e.currentTarget.style.borderColor = '#4a6a9a'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#6a8ac9'; e.currentTarget.style.borderColor = '#2a3a5a'; }}
+          >
+            Load Saved Deck
+          </button>
+        )}
+      </div>
     </>
   );
 }

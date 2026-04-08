@@ -65,6 +65,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const isMobile = useIsMobile();
   const [muted, setMutedState] = useState(() => isMuted());
 
+  // Auto-select custom deck when player arrives from deck builder
+  useEffect(() => {
+    if (inDeckSelect && !myDeck) {
+      const pending = localStorage.getItem('gridholm_pending_custom_deck');
+      if (pending) {
+        localStorage.removeItem('gridholm_pending_custom_deck');
+        selectDeck('custom');
+      }
+    }
+  }, [inDeckSelect, myDeck, selectDeck]);
+
   // Local UI selection state
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
