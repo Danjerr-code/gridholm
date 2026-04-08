@@ -174,7 +174,7 @@ export default function HowToPlay() {
         <Divider />
 
         {/* Section 6 */}
-        <Section title="Choose Your Faction">
+        <Section title="Choose Your Attribute">
           <FactionCards />
         </Section>
 
@@ -246,7 +246,7 @@ function Divider() {
 function AnnotatedCard() {
   const annotations = [
     { num: 1, label: 'Cost', desc: 'Mana needed to play this card. You gain 1 more each turn up to 10.', top: '4%', right: '-130px', lineTop: '14px', lineRight: '130px' },
-    { num: 2, label: 'Art', desc: 'Card illustration. Each faction has a distinct visual identity.', top: '22%', right: '-130px', lineTop: '8px', lineRight: '130px' },
+    { num: 2, label: 'Art', desc: 'Card illustration. Each attribute has a distinct visual identity.', top: '22%', right: '-130px', lineTop: '8px', lineRight: '130px' },
     { num: 3, label: 'Name', desc: "The card's name. Legendary cards have a gold border.", top: '46%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
     { num: 4, label: 'Type', desc: 'Light, Primal, Mystic, or Dark. Attribute matters for synergies.', top: '54%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
     { num: 5, label: 'ATK', desc: 'Attack power. Damage dealt in combat.', top: '66%', right: '-130px', lineTop: '8px', lineRight: '130px' },

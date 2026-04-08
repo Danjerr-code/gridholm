@@ -50,7 +50,7 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
             marginBottom: '16px',
           }}>GRIDHOLM</h1>
           {isRematch && (
-            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', marginBottom: '12px' }}>Rematch! Select your faction.</p>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', marginBottom: '12px' }}>Rematch! Select your attribute.</p>
           )}
           <div style={{
             background: '#0d0d1a',
@@ -111,8 +111,8 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
           marginBottom: '4px',
         }}>GRIDHOLM</h1>
         {isRematch
-          ? <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', fontSize: '15px' }}>Rematch! Select your faction.</p>
-          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>Choose your faction</p>
+          ? <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', fontSize: '15px' }}>Rematch! Select your attribute.</p>
+          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>Choose your attribute</p>
         }
       </div>
 
