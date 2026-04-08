@@ -214,7 +214,7 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     state.units = state.units.filter(u => u.hp > 0);
   }
 
-  // 4. Shadow Trap: destroy the enemy unit that triggered the reveal
+  // 4. Shadow Trap Hole: destroy the enemy unit that triggered the reveal
   if (unit.id === 'shadowtrap' && source !== 'shadowtrap' && state.shadowTrapTriggerUid) {
     const triggerEnemy = state.units.find(u => u.uid === state.shadowTrapTriggerUid);
     if (triggerEnemy) destroyUnit(triggerEnemy, state, 'shadowtrap', destroyingUids);
@@ -832,7 +832,7 @@ export function moveChampion(state, row, col) {
     // Reveal hidden enemy unit before champion combat
     if (enemyUnit.hidden) {
       revealUnit(s, enemyUnit);
-      // Shadow Trap on reveal: destroy the revealer — champion can't be destroyed, skip
+      // Shadow Trap Hole on reveal: destroy the revealer — champion can't be destroyed, skip
     }
     // Combat: champion moves into enemy unit tile — simultaneous damage
     const combatTile = [row, col];
@@ -876,7 +876,7 @@ export function moveChampion(state, row, col) {
       if (hiddenEnemy) {
         revealUnit(s, hiddenEnemy);
         if (hiddenEnemy.id === 'shadowtrap') {
-          // Shadow Trap: destroy the unit that revealed it (champion can't be destroyed, skip)
+          // Shadow Trap Hole: destroy the unit that revealed it (champion can't be destroyed, skip)
         }
       }
     }
@@ -1414,7 +1414,7 @@ export function moveUnit(state, unitUid, row, col) {
 
     // Shadow Trap on reveal: destroy the attacker
     if (wasHidden && enemyUnit.id === 'shadowtrap' && s.units.find(u => u.uid === enemyUnit.uid)) {
-      addLog(s, `Shadow Trap springs! ${unit.name} is destroyed.`);
+      addLog(s, `Shadow Trap Hole springs! ${unit.name} is destroyed.`);
       destroyUnit(unit, s, 'shadowtrap');
       // Shadow Trap is now revealed (no longer hidden) but stays
       return s;
