@@ -24,7 +24,7 @@ import {
   applyChampionAbility,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
-import { runAITurn } from '../engine/ai.js';
+import { runAITurnSteps } from '../engine/ai.js';
 import { playTurnStartSound } from '../audio.js';
 
 const AI_PLAYER = 1;
@@ -60,18 +60,44 @@ export function useGameState({ deckId = 'human' } = {}) {
   // True while the AI is computing its turn (shows "Thinking..." in UI)
   const [aiThinking, setAiThinking] = useState(false);
 
+  // Ref tracking latest committed state so scheduleAITurn can read it outside setState.
+  const latestStateRef = useRef(state);
+  useEffect(() => { latestStateRef.current = state; }, [state]);
+
+  // Guard against double-scheduling a concurrent AI turn.
+  const aiRunningRef = useRef(false);
+
+  // Schedules an AI turn: waits 600ms (visual pause), runs AI computation outside setState,
+  // then replays each action step with a 100ms delay so moves appear sequentially.
+  // Only blocks game-state actions (card play, unit move, end turn) — inspect/log remain responsive.
+  const scheduleAITurn = useCallback(() => {
+    if (aiRunningRef.current) return;
+    aiRunningRef.current = true;
+    setAiThinking(true);
+    setTimeout(async () => {
+      const currentState = latestStateRef.current;
+      if (currentState.activePlayer !== AI_PLAYER || currentState.winner) {
+        setAiThinking(false);
+        aiRunningRef.current = false;
+        return;
+      }
+      // Compute all steps synchronously outside of setState to avoid blocking React's commit phase.
+      const steps = runAITurnSteps(currentState);
+      for (let i = 0; i < steps.length; i++) {
+        setState(steps[i]);
+        if (i < steps.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      setAiThinking(false);
+      aiRunningRef.current = false;
+    }, 600);
+  }, []); // reads only from stable refs — no state deps needed
+
   // Trigger AI turn if AI wins the coin flip and goes first on initial mount or new game.
   useEffect(() => {
     if (state.activePlayer === AI_PLAYER && !state.winner) {
-      setAiThinking(true);
-      const timeout = setTimeout(() => {
-        setState(prev => {
-          if (prev.activePlayer !== AI_PLAYER || prev.winner) return prev;
-          return runAITurn(prev);
-        });
-        setAiThinking(false);
-      }, 600);
-      return () => { clearTimeout(timeout); setAiThinking(false); };
+      scheduleAITurn();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -89,18 +115,12 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [state.activePlayer, state.winner]);
 
   const applyAndMaybeAI = useCallback((newState) => {
+    latestStateRef.current = newState;
     setState(newState);
     if (newState.activePlayer === AI_PLAYER && !newState.winner) {
-      setAiThinking(true);
-      setTimeout(() => {
-        setState(prev => {
-          if (prev.activePlayer !== AI_PLAYER || prev.winner) return prev;
-          return runAITurn(prev);
-        });
-        setAiThinking(false);
-      }, 600);
+      scheduleAITurn();
     }
-  }, []);
+  }, [scheduleAITurn]);
 
   const clearSelection = useCallback(() => {
     setSelectedCard(null);
@@ -255,21 +275,16 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [clearSelection]);
 
   const handleEndAction = useCallback(() => {
-    setState(prev => endActionAndTurn(prev));
+    setState(prev => {
+      const next = endActionAndTurn(prev);
+      latestStateRef.current = next;
+      return next;
+    });
     clearSelection();
     if (state.activePlayer !== AI_PLAYER) {
-      setAiThinking(true);
-      setTimeout(() => {
-        setState(prev => {
-          if (prev.activePlayer === AI_PLAYER && !prev.winner) {
-            return runAITurn(prev);
-          }
-          return prev;
-        });
-        setAiThinking(false);
-      }, 600);
+      scheduleAITurn();
     }
-  }, [state.activePlayer, clearSelection]);
+  }, [state.activePlayer, clearSelection, scheduleAITurn]);
 
   const handleSelectChampion = useCallback(() => {
     setSelectedUnit(null);
@@ -326,20 +341,12 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleDiscardCard = useCallback((cardUid) => {
     setState(prev => {
-      const s = discardCard(prev, cardUid);
-      return s;
+      const next = discardCard(prev, cardUid);
+      latestStateRef.current = next;
+      return next;
     });
-    setAiThinking(true);
-    setTimeout(() => {
-      setState(prev => {
-        if (prev.activePlayer === AI_PLAYER && !prev.winner && !prev.pendingDiscard) {
-          return runAITurn(prev);
-        }
-        return prev;
-      });
-      setAiThinking(false);
-    }, 600);
-  }, []);
+    scheduleAITurn();
+  }, [scheduleAITurn]);
 
   const handleRevealUnit = useCallback((unitUid) => {
     setState(prev => playerRevealUnit(prev, unitUid));

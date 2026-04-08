@@ -282,6 +282,15 @@ export function runAITurn(state) {
   return runHeuristicTurn(state);
 }
 
+// Returns an array of intermediate states, one per action step.
+// Decision logic is identical to runAITurn — this only adds step recording.
+export function runAITurnSteps(state) {
+  if (_aiMode === 'strategic') {
+    return runStrategicTurnSteps(state);
+  }
+  return runHeuristicTurnSteps(state);
+}
+
 function runHeuristicTurn(state) {
   let s = cloneState(state);
 
@@ -293,6 +302,19 @@ function runHeuristicTurn(state) {
   s = endActionPhase(s);
   s = endTurn(s);
   return s;
+}
+
+function runHeuristicTurnSteps(state) {
+  const steps = [];
+  let s = cloneState(state);
+  s = aiChampionAbility(s); steps.push(s);
+  s = aiChampionMove(s); steps.push(s);
+  s = aiSummonCast(s); steps.push(s);
+  s = aiUnitMove(s); steps.push(s);
+  s = endActionPhase(s);
+  s = endTurn(s);
+  steps.push(s);
+  return steps;
 }
 
 function runStrategicTurn(state) {
@@ -309,4 +331,22 @@ function runStrategicTurn(state) {
   }
 
   return s;
+}
+
+function runStrategicTurnSteps(state) {
+  const steps = [];
+  let s = cloneState(state);
+  let actionCount = 0;
+  const MAX_ACTIONS = 150;
+
+  while (!s.winner && actionCount < MAX_ACTIONS) {
+    const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
+    const action = chooseActionStrategic(s, commandsUsed);
+    s = applyActionStrategic(s, action);
+    steps.push(s);
+    actionCount++;
+    if (action.type === 'endTurn') break;
+  }
+
+  return steps;
 }
