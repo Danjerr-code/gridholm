@@ -594,8 +594,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
   const p1Resonance = computeResonance(p1DeckId, [...p1Deck]);
   const p2Resonance = computeResonance(p2DeckId, [...p2Deck]);
 
-  const p1Hand = p1Deck.splice(0, 5);
-  const p2Hand = p2Deck.splice(0, 5);
+  const p1Hand = p1Deck.splice(0, 4);
+  const p2Hand = p2Deck.splice(0, 4);
 
   const firstPlayer = Math.random() < 0.5 ? 0 : 1;
   const firstPlayerLabel = firstPlayer === 0 ? 'Player 1' : 'Player 2';
@@ -610,11 +610,11 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     if (savedDeck?.champion) {
       const champName = CHAMPIONS[savedDeck.champion]?.name ?? savedDeck.champion;
       const deckName = savedDeck.deckName ?? 'Custom Deck';
-      openingLog = `${champName} \u2014 ${deckName}. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`;
+      openingLog = `${champName} \u2014 ${deckName}. Coin flip: ${firstPlayerLabel} goes first. Both players start with 4 cards. ${firstPlayerLabel} skips draw on turn 1.`;
     }
   }
   if (!openingLog) {
-    openingLog = `Game started. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`;
+    openingLog = `Game started. Coin flip: ${firstPlayerLabel} goes first. Both players start with 4 cards. ${firstPlayerLabel} skips draw on turn 1.`;
   }
 
   return {
