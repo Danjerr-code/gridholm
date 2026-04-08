@@ -17,10 +17,10 @@ const CHAMPION_DESCRIPTIONS = {
 };
 
 const FACTION_NAMES = {
-  light: 'Humans',
-  primal: 'Beasts',
-  mystic: 'Elves',
-  dark: 'Demons',
+  light: 'Light',
+  primal: 'Primal',
+  mystic: 'Mystic',
+  dark: 'Dark',
 };
 
 const ATTR_GRADIENTS = {

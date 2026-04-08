@@ -248,7 +248,7 @@ function AnnotatedCard() {
     { num: 1, label: 'Cost', desc: 'Mana needed to play this card. You gain 1 more each turn up to 10.', top: '4%', right: '-130px', lineTop: '14px', lineRight: '130px' },
     { num: 2, label: 'Art', desc: 'Card illustration. Each faction has a distinct visual identity.', top: '22%', right: '-130px', lineTop: '8px', lineRight: '130px' },
     { num: 3, label: 'Name', desc: "The card's name. Legendary cards have a gold border.", top: '46%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
-    { num: 4, label: 'Type', desc: 'Human, Beast, Elf, or Demon. Faction matters for synergies.', top: '54%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
+    { num: 4, label: 'Type', desc: 'Light, Primal, Mystic, or Dark. Attribute matters for synergies.', top: '54%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
     { num: 5, label: 'ATK', desc: 'Attack power. Damage dealt in combat.', top: '66%', right: '-130px', lineTop: '8px', lineRight: '130px' },
     { num: 6, label: 'HP', desc: 'Health points. Reduced by damage. Unit dies at 0.', top: '72%', right: '-130px', lineTop: '8px', lineRight: '130px' },
     { num: 7, label: 'SPD', desc: 'Speed. How many tiles this unit can move per turn.', top: '78%', right: '-130px', lineTop: '8px', lineRight: '130px' },
@@ -305,7 +305,7 @@ function AnnotatedCard() {
           {/* Card body */}
           <div style={{ padding: '8px 10px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Sergeant</div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Human</div>
+            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Light</div>
             <div style={{ display: 'flex', gap: 10, fontSize: 12, marginBottom: 8 }}>
               <span style={{ color: '#ef4444' }}>⚔ 2</span>
               <span style={{ color: '#22c55e' }}>♥ 2</span>
@@ -397,7 +397,7 @@ function AnnotatedCard() {
           <div style={{ height: '40%', background: 'linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: 'rgba(255,255,255,0.15)' }}>🛡</div>
           <div style={{ padding: '6px 8px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Sergeant</div>
-            <div style={{ fontSize: 9, color: '#6b7280', marginBottom: 6 }}>Human</div>
+            <div style={{ fontSize: 9, color: '#6b7280', marginBottom: 6 }}>Light</div>
             <div style={{ display: 'flex', gap: 8, fontSize: 10, marginBottom: 6 }}>
               <span style={{ color: '#ef4444' }}>⚔ 2</span>
               <span style={{ color: '#22c55e' }}>♥ 2</span>
@@ -548,10 +548,10 @@ function ThroneGrid() {
 }
 
 const FACTIONS = [
-  { name: 'Humans', color: '#F0E6D2', identity: 'Strength in formation.', keyword: 'Aura' },
-  { name: 'Beasts', color: '#22C55E', identity: 'Strike before they\'re ready.', keyword: 'Rush' },
-  { name: 'Elves', color: '#A855F7', identity: 'They cannot outlast us.', keyword: 'Restore HP' },
-  { name: 'Demons', color: '#EF4444', identity: 'You never know what lurks.', keyword: 'Hidden' },
+  { name: 'Light',   color: '#F0E6D2', identity: 'Strength in formation.', keyword: 'Aura' },
+  { name: 'Primal',  color: '#22C55E', identity: 'Strike before they\'re ready.', keyword: 'Rush' },
+  { name: 'Mystic',  color: '#A855F7', identity: 'They cannot outlast us.', keyword: 'Restore HP' },
+  { name: 'Dark',    color: '#EF4444', identity: 'You never know what lurks.', keyword: 'Hidden' },
 ];
 
 function FactionCards() {

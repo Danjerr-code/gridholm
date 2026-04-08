@@ -4,11 +4,18 @@ import { CARD_DB, DECKS } from '../engine/cards.js';
 import Card from './Card.jsx';
 import { getCardImageUrl } from '../supabase.js';
 
+const FACTION_DISPLAY_NAMES = {
+  Human: 'Light',
+  Beast: 'Primal',
+  Elf: 'Mystic',
+  Demon: 'Dark',
+};
+
 const FACTIONS = [
-  { name: 'Humans', unitType: 'Human', color: '#4a8abf' },
-  { name: 'Beasts', unitType: 'Beast', color: '#4a8a4a' },
-  { name: 'Elves',  unitType: 'Elf',   color: '#8a4abf' },
-  { name: 'Demons', unitType: 'Demon', color: '#bf2a2a' },
+  { name: 'Light',   unitType: 'Human', color: '#4a8abf' },
+  { name: 'Primal',  unitType: 'Beast', color: '#4a8a4a' },
+  { name: 'Mystic',  unitType: 'Elf',   color: '#8a4abf' },
+  { name: 'Dark',    unitType: 'Demon', color: '#bf2a2a' },
 ];
 
 function getGroupedCards() {
@@ -111,7 +118,7 @@ function CardModal({ card, onClose }) {
         {/* Type / Faction */}
         {card.type !== 'spell' && (
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
-            {card.unitType}
+            {FACTION_DISPLAY_NAMES[card.unitType] || card.unitType}
           </div>
         )}
 

@@ -50,20 +50,20 @@ export const CARD_DB = {
   eagerbeaver:     { id: 'eagerbeaver',     name: 'Eager Beaver',        type: 'unit',  cost: 3, atk: 3, hp: 3, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Rush.', rush: true, image: 'eagerbeaver.webp' },
   stalker:         { id: 'stalker',         name: 'Stalker',             type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: 'Beast',  attribute: 'primal',  rules: '', image: 'stalker.webp' },
   packrunner:      { id: 'packrunner',      name: 'Pack Runner',         type: 'unit',  cost: 3, atk: 1, hp: 3, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Action: Reset the action of a different friendly combat unit.', action: true, image: 'packrunner.webp' },
-  packrunt:        { id: 'packrunt',        name: 'Pack Runt',           type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Has +1 ATK for each other friendly Beast combat unit in play.', image: 'packrunt.webp' },
+  packrunt:        { id: 'packrunt',        name: 'Pack Runt',           type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Has +1 ATK for each other friendly Primal combat unit in play.', image: 'packrunt.webp' },
   rockhorn:        { id: 'rockhorn',        name: 'Rockhorn',            type: 'unit',  cost: 4, atk: 4, hp: 2, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Rush.', rush: true, image: 'rockhorn.webp' },
   plaguehog:       { id: 'plaguehog',       name: 'Plague Hog',          type: 'unit',  cost: 4, atk: 4, hp: 1, spd: 1, unitType: 'Beast',  attribute: 'primal',  rules: 'Rush. When this unit dies, deal 2 damage to all adjacent units.', rush: true, image: 'plaguehog.webp' },
   sabretooth:      { id: 'sabretooth',      name: 'Sabretooth',          type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 2, unitType: 'Beast',  attribute: 'primal',  rules: '', image: 'sabretooth.webp' },
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: 'Beast',  attribute: 'primal',  rules: "Rush. When this unit destroys an enemy combat unit, reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
-  wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  attribute: 'primal',  rules: 'Aura 1: Friendly Beast units within 1 tile gain +1/+1.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
+  wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: 'Human',  attribute: 'primal',  rules: 'Aura 1: Friendly Primal units within 1 tile gain +1/+1.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
 
   // Beast spells
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: 'Beast', attribute: 'primal',  rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
-  packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 3, effect: 'packhowl',        unitType: 'Beast', attribute: 'primal',  rules: 'All friendly Beast combat units gain +1 ATK and +1 SPD this turn.', image: 'packhowl.webp' },
-  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', attribute: 'primal',  rules: 'Reset the action of a friendly Beast unit.', image: 'pounce.webp' },
+  packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 3, effect: 'packhowl',        unitType: 'Beast', attribute: 'primal',  rules: 'All friendly Primal combat units gain +1 ATK and +1 SPD this turn.', image: 'packhowl.webp' },
+  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: 'Beast', attribute: 'primal',  rules: 'Reset the action of a friendly Primal unit.', image: 'pounce.webp' },
   predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: 'Beast', attribute: 'primal',  rules: 'An enemy unit within 2 tiles of your champion skips its action next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: 'Beast', attribute: 'primal',  rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
-  callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: 'Beast', attribute: 'primal',  rules: 'Summon a 1/1 Snake Beast combat unit in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
+  callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: 'Beast', attribute: 'primal',  rules: 'Summon a 1/1 Snake Primal combat unit in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: 'Elf',    attribute: 'mystic',  rules: '', image: 'elfscout.webp' },
@@ -74,7 +74,7 @@ export const CARD_DB = {
   elfelder:        { id: 'elfelder',        name: 'Elf Elder',           type: 'unit',  cost: 3, atk: 2, hp: 4, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'When summoned, restore 2 HP to your champion.', image: 'elfelder.webp' },
   thornweave:      { id: 'thornweave',      name: 'Thornweave',          type: 'unit',  cost: 3, atk: 2, hp: 3, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'When this unit is destroyed, restore 3 HP to your champion.', image: 'thorneweave.webp' },
   elfranger:       { id: 'elfranger',       name: 'Elf Ranger',          type: 'unit',  cost: 4, atk: 3, hp: 4, spd: 2, unitType: 'Elf',    attribute: 'mystic',  rules: '', image: 'elfranger.webp' },
-  grovewarden:     { id: 'grovewarden',     name: 'Grove Warden',        type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'Action: Restore 1 HP to your champion for each friendly Elf combat unit you control.', action: true, image: 'grovewarden.webp' },
+  grovewarden:     { id: 'grovewarden',     name: 'Grove Warden',        type: 'unit',  cost: 4, atk: 2, hp: 2, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'Action: Restore 1 HP to your champion for each friendly Mystic combat unit you control.', action: true, image: 'grovewarden.webp' },
   moonveilmystic:  { id: 'moonveilmystic',  name: 'Moonveil Mystic',     type: 'unit',  cost: 4, atk: 1, hp: 2, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'Whenever you restore HP to your champion or a friendly unit, this unit gains +1/+1. Triggers once per restore event.', image: 'moonveilmystic.webp' },
   elfarcher:       { id: 'elfarcher',       name: 'Elf Archer',          type: 'unit',  cost: 5, atk: 2, hp: 5, spd: 1, unitType: 'Elf',    attribute: 'mystic',  rules: 'Action: Deal 2 damage to a unit within 2 tiles.', action: true, image: 'elfarcher.webp' },
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: 'Elf', attribute: 'mystic', rules: 'When a friendly combat unit is destroyed, your champion gains +2 HP.', legendary: true, image: 'sistersiofra.webp' },
@@ -86,7 +86,7 @@ export const CARD_DB = {
   moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: 'Elf',   attribute: 'mystic',  rules: 'Increase the HP of a friendly combat unit by the number of cards in your hand.', image: 'moonleaf.webp' },
   overgrowth:      { id: 'overgrowth',      name: 'Overgrowth',          type: 'spell', cost: 4, effect: 'overgrowth',      unitType: 'Elf',   attribute: 'mystic',  rules: 'Restore 2 HP to all friendly units.', image: 'overgrowth.webp' },
   bloom:           { id: 'bloom',           name: 'Bloom',               type: 'spell', cost: 3, effect: 'bloom',           unitType: 'Elf',   attribute: 'mystic',  rules: "Restore 2 HP to a friendly unit. Deal damage to an enemy combat unit equal to the total HP you've restored this turn.", image: 'bloom.webp' },
-  entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: 'Elf',   attribute: 'mystic',  rules: 'Choose a friendly Elf unit. Enemy combat units adjacent to that unit cannot move next turn.', image: 'entangle.webp' },
+  entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: 'Elf',   attribute: 'mystic',  rules: 'Choose a friendly Mystic unit. Enemy combat units adjacent to that unit cannot move next turn.', image: 'entangle.webp' },
   ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: 'Elf',   attribute: 'mystic',  rules: 'Draw 2 cards.', image: 'ancientspring.webp' },
   verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: 'Elf',   attribute: 'mystic',  rules: 'Give your champion and friendly units within 2 tiles of your champion +2/+2 this turn.', image: 'verdantsurge.webp' },
   spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: 'Elf',   attribute: 'mystic',  rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
@@ -112,7 +112,7 @@ export const CARD_DB = {
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: 'Demon', attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
   darksentence:    { id: 'darksentence',    name: 'Dark Sentence',       type: 'spell', cost: 5, effect: 'darksentence',    unitType: 'Demon', attribute: 'dark',    rules: 'Destroy an enemy combat unit.', image: 'darksentence.webp' },
   devour:          { id: 'devour',          name: 'Devour',              type: 'spell', cost: 3, effect: 'devour',          unitType: 'Demon', attribute: 'dark',    rules: 'Destroy an enemy combat unit with 2 or less HP.', image: 'devour.webp' },
-  infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: 'Demon', attribute: 'dark',    rules: 'Deal 3 damage to your champion. All friendly Demon units gain +2 ATK this turn.', image: 'infernalpact.webp' },
+  infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: 'Demon', attribute: 'dark',    rules: 'Deal 3 damage to your champion. All friendly Dark units gain +2 ATK this turn.', image: 'infernalpact.webp' },
   shadowveil:      { id: 'shadowveil',      name: 'Shadow Veil',         type: 'spell', cost: 2, effect: 'shadowveil',      unitType: 'Demon', attribute: 'dark',    rules: 'The next combat unit you play this turn is summoned with Hidden.', image: 'shadowveil.webp' },
   souldrain:       { id: 'souldrain',       name: 'Soul Drain',          type: 'spell', cost: 3, effect: 'souldrain',       unitType: 'Demon', attribute: 'dark',    rules: 'Deal 2 damage to an enemy combat unit. Restore HP to your champion equal to the damage dealt.', image: 'souldrain.webp' },
 };
@@ -240,37 +240,37 @@ const DEMON_DECK = [
 ];
 
 export const DECKS = {
-  human: { name: 'Humans',  color: '#F0E6D2', cards: HUMAN_DECK },
-  beast: { name: 'Beasts',  color: '#22C55E', cards: BEAST_DECK },
-  elf:   { name: 'Elves',   color: '#A855F7', cards: ELF_DECK   },
-  demon: { name: 'Demons',  color: '#EF4444', cards: DEMON_DECK },
+  human: { name: 'Light',   color: '#F0E6D2', cards: HUMAN_DECK },
+  beast: { name: 'Primal',  color: '#22C55E', cards: BEAST_DECK },
+  elf:   { name: 'Mystic',  color: '#A855F7', cards: ELF_DECK   },
+  demon: { name: 'Dark',    color: '#EF4444', cards: DEMON_DECK },
 };
 
 export const FACTION_INFO = {
   human: {
     id: 'human',
-    name: 'Humans',
+    name: 'Light',
     color: '#F0E6D2',
     description: 'Disciplined warriors who grow stronger in formation. Master the art of positioning to unlock powerful Aura bonuses.',
     mechanic: 'Aura',
   },
   beast: {
     id: 'beast',
-    name: 'Beasts',
+    name: 'Primal',
     color: '#22C55E',
     description: 'Primal hunters who strike before the enemy can react. Flood the board fast and overwhelm with speed and numbers.',
     mechanic: 'Rush',
   },
   elf: {
     id: 'elf',
-    name: 'Elves',
+    name: 'Mystic',
     color: '#A855F7',
     description: 'Ancient healers who refuse to fall. Restore your champion and outlast every threat the opponent can throw at you.',
     mechanic: 'Restore HP',
   },
   demon: {
     id: 'demon',
-    name: 'Demons',
+    name: 'Dark',
     color: '#EF4444',
     description: 'Dangerous and unpredictable. Hidden units lurk unseen while self-damage effects fuel overwhelming power.',
     mechanic: 'Hidden',
