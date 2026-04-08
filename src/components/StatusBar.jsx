@@ -113,7 +113,7 @@ export function ResourceDisplay({ current, max = 10, maxThisTurn, playerColor, s
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex, commandsUsed, onOpenLog }) {
+export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -169,6 +169,7 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, onOpenLo
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
+          {aiThinking && <span style={{ fontSize: '9px', color: '#C9A84C', fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>Thinking…</span>}
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
           {onOpenLog && (
             <button
@@ -206,7 +207,10 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, onOpenLo
           <div style={{ fontSize: '11px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{desktopPhaseLabels[state.phase] || state.phase}</div>
         </div>
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name}</span>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>
+            {p2.name}
+            {aiThinking && <span style={{ fontSize: '10px', color: '#C9A84C', fontFamily: 'var(--font-sans)', fontStyle: 'italic', marginLeft: '6px' }}>Thinking…</span>}
+          </span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
           {!hideP2Resources && <ResourceDisplay current={p2.resources} max={10} maxThisTurn={p2.maxResourcesThisTurn} playerColor="#993C1D" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>

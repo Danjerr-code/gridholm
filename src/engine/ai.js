@@ -16,6 +16,13 @@ import {
   getChampionAbilityTargets,
   applyChampionAbility,
 } from './gameEngine.js';
+import { chooseActionStrategic, applyAction as applyActionStrategic } from './strategicAI.js';
+
+// ── AI mode ────────────────────────────────────────────────────────────────────
+// 'strategic' uses minimax (default). 'heuristic' uses the rule-based AI.
+let _aiMode = 'strategic';
+export function setAIMode(mode) { _aiMode = mode; }
+export function getAIMode() { return _aiMode; }
 
 // AI deck selection: always Human for now.
 // Update when AI difficulty levels are added.
@@ -269,6 +276,13 @@ function aiChampionAbility(state) {
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {
+  if (_aiMode === 'strategic') {
+    return runStrategicTurn(state);
+  }
+  return runHeuristicTurn(state);
+}
+
+function runHeuristicTurn(state) {
   let s = cloneState(state);
 
   s = aiChampionAbility(s);
@@ -278,5 +292,21 @@ export function runAITurn(state) {
 
   s = endActionPhase(s);
   s = endTurn(s);
+  return s;
+}
+
+function runStrategicTurn(state) {
+  let s = cloneState(state);
+  let actionCount = 0;
+  const MAX_ACTIONS = 150; // safety cap
+
+  while (!s.winner && actionCount < MAX_ACTIONS) {
+    const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
+    const action = chooseActionStrategic(s, commandsUsed);
+    s = applyActionStrategic(s, action);
+    actionCount++;
+    if (action.type === 'endTurn') break;
+  }
+
   return s;
 }

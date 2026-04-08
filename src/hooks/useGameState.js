@@ -45,16 +45,21 @@ export function useGameState({ deckId = 'human' } = {}) {
   const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
   const [inspectedItem, setInspectedItem] = useState(null);
 
+  // True while the AI is computing its turn (shows "Thinking..." in UI)
+  const [aiThinking, setAiThinking] = useState(false);
+
   // Trigger AI turn if AI wins the coin flip and goes first on initial mount or new game.
   useEffect(() => {
     if (state.activePlayer === AI_PLAYER && !state.winner) {
+      setAiThinking(true);
       const timeout = setTimeout(() => {
         setState(prev => {
           if (prev.activePlayer !== AI_PLAYER || prev.winner) return prev;
           return runAITurn(prev);
         });
+        setAiThinking(false);
       }, 600);
-      return () => clearTimeout(timeout);
+      return () => { clearTimeout(timeout); setAiThinking(false); };
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -74,11 +79,13 @@ export function useGameState({ deckId = 'human' } = {}) {
   const applyAndMaybeAI = useCallback((newState) => {
     setState(newState);
     if (newState.activePlayer === AI_PLAYER && !newState.winner) {
+      setAiThinking(true);
       setTimeout(() => {
         setState(prev => {
           if (prev.activePlayer !== AI_PLAYER || prev.winner) return prev;
           return runAITurn(prev);
         });
+        setAiThinking(false);
       }, 600);
     }
   }, []);
@@ -239,6 +246,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => endActionAndTurn(prev));
     clearSelection();
     if (state.activePlayer !== AI_PLAYER) {
+      setAiThinking(true);
       setTimeout(() => {
         setState(prev => {
           if (prev.activePlayer === AI_PLAYER && !prev.winner) {
@@ -246,6 +254,7 @@ export function useGameState({ deckId = 'human' } = {}) {
           }
           return prev;
         });
+        setAiThinking(false);
       }, 600);
     }
   }, [state.activePlayer, clearSelection]);
@@ -308,6 +317,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       const s = discardCard(prev, cardUid);
       return s;
     });
+    setAiThinking(true);
     setTimeout(() => {
       setState(prev => {
         if (prev.activePlayer === AI_PLAYER && !prev.winner && !prev.pendingDiscard) {
@@ -315,6 +325,7 @@ export function useGameState({ deckId = 'human' } = {}) {
         }
         return prev;
       });
+      setAiThinking(false);
     }, 600);
   }, []);
 
@@ -409,6 +420,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     selectedUnit,
     selectMode,
     inspectedItem,
+    aiThinking,
     pendingChampionAbility,
     championMoveTiles,
     championAbilityTargetUids,

@@ -25,6 +25,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
     selectedUnit,
     selectMode,
     inspectedItem,
+    aiThinking,
     championMoveTiles,
     championAbilityTargetUids,
     summonTiles,
@@ -237,7 +238,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
+      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} aiThinking={aiThinking} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
