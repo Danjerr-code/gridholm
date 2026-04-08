@@ -23,15 +23,27 @@ import {
   getChampionAbilityTargets,
   applyChampionAbility,
 } from '../engine/gameEngine.js';
+import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurn } from '../engine/ai.js';
 import { playTurnStartSound } from '../audio.js';
 
 const AI_PLAYER = 1;
+const AI_DECKS = ['human', 'beast', 'elf', 'demon'];
+
+function pickRandomAiDeck() {
+  return AI_DECKS[Math.floor(Math.random() * AI_DECKS.length)];
+}
+
+function createStateWithAiLog(deckId, aiDeckId) {
+  const s = createInitialState(deckId, aiDeckId);
+  const aiName = FACTION_INFO[aiDeckId]?.name ?? aiDeckId;
+  return { ...s, log: [...s.log, `AI is playing ${aiName}.`] };
+}
 
 export function useGameState({ deckId = 'human' } = {}) {
   const [state, setState] = useState(() => {
-    const s = createInitialState(deckId, 'human'); // AI always human
-    return autoAdvancePhase(s);
+    const aiDeckId = pickRandomAiDeck();
+    return autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId));
   });
 
   const [selectedCard, setSelectedCard] = useState(null);
@@ -374,8 +386,8 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [selectedUnit, clearSelection]);
 
   const handleNewGame = useCallback(() => {
-    const s = createInitialState(deckId, 'human');
-    applyAndMaybeAI(autoAdvancePhase(s));
+    const aiDeckId = pickRandomAiDeck();
+    applyAndMaybeAI(autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId)));
     clearSelection();
   }, [clearSelection, deckId, applyAndMaybeAI]);
 

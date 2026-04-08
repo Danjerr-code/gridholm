@@ -108,6 +108,7 @@ export default function Root() {
       return (
         <DeckSelect
           onSelect={(deckId) => setSelectedDeck(deckId)}
+          opponentSelected={null}
         />
       );
     }
@@ -115,6 +116,7 @@ export default function Root() {
       <App
         deckId={selectedDeck}
         onBackToLobby={() => { navigate('/'); setSelectedDeck(null); }}
+        onPlayAgain={() => setSelectedDeck(null)}
       />
     );
   }

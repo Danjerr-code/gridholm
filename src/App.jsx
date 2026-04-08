@@ -18,7 +18,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App({ onBackToLobby, deckId = 'human' } = {}) {
+export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {}) {
   const {
     state,
     selectedCard,
@@ -106,9 +106,9 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
             }}
-            onClick={handlers.handleNewGame}
+            onClick={onPlayAgain ?? handlers.handleNewGame}
           >
-            New Game
+            Play Again
           </button>
         </GameEndOverlay>
       )}
@@ -230,7 +230,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
               cursor: 'pointer',
               fontFamily: "'Cinzel', serif",
             }}
-            onClick={handlers.handleNewGame}
+            onClick={onPlayAgain ?? handlers.handleNewGame}
           >
             New Game
           </button>
