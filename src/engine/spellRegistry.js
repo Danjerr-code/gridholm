@@ -10,6 +10,15 @@ import {
 import { getEffectiveAtk } from './statUtils.js';
 import { DECKS, CARD_DB } from './cards.js';
 
+function unitTypes(u) {
+  const ut = u.unitType;
+  if (!Array.isArray(ut)) {
+    console.warn('[unitType] Expected array, got:', typeof ut, 'for unit:', u.id || u.name);
+    return ut ? [ut] : [];
+  }
+  return ut;
+}
+
 // ============================================
 // SPELL REGISTRY
 // Maps spell effect IDs to pure resolver functions.
@@ -136,7 +145,7 @@ export const SPELL_REGISTRY = {
 
   packhowl: (state, caster) => {
     state.units.forEach(u => {
-      if (u.owner === caster && u.unitType.includes('Beast')) {
+      if (u.owner === caster && unitTypes(u).includes('Beast')) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
         u.speedBonus = (u.speedBonus || 0) + 1;
       }
@@ -358,7 +367,7 @@ export const SPELL_REGISTRY = {
     champ.hp -= 3;
     addLog(state, `${state.players[caster].name} casts Infernal Pact. Champion takes 3 damage.`);
     state.units.forEach(u => {
-      if (u.owner === caster && u.unitType.includes('Demon')) {
+      if (u.owner === caster && unitTypes(u).includes('Demon')) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
       }
     });

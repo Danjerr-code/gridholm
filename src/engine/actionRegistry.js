@@ -1,6 +1,15 @@
 import { destroyUnit, restoreHP, addLog, applyDamageToUnit, manhattan } from './gameEngine.js';
 import { DECKS, CARD_DB } from './cards.js';
 
+function unitTypes(u) {
+  const ut = u.unitType;
+  if (!Array.isArray(ut)) {
+    console.warn('[unitType] Expected array, got:', typeof ut, 'for unit:', u.id || u.name);
+    return ut ? [ut] : [];
+  }
+  return ut;
+}
+
 // ============================================
 // ACTION REGISTRY
 // Maps unit IDs to their action resolver functions.
@@ -56,7 +65,7 @@ export const ACTION_REGISTRY = {
     const elfCount = state.units.filter(u =>
       u.owner === unit.owner &&
       u.uid !== unit.uid &&
-      u.unitType.includes('Elf') &&
+      unitTypes(u).includes('Elf') &&
       !u.hidden
     ).length;
     const champ = state.champions[unit.owner];

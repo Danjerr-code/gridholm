@@ -17,6 +17,15 @@ export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.j
 import { SPELL_REGISTRY } from './spellRegistry.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
 
+function unitTypes(u) {
+  const ut = u.unitType;
+  if (!Array.isArray(ut)) {
+    console.warn('[unitType] Expected array, got:', typeof ut, 'for unit:', u.id || u.name);
+    return ut ? [ut] : [];
+  }
+  return ut;
+}
+
 // Phases in order
 export const PHASES = ['begin-turn', 'action', 'end-turn'];
 
@@ -69,7 +78,7 @@ function removeWildbornAura(unit, state) {
 // Called after any movement so entering/leaving range is handled automatically.
 function updateWildbornAura(state) {
   for (const wb of state.units.filter(u => u.id === 'wildborne')) {
-    for (const beast of state.units.filter(u => u.owner === wb.owner && u.uid !== wb.uid && u.unitType.includes('Beast') && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === wb.owner && u.uid !== wb.uid && unitTypes(u).includes('Beast') && !u.hidden)) {
       const inRange = manhattan([wb.row, wb.col], [beast.row, beast.col]) <= wb.aura.range;
       if (inRange) applyWildbornAura(beast, state);
       else removeWildbornAura(beast, state);
@@ -228,7 +237,7 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   if (unit.id === 'wildborne') {
     const range = unit.aura ? unit.aura.range : 1;
     const [wr, wc] = combatTile || [unit.row, unit.col];
-    for (const beast of state.units.filter(u => u.owner === unit.owner && u.unitType.includes('Beast') && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === unit.owner && unitTypes(u).includes('Beast') && !u.hidden)) {
       if (manhattan([wr, wc], [beast.row, beast.col]) <= range) {
         removeWildbornAura(beast, state);
       }
@@ -543,14 +552,14 @@ function fireOnSummonTriggers(unit, state) {
 
   // 6. Wildborne summon: apply HP aura to Beast units already in range,
   //    and apply aura to Wildborne itself if a Wildborne is already on the board
-  if (unit.unitType.includes('Beast')) {
+  if (unitTypes(unit).includes('Beast')) {
     const wb = state.units.find(u => u.id === 'wildborne' && u.owner === unit.owner && u.uid !== unit.uid);
     if (wb && manhattan([wb.row, wb.col], [unit.row, unit.col]) <= wb.aura.range) {
       applyWildbornAura(unit, state);
     }
   }
   if (unit.id === 'wildborne') {
-    for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType.includes('Beast') && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && unitTypes(u).includes('Beast') && !u.hidden)) {
       if (manhattan([unit.row, unit.col], [beast.row, beast.col]) <= unit.aura.range) {
         applyWildbornAura(beast, state);
       }
@@ -1681,7 +1690,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Entangle: friendly Elf unit
     case 'entangle':
-      return state.units.filter(u => u.owner === state.activePlayer && u.unitType.includes('Elf') && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && unitTypes(u).includes('Elf') && !u.hidden).map(u => u.uid);
 
     // Predator's Mark: enemy unit or champion within 2 tiles of caster's champion
     case 'predatorsmark': {
@@ -1698,7 +1707,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Pounce: friendly Beast unit (resets its action)
     case 'pounce':
-      return state.units.filter(u => u.owner === state.activePlayer && u.unitType.includes('Beast')).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && unitTypes(u).includes('Beast')).map(u => u.uid);
 
     // Ambush step 0: any friendly combat unit; step 1: enemy adjacent to selected unit
     case 'ambush':
@@ -1803,7 +1812,7 @@ export function hasValidTargets(card, state, playerIndex) {
       return state.players[playerIndex].hand.length > 1 && enemyUnits.length > 0;
 
     case 'entangle': {
-      const elfFriendly = friendlyUnits.filter(u => u.unitType.includes('Elf') && !u.hidden);
+      const elfFriendly = friendlyUnits.filter(u => unitTypes(u).includes('Elf') && !u.hidden);
       if (elfFriendly.length === 0) return false;
       return enemyUnits.some(enemy =>
         elfFriendly.some(elf => {
@@ -1842,7 +1851,7 @@ export function hasValidTargets(card, state, playerIndex) {
       return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
 
     case 'pounce':
-      return friendlyUnits.some(u => u.unitType.includes('Beast'));
+      return friendlyUnits.some(u => unitTypes(u).includes('Beast'));
 
     case 'savagegrowth':
     case 'forgeweapon':
