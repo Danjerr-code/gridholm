@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import Cell from './Cell.jsx';
 
 export default function Board({
@@ -32,6 +33,41 @@ export default function Board({
   const champMoveSet = new Set(championMoveTiles.map(([r, c]) => `${r},${c}`));
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
+
+  const boardRef = useRef(null);
+  const [dragTargetKey, setDragTargetKey] = useState(null);
+
+  function handleUnitDragStart(unit) {
+    if (!canInteract) return;
+    handlers.handleSelectUnit(unit.uid);
+  }
+
+  function handleUnitDragMove(clientX, clientY) {
+    if (!boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    const col = Math.floor((clientX - rect.left) / (rect.width / 5));
+    const row = Math.floor((clientY - rect.top) / (rect.height / 5));
+    if (row >= 0 && row < 5 && col >= 0 && col < 5) {
+      setDragTargetKey(`${row},${col}`);
+    } else {
+      setDragTargetKey(null);
+    }
+  }
+
+  function handleUnitDragEnd(clientX, clientY) {
+    const key = dragTargetKey;
+    setDragTargetKey(null);
+    if (clientX === null || !key) {
+      handlers.clearSelection();
+      return;
+    }
+    if (unitMoveSet.has(key)) {
+      const [r, c] = key.split(',').map(Number);
+      handlers.handleMoveUnit(r, c);
+    } else {
+      handlers.clearSelection();
+    }
+  }
 
   // Enemy-occupied tiles that are valid move targets (show red)
   const enemyMoveSet = new Set(
@@ -120,7 +156,7 @@ export default function Board({
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
-      <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div ref={boardRef} className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {Array.from({ length: 5 }, (_, row) =>
           Array.from({ length: 5 }, (_, col) => {
             const key = `${row},${col}`;
@@ -145,6 +181,7 @@ export default function Board({
                 isUnitMoveTile={unitMoveSet.has(key) && !enemyMoveSet.has(key)}
                 isEnemyMoveTile={enemyMoveSet.has(key)}
                 isOpponentMoveTile={opponentMoveTiles.has(key)}
+                isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}
@@ -157,6 +194,9 @@ export default function Board({
                 onUnitLongPress={onLongPressUnit}
                 onLongPressDismiss={onLongPressDismiss}
                 onThroneLongPress={onInspectTerrain}
+                onUnitDragStart={handleUnitDragStart}
+                onUnitDragMove={handleUnitDragMove}
+                onUnitDragEnd={handleUnitDragEnd}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => {

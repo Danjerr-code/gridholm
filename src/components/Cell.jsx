@@ -11,6 +11,7 @@ export default function Cell({
   isUnitMoveTile,
   isEnemyMoveTile,
   isOpponentMoveTile,
+  isDragTarget,
   isSelected,
   isSpellTarget,
   isChampionSpellTarget,
@@ -26,11 +27,21 @@ export default function Cell({
   onUnitLongPress,
   onLongPressDismiss,
   onThroneLongPress,
+  onUnitDragStart,
+  onUnitDragMove,
+  onUnitDragEnd,
 }) {
   let tileStyle;
   let tileClass = 'relative w-full aspect-square transition-colors';
 
-  if (isChampionMoveTile || isUnitMoveTile) {
+  if (isDragTarget) {
+    tileStyle = {
+      background: '#0d2a4a',
+      border: '2px solid #60a5fa',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(96,165,250,0.6)',
+    };
+  } else if (isChampionMoveTile || isUnitMoveTile) {
     tileStyle = {
       background: '#0d1f3a',
       border: '1px solid #2a5a9a',
@@ -188,6 +199,9 @@ export default function Cell({
             isMobile={isMobile}
             onLongPress={onUnitLongPress ? () => { onUnitLongPress(unit); } : undefined}
             onLongPressDismiss={onLongPressDismiss}
+            onDragStart={onUnitDragStart}
+            onDragMove={onUnitDragMove}
+            onDragEnd={onUnitDragEnd}
           />
         </div>
       )}

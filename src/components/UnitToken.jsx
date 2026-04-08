@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
 import { getCardImageUrl } from '../supabase.js';
 import useLongPress from '../hooks/useLongPress.js';
@@ -16,7 +17,7 @@ function getFactionColors(unitType) {
   return FACTION_COLORS[primary] || { border: '#2a2a3a', text: '#6a6a8a' };
 }
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss }) {
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
@@ -123,19 +124,63 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     if (onLongPress) onLongPress();
   });
 
-  const longPressHandlers = isMobile && onLongPress ? {
-    onPointerDown: longPress.onPointerDown,
-    onPointerUp: () => {
+  // Drag tracking (pointer events, works for both mouse and touch)
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, pointerId: null });
+  const dragJustEndedRef = useRef(false);
+  const hasDrag = showActionGlow && !!onDragStart;
+
+  const handlePointerDown = (e) => {
+    if (isMobile && onLongPress) longPress.onPointerDown();
+    if (hasDrag) {
+      dragRef.current = { active: false, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMove = (e) => {
+    if (!hasDrag || dragRef.current.pointerId === null) return;
+    if (!dragRef.current.active) {
+      const dx = Math.abs(e.clientX - dragRef.current.startX);
+      const dy = Math.abs(e.clientY - dragRef.current.startY);
+      if (dx > 6 || dy > 6) {
+        dragRef.current.active = true;
+        longPress.onPointerCancel();
+        onDragStart(unit);
+      }
+    }
+    if (dragRef.current.active && onDragMove) {
+      onDragMove(e.clientX, e.clientY);
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    const wasDragging = dragRef.current.active;
+    dragRef.current = { active: false, startX: 0, startY: 0, pointerId: null };
+    if (isMobile && onLongPress) {
       const fired = longPress.firedRef.current;
       longPress.onPointerUp();
       if (fired && onLongPressDismiss) onLongPressDismiss();
-    },
-    onPointerCancel: longPress.onPointerCancel,
-  } : {};
+    }
+    if (wasDragging) {
+      dragJustEndedRef.current = true;
+      if (onDragEnd) onDragEnd(e.clientX, e.clientY);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    const wasDragging = dragRef.current.active;
+    dragRef.current = { active: false, startX: 0, startY: 0, pointerId: null };
+    if (isMobile && onLongPress) longPress.onPointerCancel();
+    if (wasDragging && onDragEnd) onDragEnd(null, null);
+  };
 
   const handleClick = (e) => {
     if (longPress.firedRef.current) {
       longPress.firedRef.current = false;
+      return;
+    }
+    if (dragJustEndedRef.current) {
+      dragJustEndedRef.current = false;
       return;
     }
     if (onClick) onClick(e);
@@ -160,6 +205,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   return (
     <div
       className={`w-full h-full flex flex-col items-center justify-center rounded-full cursor-pointer select-none relative${showActionGlow ? ' unit-action-glow' : ''}`}
+      draggable={false}
+      onDragStart={e => e.preventDefault()}
       style={{
         background: '#1e2d45',
         border: `1px solid ${factionColors.border}4d`,
@@ -172,7 +219,10 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         overflow: 'hidden',
         ...ringStyle,
       }}
-      {...longPressHandlers}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       onClick={handleClick}
       title={`${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
@@ -181,6 +231,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         <img
           src={imageUrl}
           alt={unit.name}
+          draggable={false}
           onError={(e) => { e.target.style.display = 'none'; }}
           style={{
             width: '100%',
