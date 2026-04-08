@@ -28,8 +28,8 @@ function pipStyle(state, playerColor, size, glow) {
     };
   }
   return {
-    background: '#1a1a2e',
-    border: '1px solid #2a2a42',
+    background: '#0a0a0a',
+    border: '1px solid #1a1a1a',
     boxShadow: 'none',
   };
 }
