@@ -67,8 +67,8 @@ export function useGameState({ deckId = 'human' } = {}) {
   // Guard against double-scheduling a concurrent AI turn.
   const aiRunningRef = useRef(false);
 
-  // Schedules an AI turn: waits 600ms (visual pause), runs AI computation outside setState,
-  // then replays each action step with a 100ms delay so moves appear sequentially.
+  // Schedules an AI turn: waits 600ms (visual pause / "Thinking…"), runs AI computation outside
+  // setState, then replays each action step with a 700ms delay so moves appear sequentially.
   // Only blocks game-state actions (card play, unit move, end turn) — inspect/log remain responsive.
   const scheduleAITurn = useCallback(() => {
     if (aiRunningRef.current) return;
@@ -83,13 +83,15 @@ export function useGameState({ deckId = 'human' } = {}) {
       }
       // Compute all steps synchronously outside of setState to avoid blocking React's commit phase.
       const steps = runAITurnSteps(currentState);
+      // AI has decided — stop showing "Thinking…" and start executing visually.
+      setAiThinking(false);
       for (let i = 0; i < steps.length; i++) {
         setState(steps[i]);
         if (i < steps.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // 700ms between each action so the player can follow each move, summon, or spell.
+          await new Promise(resolve => setTimeout(resolve, 700));
         }
       }
-      setAiThinking(false);
       aiRunningRef.current = false;
     }, 600);
   }, []); // reads only from stable refs — no state deps needed
