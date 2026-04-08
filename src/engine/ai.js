@@ -114,6 +114,25 @@ function aiSummonCast(state) {
   return s;
 }
 
+// ── Lethal pre-check: move a unit into the enemy champion for the win ──────
+// Scores lethal moves at 1000 priority: if any unit can move onto the enemy champion
+// tile and its ATK is >= the champion HP, apply that move immediately and return the
+// new state. Returns the original state if no lethal exists.
+function aiLethalCheck(state) {
+  const s = cloneState(state);
+  const enemyChamp = s.champions[0]; // AI is player 1, enemy is player 0
+
+  for (const unit of s.units.filter(u => u.owner === AI_PLAYER && !u.moved)) {
+    const moveTiles = getUnitMoveTiles(s, unit.uid);
+    const lethalTile = moveTiles.find(([r, c]) => r === enemyChamp.row && c === enemyChamp.col);
+    if (lethalTile && unit.atk >= enemyChamp.hp) {
+      return moveUnit(s, unit.uid, lethalTile[0], lethalTile[1]);
+    }
+  }
+
+  return state;
+}
+
 // ── Unit move: toward nearest enemy ───────────────────────────────────────
 function aiUnitMove(state) {
   let s = cloneState(state);
@@ -295,6 +314,10 @@ export function runAITurnSteps(state) {
 function runHeuristicTurn(state) {
   let s = cloneState(state);
 
+  // Pre-check lethal: if a unit can kill the enemy champion, do it first.
+  const lethalState = aiLethalCheck(s);
+  if (lethalState !== s) return endTurn(endActionPhase(lethalState));
+
   s = aiChampionAbility(s);
   s = aiChampionMove(s);
   s = aiSummonCast(s);
@@ -308,6 +331,15 @@ function runHeuristicTurn(state) {
 function runHeuristicTurnSteps(state) {
   const steps = [];
   let s = cloneState(state);
+
+  // Pre-check lethal: if a unit can kill the enemy champion, do it first.
+  const lethalState = aiLethalCheck(s);
+  if (lethalState !== s) {
+    steps.push(lethalState);
+    steps.push(endTurn(endActionPhase(lethalState)));
+    return steps;
+  }
+
   s = aiChampionAbility(s); steps.push(s);
   s = aiChampionMove(s); steps.push(s);
   s = aiSummonCast(s); steps.push(s);

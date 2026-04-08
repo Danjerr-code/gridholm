@@ -250,7 +250,10 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const myPlayer = gameState.players[ap];
 
   const championHP    = myChamp.hp;
-  const championHPDiff = myChamp.hp - oppChamp.hp;
+  const rawChampionHPDiff = myChamp.hp - oppChamp.hp;
+  // Amplify the HP advantage when the opponent is close to death — creates urgency to close.
+  const hpDiffMultiplier = oppChamp.hp <= 5 ? 3 : 1;
+  const championHPDiff = rawChampionHPDiff * hpDiffMultiplier;
   const unitCountDiff  = myUnits.length - oppUnits.length;
   const totalATKOnBoard = myUnits.reduce((s, u) => s + (u.atk ?? 0), 0);
   const totalHPOnBoard  = myUnits.reduce((s, u) => s + (u.hp ?? 0), 0);
@@ -350,21 +353,32 @@ function filterActions(actions, state, commandsUsed) {
 
 // ── Minimax ───────────────────────────────────────────────────────────────────
 
+const WIN_BONUS = 500;
+
+function scoreState(gameState, playerId) {
+  const { over, winner } = isGameOver(gameState);
+  if (over) {
+    return winner === playerId ? WIN_BONUS + evaluateBoard(gameState, playerId)
+                               : -(WIN_BONUS + evaluateBoard(gameState, playerId));
+  }
+  return evaluateBoard(gameState, playerId);
+}
+
 function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline) {
   if (performance.now() > deadline.time) {
-    return { score: evaluateBoard(gameState, playerId), action: null, timedOut: true };
+    return { score: scoreState(gameState, playerId), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
   if (over || depth === 0) {
-    return { score: evaluateBoard(gameState, playerId), action: null };
+    return { score: scoreState(gameState, playerId), action: null };
   }
 
   const rawActions = getLegalActions(gameState);
   const actions = filterActions(rawActions, gameState, commandsUsed);
 
   if (actions.length === 0) {
-    return { score: evaluateBoard(gameState, playerId), action: null };
+    return { score: scoreState(gameState, playerId), action: null };
   }
 
   if (maximizingPlayer) {
@@ -431,6 +445,44 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
   const cmds = commandsUsed ?? (gameState.players[gameState.activePlayer].commandsUsed ?? 0);
   const ap = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
+
+  // ── Pre-check: lethal detection ─────────────────────────────────────────────
+  // If any legal action wins the game immediately, take it without running minimax.
+  const enemyIdx = 1 - ap;
+  const enemyChamp = gameState.champions[enemyIdx];
+  const preActions = getLegalActions(gameState);
+
+  for (const action of preActions) {
+    // Unit move onto the enemy champion's tile: lethal if unit ATK >= champion HP.
+    if (action.type === 'move') {
+      const unit = gameState.units.find(u => u.uid === action.unitId);
+      if (
+        unit &&
+        action.targetTile[0] === enemyChamp.row &&
+        action.targetTile[1] === enemyChamp.col &&
+        unit.atk >= enemyChamp.hp
+      ) {
+        return action;
+      }
+    }
+    // Champion move onto the enemy champion's tile: lethal if champion ATK >= enemy HP.
+    if (action.type === 'championMove') {
+      const myChamp = gameState.champions[ap];
+      if (
+        action.row === enemyChamp.row &&
+        action.col === enemyChamp.col &&
+        (myChamp.atk ?? 0) >= enemyChamp.hp
+      ) {
+        return action;
+      }
+    }
+    // Champion ability lethal: ability deals direct damage and enemy champion HP equals that damage.
+    if (action.type === 'championAbility') {
+      const newState = applyAction(gameState, action);
+      if (newState.winner) return action;
+    }
+  }
+
   const deadline = { time: performance.now() + 2000 };
 
   const result = minimax(gameState, depth, -Infinity, Infinity, true, playerId, cmds, deadline);
