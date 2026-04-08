@@ -106,6 +106,18 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
 
+  // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
+  const commandsUsed = state?.players?.[myPlayerIndex]?.commandsUsed ?? 0;
+  const isMyTurn = state?.activePlayer === myPlayerIndex;
+  const showActionGlow = (
+    isMyUnit &&
+    isMyTurn &&
+    !unit.summoned &&
+    !unit.skipNextAction &&
+    !unit.moved &&
+    commandsUsed < 3
+  );
+
   // Long-press inspect on mobile
   const longPress = useLongPress(() => {
     if (onLongPress) onLongPress();
@@ -176,6 +188,20 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
             opacity: isOwnHidden ? 0.5 : 1,
             WebkitTouchCallout: 'none',
             userSelect: 'none',
+          }}
+        />
+      )}
+
+      {/* Action glow overlay */}
+      {showActionGlow && (
+        <div
+          className="unit-action-glow"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            zIndex: 1,
           }}
         />
       )}
