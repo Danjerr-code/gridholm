@@ -249,13 +249,12 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
           <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
-        {/* Command strip: vertical strip left of board */}
-        <div className="hidden sm:flex flex-col items-center justify-center flex-shrink-0">
-          <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
-        </div>
-
-        {/* Center: board only */}
-        <div className="flex flex-col flex-1 min-w-0 min-h-0">
+        {/* Center: command strip flush against board left edge + board */}
+        <div className="flex flex-1 min-w-0 min-h-0">
+          <div className="hidden sm:flex flex-col items-center justify-center flex-shrink-0">
+            <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
+          </div>
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <Board
             state={state}
             selectedUnit={selectedUnit}
@@ -276,6 +275,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             onLongPressUnit={isMobile ? handlers.handleInspectUnit : undefined}
             onLongPressDismiss={isMobile ? handlers.handleClearInspect : undefined}
           />
+          </div>
         </div>
 
         {/* Right sidebar: game log + action buttons */}
@@ -1122,7 +1122,7 @@ export function CommandDisplay({ commandsUsed }) {
         <div style={{
           fontSize: '8px',
           fontFamily: 'var(--font-sans)',
-          color: '#800020',
+          color: '#ffffff',
           fontWeight: 600,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
