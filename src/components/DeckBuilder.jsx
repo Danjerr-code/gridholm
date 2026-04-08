@@ -24,7 +24,7 @@ const FACTION_NAMES = {
 };
 
 const ATTR_GRADIENTS = {
-  light: 'linear-gradient(135deg, #74aef9, #3B82F6, #1a4b99)',
+  light: 'linear-gradient(135deg, #f8f0e0, #F0E6D2, #c4a882)',
   primal: 'linear-gradient(135deg, #5edb8a, #22C55E, #0f6b30)',
   mystic: 'linear-gradient(135deg, #c988fb, #A855F7, #6b1fa8)',
   dark: 'linear-gradient(135deg, #f47a7a, #EF4444, #8b1a1a)',
@@ -672,7 +672,7 @@ function CardPreviewTooltip({ card }) {
   if (card.rush) keywords.push({ label: 'Rush', color: '#22C55E' });
   if (card.hidden) keywords.push({ label: 'Hidden', color: '#8B5CF6' });
   if (card.action) keywords.push({ label: 'Action', color: '#F97316' });
-  if (card.aura) keywords.push({ label: `Aura ${card.aura.range}`, color: '#3B82F6' });
+  if (card.aura) keywords.push({ label: `Aura ${card.aura.range}`, color: '#F0E6D2' });
   if (card.legendary) keywords.push({ label: 'Legendary', color: '#EAB308' });
 
   return (
@@ -916,9 +916,9 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
           height: '100%',
           borderRadius: '4px',
           width: `${Math.min(100, (resonance / maxResonance) * 100)}%`,
-          background: tier === 'ascended' ? 'linear-gradient(90deg, #3B82F6, #C9A84C)'
-            : tier === 'attuned' ? 'linear-gradient(90deg, #3B82F6, #ffffff)'
-            : '#3B82F6',
+          background: tier === 'ascended' ? 'linear-gradient(90deg, #F0E6D2, #C9A84C)'
+            : tier === 'attuned' ? 'linear-gradient(90deg, #F0E6D2, #ffffff)'
+            : '#F0E6D2',
           transition: 'width 0.3s ease',
         }} />
         {/* Attuned threshold marker */}

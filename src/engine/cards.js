@@ -240,7 +240,7 @@ const DEMON_DECK = [
 ];
 
 export const DECKS = {
-  human: { name: 'Humans',  color: '#3B82F6', cards: HUMAN_DECK },
+  human: { name: 'Humans',  color: '#F0E6D2', cards: HUMAN_DECK },
   beast: { name: 'Beasts',  color: '#22C55E', cards: BEAST_DECK },
   elf:   { name: 'Elves',   color: '#A855F7', cards: ELF_DECK   },
   demon: { name: 'Demons',  color: '#EF4444', cards: DEMON_DECK },
@@ -250,7 +250,7 @@ export const FACTION_INFO = {
   human: {
     id: 'human',
     name: 'Humans',
-    color: '#3B82F6',
+    color: '#F0E6D2',
     description: 'Disciplined warriors who grow stronger in formation. Master the art of positioning to unlock powerful Aura bonuses.',
     mechanic: 'Aura',
   },

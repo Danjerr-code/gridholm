@@ -22,7 +22,7 @@ function getResonanceInfo(factionId) {
 const FACTIONS = Object.values(FACTION_INFO);
 
 const FACTION_GRADIENTS = {
-  human: 'linear-gradient(135deg, #74aef9, #3B82F6, #1a4b99)',
+  human: 'linear-gradient(135deg, #f8f0e0, #F0E6D2, #c4a882)',
   beast: 'linear-gradient(135deg, #5edb8a, #22C55E, #0f6b30)',
   elf:   'linear-gradient(135deg, #c988fb, #A855F7, #6b1fa8)',
   demon: 'linear-gradient(135deg, #f47a7a, #EF4444, #8b1a1a)',

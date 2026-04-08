@@ -548,7 +548,7 @@ function ThroneGrid() {
 }
 
 const FACTIONS = [
-  { name: 'Humans', color: '#3B82F6', identity: 'Strength in formation.', keyword: 'Aura' },
+  { name: 'Humans', color: '#F0E6D2', identity: 'Strength in formation.', keyword: 'Aura' },
   { name: 'Beasts', color: '#22C55E', identity: 'Strike before they\'re ready.', keyword: 'Rush' },
   { name: 'Elves', color: '#A855F7', identity: 'They cannot outlast us.', keyword: 'Restore HP' },
   { name: 'Demons', color: '#EF4444', identity: 'You never know what lurks.', keyword: 'Hidden' },
@@ -594,7 +594,7 @@ const KEYWORDS = [
   { word: 'Rush', color: '#22C55E', def: 'This unit may move the turn it is summoned' },
   { word: 'Hidden', color: '#8B5CF6', def: 'Moves unseen on the board. Revealed by enemy contact or player choice' },
   { word: 'Action', color: '#F97316', def: 'Use instead of moving. Click the Action button when selected' },
-  { word: 'Aura', color: '#3B82F6', def: 'Passive bonus to nearby friendly or debuff to nearby enemy units' },
+  { word: 'Aura', color: '#F0E6D2', def: 'Passive bonus to nearby friendly or debuff to nearby enemy units' },
   { word: 'Rooted', color: '#78716C', def: 'This unit cannot move from its summoned position' },
   { word: 'Legendary', color: '#EAB308', def: 'Powerful unique card. Only one copy allowed per deck' },
 ];

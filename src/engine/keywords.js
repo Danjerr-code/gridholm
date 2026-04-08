@@ -17,7 +17,7 @@ export const KEYWORD_REMINDERS = {
   aura: {
     label: 'Aura',
     reminder: 'Passive bonus to nearby units. Calculated at combat time. Range shown as Aura 1 or Aura 2.',
-    color: '#3B82F6', // blue
+    color: '#F0E6D2', // ivory
   },
   legendary: {
     label: 'Legendary',
