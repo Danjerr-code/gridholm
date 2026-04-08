@@ -241,7 +241,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
         {/* Left column: phase tracker + commands (side by side) + card detail */}
-        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
+        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ width: 238, minHeight: 0 }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
             <PhaseTracker
               phase={phase}
@@ -1061,10 +1061,12 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
         flexDirection: 'column',
         flex: 1,
         minHeight: 0,
+        width: '100%',
+        overflow: 'hidden',
       }}
     >
       <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 overflow-y-auto no-scrollbar" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         {content || (
           <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
             Click a card or unit to inspect
@@ -1085,7 +1087,8 @@ export function CommandDisplay({ commandsUsed }) {
         border: '1px solid #252538',
         borderRadius: '6px',
         padding: '8px 6px',
-        width: 68,
+        width: 90,
+        flexShrink: 0,
       }}
     >
       <div style={{
@@ -1127,8 +1130,10 @@ export function CommandDisplay({ commandsUsed }) {
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
           lineHeight: 1.3,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
         }}>
-          Exhausted
+          Commands Exhausted
         </div>
       )}
     </div>

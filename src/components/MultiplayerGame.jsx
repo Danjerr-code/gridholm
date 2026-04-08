@@ -1438,6 +1438,8 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
         flexDirection: 'column',
         flex: 1,
         minHeight: 0,
+        width: '100%',
+        overflow: 'hidden',
       }}
     >
       <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Card Detail</div>
@@ -1451,7 +1453,7 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
         <div
           ref={scrollRef}
           className="no-scrollbar"
-          style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}
+          style={{ flex: 1, overflowY: 'auto', minHeight: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}
           onScroll={checkScroll}
         >
           {inspectedItem ? (
