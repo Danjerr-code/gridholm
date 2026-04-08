@@ -540,26 +540,14 @@ function fireOnSummonTriggers(unit, state) {
 
   // 5. Battle Priest: prompt adjacent enemy (step 0) then adjacent friendly (step 1)
   if (unit.id === 'battlepriestunit') {
-    console.log('[BattlePriest] summon trigger fired — uid:', unit.uid, 'id:', unit.id, 'pos:', unit.row, unit.col, 'owner:', unit.owner);
     const adj = cardinalNeighbors(unit.row, unit.col);
-    console.log('[BattlePriest] adjacent tiles:', JSON.stringify(adj));
-    const adjacentEnemies = state.units.filter(u => u.owner !== unit.owner && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c));
-    const adjacentFriendlies = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c));
-    const hasEnemies = adjacentEnemies.length > 0;
-    const hasFriendlies = adjacentFriendlies.length > 0;
-    console.log('[BattlePriest] adjacent enemies:', adjacentEnemies.map(u => ({ uid: u.uid, name: u.name, hp: u.hp, row: u.row, col: u.col })));
-    console.log('[BattlePriest] adjacent wounded friendlies:', adjacentFriendlies.map(u => ({ uid: u.uid, name: u.name, hp: u.hp, maxHp: u.maxHp, row: u.row, col: u.col })));
-    console.log('[BattlePriest] hasEnemies:', hasEnemies, 'hasFriendlies:', hasFriendlies);
+    const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c));
+    const hasFriendlies = state.units.some(u => u.owner === unit.owner && u.uid !== unit.uid && adj.some(([r, c]) => u.row === r && u.col === c));
     if (hasEnemies) {
-      console.log('[BattlePriest] setting pendingSpell step 0 (enemy selection), paid: true');
       state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid, paid: true } };
     } else if (hasFriendlies) {
-      console.log('[BattlePriest] no enemies — skipping to step 1 (friendly selection), paid: true');
       state.pendingSpell = { cardUid: unit.uid, effect: 'battlepriestunit_summon', playerIdx: unit.owner, step: 1, data: { sourceUid: unit.uid, enemyUid: null, paid: true } };
-    } else {
-      console.log('[BattlePriest] no adjacent targets — trigger does nothing');
     }
-    console.log('[BattlePriest] pendingSpell after trigger:', JSON.stringify(state.pendingSpell));
   }
 
   // 6. Wildborne summon: apply HP aura to Beast units already in range,
@@ -1227,59 +1215,38 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   }
   // ── Battle Priest summon trigger (step 0: collect enemy, step 1: collect friendly + execute) ──
   else if (effect === 'battlepriestunit_summon') {
-    console.log('[BattlePriest] resolvePendingSpell called — step:', step, 'target:', target ? { uid: target.uid, name: target.name } : null, 'data:', JSON.stringify(data));
     const priest = s.units.find(u => u.uid === data.sourceUid);
-    console.log('[BattlePriest] priest unit found:', priest ? { uid: priest.uid, name: priest.name, row: priest.row, col: priest.col } : 'NOT FOUND (sourceUid: ' + data.sourceUid + ')');
     if (step === 0) {
       const enemyUid = target ? target.uid : null;
-      console.log('[BattlePriest] step 0 — enemy selected:', enemyUid ? { uid: enemyUid, name: target?.name } : 'none (target was null)');
       if (priest) {
         const adj = cardinalNeighbors(priest.row, priest.col);
-        const adjacentFriendlies = s.units.filter(u => u.owner === s.activePlayer && u.uid !== priest.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c));
-        const hasFriendlies = adjacentFriendlies.length > 0;
-        console.log('[BattlePriest] step 0 — priest pos:', priest.row, priest.col, 'adjacent wounded friendlies:', adjacentFriendlies.map(u => ({ uid: u.uid, name: u.name, hp: u.hp, maxHp: u.maxHp })));
-        console.log('[BattlePriest] step 0 — hasFriendlies:', hasFriendlies, 'paid in data:', data.paid);
+        const hasFriendlies = s.units.some(u => u.owner === s.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c));
         if (hasFriendlies) {
-          console.log('[BattlePriest] step 0 → proceeding to step 1, carrying enemyUid:', enemyUid);
           s.pendingSpell = { cardUid, effect: 'battlepriestunit_summon', playerIdx: s.activePlayer, step: 1, data: { ...data, enemyUid, paid: true } };
         } else {
           // No friendly targets — execute now with enemy only
-          console.log('[BattlePriest] step 0 → no friendlies, executing damage-only path');
           const enemy = enemyUid ? s.units.find(u => u.uid === enemyUid) : null;
-          console.log('[BattlePriest] step 0 — enemy unit resolved:', enemy ? { uid: enemy.uid, name: enemy.name, hp: enemy.hp } : 'null');
           if (enemy) {
             addLog(s, `Battle Priest: deals 2 damage to ${enemy.name}.`);
             applyDamageToUnit(s, enemy, 2, 'Battle Priest');
-            console.log('[BattlePriest] step 0 — dealt 2 damage to', enemy.name);
-          } else {
-            console.log('[BattlePriest] step 0 — no enemy to damage (enemyUid was null or unit not found)');
           }
           addLog(s, `Battle Priest: no friendly target in range.`);
         }
-      } else {
-        console.log('[BattlePriest] step 0 ERROR — priest not found for sourceUid:', data.sourceUid, '— early return');
       }
     } else {
       // step 1 — execute with stored enemy + selected friendly
-      console.log('[BattlePriest] step 1 — executing damage + heal, enemyUid from data:', data.enemyUid, 'friendly target:', target ? { uid: target.uid, name: target.name, hp: target.hp } : 'none', 'paid in data:', data.paid);
       const enemy = data.enemyUid ? s.units.find(u => u.uid === data.enemyUid) : null;
-      console.log('[BattlePriest] step 1 — enemy unit resolved:', enemy ? { uid: enemy.uid, name: enemy.name, hp: enemy.hp } : 'null');
       if (enemy) {
         addLog(s, `Battle Priest: deals 2 damage to ${enemy.name}.`);
         applyDamageToUnit(s, enemy, 2, 'Battle Priest');
-        console.log('[BattlePriest] step 1 — dealt 2 damage to', enemy.name);
       } else {
         addLog(s, `Battle Priest: no enemy target in range.`);
-        console.log('[BattlePriest] step 1 — skipped damage (no enemyUid in data)');
       }
       if (target) {
-        console.log('[BattlePriest] step 1 — healing', target.name, 'current hp:', target.hp, '/', target.maxHp);
         const healed = restoreHP(target, 2, s, 'battlepriestunit');
         addLog(s, `Battle Priest: restores ${healed} HP to ${target.name}.`);
-        console.log('[BattlePriest] step 1 — restored', healed, 'HP to', target.name);
       } else {
         addLog(s, `Battle Priest: no friendly target in range.`);
-        console.log('[BattlePriest] step 1 — skipped heal (no friendly target selected)');
       }
     }
   }
@@ -1796,7 +1763,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       if (step === 0) {
         return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
       }
-      return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && u.hp < u.maxHp && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
     }
 
     // Pack Runner action: friendly unit (not packrunner itself)
