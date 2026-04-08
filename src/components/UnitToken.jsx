@@ -9,10 +9,11 @@ const FACTION_COLORS = {
   Demon:  { border: '#4a1a1a', text: '#bf2a2a' },
 };
 
-const UNIT_TYPE_ABBR = { Human: 'H', Beast: 'B', Elf: 'E', Demon: 'D' };
+const UNIT_TYPE_ABBR = { Human: 'H', Beast: 'B', Elf: 'E', Demon: 'D', Angel: 'A', Penguin: 'P', Spirit: 'Sp', Plant: 'Pl', Wolf: 'W', Soldier: 'So', Knight: 'Kn', Cleric: 'Cl', Paladin: 'Pa', Horror: 'Ho', Shadow: 'Sh', Wraith: 'Wr', Snake: 'Sn' };
 
 function getFactionColors(unitType) {
-  return FACTION_COLORS[unitType] || { border: '#2a2a3a', text: '#6a6a8a' };
+  const primary = Array.isArray(unitType) ? unitType[0] : unitType;
+  return FACTION_COLORS[primary] || { border: '#2a2a3a', text: '#6a6a8a' };
 }
 
 export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss }) {
@@ -93,7 +94,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const auraBuffed = state && isAuraBuffed(state, unit);
   const auraDebuffed = state && isAuraDebuffed(state, unit);
 
-  const abbr = UNIT_TYPE_ABBR[unit.unitType] || unit.name[0];
+  const abbr = (Array.isArray(unit.unitType) ? UNIT_TYPE_ABBR[unit.unitType[0]] : UNIT_TYPE_ABBR[unit.unitType]) || unit.name[0];
   const imageUrl = !isOpponentHidden ? getCardImageUrl(unit.image) : null;
   const effectiveAtk = state ? getEffectiveAtk(state, unit) : unit.atk + (unit.atkBonus || 0);
   // Own hidden units: use raw values — getEffectiveHp/getEffectiveMaxHp return '?' for all hidden units

@@ -9,7 +9,8 @@ const FACTION_TEXT_COLORS = {
 
 
 function getFactionColor(unitType) {
-  return FACTION_TEXT_COLORS[unitType] || '#6a6a8a';
+  const primary = Array.isArray(unitType) ? unitType[0] : unitType;
+  return FACTION_TEXT_COLORS[primary] || '#6a6a8a';
 }
 
 export default function Card({ card, isSelected, isPlayable, onClick }) {
@@ -92,7 +93,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
               fontFamily: 'var(--font-sans)',
               fontWeight: 600,
             }}>
-              {(card.unitType || 'Spell')[0]}
+              {(Array.isArray(card.unitType) ? card.unitType[0] : (card.unitType || 'Spell'))[0]}
             </div>
           )}
         </div>
@@ -160,7 +161,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
                 fontWeight: 600,
               }}
             >
-              {(card.unitType || 'Spell')[0]}
+              {(Array.isArray(card.unitType) ? card.unitType[0] : (card.unitType || 'Spell'))[0]}
             </div>
           )}
         </div>
@@ -191,7 +192,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {/* Card type label */}
         {!isSpell && (
           <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: `${factionColor}cc`, textTransform: 'capitalize' }}>
-            {card.unitType}
+            {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
           </div>
         )}
       </div>

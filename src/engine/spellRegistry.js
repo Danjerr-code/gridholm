@@ -136,7 +136,7 @@ export const SPELL_REGISTRY = {
 
   packhowl: (state, caster) => {
     state.units.forEach(u => {
-      if (u.owner === caster && u.unitType === 'Beast') {
+      if (u.owner === caster && u.unitType.includes('Beast')) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
         u.speedBonus = (u.speedBonus || 0) + 1;
       }
@@ -182,7 +182,7 @@ export const SPELL_REGISTRY = {
     for (const [r, c] of adj) {
       state.units.push({
         id: 'snake', name: 'Snake', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
-        unitType: 'Beast', rules: '', image: 'snake-token.webp', owner: caster, row: r, col: c,
+        unitType: ['Snake'], rules: '', image: 'snake-token.webp', owner: caster, row: r, col: c,
         summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
         uid: `snake_${Math.random().toString(36).slice(2)}`,
       });
@@ -358,7 +358,7 @@ export const SPELL_REGISTRY = {
     champ.hp -= 3;
     addLog(state, `${state.players[caster].name} casts Infernal Pact. Champion takes 3 damage.`);
     state.units.forEach(u => {
-      if (u.owner === caster && u.unitType === 'Demon') {
+      if (u.owner === caster && u.unitType.includes('Demon')) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
       }
     });

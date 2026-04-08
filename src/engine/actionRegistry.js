@@ -56,7 +56,7 @@ export const ACTION_REGISTRY = {
     const elfCount = state.units.filter(u =>
       u.owner === unit.owner &&
       u.uid !== unit.uid &&
-      u.unitType === 'Elf' &&
+      u.unitType.includes('Elf') &&
       !u.hidden
     ).length;
     const champ = state.champions[unit.owner];

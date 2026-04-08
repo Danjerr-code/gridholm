@@ -14,7 +14,7 @@ export function getAuraAtkBonus(state, unit, combatTile = null) {
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
-    if (other.aura.target === 'friendlybeast' && unit.unitType !== 'Beast') continue;
+    if (other.aura.target === 'friendlybeast' && !unit.unitType.includes('Beast')) continue;
     if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
       bonus += other.aura.value;
     }
@@ -52,7 +52,7 @@ export function getPackBonus(state, unit) {
   return state.units.filter(u =>
     u.owner === unit.owner &&
     u.uid !== unit.uid &&
-    u.unitType === 'Beast' &&
+    u.unitType.includes('Beast') &&
     !u.hidden
   ).length;
 }
@@ -91,7 +91,7 @@ export function getFriendlyAuraBonus(state, unit) {
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid || other.hidden) continue;
     if (!other.aura || (other.aura.target !== 'friendly' && other.aura.target !== 'friendlybeast')) continue;
-    if (other.aura.target === 'friendlybeast' && unit.unitType !== 'Beast') continue;
+    if (other.aura.target === 'friendlybeast' && !unit.unitType.includes('Beast')) continue;
     const dist = manhattan([other.row, other.col], [unit.row, unit.col]);
     if (dist > other.aura.range) continue;
     if (other.aura.stat === 'atk') bonus.atk += other.aura.value;

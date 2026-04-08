@@ -85,7 +85,7 @@ function CardModal({ card, onClose }) {
               border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
               fontSize: '13px', fontFamily: "'Cinzel', serif", fontWeight: 500,
             }}>
-              {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
+              {card.type === 'spell' ? 'Spell' : (Array.isArray(card.unitType) ? card.unitType.join(' · ') : (card.unitType || 'Unit'))}
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ function CardModal({ card, onClose }) {
               </div>
             )}
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>
-              {card.unitType}
+              {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
             </div>
           </div>
         )}
