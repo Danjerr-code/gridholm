@@ -39,6 +39,8 @@ export default function DeckBuilder({ onBack, onNext }) {
   const [deckName, setDeckName] = useState('My Deck');
   const [savedDeckExists, setSavedDeckExists] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
+  // Pending change that requires deck-clear confirmation
+  const [pendingChange, setPendingChange] = useState(null); // { type: 'champion'|'secondary', key: string }
 
   useEffect(() => {
     setSavedDeckExists(!!localStorage.getItem(CUSTOM_DECK_KEY));
@@ -89,13 +91,35 @@ export default function DeckBuilder({ onBack, onNext }) {
   }
 
   function handleChampionSelect(attributeKey) {
+    if (deckCount > 0) {
+      setPendingChange({ type: 'champion', key: attributeKey });
+      return;
+    }
     setSelectedChampion(attributeKey);
     setStep('secondary');
   }
 
   function handleSecondarySelect(attributeKey) {
+    if (deckCount > 0) {
+      setPendingChange({ type: 'secondary', key: attributeKey });
+      return;
+    }
     setSecondaryAttr(attributeKey);
     setStep('browser');
+  }
+
+  function confirmPendingChange() {
+    if (!pendingChange) return;
+    setDeck({});
+    if (pendingChange.type === 'champion') {
+      setSelectedChampion(pendingChange.key);
+      setSecondaryAttr(null);
+      setStep('secondary');
+    } else {
+      setSecondaryAttr(pendingChange.key);
+      setStep('browser');
+    }
+    setPendingChange(null);
   }
 
   function handleAddCard(cardId) {
@@ -133,6 +157,76 @@ export default function DeckBuilder({ onBack, onNext }) {
       padding: '16px',
       gap: '24px',
     }}>
+      {/* Confirm deck-clear dialog */}
+      {pendingChange && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+        }}>
+          <div style={{
+            background: '#0d0d1a',
+            border: '1px solid #2a2a3a',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '360px',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            <h3 style={{ fontFamily: "'Cinzel', serif", fontSize: '16px', color: '#C9A84C', margin: 0 }}>
+              {pendingChange.type === 'champion' ? 'Change Champion?' : 'Change Secondary Attribute?'}
+            </h3>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '15px', color: '#9ca3af', margin: 0, lineHeight: 1.6 }}>
+              {pendingChange.type === 'champion'
+                ? 'Changing your champion will clear all cards in your deck since the legal card pool will change.'
+                : 'Changing your secondary attribute will clear all cards in your deck since some cards may no longer be legal.'}
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                  color: '#0a0a0f',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '10px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+                onClick={confirmPendingChange}
+              >
+                Clear &amp; Continue
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: '#6a6a8a',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                  border: '1px solid #2a2a3a',
+                  borderRadius: '4px',
+                  padding: '10px',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setPendingChange(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ textAlign: 'center' }}>
         <h1 style={{
           fontFamily: "'Cinzel', serif",
@@ -533,8 +627,15 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
 }
 
 function BrowserCard({ card, copies, atLimit, onClick }) {
+  const [showPreview, setShowPreview] = useState(false);
+
   return (
-    <div style={{ position: 'relative', cursor: atLimit ? 'default' : 'pointer' }} onClick={atLimit ? undefined : onClick}>
+    <div
+      style={{ position: 'relative', cursor: atLimit ? 'default' : 'pointer' }}
+      onClick={atLimit ? undefined : onClick}
+      onMouseEnter={() => setShowPreview(true)}
+      onMouseLeave={() => setShowPreview(false)}
+    >
       <div style={{ opacity: atLimit ? 0.45 : 1, transition: 'opacity 0.15s' }}>
         <Card card={card} isSelected={false} isPlayable={!atLimit} onClick={undefined} />
       </div>
@@ -558,6 +659,79 @@ function BrowserCard({ card, copies, atLimit, onClick }) {
           pointerEvents: 'none',
         }}>
           {copies}
+        </div>
+      )}
+      {showPreview && <CardPreviewTooltip card={card} />}
+    </div>
+  );
+}
+
+function CardPreviewTooltip({ card }) {
+  const imageUrl = getCardImageUrl(card.image);
+  const keywords = [];
+  if (card.rush) keywords.push({ label: 'Rush', color: '#22C55E' });
+  if (card.hidden) keywords.push({ label: 'Hidden', color: '#8B5CF6' });
+  if (card.action) keywords.push({ label: 'Action', color: '#F97316' });
+  if (card.aura) keywords.push({ label: `Aura ${card.aura.range}`, color: '#3B82F6' });
+  if (card.legendary) keywords.push({ label: 'Legendary', color: '#EAB308' });
+
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 'calc(100% + 8px)',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 200,
+      width: '180px',
+      background: '#08080f',
+      border: '1px solid #1e1e2e',
+      borderTop: '1px solid #C9A84C30',
+      borderRadius: '6px',
+      padding: '8px',
+      pointerEvents: 'none',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+    }}>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>
+        Card Detail
+      </div>
+      {imageUrl ? (
+        <div style={{ height: '100px', borderRadius: '4px', overflow: 'hidden', marginBottom: '6px' }}>
+          <img src={imageUrl} alt={card.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>
+      ) : (
+        <div style={{ height: '60px', borderRadius: '4px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px', fontSize: '11px', color: 'rgba(156,163,175,1)', fontFamily: "'Cinzel', serif" }}>
+          {card.type === 'spell' ? 'Spell' : (card.unitType || 'Unit')}
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>{card.name}</span>
+        <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', flexShrink: 0, marginLeft: '4px' }}>{card.cost}</span>
+      </div>
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#e2e8f0', marginBottom: '4px' }}>
+        {card.type === 'spell' ? 'Spell' : card.unitType}
+      </div>
+      {card.type === 'unit' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '3px', marginBottom: '4px', fontFamily: 'var(--font-sans)' }}>
+          {[['ATK', card.atk], ['HP', card.hp], ['SPD', card.spd]].map(([label, val]) => (
+            <div key={label}>
+              <div style={{ fontSize: '9px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff' }}>{val}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {keywords.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginBottom: '4px' }}>
+          {keywords.map(kw => (
+            <span key={kw.label} style={{ fontSize: '10px', background: `${kw.color}22`, color: kw.color, border: `1px solid ${kw.color}55`, padding: '1px 5px', borderRadius: '3px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+              {kw.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {card.rules && (
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.5, borderTop: '0.5px solid #1e1e2e', paddingTop: '4px' }}>
+          {card.rules}
         </div>
       )}
     </div>

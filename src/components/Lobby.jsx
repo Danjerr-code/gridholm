@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
@@ -96,6 +96,18 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [joinError, setJoinError] = useState(null);
+  const [hasSavedDeck, setHasSavedDeck] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
+      if (saved?.champion && Array.isArray(saved.cards) && saved.cards.length === 30) {
+        setHasSavedDeck(true);
+      }
+    } catch {
+      // ignore malformed data
+    }
+  }, []);
 
   async function handleCreateGame() {
     if (!supabase) {
@@ -187,6 +199,11 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck
             </button>
+            {hasSavedDeck && (
+              <button className="lobby-btn-silver" style={btnSilver} onClick={() => onNavigate('/custom-play')}>
+                Play Saved Deck
+              </button>
+            )}
             <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
               How to Play
             </button>

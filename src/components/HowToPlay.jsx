@@ -37,23 +37,40 @@ export default function HowToPlay() {
         <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
           HOW TO PLAY
         </span>
-        <button
-          onClick={() => { window.location.hash = '/card-gallery'; }}
-          style={{
-            marginLeft: 'auto',
-            background: 'none',
-            border: '0.5px solid rgba(201,168,76,0.4)',
-            borderRadius: '6px',
-            color: '#C9A84C',
-            fontSize: '13px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => e.target.style.borderColor = '#C9A84C'}
-          onMouseLeave={e => e.target.style.borderColor = 'rgba(201,168,76,0.4)'}
-        >
-          Card Gallery →
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => { window.location.hash = '/deck-builder'; }}
+            style={{
+              background: 'none',
+              border: '0.5px solid rgba(201,168,76,0.25)',
+              borderRadius: '6px',
+              color: '#9ca3af',
+              fontSize: '13px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.target.style.borderColor = 'rgba(201,168,76,0.6)'; e.target.style.color = '#C9A84C'; }}
+            onMouseLeave={e => { e.target.style.borderColor = 'rgba(201,168,76,0.25)'; e.target.style.color = '#9ca3af'; }}
+          >
+            Deck Builder →
+          </button>
+          <button
+            onClick={() => { window.location.hash = '/card-gallery'; }}
+            style={{
+              background: 'none',
+              border: '0.5px solid rgba(201,168,76,0.4)',
+              borderRadius: '6px',
+              color: '#C9A84C',
+              fontSize: '13px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.target.style.borderColor = '#C9A84C'}
+            onMouseLeave={e => e.target.style.borderColor = 'rgba(201,168,76,0.4)'}
+          >
+            Card Gallery →
+          </button>
+        </div>
       </div>
 
       {/* Page content */}

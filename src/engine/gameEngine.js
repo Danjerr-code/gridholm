@@ -600,6 +600,23 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
   const firstPlayer = Math.random() < 0.5 ? 0 : 1;
   const firstPlayerLabel = firstPlayer === 0 ? 'Player 1' : 'Player 2';
 
+  // Build opening log line — include champion and deck name for custom decks.
+  let openingLog;
+  if (p1DeckId === 'custom') {
+    const savedDeck = (() => {
+      try { return JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null'); }
+      catch { return null; }
+    })();
+    if (savedDeck?.champion) {
+      const champName = CHAMPIONS[savedDeck.champion]?.name ?? savedDeck.champion;
+      const deckName = savedDeck.deckName ?? 'Custom Deck';
+      openingLog = `${champName} \u2014 ${deckName}. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`;
+    }
+  }
+  if (!openingLog) {
+    openingLog = `Game started. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`;
+  }
+
   return {
     turn: 1,
     activePlayer: firstPlayer,
@@ -617,7 +634,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
       { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false },
     ],
     units: [],
-    log: [`Game started. Coin flip: ${firstPlayerLabel} goes first. Both players start with 5 cards. ${firstPlayerLabel} skips draw on turn 1.`],
+    log: [openingLog],
     pendingSpell: null,   // { cardUid, effect, playerIdx, step, data }
     pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
