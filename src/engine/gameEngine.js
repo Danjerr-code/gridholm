@@ -1841,6 +1841,16 @@ export function hasValidTargets(card, state, playerIndex) {
     case 'martiallaw':
       return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
 
+    case 'pounce':
+      return friendlyUnits.some(u => u.unitType.includes('Beast'));
+
+    case 'savagegrowth':
+    case 'forgeweapon':
+      return friendlyUnits.some(u => !u.hidden);
+
+    case 'moonleaf':
+      return friendlyUnits.some(u => !u.hidden && u.type === 'unit');
+
     default:
       return true;
   }
