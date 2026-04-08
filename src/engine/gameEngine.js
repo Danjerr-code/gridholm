@@ -1806,7 +1806,7 @@ export function hasValidTargets(card, state, playerIndex) {
       return enemyUnits.length > 0;
 
     case 'bloodoffering':
-      return friendlyUnits.length > 0;
+      return friendlyUnits.length > 0 && enemyUnits.length > 0;
 
     case 'pactofruin':
       return state.players[playerIndex].hand.length > 1 && enemyUnits.length > 0;
@@ -1853,6 +1853,7 @@ export function hasValidTargets(card, state, playerIndex) {
     case 'pounce':
       return friendlyUnits.some(u => unitTypes(u).includes('Beast'));
 
+    case 'ironshield':
     case 'savagegrowth':
     case 'forgeweapon':
       return friendlyUnits.some(u => !u.hidden);
