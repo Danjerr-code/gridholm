@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CHAMPIONS } from '../engine/champions.js';
-import { ATTRIBUTES } from '../engine/attributes.js';
+import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CARD_DB } from '../engine/cards.js';
 import { getCardImageUrl } from '../supabase.js';
 import Card from './Card.jsx';
@@ -34,6 +34,7 @@ export default function DeckBuilder({ onBack, onNext }) {
   const [secondaryAttr, setSecondaryAttr] = useState(null);
   // deck: { [cardId]: count }
   const [deck, setDeck] = useState({});
+  const [deckName, setDeckName] = useState('My Deck');
 
   function handleChampionSelect(attributeKey) {
     setSelectedChampion(attributeKey);
@@ -52,6 +53,20 @@ export default function DeckBuilder({ onBack, onNext }) {
     const current = deck[cardId] || 0;
     if (current >= maxCopies) return;
     setDeck(prev => ({ ...prev, [cardId]: current + 1 }));
+  }
+
+  function handleRemoveCard(cardId) {
+    const current = deck[cardId] || 0;
+    if (current <= 0) return;
+    setDeck(prev => {
+      const next = { ...prev, [cardId]: current - 1 };
+      if (next[cardId] === 0) delete next[cardId];
+      return next;
+    });
+  }
+
+  function handleClearDeck() {
+    setDeck({});
   }
 
   return (
@@ -104,7 +119,11 @@ export default function DeckBuilder({ onBack, onNext }) {
           primaryAttr={selectedChampion}
           secondaryAttr={secondaryAttr}
           deck={deck}
+          deckName={deckName}
+          onDeckNameChange={setDeckName}
           onAddCard={handleAddCard}
+          onRemoveCard={handleRemoveCard}
+          onClearDeck={handleClearDeck}
           onBack={() => setStep('secondary')}
           onNext={onNext ? () => onNext(selectedChampion, secondaryAttr, deck) : null}
         />
@@ -129,11 +148,19 @@ const COST_RANGES = [
   { label: '5+',  test: c => c.cost >= 5 },
 ];
 
-function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNext }) {
+function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onAddCard, onRemoveCard, onClearDeck, onBack, onNext }) {
   const [factionFilter, setFactionFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [costFilter, setCostFilter] = useState(0); // index into COST_RANGES
   const [keywordFilter, setKeywordFilter] = useState('all');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 900);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const primaryUnitType = ATTR_UNIT_TYPE[primaryAttr];
   const secondaryUnitType = ATTR_UNIT_TYPE[secondaryAttr];
@@ -186,9 +213,8 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
 
   const deckCount = Object.values(deck).reduce((s, n) => s + n, 0);
 
-  return (
-    <div style={{ width: '100%', maxWidth: '960px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
+  const browserContent = (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Champion summary bar */}
       <div style={{
         display: 'flex',
@@ -208,9 +234,30 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
         <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: secondaryAttrObj.color }}>
           {secondaryAttrObj.name}
         </span>
-        <span style={{ marginLeft: 'auto', fontFamily: "'Cinzel', serif", fontSize: '13px', color: deckCount >= 20 ? '#C9A84C' : '#6a6a8a' }}>
-          {deckCount} cards
-        </span>
+        {isMobile && (
+          <button
+            style={{
+              marginLeft: 'auto',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#C9A84C',
+              background: 'transparent',
+              border: '1px solid #C9A84C60',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setDrawerOpen(o => !o)}
+          >
+            Deck ({deckCount}/30) {drawerOpen ? '▼' : '▲'}
+          </button>
+        )}
+        {!isMobile && (
+          <span style={{ marginLeft: 'auto', fontFamily: "'Cinzel', serif", fontSize: '13px', color: deckCount >= 20 ? '#C9A84C' : '#6a6a8a' }}>
+            {deckCount}/30 cards
+          </span>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -223,7 +270,6 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
         borderRadius: '8px',
         padding: '10px 16px',
       }}>
-        {/* Faction filter */}
         <FilterGroup label="Faction">
           {[
             { key: 'all', label: 'All' },
@@ -237,7 +283,6 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
           ))}
         </FilterGroup>
 
-        {/* Type filter */}
         <FilterGroup label="Type">
           {[{ key: 'all', label: 'All' }, { key: 'unit', label: 'Unit' }, { key: 'spell', label: 'Spell' }].map(opt => (
             <FilterBtn key={opt.key} active={typeFilter === opt.key} onClick={() => setTypeFilter(opt.key)}>
@@ -246,7 +291,6 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
           ))}
         </FilterGroup>
 
-        {/* Cost filter */}
         <FilterGroup label="Cost">
           {COST_RANGES.map((r, i) => (
             <FilterBtn key={r.label} active={costFilter === i} onClick={() => setCostFilter(i)}>
@@ -255,7 +299,6 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
           ))}
         </FilterGroup>
 
-        {/* Keyword filter */}
         <FilterGroup label="Keyword">
           {[
             { key: 'all', label: 'All' },
@@ -294,11 +337,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
             }}>
               {group.label}
             </h3>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {group.cards.map(card => {
                 const copies = deck[card.id] || 0;
                 const maxCopies = card.legendary ? 1 : 2;
@@ -319,7 +358,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
       </div>
 
       {/* Bottom nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: isMobile ? '120px' : '32px' }}>
         <button
           style={backBtnStyle}
           onClick={onBack}
@@ -347,6 +386,93 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, onAddCard, onBack, onNe
             Continue ({deckCount}) →
           </button>
         )}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div style={{ width: '100%', maxWidth: '960px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+        {browserContent}
+        {/* Mobile bottom drawer */}
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          transform: drawerOpen ? 'translateY(0)' : 'translateY(calc(100% - 48px))',
+          transition: 'transform 0.3s ease',
+          maxHeight: '70vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <button
+            style={{
+              height: '48px',
+              background: '#141428',
+              border: '1px solid #2a2a3a',
+              borderBottom: 'none',
+              borderTopLeftRadius: '12px',
+              borderTopRightRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            onClick={() => setDrawerOpen(o => !o)}
+          >
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '12px', color: '#C9A84C', letterSpacing: '0.06em' }}>
+              DECK ({deckCount}/30)
+            </span>
+            <span style={{ color: '#C9A84C', fontSize: '10px' }}>{drawerOpen ? '▼' : '▲'}</span>
+          </button>
+          <div style={{ flex: 1, overflowY: 'auto', background: '#0d0d1a', border: '1px solid #2a2a3a', borderTop: 'none' }}>
+            <DeckPanel
+              primaryAttr={primaryAttr}
+              secondaryAttr={secondaryAttr}
+              deck={deck}
+              deckName={deckName}
+              onDeckNameChange={onDeckNameChange}
+              onRemoveCard={onRemoveCard}
+              onClearDeck={onClearDeck}
+              onNext={onNext}
+              deckCount={deckCount}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', maxWidth: '1280px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+      {browserContent}
+      {/* Desktop sidebar */}
+      <div style={{
+        width: '280px',
+        flexShrink: 0,
+        position: 'sticky',
+        top: '16px',
+        maxHeight: 'calc(100vh - 32px)',
+        overflowY: 'auto',
+        background: '#0d0d1a',
+        border: '1px solid #2a2a3a',
+        borderRadius: '8px',
+      }}>
+        <DeckPanel
+          primaryAttr={primaryAttr}
+          secondaryAttr={secondaryAttr}
+          deck={deck}
+          deckName={deckName}
+          onDeckNameChange={onDeckNameChange}
+          onRemoveCard={onRemoveCard}
+          onClearDeck={onClearDeck}
+          onNext={onNext}
+          deckCount={deckCount}
+        />
       </div>
     </div>
   );
@@ -378,6 +504,344 @@ function BrowserCard({ card, copies, atLimit, onClick }) {
           pointerEvents: 'none',
         }}>
           {copies}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Attribute Wheel ───────────────────────────────────────────────────────────
+
+const WHEEL_POSITIONS = {
+  light:  { cx: 60, cy: 12 },
+  primal: { cx: 12, cy: 60 },
+  dark:   { cx: 60, cy: 108 },
+  mystic: { cx: 108, cy: 60 },
+};
+
+function AttributeWheel({ primaryAttr, secondaryAttr }) {
+  const primary = ATTRIBUTES[primaryAttr];
+  // Derive all connections to draw from primary's perspective
+  const allKeys = ['light', 'primal', 'dark', 'mystic'];
+  const lines = [];
+  const seen = new Set();
+  for (const a of allKeys) {
+    for (const b of allKeys) {
+      if (a === b) continue;
+      const key = [a, b].sort().join('-');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const attrA = ATTRIBUTES[a];
+      const isFriendly = attrA.friendly.includes(b);
+      const isEnemy = attrA.enemy.includes(b);
+      if (!isFriendly && !isEnemy) continue;
+      lines.push({
+        key,
+        x1: WHEEL_POSITIONS[a].cx, y1: WHEEL_POSITIONS[a].cy,
+        x2: WHEEL_POSITIONS[b].cx, y2: WHEEL_POSITIONS[b].cy,
+        color: isFriendly ? '#22C55E' : '#EF4444',
+        opacity: (a === primaryAttr || b === primaryAttr || a === secondaryAttr || b === secondaryAttr) ? 0.7 : 0.2,
+      });
+    }
+  }
+
+  return (
+    <svg viewBox="0 0 120 120" width="100%" height="100%" style={{ display: 'block' }}>
+      {/* Lines */}
+      {lines.map(l => (
+        <line
+          key={l.key}
+          x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+          stroke={l.color}
+          strokeWidth="1.5"
+          strokeOpacity={l.opacity}
+        />
+      ))}
+      {/* Nodes */}
+      {allKeys.map(key => {
+        const pos = WHEEL_POSITIONS[key];
+        const attr = ATTRIBUTES[key];
+        const isPrimary = key === primaryAttr;
+        const isSecondary = key === secondaryAttr;
+        const r = isPrimary ? 11 : isSecondary ? 9 : 7;
+        const opacity = isPrimary || isSecondary ? 1 : 0.3;
+        return (
+          <g key={key} opacity={opacity}>
+            <circle
+              cx={pos.cx} cy={pos.cy} r={r}
+              fill={isPrimary ? attr.color : '#0d0d1a'}
+              stroke={attr.color}
+              strokeWidth={isPrimary ? 0 : 1.5}
+            />
+            <text
+              x={pos.cx} y={pos.cy}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={isPrimary ? '6' : '5'}
+              fontFamily="Cinzel, serif"
+              fill={isPrimary ? '#0a0a0f' : attr.color}
+              fontWeight="600"
+            >
+              {attr.name[0]}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Deck Panel ────────────────────────────────────────────────────────────────
+
+function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onRemoveCard, onClearDeck, onNext, deckCount }) {
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const primary = ATTRIBUTES[primaryAttr];
+  const secondary = ATTRIBUTES[secondaryAttr];
+
+  // Expand deck to card array for resonance calculation
+  const deckCards = useMemo(() => {
+    return Object.entries(deck).flatMap(([id, count]) => {
+      const card = CARD_DB[id];
+      return card ? Array(count).fill(card) : [];
+    });
+  }, [deck]);
+
+  const resonance = useMemo(() => calculateResonance(deckCards, primaryAttr), [deckCards, primaryAttr]);
+  const tier = resonance >= RESONANCE_THRESHOLDS.ascended ? 'ascended'
+    : resonance >= RESONANCE_THRESHOLDS.attuned ? 'attuned'
+    : 'none';
+
+  const TIER_STYLE = {
+    ascended: { color: '#C9A84C', label: 'Ascended' },
+    attuned:  { color: '#ffffff', label: 'Attuned' },
+    none:     { color: '#4a4a6a', label: 'Unaligned' },
+  };
+
+  // Attribute breakdown
+  const breakdown = useMemo(() => {
+    const counts = { primary: 0, friendly: 0, enemy: 0, neutral: 0 };
+    for (const card of deckCards) {
+      if (card.attribute === primaryAttr) counts.primary++;
+      else if (primary.friendly.includes(card.attribute)) counts.friendly++;
+      else if (primary.enemy.includes(card.attribute)) counts.enemy++;
+      else counts.neutral++;
+    }
+    return counts;
+  }, [deckCards, primaryAttr, primary]);
+
+  // Cards grouped by faction, sorted by cost
+  const groupedCards = useMemo(() => {
+    const groups = [
+      { key: 'primary', label: primary.name, color: primary.color, attr: primaryAttr },
+      { key: 'secondary', label: secondary.name, color: secondary.color, attr: secondaryAttr },
+      { key: 'neutral', label: 'Neutral', color: '#9CA3AF', attr: 'neutral' },
+    ];
+    return groups.map(g => {
+      const entries = Object.entries(deck)
+        .filter(([id]) => CARD_DB[id]?.attribute === g.attr)
+        .map(([id, count]) => ({ card: CARD_DB[id], count }))
+        .filter(e => e.card)
+        .sort((a, b) => a.card.cost - b.card.cost);
+      return { ...g, entries };
+    }).filter(g => g.entries.length > 0);
+  }, [deck, primaryAttr, secondaryAttr, primary, secondary]);
+
+  const maxResonance = 60; // 30 cards × max 2 pts
+
+  return (
+    <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Deck name */}
+      <input
+        value={deckName}
+        onChange={e => onDeckNameChange(e.target.value)}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          borderBottom: '1px solid #2a2a3a',
+          color: '#C9A84C',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '14px',
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          width: '100%',
+          padding: '4px 0',
+          outline: 'none',
+        }}
+        onFocus={e => { e.target.style.borderBottomColor = '#C9A84C60'; }}
+        onBlur={e => { e.target.style.borderBottomColor = '#2a2a3a'; }}
+      />
+
+      {/* Card count + resonance */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '12px', color: deckCount >= 30 ? '#C9A84C' : '#6a6a8a' }}>
+          {deckCount}/30
+        </span>
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: TIER_STYLE[tier].color, letterSpacing: '0.06em' }}>
+          {TIER_STYLE[tier].label} · {resonance}
+        </span>
+      </div>
+
+      {/* Resonance bar */}
+      <div style={{ background: '#1a1a2a', borderRadius: '4px', height: '6px', position: 'relative' }}>
+        <div style={{
+          height: '100%',
+          borderRadius: '4px',
+          width: `${Math.min(100, (resonance / maxResonance) * 100)}%`,
+          background: tier === 'ascended' ? 'linear-gradient(90deg, #3B82F6, #C9A84C)'
+            : tier === 'attuned' ? 'linear-gradient(90deg, #3B82F6, #ffffff)'
+            : '#3B82F6',
+          transition: 'width 0.3s ease',
+        }} />
+        {/* Attuned threshold marker */}
+        <div style={{
+          position: 'absolute',
+          top: '-2px',
+          left: `${(RESONANCE_THRESHOLDS.attuned / maxResonance) * 100}%`,
+          width: '1px',
+          height: '10px',
+          background: '#ffffff44',
+        }} />
+        {/* Ascended threshold marker */}
+        <div style={{
+          position: 'absolute',
+          top: '-2px',
+          left: `${(RESONANCE_THRESHOLDS.ascended / maxResonance) * 100}%`,
+          width: '1px',
+          height: '10px',
+          background: '#C9A84C66',
+        }} />
+      </div>
+
+      {/* Attribute wheel */}
+      <div style={{ width: '80px', margin: '0 auto' }}>
+        <AttributeWheel primaryAttr={primaryAttr} secondaryAttr={secondaryAttr} />
+      </div>
+
+      {/* Attribute breakdown */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+        {[
+          { label: 'Primary', count: breakdown.primary, color: primary.color },
+          { label: 'Friendly', count: breakdown.friendly, color: '#22C55E' },
+          { label: 'Enemy', count: breakdown.enemy, color: '#EF4444' },
+          { label: 'Neutral', count: breakdown.neutral, color: '#9CA3AF' },
+        ].map(b => (
+          <div key={b.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 6px', background: '#141428', borderRadius: '3px' }}>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: b.color, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{b.label}</span>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: b.count > 0 ? b.color : '#2a2a4a' }}>{b.count}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: '1px', background: '#1a1a2a' }} />
+
+      {/* Card list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {groupedCards.length === 0 && (
+          <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '13px', color: '#2a2a4a', fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>
+            No cards yet
+          </p>
+        )}
+        {groupedCards.map(group => (
+          <div key={group.key}>
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '9px',
+              color: group.color,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: '4px',
+              opacity: 0.8,
+            }}>
+              {group.label}
+            </div>
+            {group.entries.map(({ card, count }) => (
+              <div
+                key={card.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '3px 6px',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  transition: 'background 0.12s',
+                }}
+                onClick={() => onRemoveCard(card.id)}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1a1a2a'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                title="Click to remove one copy"
+              >
+                <span style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '3px',
+                  background: '#141428',
+                  border: `1px solid ${group.color}44`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '9px',
+                  color: '#6a6a8a',
+                  flexShrink: 0,
+                }}>
+                  {card.cost}
+                </span>
+                <span style={{
+                  flex: 1,
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '10px',
+                  color: '#b0b0c8',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {card.name}
+                </span>
+                <span style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '10px',
+                  color: count === 2 ? '#C9A84C' : '#4a4a6a',
+                  flexShrink: 0,
+                }}>
+                  ×{count}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Clear deck */}
+      {deckCount > 0 && (
+        <div style={{ marginTop: '4px' }}>
+          {confirmClear ? (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                style={{ flex: 1, background: '#EF4444', color: '#fff', fontFamily: "'Cinzel', serif", fontSize: '10px', border: 'none', borderRadius: '3px', padding: '5px', cursor: 'pointer' }}
+                onClick={() => { onClearDeck(); setConfirmClear(false); }}
+              >
+                Clear All
+              </button>
+              <button
+                style={{ flex: 1, background: 'transparent', color: '#6a6a8a', fontFamily: "'Cinzel', serif", fontSize: '10px', border: '1px solid #2a2a3a', borderRadius: '3px', padding: '5px', cursor: 'pointer' }}
+                onClick={() => setConfirmClear(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              style={{ width: '100%', background: 'transparent', color: '#4a4a6a', fontFamily: "'Cinzel', serif", fontSize: '10px', border: '1px solid #1a1a2a', borderRadius: '3px', padding: '5px', cursor: 'pointer', letterSpacing: '0.04em' }}
+              onClick={() => setConfirmClear(true)}
+              onMouseEnter={e => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.borderColor = '#EF444430'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#4a4a6a'; e.currentTarget.style.borderColor = '#1a1a2a'; }}
+            >
+              Clear Deck
+            </button>
+          )}
         </div>
       )}
     </div>
