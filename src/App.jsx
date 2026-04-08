@@ -240,13 +240,15 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
-        {/* Left column: phase tracker + card detail */}
-        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ width: 220, minHeight: 0 }}>
-          <PhaseTracker
-            phase={phase}
-            phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
-          />
-          <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
+        {/* Left column: phase tracker + commands (side by side) + card detail */}
+        <div className="flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+            <PhaseTracker
+              phase={phase}
+              phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
+            />
+            <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
+          </div>
           <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
@@ -1082,26 +1084,25 @@ export function CommandDisplay({ commandsUsed }) {
         background: '#0f0f1e',
         border: '1px solid #252538',
         borderRadius: '6px',
-        padding: '8px 4px',
-        width: 140,
+        padding: '8px 6px',
+        width: 68,
       }}
     >
       <div style={{
         fontSize: '10px',
         color: '#5a5a78',
-        padding: '0 8px',
         marginBottom: '6px',
         fontFamily: 'var(--font-sans)',
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
       }}>
-        Commands
+        CMD
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {[1, 2, 3].map(i => {
           const used = i <= commandsUsed;
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
               <div style={{
                 width: '14px',
                 height: '14px',
@@ -1112,12 +1113,6 @@ export function CommandDisplay({ commandsUsed }) {
                 boxShadow: used && !allUsed ? '0 0 6px #C9A84C60' : 'none',
                 transition: 'background 0.2s, border-color 0.2s',
               }} />
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-sans)',
-                color: allUsed ? '#800020' : used ? '#C9A84C' : '#2a2a4a',
-                fontWeight: used ? 600 : 400,
-              }}>{i}</span>
             </div>
           );
         })}
@@ -1125,15 +1120,15 @@ export function CommandDisplay({ commandsUsed }) {
       {allUsed && (
         <div style={{
           marginTop: '6px',
-          padding: '0 8px',
           fontSize: '9px',
           fontFamily: 'var(--font-sans)',
           color: '#800020',
           fontWeight: 600,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
+          lineHeight: 1.3,
         }}>
-          Commands Exhausted
+          Exhausted
         </div>
       )}
     </div>
