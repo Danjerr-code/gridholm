@@ -33,6 +33,7 @@ import Hand from './Hand.jsx';
 import Log from './Log.jsx';
 import PhaseTracker from './PhaseTracker.jsx';
 import GameEndOverlay from './GameEndOverlay.jsx';
+import { CommandDisplay } from '../App.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -858,7 +859,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       )}
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={myPlayerIndex} />
+      <StatusBar state={state} myPlayerIndex={myPlayerIndex} commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
 
       {/* Middle content row */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -869,6 +870,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               phase={phase}
               phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
             />
+            <CommandDisplay commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
             <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
           </div>
         )}

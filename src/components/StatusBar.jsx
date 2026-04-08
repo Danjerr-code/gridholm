@@ -113,7 +113,7 @@ export function ResourceDisplay({ current, max = 10, maxThisTurn, playerColor, s
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex, onOpenLog }) {
+export default function StatusBar({ state, myPlayerIndex, commandsUsed, onOpenLog }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -149,6 +149,23 @@ export default function StatusBar({ state, myPlayerIndex, onOpenLog }) {
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: '#6a6a88' }}>Turn {state.turn}</span>
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C' }}>{activePlayerName}</span>
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</span>
+          {commandsUsed !== undefined && (
+            <div style={{ display: 'flex', gap: '3px', marginTop: '2px' }}>
+              {[1, 2, 3].map(i => {
+                const used = i <= commandsUsed;
+                const allUsed = commandsUsed >= 3;
+                return (
+                  <div key={i} style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: allUsed ? '#800020' : used ? '#C9A84C' : '#0f1729',
+                    border: `1px solid ${allUsed ? '#80002080' : used ? '#C9A84C80' : '#2a2a3a'}`,
+                  }} />
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>

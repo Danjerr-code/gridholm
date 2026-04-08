@@ -69,7 +69,7 @@ function removeWildbornAura(unit, state) {
 // Called after any movement so entering/leaving range is handled automatically.
 function updateWildbornAura(state) {
   for (const wb of state.units.filter(u => u.id === 'wildborne')) {
-    for (const beast of state.units.filter(u => u.owner === wb.owner && u.uid !== wb.uid && u.unitType === 'Beast' && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === wb.owner && u.uid !== wb.uid && u.unitType.includes('Beast') && !u.hidden)) {
       const inRange = manhattan([wb.row, wb.col], [beast.row, beast.col]) <= wb.aura.range;
       if (inRange) applyWildbornAura(beast, state);
       else removeWildbornAura(beast, state);
@@ -228,7 +228,7 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   if (unit.id === 'wildborne') {
     const range = unit.aura ? unit.aura.range : 1;
     const [wr, wc] = combatTile || [unit.row, unit.col];
-    for (const beast of state.units.filter(u => u.owner === unit.owner && u.unitType === 'Beast' && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === unit.owner && u.unitType.includes('Beast') && !u.hidden)) {
       if (manhattan([wr, wc], [beast.row, beast.col]) <= range) {
         removeWildbornAura(beast, state);
       }
@@ -543,14 +543,14 @@ function fireOnSummonTriggers(unit, state) {
 
   // 6. Wildborne summon: apply HP aura to Beast units already in range,
   //    and apply aura to Wildborne itself if a Wildborne is already on the board
-  if (unit.unitType === 'Beast') {
+  if (unit.unitType.includes('Beast')) {
     const wb = state.units.find(u => u.id === 'wildborne' && u.owner === unit.owner && u.uid !== unit.uid);
     if (wb && manhattan([wb.row, wb.col], [unit.row, unit.col]) <= wb.aura.range) {
       applyWildbornAura(unit, state);
     }
   }
   if (unit.id === 'wildborne') {
-    for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType === 'Beast' && !u.hidden)) {
+    for (const beast of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && u.unitType.includes('Beast') && !u.hidden)) {
       if (manhattan([unit.row, unit.col], [beast.row, beast.col]) <= unit.aura.range) {
         applyWildbornAura(beast, state);
       }
@@ -626,8 +626,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId },
-      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0 },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -750,6 +750,9 @@ function doBeginTurnPhase(state) {
 
   // Reset hpRestoredThisTurn
   p.hpRestoredThisTurn = 0;
+
+  // Reset commands for new turn
+  p.commandsUsed = 0;
 
   // Reset Hunger temp mana tracking (temp mana already wiped by the resources reset above)
   p.hungerTempMana = 0;
@@ -1278,6 +1281,10 @@ export function triggerUnitAction(state, unitUid) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== s.activePlayer || unit.moved || unit.summoned) return s;
 
+  // Command gate: action abilities cost 1 command
+  if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
+  s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+
   // Reveal hidden unit when it uses an action ability
   if (unit.hidden) {
     revealUnit(s, unit);
@@ -1374,6 +1381,12 @@ export function moveUnit(state, unitUid, row, col) {
   const s = cloneState(state);
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
+
+  // Command gate: player-directed unit moves cost 1 command; champion moves are exempt
+  if (unit.owner === s.activePlayer) {
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
+    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+  }
 
   const enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
@@ -1509,6 +1522,10 @@ export function archerShoot(state, archerUid, targetUid) {
   if (!archer || !target) return s;
   if (archer.moved || archer.summoned) return s;
   if (manhattan([archer.row, archer.col], [target.row, target.col]) > 2) return s;
+
+  // Command gate: archer ranged shot costs 1 command
+  if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
+  s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
 
   archer.moved = true;
   s.archerShot.push(archerUid);
@@ -1664,7 +1681,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Entangle: friendly Elf unit
     case 'entangle':
-      return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Elf' && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && u.unitType.includes('Elf') && !u.hidden).map(u => u.uid);
 
     // Predator's Mark: enemy unit or champion within 2 tiles of caster's champion
     case 'predatorsmark': {
@@ -1681,7 +1698,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Pounce: friendly Beast unit (resets its action)
     case 'pounce':
-      return state.units.filter(u => u.owner === state.activePlayer && u.unitType === 'Beast').map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && u.unitType.includes('Beast')).map(u => u.uid);
 
     // Ambush step 0: any friendly combat unit; step 1: enemy adjacent to selected unit
     case 'ambush':
@@ -1786,7 +1803,7 @@ export function hasValidTargets(card, state, playerIndex) {
       return state.players[playerIndex].hand.length > 1 && enemyUnits.length > 0;
 
     case 'entangle': {
-      const elfFriendly = friendlyUnits.filter(u => u.unitType === 'Elf' && !u.hidden);
+      const elfFriendly = friendlyUnits.filter(u => u.unitType.includes('Elf') && !u.hidden);
       if (elfFriendly.length === 0) return false;
       return enemyUnits.some(enemy =>
         elfFriendly.some(elf => {

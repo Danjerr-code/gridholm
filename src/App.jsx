@@ -236,7 +236,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={0} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
+      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -246,6 +246,7 @@ export default function App({ onBackToLobby, deckId = 'human' } = {}) {
             phase={phase}
             phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
           />
+          <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
           <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
@@ -1068,6 +1069,73 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+export function CommandDisplay({ commandsUsed }) {
+  const allUsed = commandsUsed >= 3;
+  return (
+    <div
+      className="flex-shrink-0"
+      style={{
+        background: '#0f0f1e',
+        border: '1px solid #252538',
+        borderRadius: '6px',
+        padding: '8px 4px',
+        width: 140,
+      }}
+    >
+      <div style={{
+        fontSize: '10px',
+        color: '#5a5a78',
+        padding: '0 8px',
+        marginBottom: '6px',
+        fontFamily: 'var(--font-sans)',
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+      }}>
+        Commands
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 8px' }}>
+        {[1, 2, 3].map(i => {
+          const used = i <= commandsUsed;
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                flexShrink: 0,
+                background: allUsed ? '#800020' : used ? '#C9A84C' : '#0f1729',
+                border: `1px solid ${allUsed ? '#80002080' : used ? '#C9A84C80' : '#2a2a3a'}`,
+                boxShadow: used && !allUsed ? '0 0 6px #C9A84C60' : 'none',
+                transition: 'background 0.2s, border-color 0.2s',
+              }} />
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-sans)',
+                color: allUsed ? '#800020' : used ? '#C9A84C' : '#2a2a4a',
+                fontWeight: used ? 600 : 400,
+              }}>{i}</span>
+            </div>
+          );
+        })}
+      </div>
+      {allUsed && (
+        <div style={{
+          marginTop: '6px',
+          padding: '0 8px',
+          fontSize: '9px',
+          fontFamily: 'var(--font-sans)',
+          color: '#800020',
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+        }}>
+          Commands Exhausted
+        </div>
+      )}
     </div>
   );
 }
