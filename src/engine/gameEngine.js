@@ -18,9 +18,9 @@ import { SPELL_REGISTRY } from './spellRegistry.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
 
 function unitTypes(u) {
+  if (!u) return [];
   const ut = u.unitType;
   if (!Array.isArray(ut)) {
-    console.warn('[unitType] Expected array, got:', typeof ut, 'for unit:', u.id || u.name);
     return ut ? [ut] : [];
   }
   return ut;
@@ -399,6 +399,7 @@ function fireEndTurnTriggers(state, playerIdx) {
       for (const [r, c] of adj) {
         state.units.push({
           id: 'sapling', name: 'Sapling', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
+          unitType: ['Plant'],
           rules: 'When this unit is destroyed restore 1 HP to your champion.', image: 'sapling-token.webp',
           token: true, owner: playerIdx, row: r, col: c,
           summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,

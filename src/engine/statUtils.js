@@ -8,9 +8,9 @@
 import { manhattan } from './gameEngine.js';
 
 function unitTypes(u) {
+  if (!u) return [];
   const ut = u.unitType;
   if (!Array.isArray(ut)) {
-    console.warn('[unitType] Expected array, got:', typeof ut, 'for unit:', u.id || u.name);
     return ut ? [ut] : [];
   }
   return ut;
