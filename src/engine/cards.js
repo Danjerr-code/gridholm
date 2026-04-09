@@ -126,7 +126,7 @@ export const CARD_DB = {
 
   soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.', image: 'soulstone.webp' },
   bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true, image: 'bloodaltar.webp' },
-  echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 2, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
+  echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 3, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
   // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.
