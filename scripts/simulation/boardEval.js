@@ -49,6 +49,8 @@ export const WEIGHTS = {
   championProximity:         6,
   relicsOnBoard:             4,
   omensOnBoard:              3,
+  terrainBenefit:            3,  // friendly units on beneficial terrain
+  terrainHarm:               3,  // enemy units on harmful terrain
 };
 
 /**
@@ -151,6 +153,22 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   // Omens provide temporary passive value; their presence is worth tracking.
   const omensOnBoard = myUnits.filter(u => u.isOmen).length;
 
+  // terrainBenefit: friendly units standing on terrain with whileOccupied hpBuff (beneficial).
+  // terrainHarm: enemy units standing on terrain with whileOccupied atkDebuff or onOccupy damage (harmful to them).
+  let terrainBenefit = 0;
+  let terrainHarm = 0;
+  if (gameState.terrainGrid) {
+    for (const u of myUnits) {
+      const t = gameState.terrainGrid[u.row]?.[u.col];
+      if (t?.whileOccupied?.hpBuff && t.whileOccupied.friendlyOnly) terrainBenefit += 1;
+    }
+    for (const u of oppUnits) {
+      const t = gameState.terrainGrid[u.row]?.[u.col];
+      if (t?.whileOccupied?.atkDebuff) terrainHarm += 1;
+      if (t?.onOccupy?.damage) terrainHarm += 0.5;
+    }
+  }
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   const score =
@@ -169,7 +187,9 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     gameLength               * weights.gameLength               +
     championProximity        * weights.championProximity        +
     relicsOnBoard            * weights.relicsOnBoard            +
-    omensOnBoard             * weights.omensOnBoard;
+    omensOnBoard             * weights.omensOnBoard             +
+    terrainBenefit           * weights.terrainBenefit           +
+    terrainHarm              * weights.terrainHarm;
 
   return score;
 }

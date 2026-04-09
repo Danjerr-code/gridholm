@@ -66,19 +66,48 @@ export function getPackBonus(state, unit) {
   ).length;
 }
 
+// Returns the terrain whileOccupied ATK debuff for a unit at its current tile.
+function getTerrainAtkModifier(state, unit) {
+  if (!state.terrainGrid) return 0;
+  const terrain = state.terrainGrid[unit.row]?.[unit.col];
+  if (!terrain?.whileOccupied) return 0;
+  const wo = terrain.whileOccupied;
+  if (wo.atkDebuff != null) return -wo.atkDebuff;
+  return 0;
+}
+
+// Returns the terrain whileOccupied HP bonus for a unit at its current tile.
+function getTerrainHpModifier(state, unit) {
+  if (!state.terrainGrid) return 0;
+  const terrain = state.terrainGrid[unit.row]?.[unit.col];
+  if (!terrain?.whileOccupied) return 0;
+  const wo = terrain.whileOccupied;
+  if (wo.hpBuff != null) {
+    if (wo.friendlyOnly) {
+      // friendlyOnly — only applies to units that aren't enemies (no per-faction check; friendly = same owner as terrain caster)
+      // We apply to any non-hidden unit on the tile (friendly buff to all)
+      if (unit.hidden) return 0;
+      return wo.hpBuff;
+    }
+    return wo.hpBuff;
+  }
+  return 0;
+}
+
 // Returns effective ATK for a unit including all aura bonuses, temporary buffs,
-// and turn-based bonuses. Never writes to unit state.
+// terrain effects, and turn-based bonuses. Never writes to unit state.
 export function getEffectiveAtk(state, unit, combatTile = null) {
   const base = (unit.atk || 0) + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit, combatTile);
   const sbBonus = getStandardBearerBonus(state, unit).atk;
   const packBonus = getPackBonus(state, unit);
-  return Math.max(0, base + sbBonus + packBonus);
+  const terrainMod = getTerrainAtkModifier(state, unit);
+  return Math.max(0, base + sbBonus + packBonus + terrainMod);
 }
 
-// Returns effective HP for display (current HP after damage counters).
+// Returns effective HP for display (current HP after damage counters + terrain bonus).
 export function getEffectiveHp(state, unit) {
   if (unit.hidden) return '?';
-  return unit.hp;
+  return unit.hp + getTerrainHpModifier(state, unit);
 }
 
 // Returns effective max HP for display.

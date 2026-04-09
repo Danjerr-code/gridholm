@@ -137,6 +137,17 @@ export const CARD_DB = {
   battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.' },
   smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'When played, all friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.' },
   manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.' },
+
+  // ── Terrain Spells ─────────────────────────────────────────────────────────
+  // Terrain cards (type: 'terrain', isTerrain: true) modify tiles on the board.
+  // terrainRadius 0 = target tile only, 1 = target + adjacent tiles, 2 = all tiles within Manhattan 2.
+  // Cannot be placed on champion start tiles (0,0) and (4,4), or the Throne tile (2,2).
+  // Terrain persists until replaced. Both players can see all terrain at all times.
+
+  hallowed_ground: { id: 'hallowed_ground', name: 'Hallowed Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'light',  rules: 'Place terrain on the target tile and all tiles within 2. Friendly units on Hallowed Ground gain +2 effective HP.', terrainEffect: { id: 'hallowed', whileOccupied: { hpBuff: 2, friendlyOnly: true } } },
+  scorched_earth:  { id: 'scorched_earth',  name: 'Scorched Earth',  type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 2, unitType: [], attribute: 'primal', rules: 'Place terrain on the target tile and all tiles within 2. Any unit that moves onto Scorched Earth takes 2 damage.', terrainEffect: { id: 'scorched', onOccupy: { damage: 2 } } },
+  enchanted_ground:{ id: 'enchanted_ground',name: 'Enchanted Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'mystic', rules: 'Place terrain on the target tile and all tiles within 2. Units on Enchanted Ground restore 1 HP at the start of their owner\'s turn.', terrainEffect: { id: 'enchanted', onTurnStart: { heal: 1 } } },
+  cursed_ground:   { id: 'cursed_ground',   name: 'Cursed Ground',   type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 0, unitType: [], attribute: 'dark',   rules: 'Place terrain on the target tile only. Units on Cursed Ground have -1 ATK.', terrainEffect: { id: 'cursed', whileOccupied: { atkDebuff: 1 } } },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────

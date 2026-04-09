@@ -22,6 +22,8 @@ import {
   triggerUnitAction,
   getChampionAbilityTargets,
   applyChampionAbility,
+  getTerrainCastTiles,
+  castTerrainCard,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -213,6 +215,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       } else if (s.pendingSummon) {
         setSelectedCard(cardUid);
         setSelectMode('summon');
+      } else if (s.pendingTerrainCast) {
+        setSelectedCard(cardUid);
+        setSelectMode('terrain_cast');
       } else if (s.pendingSpell) {
         setSelectedCard(cardUid);
         setSelectMode('spell');
@@ -403,6 +408,15 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [selectedUnit, clearSelection]);
 
+  const handleTerrainCast = useCallback((row, col) => {
+    if (!selectedCard) return;
+    setState(prev => {
+      const s = castTerrainCard(prev, selectedCard, row, col);
+      return s;
+    });
+    clearSelection();
+  }, [selectedCard, clearSelection]);
+
   const handleNewGame = useCallback(() => {
     const aiDeckId = pickRandomAiDeck();
     applyAndMaybeAI(autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId)));
@@ -444,6 +458,10 @@ export function useGameState({ deckId = 'human' } = {}) {
         .map(u => u.uid)
     : [];
 
+  const terrainTargetTiles = selectMode === 'terrain_cast'
+    ? getTerrainCastTiles(state)
+    : [];
+
   return {
     state,
     selectedCard,
@@ -456,6 +474,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
+    terrainTargetTiles,
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
@@ -483,6 +502,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleActionButtonClick,
       handleConfirmAction,
       handleNewGame,
+      handleTerrainCast,
       clearSelection,
       handleInspectUnit,
       handleInspectChampion,

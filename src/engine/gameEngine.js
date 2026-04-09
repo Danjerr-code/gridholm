@@ -350,6 +350,17 @@ function fireBeginTurnTriggers(state, playerIdx) {
     addLog(state, `Mana Well: ${state.players[playerIdx].name} gains 1 temporary mana.`);
   }
 
+  // Terrain onTurnStart: apply to units standing on terrain tiles at the start of their owner's turn
+  if (state.terrainGrid) {
+    for (const unit of state.units.filter(u => u.owner === playerIdx && !u.hidden)) {
+      const terrain = state.terrainGrid[unit.row]?.[unit.col];
+      if (terrain?.onTurnStart?.heal != null) {
+        const healed = restoreHP(unit, terrain.onTurnStart.heal, state, terrain.ownerName || 'terrain');
+        if (healed > 0) addLog(state, `${terrain.ownerName || 'Terrain'}: ${unit.name} restores ${healed} HP.`);
+      }
+    }
+  }
+
   // Paladin Aura: permanently increase max HP of adjacent friendly combat units by 1
   const paladins = state.units.filter(u => u.owner === playerIdx && u.id === 'paladin');
   for (const pal of paladins) {
@@ -764,6 +775,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingSpell: null,   // { cardUid, effect, playerIdx, step, data }
     pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
+    pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
+    terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
     recalledThisTurn: [],
     waddlesActive: [false, false],
@@ -1024,6 +1037,11 @@ export function playCard(state, cardUid) {
     return s;
   }
 
+  if (card.type === 'terrain') {
+    s.pendingTerrainCast = { cardUid, card };
+    return s;
+  }
+
   if (card.type === 'spell') {
     // Spirit Bolt: champion must not have acted yet this turn
     if (card.effect === 'spiritbolt') {
@@ -1119,6 +1137,12 @@ export function summonUnit(state, cardUid, row, col) {
 
   // ON SUMMON TRIGGERS
   fireOnSummonTriggers(unit, s);
+
+  // Terrain onOccupy: trigger when unit is summoned on a terrain tile
+  if (!unit.isRelic && !unit.isOmen) {
+    const liveUnit = s.units.find(u => u.uid === unit.uid);
+    if (liveUnit) fireTerrainOnOccupy(s, liveUnit, row, col);
+  }
 
   return s;
 }
@@ -1393,7 +1417,99 @@ export function cancelSpell(state) {
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
+  s.pendingTerrainCast = null;
   return s;
+}
+
+// ── terrain helpers ────────────────────────────────────────────────────────
+
+// Tiles where terrain cannot be placed (champion starts + throne).
+const TERRAIN_RESTRICTED = new Set(['0,0', '4,4', '2,2']);
+
+// Returns all valid tiles for casting a terrain card.
+export function getTerrainCastTiles(state) {
+  const tiles = [];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if (!TERRAIN_RESTRICTED.has(`${r},${c}`)) {
+        tiles.push([r, c]);
+      }
+    }
+  }
+  return tiles;
+}
+
+// Returns all tiles affected by casting a terrain card at (targetRow, targetCol)
+// given the card's terrainRadius.
+function getTerrainAffectedTiles(targetRow, targetCol, radius) {
+  const tiles = [];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if (TERRAIN_RESTRICTED.has(`${r},${c}`)) continue;
+      if (manhattan([targetRow, targetCol], [r, c]) <= radius) {
+        tiles.push([r, c]);
+      }
+    }
+  }
+  return tiles;
+}
+
+// Returns the terrain effect at (row, col), or null.
+export function getTerrainAt(state, row, col) {
+  if (!state.terrainGrid) return null;
+  return state.terrainGrid[row]?.[col] ?? null;
+}
+
+// Place a terrain card at the target tile (and all tiles within radius).
+export function castTerrainCard(state, cardUid, targetRow, targetCol) {
+  const s = cloneState(state);
+  if (!s.pendingTerrainCast) return s;
+  const pending = s.pendingTerrainCast;
+  const p = s.players[s.activePlayer];
+
+  // Validate restricted
+  if (TERRAIN_RESTRICTED.has(`${targetRow},${targetCol}`)) {
+    return s;
+  }
+
+  // Deduct cost and remove from hand
+  const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
+  if (cardIdx === -1) return s;
+  const card = p.hand[cardIdx];
+  if (p.resources < card.cost) return s;
+  p.resources -= card.cost;
+  p.hand.splice(cardIdx, 1);
+  p.discard.push(card);
+  s.pendingTerrainCast = null;
+
+  const radius = card.terrainRadius ?? 0;
+  const affectedTiles = getTerrainAffectedTiles(targetRow, targetCol, radius);
+
+  for (const [r, c] of affectedTiles) {
+    s.terrainGrid[r][c] = { ...card.terrainEffect, ownerName: card.name };
+  }
+
+  addLog(s, `${p.name} casts ${card.name} at (${targetRow},${targetCol}). ${affectedTiles.length} tile(s) affected.`);
+
+  // Trigger onOccupy for any unit currently standing on an affected tile
+  for (const [r, c] of affectedTiles) {
+    const unitOnTile = s.units.find(u => u.row === r && u.col === c);
+    if (unitOnTile) {
+      fireTerrainOnOccupy(s, unitOnTile, r, c);
+    }
+  }
+
+  return s;
+}
+
+// Fire onOccupy terrain effect for a unit entering (or already on) a terrain tile.
+function fireTerrainOnOccupy(state, unit, row, col) {
+  const terrain = getTerrainAt(state, row, col);
+  if (!terrain || !terrain.onOccupy) return;
+  if (terrain.onOccupy.damage != null) {
+    applyDamageToUnit(state, unit, terrain.onOccupy.damage, terrain.ownerName || 'Terrain');
+    addLog(state, `${unit.name} enters ${terrain.ownerName || 'terrain'} and takes ${terrain.onOccupy.damage} damage!`);
+  }
 }
 
 export function endActionPhase(state) {
@@ -1402,6 +1518,7 @@ export function endActionPhase(state) {
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
+  s.pendingTerrainCast = null;
   s.phase = 'end-turn';
   return s;
 }
@@ -1644,6 +1761,9 @@ export function moveUnit(state, unitUid, row, col) {
     unit.row = row;
     unit.col = col;
     unit.moved = true;
+    // Terrain onOccupy: trigger when unit moves onto a terrain tile
+    const movedUnit = s.units.find(u => u.uid === unitUid);
+    if (movedUnit) fireTerrainOnOccupy(s, movedUnit, row, col);
   }
 
   updateWildbornAura(s);

@@ -8,6 +8,7 @@ export default function Board({
   championMoveTiles,
   summonTiles,
   unitMoveTiles,
+  terrainTargetTiles = [],
   spellTargetUids,
   archerShootTargets,
   sacrificeTargetUids = [],
@@ -33,6 +34,7 @@ export default function Board({
   const champMoveSet = new Set(championMoveTiles.map(([r, c]) => `${r},${c}`));
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
+  const terrainTargetSet = new Set(terrainTargetTiles.map(([r, c]) => `${r},${c}`));
 
   const boardRef = useRef(null);
   const [dragTargetKey, setDragTargetKey] = useState(null);
@@ -94,7 +96,9 @@ export default function Board({
 
     if (!canInteract) return;
     const key = `${row},${col}`;
-    if (phase === 'action' && selectMode === 'champion_move' && champMoveSet.has(key)) {
+    if (selectMode === 'terrain_cast' && terrainTargetSet.has(key)) {
+      handlers.handleTerrainCast(row, col);
+    } else if (phase === 'action' && selectMode === 'champion_move' && champMoveSet.has(key)) {
       handlers.handleChampionMoveTile(row, col);
     } else if (selectMode === 'summon' && summonSet.has(key)) {
       handlers.handleSummonOnTile(row, col);
@@ -168,6 +172,7 @@ export default function Board({
             const isAbilityTarget = championAbilityTargetUids.includes(unit?.uid);
             const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
 
+            const terrain = state.terrainGrid?.[row]?.[col] ?? null;
             return (
               <Cell
                 key={key}
@@ -182,6 +187,8 @@ export default function Board({
                 isEnemyMoveTile={enemyMoveSet.has(key)}
                 isOpponentMoveTile={opponentMoveTiles.has(key)}
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
+                isTerrainTarget={terrainTargetSet.has(key)}
+                terrain={terrain}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}

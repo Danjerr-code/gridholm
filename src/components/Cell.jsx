@@ -2,6 +2,13 @@ import { useCallback } from 'react';
 import UnitToken from './UnitToken.jsx';
 import useLongPress from '../hooks/useLongPress.js';
 
+const TERRAIN_TINTS = {
+  hallowed:  { bg: 'rgba(255,245,210,0.13)', border: 'rgba(255,235,150,0.35)' },
+  scorched:  { bg: 'rgba(220,80,20,0.18)',   border: 'rgba(220,100,20,0.45)' },
+  enchanted: { bg: 'rgba(140,60,220,0.15)',  border: 'rgba(170,90,240,0.40)' },
+  cursed:    { bg: 'rgba(60,0,30,0.25)',     border: 'rgba(120,0,40,0.45)' },
+};
+
 export default function Cell({
   row, col,
   unit, champion,
@@ -18,6 +25,8 @@ export default function Cell({
   isArcherTarget,
   isSacrificeTarget,
   isAbilityTarget,
+  isTerrainTarget,
+  terrain,
   state,
   myPlayerIndex,
   onClick,
@@ -31,10 +40,19 @@ export default function Cell({
   onUnitDragMove,
   onUnitDragEnd,
 }) {
+  const terrainTint = terrain ? TERRAIN_TINTS[terrain.id] : null;
+
   let tileStyle;
   let tileClass = 'relative w-full aspect-square transition-colors';
 
-  if (isDragTarget) {
+  if (isTerrainTarget) {
+    tileStyle = {
+      background: '#0d2a1a',
+      border: '2px solid #34d399',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(52,211,153,0.5)',
+    };
+  } else if (isDragTarget) {
     tileStyle = {
       background: '#0d2a4a',
       border: '2px solid #60a5fa',
@@ -116,6 +134,19 @@ export default function Cell({
       {...tilePointerHandlers}
       onClick={handleTileClick}
     >
+      {/* Terrain tint overlay */}
+      {terrainTint && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: terrainTint.bg,
+            borderRadius: '4px',
+            boxShadow: `inset 0 0 0 1px ${terrainTint.border}`,
+            zIndex: 1,
+          }}
+        />
+      )}
+
       {/* Opponent move flash overlay */}
       {isOpponentMoveTile && (
         <div className="opponent-move-flash absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 5 }} />

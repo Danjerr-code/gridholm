@@ -33,6 +33,8 @@ import {
   getChampionDef,
   hasValidTargets,
   manhattan,
+  getTerrainCastTiles,
+  castTerrainCard,
 } from '../../src/engine/gameEngine.js';
 
 import { ACTION_REGISTRY } from '../../src/engine/actionRegistry.js';
@@ -181,6 +183,18 @@ export function getLegalActions(state) {
     }
   }
 
+  // 3b. Terrain cards — pick a target tile from valid terrain cast tiles
+  const terrainCastTiles = getTerrainCastTiles(state);
+  if (terrainCastTiles.length > 0) {
+    for (const card of p.hand) {
+      if (card.type !== 'terrain') continue;
+      if (p.resources < card.cost) continue;
+      for (const [row, col] of terrainCastTiles) {
+        actions.push({ type: 'terrain', cardUid: card.uid, targetTile: [row, col] });
+      }
+    }
+  }
+
   // 4. Spell cards
   for (const card of p.hand) {
     if (card.type !== 'spell') continue;
@@ -289,6 +303,14 @@ export function applyAction(state, action) {
       let s = playCard(state, action.cardUid);
       if (!s.pendingSummon) return s; // card not valid (e.g. already spent)
       s = summonUnit(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
+      return s;
+    }
+
+    case 'terrain': {
+      // playCard sets pendingTerrainCast, then castTerrainCard places terrain
+      let s = playCard(state, action.cardUid);
+      if (!s.pendingTerrainCast) return s;
+      s = castTerrainCard(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
       return s;
     }
 

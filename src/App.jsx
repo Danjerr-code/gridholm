@@ -30,6 +30,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
+    terrainTargetTiles,
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
@@ -69,8 +70,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to apply the ability, or Cancel.';
+  if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -265,6 +267,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             championAbilityTargetUids={championAbilityTargetUids}
             summonTiles={summonTiles}
             unitMoveTiles={unitMoveTiles}
+            terrainTargetTiles={terrainTargetTiles}
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
             sacrificeTargetUids={sacrificeTargetUids}
@@ -317,6 +320,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 )}
                 {phase === 'action' && selectMode === 'champion_ability' && (
                   <ActionBtn onClick={handlers.handleChampionAbilityCancel} label="Cancel" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'terrain_cast' && (
+                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Terrain" variant="cancel" fullWidth />
                 )}
                 {phase === 'action' && selectMode === 'targetless_spell' && (
                   <>
@@ -388,6 +394,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           )}
           {phase === 'action' && selectMode === 'champion_ability' && (
             <ActionBtn onClick={handlers.handleChampionAbilityCancel} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'terrain_cast' && (
+            <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && selectMode === 'targetless_spell' && (
             <>
