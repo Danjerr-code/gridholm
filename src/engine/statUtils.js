@@ -6,6 +6,7 @@
 // ============================================
 
 import { manhattan } from './gameEngine.js';
+import { getConditionalStatBonus, getZoneSpdBonus } from './triggerRegistry.js';
 
 function unitTypes(u) {
   if (!u) return [];
@@ -105,13 +106,14 @@ function getTerrainHpModifier(state, unit) {
 }
 
 // Returns effective ATK for a unit including all aura bonuses, temporary buffs,
-// terrain effects, and turn-based bonuses. Never writes to unit state.
+// terrain effects, turn-based bonuses, and activeModifier conditional buffs.
 export function getEffectiveAtk(state, unit, combatTile = null) {
   const base = (unit.atk || 0) + (unit.atkBonus || 0) + (unit.turnAtkBonus || 0) + getAuraAtkBonus(state, unit, combatTile);
   const sbBonus = getStandardBearerBonus(state, unit).atk;
   const packBonus = getPackBonus(state, unit);
   const terrainMod = getTerrainAtkModifier(state, unit);
-  return Math.max(0, base + sbBonus + packBonus + terrainMod);
+  const modBonus = getConditionalStatBonus(state, unit).atk;
+  return Math.max(0, base + sbBonus + packBonus + terrainMod + modBonus);
 }
 
 // Returns effective HP for display (current HP after damage counters + terrain bonus).
@@ -126,10 +128,11 @@ export function getEffectiveMaxHp(state, unit) {
   return unit.maxHp;
 }
 
-// Returns effective SPD including speed bonuses. Hidden units move at SPD 1.
-export function getEffectiveSpd(unit) {
+// Returns effective SPD including speed bonuses, zone SPD buffs, and hidden override.
+export function getEffectiveSpd(unit, state = null) {
   if (unit.hidden) return 1;
-  return unit.spd + (unit.speedBonus || 0);
+  const zoneBonus = state ? getZoneSpdBonus(state, unit) : 0;
+  return unit.spd + (unit.speedBonus || 0) + zoneBonus;
 }
 
 // Returns all active friendly aura bonuses affecting a unit as { atk, hp }.

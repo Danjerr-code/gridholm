@@ -16,6 +16,15 @@ import {
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 import { SPELL_REGISTRY } from './spellRegistry.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
+import {
+  createTriggerListeners,
+  registerUnit,
+  unregisterUnit,
+  registerModifiers,
+  unregisterModifiers,
+  fireTrigger,
+  resetTurnTriggers,
+} from './triggerRegistry.js';
 
 function unitTypes(u) {
   if (!u) return [];
@@ -170,6 +179,10 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   if (destroyingUids.has(unit.uid)) return state;
   destroyingUids.add(unit.uid);
 
+  // Unregister declarative triggers and static modifiers before removal
+  unregisterUnit(unit.uid, state);
+  unregisterModifiers(unit.uid, state);
+
   // Remove from board
   state.units = state.units.filter(u => u.uid !== unit.uid);
 
@@ -302,6 +315,13 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
     state.soulHarvestUsed = true;
   }
+
+  // Declarative trigger registry: fire onEnemyUnitDeath and onFriendlyUnitDeath
+  if (!unit.isRelic && !unit.isOmen) {
+    const deathCtx = { dyingUnit: unit, dyingPlayerIndex: unit.owner, triggeringUid: unit.uid };
+    fireTrigger('onEnemyUnitDeath', deathCtx, state);
+    fireTrigger('onFriendlyUnitDeath', deathCtx, state);
+  }
 }
 
 // ============================================
@@ -310,6 +330,9 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
 // ADD NEW BEGIN TURN TRIGGERS HERE
 // ============================================
 function fireBeginTurnTriggers(state, playerIdx) {
+  // Reset oncePerTurn flags for the declarative trigger registry
+  resetTurnTriggers(state);
+
   // Soul Harvest (Dark, Attuned passive): reset once-per-turn flag at the start of Malachar's turn.
   const shPlayer = state.players[playerIdx];
   if (
@@ -495,6 +518,9 @@ function fireEndTurnTriggers(state, playerIdx) {
       destroyUnit(omen, state, 'omen_expired');
     }
   }
+
+  // Declarative trigger registry: fire onEndTurn for cards with end-turn listeners
+  fireTrigger('onEndTurn', { playerIndex: playerIdx }, state);
 }
 
 // ============================================
@@ -554,6 +580,18 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
         p.resources = Math.min(p.resources + 1, 10);
         addLog(state, `Hunger: ${p.name} gains 1 temporary mana (${p.resources} total).`);
       }
+    }
+  }
+
+  // Declarative trigger registry: fire onChampionDamageDealt when a unit attacks the enemy champion
+  if (defenderIsChampion) {
+    const liveAtt = state.units.find(u => u.uid === attacker.uid);
+    if (liveAtt) {
+      fireTrigger('onChampionDamageDealt', {
+        attackerPlayerIndex: attacker.owner,
+        damage: liveAtt.atk || 0,
+        triggeringUid: attacker.uid,
+      }, state);
     }
   }
 }
@@ -794,6 +832,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     recalledThisTurn: [],
     waddlesActive: [false, false],
     championAbilityUsed: [false, false],
+    triggerListeners: createTriggerListeners(),
+    activeModifiers: [],
   };
 }
 
@@ -1072,6 +1112,7 @@ export function playCard(state, cardUid) {
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
+      fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       checkWinner(s);
       return s;
     }
@@ -1147,6 +1188,13 @@ export function summonUnit(state, cardUid, row, col) {
 
   s.units.push(unit);
   addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}${unit.shadowVeiled ? ' (Hidden)' : ''}`);
+
+  // Register declarative triggers and static modifiers for this unit
+  registerUnit(unit, s);
+  registerModifiers(unit, s);
+
+  // Declarative trigger registry: fire onCardPlayed for the active player
+  fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
 
   // ON SUMMON TRIGGERS
   fireOnSummonTriggers(unit, s);
