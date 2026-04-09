@@ -20,16 +20,14 @@ const TYPE_LABEL = {
   terrain: 'T',
 };
 
-function getStatLine(card) {
-  switch (card.type) {
-    case 'unit':    return `${card.cost ?? 0} cost · ${card.atk ?? 0} ATK · ${card.hp ?? 0} HP · ${card.spd ?? 0} SPD`;
-    case 'relic':   return `${card.cost ?? 0} cost · ${card.hp ?? 0} HP`;
-    case 'omen':    return `${card.cost ?? 0} cost · ${card.turnsRemaining ?? 0} turns`;
-    case 'terrain': return `${card.cost ?? 0} cost`;
-    case 'spell':   return `${card.cost ?? 0} cost`;
-    default:        return `${card.cost ?? 0} cost`;
-  }
-}
+const TYPE_SECTIONS = [
+  { key: 'all',     name: 'All' },
+  { key: 'unit',    name: 'Units' },
+  { key: 'spell',   name: 'Spells' },
+  { key: 'relic',   name: 'Relics' },
+  { key: 'omen',    name: 'Omens' },
+  { key: 'terrain', name: 'Terrain' },
+];
 
 function getGroupedByAttribute() {
   const all = Object.values(CARD_DB).filter(c => !c.token);
@@ -218,6 +216,7 @@ export default function CardGallery() {
   const grouped = getGroupedByAttribute();
   const [selectedCard, setSelectedCard] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [activeTypeTab, setActiveTypeTab] = useState('all');
 
   const handleClose = useCallback(() => setSelectedCard(null), []);
 
@@ -231,6 +230,11 @@ export default function CardGallery() {
   const visibleSections = activeTab === 'all'
     ? ATTRIBUTE_SECTIONS
     : ATTRIBUTE_SECTIONS.filter(s => s.key === activeTab);
+
+  function filterByType(cards) {
+    if (activeTypeTab === 'all') return cards;
+    return cards.filter(c => c.type === activeTypeTab);
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e5e7eb', fontFamily: 'inherit' }}>
@@ -268,7 +272,7 @@ export default function CardGallery() {
           </span>
         </div>
 
-        {/* Filter tabs */}
+        {/* Attribute filter tabs */}
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('all')}
@@ -308,12 +312,37 @@ export default function CardGallery() {
             </button>
           ))}
         </div>
+
+        {/* Type filter tabs (secondary) */}
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {TYPE_SECTIONS.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTypeTab(t.key)}
+              style={{
+                background: activeTypeTab === t.key ? 'rgba(255,255,255,0.08)' : 'transparent',
+                border: activeTypeTab === t.key ? '0.5px solid rgba(255,255,255,0.22)' : '0.5px solid rgba(255,255,255,0.07)',
+                borderRadius: '4px',
+                color: activeTypeTab === t.key ? '#d1d5db' : '#6b7280',
+                fontSize: '10px',
+                fontWeight: 600,
+                padding: '2px 9px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
         {visibleSections.map(section => {
-          const cards = grouped[section.key] || [];
+          const cards = filterByType(grouped[section.key] || []);
           if (cards.length === 0) return null;
           return (
             <div key={section.key} style={{ marginBottom: 56 }}>
@@ -340,36 +369,8 @@ export default function CardGallery() {
               {/* Cards grid */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {cards.map(card => (
-                  <div key={card.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div key={card.id} style={{ position: 'relative' }}>
                     <Card card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
-                    {/* Type label badge */}
-                    <span style={{
-                      position: 'absolute',
-                      top: 4,
-                      left: 4,
-                      background: 'rgba(0,0,0,0.72)',
-                      color: section.color,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      padding: '1px 4px',
-                      borderRadius: 3,
-                      fontFamily: 'var(--font-sans)',
-                      pointerEvents: 'none',
-                      letterSpacing: '0.03em',
-                    }}>
-                      {TYPE_LABEL[card.type] || 'U'}
-                    </span>
-                    {/* Stat line */}
-                    <div style={{
-                      fontSize: 9,
-                      fontFamily: 'var(--font-sans)',
-                      color: '#6b7280',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                      letterSpacing: '0.02em',
-                    }}>
-                      {getStatLine(card)}
-                    </div>
                   </div>
                 ))}
               </div>
