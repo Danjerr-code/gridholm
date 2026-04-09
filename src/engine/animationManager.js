@@ -9,6 +9,12 @@ export const ANIM_DAMAGE_DURATION = 200;
 export const ANIM_DEATH_DURATION = 400;
 export const ANIM_HEAVY_DAMAGE_THRESHOLD = 5; // damage >= this triggers the heavy animation
 
+// Batch 3: Spell, Buff, Heal, and Hidden animations
+export const ANIM_HEAL_DURATION = 400;
+export const ANIM_BUFF_DURATION = 300;
+export const ANIM_HIDDEN_SUMMON_DURATION = 300;
+export const ANIM_REVEAL_DURATION = 400;
+
 class AnimationManager {
   _queue = [];
   _animating = false;

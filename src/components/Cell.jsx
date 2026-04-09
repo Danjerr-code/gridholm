@@ -130,6 +130,20 @@ export default function Cell({
   const champColor = isP1Champion ? '#185FA5' : '#993C1D';
   const isMyChampion = myPlayerIndex !== undefined && champion && champion.owner === myPlayerIndex;
 
+  // Champion ability animation: attribute-coloured glow
+  const ATTR_GLOW_RGBA = {
+    light:  'rgba(255, 255, 220, 0.8)',
+    primal: 'rgba(34,  197,  94, 0.75)',
+    mystic: 'rgba(168,  85, 247, 0.75)',
+    dark:   'rgba(220,  38,  38, 0.75)',
+  };
+  const champIsAbility = champAnimState?.type === 'ability';
+  const champIsHeal    = champAnimState?.type === 'heal';
+  const champAnimCls =
+    champAnimState?.type === 'damage' ? (champAnimState.heavy ? ' unit-damage-heavy-anim' : ' unit-damage-anim') :
+    champIsAbility ? ' unit-champ-ability-anim' :
+    '';
+
   return (
     <div
       className={tileClass}
@@ -155,9 +169,12 @@ export default function Cell({
         <div className="opponent-move-flash absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 5 }} />
       )}
 
-      {/* Spell target glow overlay */}
+      {/* Spell target glow overlay + circular pulse ring */}
       {isSpellTargetGlow && (
-        <div className="spell-target-tile-glow absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 6 }} />
+        <>
+          <div className="spell-target-tile-glow absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 6 }} />
+          <div className="spell-cast-ring pointer-events-none" />
+        </>
       )}
 
       {/* Center marker */}
@@ -170,11 +187,12 @@ export default function Cell({
       {/* Champion */}
       {champion && (
         <div
-          className={`absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none${champAnimState?.type === 'damage' ? (champAnimState.heavy ? ' unit-damage-heavy-anim' : ' unit-damage-anim') : ''}`}
+          className={`absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none${champAnimCls}`}
           style={{
             background: `radial-gradient(circle, ${champColor}66 0%, transparent 100%)`,
             border: `2px solid ${isChampionSpellTarget ? '#f97316' : champColor}`,
             boxShadow: `0 0 12px ${isChampionSpellTarget ? '#f9731660' : champColor + '60'}`,
+            ...(champIsAbility ? { '--ability-glow-color': ATTR_GLOW_RGBA[champAnimState.attribute] ?? 'rgba(255,255,255,0.8)' } : {}),
           }}
           onClick={e => { e.stopPropagation(); onChampionClick && onChampionClick(); }}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
@@ -182,6 +200,10 @@ export default function Cell({
           {/* Red flash overlay on damage */}
           {champAnimState?.type === 'damage' && (
             <div className="unit-damage-flash-overlay" style={{ borderRadius: '50%' }} />
+          )}
+          {/* Green flash overlay on heal */}
+          {champIsHeal && (
+            <div className="champ-heal-flash-overlay" />
           )}
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
             <path d="M2,18 L2,6 L8,14 L12,2 L16,14 L22,6 L22,18 Z"/>

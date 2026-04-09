@@ -267,3 +267,121 @@ button, input, .card-name, .card-stats, .card-rules,
 .spell-target-tile-glow {
   animation: spell-target-glow 550ms ease-out forwards;
 }
+
+/* ── Batch 3: Spell, Buff, Heal, Hidden Animations ─────────────────────── */
+
+/* Spell cast: ring pulse radiates outward from tile center */
+@keyframes spell-ring-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+  60%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+.spell-cast-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 7;
+  animation: spell-ring-pulse 300ms ease-out forwards;
+}
+
+/* Heal: green upward-floating particles */
+@keyframes heal-particle {
+  0%   { transform: translateY(0) scale(1); opacity: 0.9; }
+  100% { transform: translateY(-32px) scale(0.4); opacity: 0; }
+}
+
+.heal-particle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  pointer-events: none;
+  animation: heal-particle 400ms ease-out forwards;
+  opacity: 0;
+}
+
+/* Champion heal: green flash overlay */
+@keyframes champ-heal-flash {
+  0%   { opacity: 0.65; }
+  60%  { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+
+.champ-heal-flash-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.45);
+  pointer-events: none;
+  z-index: 10;
+  animation: champ-heal-flash 400ms ease-out forwards;
+}
+
+/* Buff: golden shimmer overlay around the token */
+@keyframes unit-buff-shimmer {
+  0%   { box-shadow: 0 0 0 2px #fbbf24, 0 0 10px 3px rgba(251,191,36,0.65); opacity: 1; }
+  40%  { box-shadow: 0 0 0 4px #ffd700, 0 0 18px 7px rgba(255,215,0,0.85); opacity: 1; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 0; }
+}
+
+.unit-buff-shimmer-overlay {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 11;
+  animation: unit-buff-shimmer 300ms ease-out forwards;
+}
+
+/* Stat pill pulse on buff */
+@keyframes stat-pulse-kf {
+  0%   { transform: translateX(-50%) scale(1); }
+  35%  { transform: translateX(-50%) scale(1.35); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+.stat-pulse-anim {
+  animation: stat-pulse-kf 300ms ease-out forwards;
+}
+
+/* Hidden summon: dark smoke / shadow materialise */
+@keyframes unit-hidden-summon {
+  0%   { opacity: 0; filter: blur(5px) brightness(0.2); transform: scale(0.85); box-shadow: 0 0 20px 8px rgba(80, 0, 120, 0.9); }
+  35%  { opacity: 0.7; filter: blur(2px) brightness(0.5); transform: scale(1.04); box-shadow: 0 0 12px 4px rgba(80, 0, 120, 0.5); }
+  70%  { filter: blur(0) brightness(0.8); box-shadow: 0 0 4px 1px rgba(80, 0, 120, 0.2); }
+  100% { opacity: 1; filter: none; transform: scale(1); box-shadow: none; }
+}
+
+.unit-hidden-summon-anim {
+  animation: unit-hidden-summon 300ms ease-out forwards;
+}
+
+/* Hidden reveal: shadow peels away revealing the unit */
+@keyframes unit-reveal {
+  0%   { filter: brightness(0.15) blur(4px); transform: scaleY(0.92); }
+  25%  { filter: brightness(0.45) blur(2px); transform: scaleY(1.04); }
+  60%  { filter: brightness(0.8) blur(0); transform: scaleY(1); }
+  100% { filter: none; transform: scaleY(1); }
+}
+
+.unit-reveal-anim {
+  animation: unit-reveal 400ms ease-out forwards;
+}
+
+/* Champion ability activation: attribute-colored glow pulse */
+@keyframes champ-ability-glow {
+  0%   { box-shadow: 0 0 0 0 var(--ability-glow-color, rgba(255,255,255,0.85)); }
+  35%  { box-shadow: 0 0 0 8px var(--ability-glow-color, rgba(255,255,255,0.5)), 0 0 22px 5px var(--ability-glow-color, rgba(255,255,255,0.4)); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.unit-champ-ability-anim {
+  animation: champ-ability-glow 300ms ease-out forwards;
+}

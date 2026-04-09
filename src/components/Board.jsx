@@ -9,7 +9,14 @@ import {
   ANIM_DAMAGE_DURATION,
   ANIM_DEATH_DURATION,
   ANIM_HEAVY_DAMAGE_THRESHOLD,
+  ANIM_HEAL_DURATION,
+  ANIM_BUFF_DURATION,
+  ANIM_HIDDEN_SUMMON_DURATION,
+  ANIM_REVEAL_DURATION,
 } from '../engine/animationManager.js';
+
+// Maps deckId → champion attribute for ability glow colour
+const DECK_ATTRIBUTE = { human: 'light', beast: 'primal', elf: 'mystic', demon: 'dark' };
 
 export default function Board({
   state,
@@ -64,12 +71,16 @@ export default function Board({
     const nextAnimStates = {};
     const nextChampAnims = {};
     const dying = [];
-    const MAX_DUR = Math.max(ANIM_SUMMON_DURATION, ANIM_MOVE_DURATION, ANIM_LUNGE_TOTAL_DURATION, ANIM_DAMAGE_DURATION);
+    const MAX_DUR = Math.max(
+      ANIM_SUMMON_DURATION, ANIM_MOVE_DURATION, ANIM_LUNGE_TOTAL_DURATION, ANIM_DAMAGE_DURATION,
+      ANIM_HEAL_DURATION, ANIM_BUFF_DURATION, ANIM_HIDDEN_SUMMON_DURATION, ANIM_REVEAL_DURATION,
+    );
 
     // 1. Summon: units that didn't exist in prev state
+    // Hidden summons use a dark smoke animation instead of the normal bright flash
     for (const u of state.units) {
       if (!prev.units.find(p => p.uid === u.uid)) {
-        nextAnimStates[u.uid] = { type: 'summon' };
+        nextAnimStates[u.uid] = { type: u.hidden ? 'hidden_summon' : 'summon' };
       }
     }
 
@@ -160,13 +171,59 @@ export default function Board({
       }
     }
 
-    // 5. Champion damage
+    // 5. Champion damage and heal
     for (const c of state.champions) {
       const pc = prev.champions.find(p => p.owner === c.owner);
       if (!pc) continue;
       const dmg = pc.hp - c.hp;
       if (dmg > 0) {
         nextChampAnims[c.owner] = { type: 'damage', heavy: dmg >= ANIM_HEAVY_DAMAGE_THRESHOLD };
+      } else if (c.hp > pc.hp) {
+        nextChampAnims[c.owner] = { type: 'heal' };
+      }
+    }
+
+    // 6. Champion ability activation
+    for (const c of state.champions) {
+      if (nextChampAnims[c.owner]) continue;
+      if (!prev.championAbilityUsed?.[c.owner] && state.championAbilityUsed?.[c.owner]) {
+        const attr = DECK_ATTRIBUTE[state.players[c.owner]?.deckId] ?? 'light';
+        nextChampAnims[c.owner] = { type: 'ability', attribute: attr };
+      }
+    }
+
+    // 7. Heal: unit HP increased (restoreHP called)
+    for (const u of state.units) {
+      if (nextAnimStates[u.uid]) continue;
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+      if (u.hp > pu.hp) {
+        nextAnimStates[u.uid] = { type: 'heal' };
+      }
+    }
+
+    // 8. Buff: ATK bonus, turn ATK bonus, speed bonus, or shield HP bonus increased
+    for (const u of state.units) {
+      if (nextAnimStates[u.uid]) continue;
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+      if (
+        (u.atkBonus || 0) > (pu.atkBonus || 0) ||
+        (u.turnAtkBonus || 0) > (pu.turnAtkBonus || 0) ||
+        (u.speedBonus || 0) > (pu.speedBonus || 0) ||
+        (u.shieldHpBonus || 0) > (pu.shieldHpBonus || 0)
+      ) {
+        nextAnimStates[u.uid] = { type: 'buff' };
+      }
+    }
+
+    // 9. Hidden reveal: unit was hidden, now revealed
+    for (const u of state.units) {
+      if (nextAnimStates[u.uid]) continue;
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+      if (pu.hidden && !u.hidden) {
+        nextAnimStates[u.uid] = { type: 'reveal' };
       }
     }
 

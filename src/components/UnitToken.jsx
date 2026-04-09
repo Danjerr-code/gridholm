@@ -19,13 +19,17 @@ function getFactionColors(unitType) {
 
 /**
  * Resolve animation class and inline style for the token wrapper.
- * animState: { type: 'summon'|'move'|'lunge'|'damage'|'death', ... }
+ * animState: { type: 'summon'|'move'|'lunge'|'damage'|'death'|'heal'|'buff'|'hidden_summon'|'reveal', ... }
  */
 function resolveAnimProps(animState) {
-  if (!animState) return { cls: '', style: {}, showFlash: false };
+  if (!animState) return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false };
   switch (animState.type) {
     case 'summon':
-      return { cls: 'unit-summon-anim', style: {}, showFlash: false };
+      return { cls: 'unit-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+    case 'hidden_summon':
+      return { cls: 'unit-hidden-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+    case 'reveal':
+      return { cls: 'unit-reveal-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
     case 'move': {
       // Offset from old tile to current tile, expressed in cell-width units (~104% per tile)
       // fromCol/fromRow are the previous position; current position comes from the unit prop
@@ -34,7 +38,7 @@ function resolveAnimProps(animState) {
       return {
         cls: 'unit-move-anim',
         style: { '--move-from-x': `${dx * 104}%`, '--move-from-y': `${dy * 104}%` },
-        showFlash: false,
+        showFlash: false, showHeal: false, showBuff: false,
       };
     }
     case 'lunge': {
@@ -42,19 +46,23 @@ function resolveAnimProps(animState) {
       return {
         cls: 'unit-lunge-anim',
         style: { '--lunge-x': `${(animState.dx ?? 0) * 30}%`, '--lunge-y': `${(animState.dy ?? 0) * 30}%` },
-        showFlash: false,
+        showFlash: false, showHeal: false, showBuff: false,
       };
     }
     case 'damage':
       return {
         cls: animState.heavy ? 'unit-damage-heavy-anim' : 'unit-damage-anim',
         style: {},
-        showFlash: true,
+        showFlash: true, showHeal: false, showBuff: false,
       };
     case 'death':
-      return { cls: 'unit-death-anim', style: {}, showFlash: false };
+      return { cls: 'unit-death-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+    case 'heal':
+      return { cls: '', style: {}, showFlash: false, showHeal: true, showBuff: false };
+    case 'buff':
+      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: true };
     default:
-      return { cls: '', style: {}, showFlash: false };
+      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false };
   }
 }
 
@@ -75,8 +83,17 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     : { ring: '#ef4444', glow: 'rgba(239,68,68,0.55)' };
 
   // Animation props — computed once, applied to each return path
-  const { cls: animCls, style: animStyle, showFlash } = resolveAnimProps(animState);
+  const { cls: animCls, style: animStyle, showFlash, showHeal, showBuff } = resolveAnimProps(animState);
   const animWrapClass = `w-full h-full relative${animCls ? ` ${animCls}` : ''}`;
+
+  // Heal particles: 4 small circles that float upward with staggered delay
+  const healOverlay = showHeal ? (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 12, overflow: 'visible' }}>
+      {[18, 35, 52, 70].map((left, i) => (
+        <div key={i} className="heal-particle" style={{ left: `${left}%`, bottom: '25%', animationDelay: `${i * 75}ms` }} />
+      ))}
+    </div>
+  ) : null;
 
   // Opponent's hidden unit: face-down token with hidden-art image
   if (isOpponentHidden) {
@@ -137,7 +154,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           lineHeight: 1.4,
         }}>?/?</div>
         {showFlash && <div className="unit-damage-flash-overlay" />}
+        {showBuff && <div className="unit-buff-shimmer-overlay" />}
       </div>
+      {healOverlay}
       </div>
     );
   }
@@ -323,7 +342,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           letterSpacing: '0.05em',
         }}>OMEN</div>
         {showFlash && <div className="unit-damage-flash-overlay" />}
+        {showBuff && <div className="unit-buff-shimmer-overlay" />}
       </div>
+      {healOverlay}
       </div>
     );
   }
@@ -451,7 +472,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       )}
 
       {/* HP pill (relics) or ATK/HP pill (units) — centered bottom */}
-      <div style={{
+      <div className={showBuff ? 'stat-pulse-anim' : ''} style={{
         position: 'absolute',
         bottom: '2px',
         left: '50%',
@@ -475,7 +496,10 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       </div>
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
+      {/* Buff shimmer overlay */}
+      {showBuff && <div className="unit-buff-shimmer-overlay" />}
     </div>
+    {healOverlay}
     </div>
   );
 }
