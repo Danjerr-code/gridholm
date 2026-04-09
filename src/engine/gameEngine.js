@@ -707,6 +707,19 @@ function fireOnSummonTriggers(unit, state) {
       addLog(state, `Smoke Bomb: ${unit.name} enters hidden.`);
     }
   }
+
+  // 10. Friendly combat unit summoned adjacent to a Feral Surge omen — gains Rush
+  if (!unit.isOmen && !unit.isRelic && unit.type !== 'spell') {
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    const nearbyFeralSurge = state.units.filter(u =>
+      u.owner === unit.owner && u.id === 'feralsurge' && u.uid !== unit.uid &&
+      adj.some(([r, c]) => u.row === r && u.col === c)
+    );
+    if (nearbyFeralSurge.length > 0 && unit.summoned) {
+      unit.summoned = false;
+      addLog(state, `Feral Surge: ${unit.name} gains Rush!`);
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -1551,6 +1564,11 @@ export function triggerUnitAction(state, unitUid) {
     return _dispatchAction(unit, s, []);
   }
   if (unit.id === 'darkdealer') {
+    const result = _dispatchAction(unit, s, []);
+    checkWinner(result);
+    return result;
+  }
+  if (unit.id === 'siegemound') {
     const result = _dispatchAction(unit, s, []);
     checkWinner(result);
     return result;

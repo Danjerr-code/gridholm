@@ -98,6 +98,13 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  siegemound: (unit, state) => {
+    const enemyChamp = state.champions[1 - unit.owner];
+    enemyChamp.hp -= 2;
+    addLog(state, `Siege Mound: enemy champion takes 2 damage (${enemyChamp.hp} HP).`);
+    return state;
+  },
+
   // targets[0]: adjacent friendly combat unit to sacrifice
   bloodaltar: (unit, state, targets) => {
     const target = targets[0];

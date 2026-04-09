@@ -127,6 +127,7 @@ export const CARD_DB = {
   soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.', image: 'soulstone.webp' },
   bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true, image: 'bloodaltar.webp' },
   echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 3, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
+  siegemound:  { id: 'siegemound',  name: 'Siege Mound',       type: 'relic', cost: 3, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [UNIT_TYPES.BEAST], attribute: 'primal', rules: 'Action: Deal 2 damage to the enemy champion.', action: true },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
   // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.
@@ -137,6 +138,7 @@ export const CARD_DB = {
   battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.', image: 'battlestandard.webp' },
   smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'Friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.', image: 'smokebomb.webp' },
   manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.', image: 'manawell.webp' },
+  feralsurge:     { id: 'feralsurge',     name: 'Feral Surge',     type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'primal',  rules: 'Friendly combat units summoned adjacent to this omen gain Rush.' },
 
   // ── Terrain Spells ─────────────────────────────────────────────────────────
   // Terrain cards (type: 'terrain', isTerrain: true) modify tiles on the board.
@@ -221,6 +223,8 @@ const BEAST_DECK = [
   'predatorsmark',
   'savagegrowth',
   'callofthesnakes',
+  'siegemound',
+  'feralsurge',
 ];
 
 const ELF_DECK = [
