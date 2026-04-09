@@ -1427,13 +1427,15 @@ export function cancelSpell(state) {
 const TERRAIN_RESTRICTED = new Set(['0,0', '4,4', '2,2']);
 
 // Returns all valid tiles for casting a terrain card.
+// Valid tiles must be within Manhattan distance 2 of the casting player's champion.
 export function getTerrainCastTiles(state) {
+  const champ = state.champions[state.activePlayer];
   const tiles = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
-      if (!TERRAIN_RESTRICTED.has(`${r},${c}`)) {
-        tiles.push([r, c]);
-      }
+      if (TERRAIN_RESTRICTED.has(`${r},${c}`)) continue;
+      if (manhattan([champ.row, champ.col], [r, c]) > 2) continue;
+      tiles.push([r, c]);
     }
   }
   return tiles;

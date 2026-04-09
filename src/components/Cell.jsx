@@ -134,7 +134,7 @@ export default function Cell({
       {...tilePointerHandlers}
       onClick={handleTileClick}
     >
-      {/* Terrain tint overlay */}
+      {/* Terrain tint overlay — must render behind unit tokens */}
       {terrainTint && (
         <div
           className="absolute inset-0 pointer-events-none"
@@ -142,7 +142,6 @@ export default function Cell({
             background: terrainTint.bg,
             borderRadius: '4px',
             boxShadow: `inset 0 0 0 1px ${terrainTint.border}`,
-            zIndex: 1,
           }}
         />
       )}
