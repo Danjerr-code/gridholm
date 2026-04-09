@@ -237,9 +237,9 @@ export const WEIGHTS = {
   cardsInHand:               5,
   hiddenUnits:               6,
   manaEfficiency:            2,
-  lethalThreat:             25,
-  gameLength:               -0.5,
-  championProximity:         6,
+  lethalThreat:             35,
+  championProximity:        10,
+  opponentChampionLowHP:    30,
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
@@ -291,12 +291,19 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
   }, 0);
 
-  const gameLength = gameState.turn ?? 0;
+  // Escalating gameLength penalty: no urgency 1-10, moderate 11-20, extreme >20.
+  const turnNumber = gameState.turn ?? 0;
+  const gameLength = turnNumber <= 10 ? 0
+    : turnNumber <= 20 ? (turnNumber - 10) * -2
+    : -20 + (turnNumber - 20) * -5;
 
   const championProximity = myUnits.reduce((sum, u) => {
     const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
     return sum + Math.max(0, 5 - dist);
   }, 0);
+
+  // Massive bonus to close out games when opponent champion is nearly dead.
+  const opponentChampionLowHP = oppChamp.hp <= 3 ? 2 : (oppChamp.hp <= 5 ? 1 : 0);
 
   return (
     championHP               * weights.championHP               +
@@ -311,8 +318,9 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     hiddenUnits              * weights.hiddenUnits              +
     manaEfficiency           * weights.manaEfficiency           +
     lethalThreat             * weights.lethalThreat             +
-    gameLength               * weights.gameLength               +
-    championProximity        * weights.championProximity
+    gameLength                                                  +
+    championProximity        * weights.championProximity        +
+    opponentChampionLowHP    * weights.opponentChampionLowHP
   );
 }
 

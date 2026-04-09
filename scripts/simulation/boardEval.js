@@ -44,9 +44,9 @@ export const WEIGHTS = {
   cardsInHand:               5,
   hiddenUnits:               6,
   manaEfficiency:            2,
-  lethalThreat:             25,
-  gameLength:               -0.5,
-  championProximity:         6,
+  lethalThreat:             35,
+  championProximity:        10,
+  opponentChampionLowHP:    30,
   relicsOnBoard:             4,
   omensOnBoard:              3,
   terrainBenefit:            3,  // friendly units on beneficial terrain
@@ -135,8 +135,16 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
   }, 0);
 
-  // gameLength: penalty per turn elapsed — creates urgency, favors shorter games.
-  const gameLength = gameState.turn ?? 0;
+  // gameLength: escalating penalty per turn — no urgency early, extreme urgency late.
+  // Turn 1-10: 0, Turn 11-20: (turn-10)*-2, Turn >20: -20 + (turn-20)*-5
+  const turnNumber = gameState.turn ?? 0;
+  const gameLength = turnNumber <= 10 ? 0
+    : turnNumber <= 20 ? (turnNumber - 10) * -2
+    : -20 + (turnNumber - 20) * -5;
+
+  // opponentChampionLowHP: massive incentive to close out games when opponent is nearly dead.
+  // Factor 1 (×30) when HP ≤ 5, factor 2 (×30=60) when HP ≤ 3.
+  const opponentChampionLowHP = oppChamp.hp <= 3 ? 2 : (oppChamp.hp <= 5 ? 1 : 0);
 
   // championProximity: sum of (5 - Manhattan distance to enemy champion) for each friendly unit.
   // Rewards advancing toward the enemy champion.
@@ -184,8 +192,9 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     hiddenUnits              * weights.hiddenUnits              +
     manaEfficiency           * weights.manaEfficiency           +
     lethalThreat             * weights.lethalThreat             +
-    gameLength               * weights.gameLength               +
+    gameLength                                                  +
     championProximity        * weights.championProximity        +
+    opponentChampionLowHP    * weights.opponentChampionLowHP    +
     relicsOnBoard            * weights.relicsOnBoard            +
     omensOnBoard             * weights.omensOnBoard             +
     terrainBenefit           * weights.terrainBenefit           +

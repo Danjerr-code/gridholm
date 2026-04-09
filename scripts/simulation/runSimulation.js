@@ -204,7 +204,7 @@ function serializeCardStats(tracker) {
 
 // ── Single game runner ────────────────────────────────────────────────────────
 
-const MAX_TURNS         = 50;
+const MAX_TURNS         = 30;
 const MAX_ACTIONS_GAME  = 500;
 
 export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
