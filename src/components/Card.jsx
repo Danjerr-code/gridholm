@@ -16,7 +16,7 @@ function getFactionColor(unitType) {
 
 export default function Card({ card, isSelected, isPlayable, onClick }) {
   const isSpell = card.type === 'spell';
-  const selectedStyle = isSelected ? '-translate-y-2' : '';
+  const selectedStyle = isSelected ? '-translate-y-2.5 scale-110' : '';
   const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer' : 'cursor-pointer';
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
   const isLegendary = !!card.legendary;
@@ -41,7 +41,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
   return (
     <div
-      className={`relative rounded-lg text-xs select-none transition-transform
+      className={`relative rounded-lg text-xs select-none transition-all duration-150
         ${selectedStyle} ${playableStyle} ${dimStyle}
         ${isLegendary && !isSelected ? 'legendary-card' : ''}
         flex flex-col p-1.5 h-[130px] w-[30vw] max-w-[120px]

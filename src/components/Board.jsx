@@ -24,6 +24,7 @@ export default function Board({
   sacrificeTargetUids = [],
   championAbilityTargetUids = [],
   opponentMoveTiles = new Set(),
+  spellGlowTile = null,
   handlers,
   onInspectUnit,
   onClearInspect,
@@ -363,6 +364,7 @@ export default function Board({
                 isUnitMoveTile={unitMoveSet.has(key) && !enemyMoveSet.has(key)}
                 isEnemyMoveTile={enemyMoveSet.has(key)}
                 isOpponentMoveTile={opponentMoveTiles.has(key)}
+                isSpellTargetGlow={spellGlowTile ? spellGlowTile.row === row && spellGlowTile.col === col : false}
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
                 isTerrainTarget={terrainTargetSet.has(key)}
                 terrain={terrain}

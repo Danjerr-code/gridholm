@@ -26,6 +26,7 @@ export default function Cell({
   isSacrificeTarget,
   isAbilityTarget,
   isTerrainTarget,
+  isSpellTargetGlow,
   terrain,
   unitAnimState,
   champAnimState,
@@ -152,6 +153,11 @@ export default function Cell({
       {/* Opponent move flash overlay */}
       {isOpponentMoveTile && (
         <div className="opponent-move-flash absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 5 }} />
+      )}
+
+      {/* Spell target glow overlay */}
+      {isSpellTargetGlow && (
+        <div className="spell-target-tile-glow absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 6 }} />
       )}
 
       {/* Center marker */}

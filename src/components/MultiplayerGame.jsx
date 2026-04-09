@@ -97,6 +97,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const prevGameStateRef = useRef(null);
   const highlightTimerRef = useRef(null);
   const [opponentMoveTiles, setOpponentMoveTiles] = useState(new Set());
+  const [spellGlowTile, setSpellGlowTile] = useState(null); // {row, col}
+  const spellGlowTimerRef = useRef(null);
   const [extraLogEntries, setExtraLogEntries] = useState([]);
   const [handExpanded, setHandExpanded] = useState(true);
   const touchStartYRef = useRef(null);
@@ -267,6 +269,15 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleSpellTarget = useCallback(async (targetUid) => {
     if (!gameState) return;
+    // Trigger spell glow on the targeted tile
+    const targetUnit = gameState.units.find(u => u.uid === targetUid);
+    const targetChamp = !targetUnit && gameState.champions?.find(c => 'champion' + c.owner === targetUid || c.uid === targetUid);
+    const glowSource = targetUnit || targetChamp;
+    if (glowSource) {
+      if (spellGlowTimerRef.current) clearTimeout(spellGlowTimerRef.current);
+      setSpellGlowTile({ row: glowSource.row, col: glowSource.col });
+      spellGlowTimerRef.current = setTimeout(() => setSpellGlowTile(null), 600);
+    }
     const cardUid = gameState.pendingSpell?.cardUid ?? selectedCard;
     if (!cardUid && !gameState.pendingSpell) return;
     const newState = resolveSpell(gameState, cardUid, targetUid);
@@ -904,6 +915,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
             opponentMoveTiles={opponentMoveTiles}
+            spellGlowTile={spellGlowTile}
             handlers={handlers}
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}
@@ -1111,7 +1123,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               small={false}
             />
           </div>
-          <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: 'visible' }}>
             <Hand
               player={myPlayer}
               resources={myPlayer.resources}
