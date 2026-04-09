@@ -5,6 +5,8 @@ import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
 import { KEYWORD_REMINDERS } from '../engine/keywords.js';
+import { CARD_DB } from '../engine/cards.js';
+import { ATTRIBUTES } from '../engine/attributes.js';
 import DeckSelect from './DeckSelect.jsx';
 import {
   getChampionMoveTiles,
@@ -380,11 +382,18 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setInspectedItem(null);
   }, []);
 
-  const handleInspectTerrain = useCallback(() => {
-    setInspectedItem({ type: 'terrain', name: 'Throne' });
-    if (window.innerWidth < 768) {
-      setMobileModalItem({ type: 'terrain', name: 'Throne' });
+  const handleInspectTerrain = useCallback((terrain) => {
+    if (!terrain) {
+      // Throne tile
+      const item = { type: 'terrain', name: 'Throne' };
+      setInspectedItem(item);
+      if (window.innerWidth < 768) setMobileModalItem(item);
+      return;
     }
+    const card = Object.values(CARD_DB).find(c => c.type === 'terrain' && c.terrainEffect?.id === terrain.id) ?? null;
+    const item = { type: 'terrain', name: terrain.ownerName || terrain.id, card };
+    setInspectedItem(item);
+    if (window.innerWidth < 768) setMobileModalItem(item);
   }, []);
 
   const handleMobileModalDismiss = useCallback(() => {
@@ -1345,12 +1354,48 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
         )}
         {unit.rules && <div style={rulesStyle}>{unit.rules}</div>}
         <KeywordBubbles keywords={unitKeywords} />
+        {(() => {
+          const tileTerrain = state.terrainGrid?.[unit.row]?.[unit.col] ?? null;
+          const tileTCard = tileTerrain ? Object.values(CARD_DB).find(c => c.type === 'terrain' && c.terrainEffect?.id === tileTerrain.id) : null;
+          if (!tileTCard) return null;
+          const attrColor = ATTRIBUTES[tileTCard.attribute]?.color ?? '#9090b8';
+          return (
+            <div style={{ marginTop: '6px', borderTop: '0.5px solid #252538', paddingTop: '6px' }}>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#C9A84C', marginBottom: '3px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>Terrain</div>
+              <div style={{ fontWeight: 700, color: '#fff', fontSize: '12px', fontFamily: 'var(--font-sans)', marginBottom: '1px' }}>{tileTCard.name}</div>
+              <div style={{ fontSize: '10px', color: attrColor, fontFamily: 'var(--font-sans)', marginBottom: '2px' }}>{ATTRIBUTES[tileTCard.attribute]?.name ?? tileTCard.attribute}</div>
+              <div style={{ fontSize: '11px', color: '#c0c0d8', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{tileTCard.rules}</div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
 
   if (inspectedItem?.type === 'terrain') {
     const terrainKeyword = !large ? [{ key: 'terrain', ...KEYWORD_REMINDERS.terrain }] : [];
+    const { card } = inspectedItem;
+    if (card) {
+      const attrColor = ATTRIBUTES[card.attribute]?.color ?? '#9090b8';
+      const radiusNote = card.terrainRadius > 0
+        ? `Area: all tiles within ${card.terrainRadius}.`
+        : 'Area: target tile only.';
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-start">
+            <span style={nameStyle}>{card.name}</span>
+            <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{card.cost}</span>
+          </div>
+          <div style={{ ...typeStyle, color: attrColor }}>Terrain · {ATTRIBUTES[card.attribute]?.name ?? card.attribute}</div>
+          <div style={{ ...rulesStyle, borderLeft: `2px solid ${attrColor}40`, paddingLeft: '6px' }}>
+            {card.rules}
+          </div>
+          <div style={{ fontSize: '10px', color: '#6a6a88', fontFamily: 'var(--font-sans)', marginTop: '2px' }}>{radiusNote}</div>
+          <KeywordBubbles keywords={terrainKeyword} />
+        </div>
+      );
+    }
+    // Throne tile (no card object)
     return (
       <div className="flex flex-col gap-1">
         <span style={nameStyle}>Throne</span>

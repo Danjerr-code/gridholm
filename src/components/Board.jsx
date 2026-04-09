@@ -85,12 +85,19 @@ export default function Board({
     const isThrone = row === 2 && col === 2;
     const cellUnit = units.find(u => u.row === row && u.col === col);
     const cellChamp = champions.find(c => c.row === row && c.col === col);
+    const cellTerrain = state.terrainGrid?.[row]?.[col] ?? null;
 
     // Desktop: Throne tile always shows terrain detail on tap.
     // Mobile: Throne inspect is triggered by long-press (not tap), so treat tap as a normal move target.
     if (isThrone && onInspectTerrain && !isMobile) {
-      onInspectTerrain();
-    } else if (!isThrone && !cellUnit && !cellChamp && onClearInspect) {
+      onInspectTerrain(null);
+    } else if (!isThrone && cellTerrain && !cellUnit && !cellChamp && onInspectTerrain) {
+      // Terrain-only tile: clicking shows terrain detail on both desktop and mobile
+      onInspectTerrain(cellTerrain);
+    } else if (!isThrone && cellTerrain && (cellUnit || cellChamp) && onInspectTerrain && !isMobile) {
+      // Desktop: clicking tile background (unit click stops propagation) shows terrain detail
+      onInspectTerrain(cellTerrain);
+    } else if (!isThrone && !cellTerrain && !cellUnit && !cellChamp && onClearInspect) {
       onClearInspect();
     }
 
