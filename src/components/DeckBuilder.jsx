@@ -436,7 +436,14 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
         </FilterGroup>
 
         <FilterGroup label="Type">
-          {[{ key: 'all', label: 'All' }, { key: 'unit', label: 'Unit' }, { key: 'spell', label: 'Spell' }].map(opt => (
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'unit', label: 'Unit' },
+            { key: 'spell', label: 'Spell' },
+            { key: 'relic', label: 'Relic' },
+            { key: 'omen', label: 'Omen' },
+            { key: 'terrain', label: 'Terrain' },
+          ].map(opt => (
             <FilterBtn key={opt.key} active={typeFilter === opt.key} onClick={() => setTypeFilter(opt.key)}>
               {opt.label}
             </FilterBtn>
@@ -700,7 +707,7 @@ function CardPreviewTooltip({ card }) {
         </div>
       ) : (
         <div style={{ height: '60px', borderRadius: '4px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px', fontSize: '11px', color: 'rgba(156,163,175,1)', fontFamily: "'Cinzel', serif" }}>
-          {card.type === 'spell' ? 'Spell' : (ATTRIBUTES[card.attribute]?.name || (Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType) || 'Unit')}
+          {card.type === 'spell' ? 'Spell' : card.type === 'omen' ? 'Omen' : card.type === 'terrain' ? 'Terrain' : card.type === 'relic' ? 'Relic' : (Array.isArray(card.unitType) && card.unitType.length > 0 ? card.unitType.join(' · ') : ATTRIBUTES[card.attribute]?.name || 'Unit')}
         </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
@@ -708,7 +715,7 @@ function CardPreviewTooltip({ card }) {
         <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', flexShrink: 0, marginLeft: '4px' }}>{card.cost}</span>
       </div>
       <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9CA3AF', marginBottom: '4px' }}>
-        {card.type === 'spell' ? 'Spell' : (ATTRIBUTES[card.attribute]?.name || (Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType))}
+        {card.type === 'spell' ? 'Spell' : card.type === 'omen' ? 'Omen' : card.type === 'terrain' ? 'Terrain' : card.type === 'relic' ? 'Relic' : (Array.isArray(card.unitType) && card.unitType.length > 0 ? card.unitType.join(' · ') : ATTRIBUTES[card.attribute]?.name || 'Unit')}
       </div>
       {card.type === 'unit' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '3px', marginBottom: '4px', fontFamily: 'var(--font-sans)' }}>

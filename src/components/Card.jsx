@@ -103,7 +103,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
               fontFamily: 'var(--font-sans)',
               fontWeight: 600,
             }}>
-              {(Array.isArray(card.unitType) ? card.unitType[0] : (card.unitType || 'Spell'))[0]}
+              {card.type === 'spell' ? 'S' : card.type === 'omen' ? 'O' : card.type === 'terrain' ? 'T' : card.type === 'relic' ? 'R' : (Array.isArray(card.unitType) ? card.unitType[0]?.[0] : card.unitType?.[0]) || 'U'}
             </div>
           )}
         </div>
@@ -171,7 +171,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
                 fontWeight: 600,
               }}
             >
-              {(Array.isArray(card.unitType) ? card.unitType[0] : (card.unitType || 'Spell'))[0]}
+              {card.type === 'spell' ? 'S' : card.type === 'omen' ? 'O' : card.type === 'terrain' ? 'T' : card.type === 'relic' ? 'R' : (Array.isArray(card.unitType) ? card.unitType[0]?.[0] : card.unitType?.[0]) || 'U'}
             </div>
           )}
         </div>
@@ -202,7 +202,10 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         {/* Card type label */}
         {!isSpell && (
           <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9CA3AF', textTransform: 'capitalize' }}>
-            {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
+            {card.type === 'relic' ? 'Relic' :
+             card.type === 'omen' ? 'Omen' :
+             card.type === 'terrain' ? 'Terrain' :
+             (Array.isArray(card.unitType) && card.unitType.length > 0 ? card.unitType.join(' · ') : card.unitType) || 'Unit'}
           </div>
         )}
       </div>
