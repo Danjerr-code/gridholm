@@ -176,13 +176,13 @@ export const TOKENS = {
 
 const HUMAN_DECK = [
   'militia', 'militia',
-  'footsoldier', 'footsoldier',
-  'squire', 'squire',
+  'footsoldier',
+  'squire',
   'crossbowman',
   'waddles',
   'shieldwall',
   'sergeant',
-  'knight', 'knight',
+  'knight',
   'standardbearer',
   'sentinel',
   'warlord', 'warlord',
@@ -198,17 +198,20 @@ const HUMAN_DECK = [
   'rally',
   'crusade',
   'martiallaw',
+  'hallowed_ground',
+  'battlestandard',
+  'soulstone',
 ];
 
 const BEAST_DECK = [
   'boar', 'boar',
-  'swiftpaw', 'swiftpaw',
+  'swiftpaw',
   'wolf', 'wolf',
   'razorclaw',
   'wildborne',
   'pip',
   'eagerbeaver',
-  'stalker', 'stalker',
+  'stalker',
   'packrunner',
   'packrunt',
   'rockhorn', 'rockhorn',
@@ -217,14 +220,15 @@ const BEAST_DECK = [
   'razorfang',
   'smite', 'smite',
   'ironshield',
-  'ambush', 'ambush',
+  'ambush',
   'packhowl',
   'pounce',
   'predatorsmark',
   'savagegrowth',
   'callofthesnakes',
-  'siegemound',
-  'feralsurge',
+  'siegemound', 'siegemound',
+  'feralsurge', 'feralsurge',
+  'huntingground',
 ];
 
 const ELF_DECK = [
