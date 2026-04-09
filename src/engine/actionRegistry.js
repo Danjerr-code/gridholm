@@ -1,4 +1,5 @@
 import { destroyUnit, restoreHP, addLog, applyDamageToUnit, manhattan } from './gameEngine.js';
+import { fireTrigger } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -114,6 +115,7 @@ export const ACTION_REGISTRY = {
     }
     const p = state.players[unit.owner];
     addLog(state, `Blood Altar: ${target.name} sacrificed.`);
+    fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...target }, sacrificingPlayerIndex: target.owner }, state);
     destroyUnit(target, state, 'sacrifice');
     const drawn = p.deck.shift();
     if (drawn && p.hand.length < 6) {

@@ -8,6 +8,7 @@ import {
   cardinalNeighbors,
 } from './gameEngine.js';
 import { getEffectiveAtk } from './statUtils.js';
+import { fireTrigger } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -315,6 +316,7 @@ export const SPELL_REGISTRY = {
       const sacrifice = targets[0];
       if (!sacrifice) return state;
       addLog(state, `Blood Offering: ${sacrifice.name} (${sacrifice.atk} ATK) sacrificed.`);
+      fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...sacrifice }, sacrificingPlayerIndex: sacrifice.owner }, state);
       destroyUnit(sacrifice, state, 'sacrifice');
     } else {
       const enemy = targets[0];

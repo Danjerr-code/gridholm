@@ -1298,6 +1298,7 @@ export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
     const sacrifice = s.units.find(u => u.uid === sacrificeUid);
     if (sacrifice) {
       addLog(s, `Flesh Tithe: ${sacrifice.name} sacrificed.`);
+      fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...sacrifice }, sacrificingPlayerIndex: sacrifice.owner }, s);
       destroyUnit(sacrifice, s, 'sacrifice');
       if (fleshtithe) {
         fleshtithe.atk += 2;

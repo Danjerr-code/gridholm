@@ -13,11 +13,12 @@
 //   onHPRestored           — the owner restores HP to any target
 //   onEndTurn              — end of the owner's turn
 //   onNonCombatChampionDamage — the owner deals non-combat damage to the enemy champion
+//   onFriendlySacrifice    — the owner destroys a friendly unit via sacrifice mechanic
 //
 // Static modifiers (not event-driven):
 //   conditionalStatBuff    — stat buff when a condition is met (e.g. minHandSize)
 //   zoneSpdBuff            — speed buff within range of an anchor (e.g. enemy champion)
-//   auraRangeBuff          — increases the unit's aura range
+//   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
 import { addLog, restoreHP, applyDamageToUnit, destroyUnit } from './gameEngine.js';
@@ -31,6 +32,7 @@ export const TRIGGER_EVENTS = [
   'onHPRestored',
   'onEndTurn',
   'onNonCombatChampionDamage',
+  'onFriendlySacrifice',
 ];
 
 // Returns the initial triggerListeners object for state.
@@ -92,6 +94,15 @@ export function getAuraRangeBonus(state, unitUid) {
   if (!state.activeModifiers) return 0;
   return state.activeModifiers
     .filter(m => m.type === 'auraRangeBuff' && m.unitUid === unitUid)
+    .reduce((sum, m) => sum + (m.amount || 0), 0);
+}
+
+// Returns the total aura range bonus granted to all friendly aura sources owned by playerIndex.
+// Used by statUtils to expand friendly aura ranges when Exiled Guardian (or similar) is in play.
+export function getFriendlyAuraRangeBonus(state, playerIndex) {
+  if (!state.activeModifiers) return 0;
+  return state.activeModifiers
+    .filter(m => m.type === 'auraRangeBuff' && m.playerIndex === playerIndex)
     .reduce((sum, m) => sum + (m.amount || 0), 0);
 }
 
@@ -303,6 +314,7 @@ function resolveEffect(effectId, listener, context, state) {
 //   onHPRestored:             { playerIndex, amount, target }
 //   onEndTurn:                { playerIndex }
 //   onNonCombatChampionDamage:{ attackerPlayerIndex, damage, extraDamage? }
+//   onFriendlySacrifice:      { sacrificedUnit, sacrificingPlayerIndex }
 export function fireTrigger(event, context, state) {
   const listeners = state.triggerListeners?.[event];
   if (!listeners || listeners.length === 0) return;
@@ -348,6 +360,10 @@ export function fireTrigger(event, context, state) {
         break;
       case 'onNonCombatChampionDamage':
         if (context?.attackerPlayerIndex == null || listener.playerIndex !== context.attackerPlayerIndex) continue;
+        break;
+      case 'onFriendlySacrifice':
+        // Fires for the player who sacrificed the unit (the unit's owner)
+        if (context?.sacrificingPlayerIndex == null || listener.playerIndex !== context.sacrificingPlayerIndex) continue;
         break;
       default:
         break;

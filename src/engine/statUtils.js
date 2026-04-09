@@ -6,7 +6,7 @@
 // ============================================
 
 import { manhattan } from './gameEngine.js';
-import { getConditionalStatBonus, getZoneSpdBonus } from './triggerRegistry.js';
+import { getConditionalStatBonus, getZoneSpdBonus, getFriendlyAuraRangeBonus } from './triggerRegistry.js';
 
 function unitTypes(u) {
   if (!u) return [];
@@ -25,7 +25,8 @@ export function getAuraAtkBonus(state, unit, combatTile = null) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
     if (other.aura.target === 'friendlybeast' && !unitTypes(unit).includes('Beast')) continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+    const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
+    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range + rangeBonus) {
       bonus += other.aura.value;
     }
   }
@@ -48,7 +49,8 @@ function getStandardBearerBonus(state, unit) {
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
     if (!other.aura || other.aura.stat !== 'both') continue;
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range) {
+    const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
+    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range + rangeBonus) {
       atk += other.aura.value;
       hp += other.aura.value;
     }
@@ -145,7 +147,8 @@ export function getFriendlyAuraBonus(state, unit) {
     if (!other.aura || (other.aura.target !== 'friendly' && other.aura.target !== 'friendlybeast')) continue;
     if (other.aura.target === 'friendlybeast' && !unitTypes(unit).includes('Beast')) continue;
     const dist = manhattan([other.row, other.col], [unit.row, unit.col]);
-    if (dist > other.aura.range) continue;
+    const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
+    if (dist > other.aura.range + rangeBonus) continue;
     if (other.aura.stat === 'atk') bonus.atk += other.aura.value;
     if (other.aura.stat === 'hp') bonus.hp += other.aura.value;
     if (other.aura.stat === 'both') {
