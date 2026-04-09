@@ -124,8 +124,8 @@ export const CARD_DB = {
   // The relic takes damage equal to the attacker's ATK and deals 0 damage back.
   // Relics can be targeted by spells. They can have passive/aura/action effects.
 
-  soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.' },
-  bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true },
+  soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.', image: 'soulstone.webp' },
+  bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true, image: 'bloodaltar.webp' },
   echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 2, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
@@ -134,9 +134,9 @@ export const CARD_DB = {
   // Any enemy combat unit that moves onto an omen tile destroys it instantly — no combat.
   // Omens cannot be targeted by spells. They can have passive/aura/begin-of-turn/end-of-turn effects.
 
-  battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.' },
-  smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'When played, all friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.' },
-  manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.' },
+  battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.', image: 'battlestandard.webp' },
+  smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'When played, all friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.', image: 'smokebomb.webp' },
+  manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.', image: 'manawell.webp' },
 
   // ── Terrain Spells ─────────────────────────────────────────────────────────
   // Terrain cards (type: 'terrain', isTerrain: true) modify tiles on the board.
@@ -144,11 +144,11 @@ export const CARD_DB = {
   // Cannot be placed on champion start tiles (0,0) and (4,4), or the Throne tile (2,2).
   // Terrain persists until replaced. Both players can see all terrain at all times.
 
-  hallowed_ground: { id: 'hallowed_ground', name: 'Hallowed Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'light',  rules: 'Place terrain on the target tile and all tiles within 2. Friendly units on Hallowed Ground gain +2 effective HP.', terrainEffect: { id: 'hallowed', whileOccupied: { hpBuff: 2, friendlyOnly: true } } },
-  scorched_earth:  { id: 'scorched_earth',  name: 'Scorched Earth',  type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 2, unitType: [], attribute: 'primal', rules: 'Place terrain on the target tile and all tiles within 2. Any unit that moves onto Scorched Earth takes 2 damage.', terrainEffect: { id: 'scorched', onOccupy: { damage: 2 } } },
-  enchanted_ground:{ id: 'enchanted_ground',name: 'Enchanted Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'mystic', rules: 'Place terrain on the target tile and all tiles within 2. Units on Enchanted Ground restore 1 HP at the start of their owner\'s turn.', terrainEffect: { id: 'enchanted', onTurnStart: { heal: 1 } } },
-  cursed_ground:   { id: 'cursed_ground',   name: 'Cursed Ground',   type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 0, unitType: [], attribute: 'dark',   rules: 'Place terrain on the target tile only. Units on Cursed Ground have -1 ATK.', terrainEffect: { id: 'cursed', whileOccupied: { atkDebuff: 1 } } },
-  huntingground:   { id: 'huntingground',   name: 'Hunting Ground',  type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 0, unitType: [], attribute: 'primal',  rules: 'Primal combat units on this tile gain +1/+1.', terrainEffect: { id: 'huntingground', name: 'Hunting Ground', description: 'Primal combat units on this tile gain +1/+1.', whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'primal', combatOnly: true } } },
+  hallowed_ground: { id: 'hallowed_ground', name: 'Hallowed Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'light',  rules: 'Place terrain on the target tile and all tiles within 2. Friendly units on Hallowed Ground gain +2 effective HP.', terrainEffect: { id: 'hallowed', whileOccupied: { hpBuff: 2, friendlyOnly: true } }, image: 'hallowedground.webp' },
+  scorched_earth:  { id: 'scorched_earth',  name: 'Scorched Earth',  type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 2, unitType: [], attribute: 'primal', rules: 'Place terrain on the target tile and all tiles within 2. Any unit that moves onto Scorched Earth takes 2 damage.', terrainEffect: { id: 'scorched', onOccupy: { damage: 2 } }, image: 'scorchedearth.webp' },
+  enchanted_ground:{ id: 'enchanted_ground',name: 'Enchanted Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'mystic', rules: 'Place terrain on the target tile and all tiles within 2. Units on Enchanted Ground restore 1 HP at the start of their owner\'s turn.', terrainEffect: { id: 'enchanted', onTurnStart: { heal: 1 } }, image: 'enchantedground.webp' },
+  cursed_ground:   { id: 'cursed_ground',   name: 'Cursed Ground',   type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 0, unitType: [], attribute: 'dark',   rules: 'Place terrain on the target tile only. Units on Cursed Ground have -1 ATK.', terrainEffect: { id: 'cursed', whileOccupied: { atkDebuff: 1 } }, image: 'cursedground.webp' },
+  huntingground:   { id: 'huntingground',   name: 'Hunting Ground',  type: 'terrain', isTerrain: true, cost: 2, terrainRadius: 0, unitType: [], attribute: 'primal',  rules: 'Primal combat units on this tile gain +1/+1.', terrainEffect: { id: 'huntingground', name: 'Hunting Ground', description: 'Primal combat units on this tile gain +1/+1.', whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'primal', combatOnly: true } }, image: 'huntingground.webp' },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────
