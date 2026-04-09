@@ -135,7 +135,7 @@ export const CARD_DB = {
   // Omens cannot be targeted by spells. They can have passive/aura/begin-of-turn/end-of-turn effects.
 
   battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.', image: 'battlestandard.webp' },
-  smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'When played, all friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.', image: 'smokebomb.webp' },
+  smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'Friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.', image: 'smokebomb.webp' },
   manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.', image: 'manawell.webp' },
 
   // ── Terrain Spells ─────────────────────────────────────────────────────────
