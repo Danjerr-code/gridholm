@@ -293,6 +293,25 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
         action.targetTile[1] === enemyChamp.col &&
         unit.atk >= enemyChamp.hp
       ) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
+        return action;
+      }
+    }
+    if (action.type === 'championMove') {
+      const myChamp = gameState.champions[ap];
+      if (
+        action.row === enemyChamp.row &&
+        action.col === enemyChamp.col &&
+        (myChamp.atk ?? 0) >= enemyChamp.hp
+      ) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
+        return action;
+      }
+    }
+    if (action.type === 'cast') {
+      const ns = applyAction(gameState, action);
+      if (ns.winner) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
     }
@@ -300,7 +319,10 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
       // Check if applying the ability results in a win (handles future abilities that deal
       // direct champion damage; currently a forward-looking guard).
       const ns = applyAction(gameState, action);
-      if (ns.winner) return action;
+      if (ns.winner) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
+        return action;
+      }
     }
   }
 

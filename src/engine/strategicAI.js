@@ -488,6 +488,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
         action.targetTile[1] === enemyChamp.col &&
         unit.atk >= enemyChamp.hp
       ) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
     }
@@ -499,13 +500,25 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
         action.col === enemyChamp.col &&
         (myChamp.atk ?? 0) >= enemyChamp.hp
       ) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
+        return action;
+      }
+    }
+    // Spell lethal: apply the cast and check if it results in a win.
+    if (action.type === 'cast') {
+      const newState = applyAction(gameState, action);
+      if (newState.winner) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
     }
     // Champion ability lethal: ability deals direct damage and enemy champion HP equals that damage.
     if (action.type === 'championAbility') {
       const newState = applyAction(gameState, action);
-      if (newState.winner) return action;
+      if (newState.winner) {
+        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
+        return action;
+      }
     }
   }
 
