@@ -12,11 +12,14 @@ export const UNIT_TYPES = {
   // Primal types
   BEAST: 'Beast',
   WOLF: 'Wolf',
+  BEASTKIN: 'Beastkin',
+  DRAGON: 'Dragon',
 
   // Mystic types
   ELF: 'Elf',
   SPIRIT: 'Spirit',
   PLANT: 'Plant',
+  WIZARD: 'Wizard',
 
   // Dark types
   DEMON: 'Demon',
