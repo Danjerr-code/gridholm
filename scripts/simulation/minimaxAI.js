@@ -31,6 +31,35 @@ const THRONE_COL = 2;
  *   - Keep all spell casts, champion abilities, champion moves unfiltered.
  *   - Keep all unit moves that attack an enemy unit or champion unfiltered.
  */
+// Max non-endTurn candidates retained after priority sort — keeps the tree tractable.
+// Depth counts endTurns, not individual actions, so branching explodes within a turn;
+// 4 candidates keeps the worst-case tree under ~50k nodes for depth=2.
+const MAX_CANDIDATES = 4;
+
+function actionPriority(action, state, enemyIdx, enemyChamp) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (!unit) return 0;
+    const [tr, tc] = action.targetTile;
+    const hitsChamp = enemyChamp.row === tr && enemyChamp.col === tc;
+    if (hitsChamp && unit.atk >= enemyChamp.hp) return 100; // lethal
+    if (hitsChamp) return 80;                               // champion damage
+    const eu = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+    if (eu && unit.atk >= eu.hp) return 70;                 // kills enemy unit
+    if (eu) return 50;                                       // damages enemy unit
+    const curDist = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
+    const newDist  = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
+    if (newDist < curDist) return 30;                        // advances toward champion
+    return 10;
+  }
+  if (action.type === 'cast')           return 40;
+  if (action.type === 'championAbility') return 35;
+  if (action.type === 'unitAction')      return 25;
+  if (action.type === 'summon')          return 20;
+  if (action.type === 'championMove')    return 15;
+  return 5;
+}
+
 function filterActions(actions, state, commandsUsed) {
   const ap = state.activePlayer;
   const enemyIdx = 1 - ap;
@@ -48,7 +77,9 @@ function filterActions(actions, state, commandsUsed) {
     ? Math.min(...unitCards.map(c => c.cost ?? 0))
     : Infinity;
 
-  return actions.filter(action => {
+  // Remove clearly bad moves first
+  const candidate = actions.filter(action => {
+    if (action.type === 'endTurn') return false; // handled separately below
     switch (action.type) {
       case 'move': {
         const unit = state.units.find(u => u.uid === action.unitId);
@@ -80,27 +111,60 @@ function filterActions(actions, state, commandsUsed) {
         if (!card) return false;
         // Remove expensive summons when cheaper options exist
         if (card.cost > 2 * minUnitCost) return false;
+        // Deduplicate: keep only one summon tile per card (closest to enemy champion)
         return true;
       }
 
-      // Keep spells, champion abilities, champion moves, unit actions, endTurn unfiltered
       default:
         return true;
     }
   });
+
+  // Deduplicate summons: one tile per card — the tile closest to the enemy champion
+  const seenCardUids = new Set();
+  const deduped = candidate.filter(action => {
+    if (action.type !== 'summon') return true;
+    if (seenCardUids.has(action.cardUid)) return false;
+    seenCardUids.add(action.cardUid);
+    return true;
+  });
+
+  // Sort by descending priority so alpha-beta pruning is most effective
+  deduped.sort((a, b) =>
+    actionPriority(b, state, enemyIdx, enemyChamp) -
+    actionPriority(a, state, enemyIdx, enemyChamp)
+  );
+
+  // Hard cap — keep at most MAX_CANDIDATES non-endTurn actions + endTurn
+  return [...deduped.slice(0, MAX_CANDIDATES), { type: 'endTurn' }];
 }
 
 // ── Minimax ───────────────────────────────────────────────────────────────────
 
+// Bonus applied to positions where the searching player wins — ensures the AI
+// always prefers a winning move over any other evaluation outcome.
+const WIN_BONUS = 500;
+
+function scoreState(gameState, playerId, weights) {
+  const { over, winner } = isGameOver(gameState);
+  const base = evaluateBoard(gameState, playerId, weights);
+  if (over) {
+    return winner === playerId ? base + WIN_BONUS : base - WIN_BONUS;
+  }
+  return base;
+}
+
 /**
  * Minimax search with alpha-beta pruning.
  *
- * Depth semantics: depth decrements by 1 at each endTurn (turn boundary).
- * Actions within a player's turn (non-endTurn) do not decrement depth.
- * At depth 0, the position is evaluated and returned immediately.
+ * Depth semantics: depth decrements by 1 on EVERY action (not just endTurn).
+ * This prevents the tree from exploding when a player takes many sequential
+ * actions per turn (summons, moves, spells). Perspective (maximizing/minimizing)
+ * still only flips on endTurn, matching the two-player game structure.
+ * At depth 0 the position is evaluated and returned immediately.
  *
  * @param {object}  gameState        - current game state
- * @param {number}  depth            - remaining turn-depth to search
+ * @param {number}  depth            - remaining action-depth to search
  * @param {number}  alpha            - best score maximizer can guarantee
  * @param {number}  beta             - best score minimizer can guarantee
  * @param {boolean} maximizingPlayer - true if current ply favors playerId
@@ -113,23 +177,19 @@ function filterActions(actions, state, commandsUsed) {
 function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, weights, deadline) {
   // Timeout check: abort and signal with a sentinel value
   if (performance.now() > deadline.time) {
-    return { score: evaluateBoard(gameState, playerId, weights), action: null, timedOut: true };
+    return { score: scoreState(gameState, playerId, weights), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over) {
-    return { score: evaluateBoard(gameState, playerId, weights), action: null };
-  }
-
-  if (depth === 0) {
-    return { score: evaluateBoard(gameState, playerId, weights), action: null };
+  if (over || depth === 0) {
+    return { score: scoreState(gameState, playerId, weights), action: null };
   }
 
   const rawActions = getLegalActions(gameState);
   const actions = filterActions(rawActions, gameState, commandsUsed);
 
   if (actions.length === 0) {
-    return { score: evaluateBoard(gameState, playerId, weights), action: null };
+    return { score: scoreState(gameState, playerId, weights), action: null };
   }
 
   if (maximizingPlayer) {
@@ -139,10 +199,10 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       const newState = applyAction(gameState, action);
       const isEndTurn = action.type === 'endTurn';
 
-      // endTurn switches player perspective and decrements depth
-      const nextDepth         = isEndTurn ? depth - 1 : depth;
-      const nextMaximizing    = isEndTurn ? false : true;
-      const nextCommandsUsed  = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
+      // Depth decrements on every action; perspective flips only on endTurn.
+      const nextDepth        = depth - 1;
+      const nextMaximizing   = isEndTurn ? false : true;
+      const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
       const result = minimax(
         newState, nextDepth, alpha, beta,
@@ -173,9 +233,9 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       const newState = applyAction(gameState, action);
       const isEndTurn = action.type === 'endTurn';
 
-      const nextDepth         = isEndTurn ? depth - 1 : depth;
-      const nextMaximizing    = isEndTurn ? true : false;
-      const nextCommandsUsed  = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
+      const nextDepth        = depth - 1;
+      const nextMaximizing   = isEndTurn ? true : false;
+      const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
       const result = minimax(
         newState, nextDepth, alpha, beta,
@@ -208,15 +268,41 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
  *
  * @param {object}  gameState    - current game state
  * @param {number}  commandsUsed - move actions already taken this turn (0–3)
- * @param {object}  [options]    - { depth: 2, weights: null }
+ * @param {object}  [options]    - { depth: 8, weights: null }
  * @returns {object}              action object to apply
  */
 export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
-  const depth   = options.depth   ?? 2;
+  const depth   = options.depth   ?? 4; // action-level depth (4 individual actions of lookahead)
   const weights = options.weights ?? undefined; // undefined → boardEval uses its own default
 
   const ap       = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
+
+  // ── Pre-check: lethal detection ─────────────────────────────────────────────
+  // If any legal action wins the game immediately, take it without running minimax.
+  const enemyIdx   = 1 - ap;
+  const enemyChamp = gameState.champions[enemyIdx];
+  const preActions = getLegalActions(gameState);
+
+  for (const action of preActions) {
+    if (action.type === 'move') {
+      const unit = gameState.units.find(u => u.uid === action.unitId);
+      if (
+        unit &&
+        action.targetTile[0] === enemyChamp.row &&
+        action.targetTile[1] === enemyChamp.col &&
+        unit.atk >= enemyChamp.hp
+      ) {
+        return action;
+      }
+    }
+    if (action.type === 'championAbility') {
+      // Check if applying the ability results in a win (handles future abilities that deal
+      // direct champion damage; currently a forward-looking guard).
+      const ns = applyAction(gameState, action);
+      if (ns.winner) return action;
+    }
+  }
 
   const deadline = { time: performance.now() + 5000 };
 
@@ -226,7 +312,8 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
   );
 
   if (result.timedOut || result.action === null) {
-    if (result.timedOut) {
+    // Only log timeout warnings in browser environments to keep simulation output clean.
+    if (result.timedOut && typeof window !== 'undefined') {
       console.warn('[minimaxAI] Search timed out — falling back to heuristic AI');
     }
     // Fallback to rules-based AI

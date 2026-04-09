@@ -127,6 +127,16 @@ export const CARD_DB = {
   soulstone:   { id: 'soulstone',   name: 'Soulstone',         type: 'relic', cost: 4, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When a friendly combat unit dies, destroy this Relic and summon that unit in this tile.' },
   bloodaltar:  { id: 'bloodaltar',  name: 'Blood Altar',       type: 'relic', cost: 3, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',  rules: 'Action: sacrifice an adjacent friendly combat unit. Draw 1 card.', action: true },
   echostone:   { id: 'echostone',   name: 'Echo Stone',        type: 'relic', cost: 2, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [],                 attribute: 'neutral', rules: 'At the end of your turn, restore 1 HP to your champion.' },
+
+  // ── Omens ──────────────────────────────────────────────────────────────────
+  // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.
+  // They expire after turnsRemaining turns (decremented at end of the owner's turn).
+  // Any enemy combat unit that moves onto an omen tile destroys it instantly — no combat.
+  // Omens cannot be targeted by spells. They can have passive/aura/begin-of-turn/end-of-turn effects.
+
+  battlestandard: { id: 'battlestandard', name: 'Battle Standard', type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'light',   rules: 'Friendly units summoned adjacent to this omen gain +1/+1 permanently.' },
+  smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'When played, all friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.' },
+  manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.' },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────

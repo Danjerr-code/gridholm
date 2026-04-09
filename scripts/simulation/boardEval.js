@@ -48,6 +48,7 @@ export const WEIGHTS = {
   gameLength:               -0.5,
   championProximity:         6,
   relicsOnBoard:             4,
+  omensOnBoard:              3,
 };
 
 /**
@@ -146,6 +147,10 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   // Relics provide persistent value so keeping them alive is a bonus.
   const relicsOnBoard = myUnits.filter(u => u.isRelic).length;
 
+  // omensOnBoard: count of friendly omens alive on the board.
+  // Omens provide temporary passive value; their presence is worth tracking.
+  const omensOnBoard = myUnits.filter(u => u.isOmen).length;
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   const score =
@@ -163,7 +168,8 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     lethalThreat             * weights.lethalThreat             +
     gameLength               * weights.gameLength               +
     championProximity        * weights.championProximity        +
-    relicsOnBoard            * weights.relicsOnBoard;
+    relicsOnBoard            * weights.relicsOnBoard            +
+    omensOnBoard             * weights.omensOnBoard;
 
   return score;
 }

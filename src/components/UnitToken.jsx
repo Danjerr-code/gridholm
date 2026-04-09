@@ -21,6 +21,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isRelic = !!unit.isRelic;
+  const isOmen = !!unit.isOmen;
   const isMyUnit = myPlayerIndex !== undefined && unit.owner === myPlayerIndex;
   const isOpponentHidden = unit.hidden && !isMyUnit;
   const isOwnHidden = unit.hidden && isMyUnit;
@@ -201,6 +202,79 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ringStyle = { outline: '2px solid #C9A84C80' };
   } else if (isOwnHidden) {
     ringStyle = { outline: '2px solid #a855f7', boxShadow: `0 0 6px rgba(168,85,247,0.4), ${teamRingShadow}` };
+  }
+
+  // Omen: glowing rune circle with turns remaining countdown
+  if (isOmen) {
+    const omenGlowColor = unit.attribute === 'dark'
+      ? { ring: '#a855f7', glow: 'rgba(168,85,247,0.6)', bg: '#1a0a2e', badge: '#6d28d9' }
+      : unit.attribute === 'mystic'
+      ? { ring: '#22d3ee', glow: 'rgba(34,211,238,0.6)', bg: '#0a1e2e', badge: '#0e7490' }
+      : { ring: '#fbbf24', glow: 'rgba(251,191,36,0.6)', bg: '#1e1a0a', badge: '#b45309' };
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative"
+        style={{
+          background: omenGlowColor.bg,
+          border: `2px dashed ${omenGlowColor.ring}cc`,
+          borderRadius: '50%',
+          boxShadow: `inset 0 0 8px ${omenGlowColor.glow}, 0 0 0 2px ${ownerRingColor.ring}88, 0 0 12px ${omenGlowColor.glow}`,
+          ...ringStyle,
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onClick={handleClick}
+        title={`${unit.name} [Omen] | ${unit.turnsRemaining} turn(s) remaining — ${unit.rules || ''}`}
+      >
+        {/* Rune symbol */}
+        <span style={{
+          fontSize: '14px',
+          lineHeight: 1,
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -60%)',
+          zIndex: 1,
+          opacity: 0.7,
+        }}>✦</span>
+        {/* Turns remaining counter — prominent */}
+        <div style={{
+          position: 'absolute',
+          bottom: '3px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: omenGlowColor.badge,
+          color: '#fff',
+          fontSize: '11px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 700,
+          padding: '1px 6px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 2,
+          lineHeight: 1.4,
+        }}>{unit.turnsRemaining}</div>
+        {/* OMEN label */}
+        <div style={{
+          position: 'absolute',
+          top: '3px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: omenGlowColor.badge,
+          color: '#fff',
+          fontSize: '6px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 700,
+          padding: '1px 4px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 2,
+          letterSpacing: '0.05em',
+        }}>OMEN</div>
+      </div>
+    );
   }
 
   return (

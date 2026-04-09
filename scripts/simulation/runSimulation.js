@@ -21,7 +21,7 @@ import { chooseActionMinimax } from './minimaxAI.js';
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'heuristic', depth: 2 };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'heuristic', depth: 4 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--p1':     args.p1     = argv[++i]; break;

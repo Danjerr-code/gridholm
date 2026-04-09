@@ -168,11 +168,11 @@ export function getLegalActions(state) {
     }
   }
 
-  // 3. Summon unit and relic cards
+  // 3. Summon unit, relic, and omen cards
   const summonTiles = getSummonTiles(state);
   if (summonTiles.length > 0) {
     for (const card of p.hand) {
-      if (card.type !== 'unit' && card.type !== 'relic') continue;
+      if (card.type !== 'unit' && card.type !== 'relic' && card.type !== 'omen') continue;
       if (p.resources < card.cost) continue;
       if ((state.recalledThisTurn || []).includes(card.id)) continue;
       for (const [row, col] of summonTiles) {
