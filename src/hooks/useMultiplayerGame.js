@@ -3,16 +3,17 @@ import { supabase, getGuestId } from '../supabase.js';
 import { playTurnStartSound } from '../audio.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
-const DISCONNECT_TIMEOUT_MS = 60_000;
+const IDLE_WARN_SECONDS = 30;  // show countdown when this many seconds remain
+const IDLE_FORFEIT_SECONDS = 60; // forfeit after this many idle seconds
 
 export function useMultiplayerGame(gameId) {
   const guestId = getGuestId();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
-  const disconnectTimerRef = useRef(null);
+  const [idleElapsed, setIdleElapsed] = useState(0);
   const retryTimerRef = useRef(null);
+  const forfeitCalledRef = useRef(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -28,11 +29,6 @@ export function useMultiplayerGame(gameId) {
         { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: 'id=eq.' + gameId },
         (payload) => {
           setSession(payload.new);
-          setOpponentDisconnected(false);
-          if (disconnectTimerRef.current) {
-            clearTimeout(disconnectTimerRef.current);
-            disconnectTimerRef.current = null;
-          }
         }
       )
       .subscribe();
@@ -97,25 +93,65 @@ export function useMultiplayerGame(gameId) {
 
     return () => {
       supabase.removeChannel(channel);
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
   }, [gameId, guestId]);
 
-  // Disconnect detection
+  // Idle elapsed ticker: counts seconds since last session update during active gameplay
   useEffect(() => {
-    if (!session || session.status !== 'active') return;
-    const isMyTurn = session.active_player === guestId;
-    if (isMyTurn) return;
+    if (!session || session.status !== 'active') {
+      setIdleElapsed(0);
+      return;
+    }
 
-    if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-    disconnectTimerRef.current = setTimeout(() => {
-      setOpponentDisconnected(true);
-    }, DISCONNECT_TIMEOUT_MS);
+    const getElapsed = () =>
+      Math.floor((Date.now() - new Date(session.updated_at).getTime()) / 1000);
 
-    return () => {
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
-    };
-  }, [session?.active_player, session?.status, guestId]);
+    const tick = () => setIdleElapsed(getElapsed());
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [session?.updated_at, session?.status]);
+
+  // Reset forfeit guard when active player changes (new turn)
+  useEffect(() => {
+    forfeitCalledRef.current = false;
+  }, [session?.active_player]);
+
+  // Auto-forfeit idle player: triggered by the waiting player when opponent is idle >= 60s
+  useEffect(() => {
+    if (!session || session.status !== 'active' || !supabase) return;
+    if (session.active_player === guestId) return; // it's my turn — I don't forfeit myself
+    if (idleElapsed < IDLE_FORFEIT_SECONDS) return;
+    if (forfeitCalledRef.current) return;
+    forfeitCalledRef.current = true;
+
+    const idlePlayerId = session.active_player;
+    const winnerGuestId = idlePlayerId === session.player1_id
+      ? session.player2_id
+      : session.player1_id;
+    const firstPlayerId = session.game_state?.firstPlayerId ?? session.player1_id;
+    const isSwapped = firstPlayerId === session.player2_id;
+    const idleEngineIndex = idlePlayerId === session.player1_id
+      ? (isSwapped ? 1 : 0)
+      : (isSwapped ? 0 : 1);
+    const winnerEngineIndex = 1 - idleEngineIndex;
+    const winnerName = session.game_state?.players?.[winnerEngineIndex]?.name
+      ?? (winnerEngineIndex === 0 ? 'Player 1' : 'Player 2');
+    const updatedGameState = { ...session.game_state, winner: winnerName };
+
+    supabase
+      .from('game_sessions')
+      .update({
+        status: 'complete',
+        winner: winnerGuestId,
+        game_state: updatedGameState,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gameId)
+      .then(({ error: err }) => {
+        if (err) console.error('[IdleTimeout] Forfeit failed:', err);
+      });
+  }, [idleElapsed, session, gameId, guestId]);
 
   // Play a chime when active_player transitions to the local player.
   const prevActivePlayerRef = useRef(null);
@@ -331,9 +367,9 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId);
   }, [session, gameId]);
 
-  const playAgain = useCallback(async () => {
+  // Internal: resets game to deck_select for a rematch, alternating who goes first
+  const startRematch = useCallback(async () => {
     if (!session || !supabase) return;
-    // Alternate who goes first: whoever went first last game yields to the other player.
     const lastFirstPlayerId = session.game_state?.firstPlayerId || session.player1_id;
     const nextFirstPlayer = lastFirstPlayerId === session.player1_id
       ? session.player2_id
@@ -355,6 +391,40 @@ export function useMultiplayerGame(gameId) {
       .single();
 
     if (updated) setSession(updated);
+  }, [session, gameId]);
+
+  // Propose a rematch. Uses a vote in game_state.rematchVotes — when both players
+  // have voted, the second voter triggers startRematch automatically.
+  const proposeRematch = useCallback(async () => {
+    if (!session || !supabase || session.status !== 'complete') return;
+    const currentVotes = session.game_state?.rematchVotes ?? [];
+    if (currentVotes.includes(guestId)) return; // already voted
+
+    const newVotes = [...currentVotes, guestId];
+    const bothVoted =
+      newVotes.includes(session.player1_id) && newVotes.includes(session.player2_id);
+
+    if (bothVoted) {
+      await startRematch();
+    } else {
+      const updatedGameState = { ...session.game_state, rematchVotes: newVotes };
+      const { data: updated } = await supabase
+        .from('game_sessions')
+        .update({ game_state: updatedGameState, updated_at: new Date().toISOString() })
+        .eq('id', gameId)
+        .select()
+        .single();
+      if (updated) setSession(updated);
+    }
+  }, [session, gameId, guestId, startRematch]);
+
+  // Decline a rematch proposal — sets status to abandoned, triggering lobby redirect for both
+  const declineRematch = useCallback(async () => {
+    if (!session || !supabase) return;
+    await supabase
+      .from('game_sessions')
+      .update({ status: 'abandoned', updated_at: new Date().toISOString() })
+      .eq('id', gameId);
   }, [session, gameId]);
 
   // When decks are swapped for alternation, player2 has game-engine index 0
@@ -379,6 +449,22 @@ export function useMultiplayerGame(gameId) {
     : null;
   const inDeckSelect = session?.status === 'deck_select';
 
+  // Idle countdown: seconds remaining until forfeit (null when not in warning zone)
+  const idleCountdown = session?.status === 'active' && idleElapsed >= IDLE_WARN_SECONDS
+    ? Math.max(0, IDLE_FORFEIT_SECONDS - idleElapsed)
+    : null;
+
+  // Opponent presence: false when it's opponent's turn and they've been idle >= warn threshold
+  const opponentPresent = session?.status !== 'active' || isMyTurn || idleElapsed < IDLE_WARN_SECONDS;
+
+  // Rematch vote state
+  const rematchVotes = session?.game_state?.rematchVotes ?? [];
+  const iHaveVoted = rematchVotes.includes(guestId);
+  const opponentGuestId = session
+    ? (session.player1_id === guestId ? session.player2_id : session.player1_id)
+    : null;
+  const opponentHasVoted = opponentGuestId ? rematchVotes.includes(opponentGuestId) : false;
+
   return {
     session,
     loading,
@@ -388,11 +474,15 @@ export function useMultiplayerGame(gameId) {
     isMyTurn,
     dispatchAction,
     guestId,
-    opponentDisconnected,
+    opponentPresent,
+    idleCountdown,
     concedeGame,
     abandonGame,
     cancelWaiting,
-    playAgain,
+    proposeRematch,
+    declineRematch,
+    iHaveVoted,
+    opponentHasVoted,
     selectDeck,
     inDeckSelect,
     myDeck,

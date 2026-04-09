@@ -113,7 +113,21 @@ export function ResourceDisplay({ current, max = 10, maxThisTurn, playerColor, s
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog }) {
+function ConnectionDot({ connected }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      width: '7px',
+      height: '7px',
+      borderRadius: '50%',
+      background: connected ? '#22c55e' : '#6b7280',
+      boxShadow: connected ? '0 0 4px #22c55e80' : 'none',
+      flexShrink: 0,
+    }} />
+  );
+}
+
+export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog, opponentConnected }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -137,12 +151,19 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
     border: '1px solid #252538',
   };
 
+  // opponentConnected dot: show next to p1 if myPlayerIndex===1, p2 if myPlayerIndex===0
+  const showDotOnP1 = opponentConnected !== undefined && myPlayerIndex === 1;
+  const showDotOnP2 = opponentConnected !== undefined && myPlayerIndex === 0;
+
   return (
     <>
       {/* Mobile: compact 3-column layout — no resource display (visible in bottom panel) */}
       <div className="sm:hidden grid grid-cols-3 items-start px-2 py-1 leading-tight" style={barStyle}>
         <div className="flex flex-col gap-0.5">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c1.hp}/{c1.maxHp}</span></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c1.hp}/{c1.maxHp}</span></span>
+            {showDotOnP1 && <ConnectionDot connected={opponentConnected} />}
+          </div>
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
@@ -168,7 +189,10 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+            {showDotOnP2 && <ConnectionDot connected={opponentConnected} />}
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
+          </div>
           {aiThinking && <span style={{ fontSize: '9px', color: '#C9A84C', fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>Thinking…</span>}
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
           {onOpenLog && (
@@ -198,6 +222,7 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
         <div className="flex items-center gap-3 flex-wrap">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name}</span>
           <HpBar hp={c1.hp} maxHp={c1.maxHp} color="blue" />
+          {showDotOnP1 && <ConnectionDot connected={opponentConnected} />}
           {!hideP1Resources && <ResourceDisplay current={p1.resources} max={10} maxThisTurn={p1.maxResourcesThisTurn} playerColor="#185FA5" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
         </div>
@@ -212,6 +237,7 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
             {aiThinking && <span style={{ fontSize: '10px', color: '#C9A84C', fontFamily: 'var(--font-sans)', fontStyle: 'italic', marginLeft: '6px' }}>Thinking…</span>}
           </span>
           <HpBar hp={c2.hp} maxHp={c2.maxHp} color="red" />
+          {showDotOnP2 && <ConnectionDot connected={opponentConnected} />}
           {!hideP2Resources && <ResourceDisplay current={p2.resources} max={10} maxThisTurn={p2.maxResourcesThisTurn} playerColor="#993C1D" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
         </div>

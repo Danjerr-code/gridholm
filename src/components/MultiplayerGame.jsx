@@ -55,10 +55,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     isMyTurn,
     dispatchAction,
     guestId,
-    opponentDisconnected,
+    opponentPresent,
+    idleCountdown,
     concedeGame,
     abandonGame,
-    playAgain,
+    proposeRematch,
+    declineRematch,
+    iHaveVoted,
+    opponentHasVoted,
     selectDeck,
     inDeckSelect,
     myDeck,
@@ -426,12 +430,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }
   }, [mobilePrimedCard, handlePlayCard, isMyTurn, gameState]);
 
-  const handlePlayAgain = useCallback(async () => {
+  const handleProposeRematch = useCallback(async () => {
     if (playAgainLoading) return;
     setPlayAgainLoading(true);
-    await playAgain();
+    await proposeRematch();
     setPlayAgainLoading(false);
-  }, [playAgain, playAgainLoading]);
+  }, [proposeRematch, playAgainLoading]);
+
+  const handleDeclineRematch = useCallback(async () => {
+    await declineRematch();
+    onBackToLobby();
+  }, [declineRematch, onBackToLobby]);
 
   // ── Loading / Error states ────────────────────────────────────────────
 
@@ -703,26 +712,91 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       {/* Winner overlay */}
       {winner && opponentLeftCountdown === null && (
         <GameEndOverlay isWinner={winner === myPlayer.name}>
-          <button
-            style={{
-              background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-              color: '#0a0a0f',
+          {/* Rematch flow: propose → wait → accept/decline */}
+          {!iHaveVoted && !opponentHasVoted && (
+            <button
+              style={{
+                background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                color: '#0a0a0f',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '13px',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: '4px',
+                padding: '10px 24px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px #C9A84C40',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+              onClick={handleProposeRematch}
+              disabled={playAgainLoading}
+            >
+              {playAgainLoading ? 'Proposing…' : 'Play Again'}
+            </button>
+          )}
+          {iHaveVoted && !opponentHasVoted && (
+            <div style={{
               fontFamily: "'Cinzel', serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              border: 'none',
-              borderRadius: '4px',
-              padding: '10px 24px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px #C9A84C40',
+              fontSize: '12px',
+              color: '#8a8aaa',
+              padding: '10px 0',
               letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}
-            onClick={handlePlayAgain}
-            disabled={playAgainLoading}
-          >
-            {playAgainLoading ? 'Resetting…' : 'Play Again'}
-          </button>
+            }}>
+              Waiting for opponent…
+            </div>
+          )}
+          {!iHaveVoted && opponentHasVoted && (
+            <>
+              <div style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: '12px',
+                color: '#C9A84C',
+                marginBottom: '8px',
+                letterSpacing: '0.05em',
+              }}>
+                Opponent proposes a rematch!
+              </div>
+              <button
+                style={{
+                  background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                  color: '#0a0a0f',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '10px 24px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px #C9A84C40',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+                onClick={handleProposeRematch}
+                disabled={playAgainLoading}
+              >
+                {playAgainLoading ? 'Starting…' : 'Accept'}
+              </button>
+              <button
+                style={{
+                  background: 'transparent',
+                  color: '#6a6a8a',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: '1px solid #2a2a3a',
+                  borderRadius: '4px',
+                  padding: '10px 24px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+                onClick={handleDeclineRematch}
+              >
+                Decline
+              </button>
+            </>
+          )}
           <button
             style={{
               background: 'transparent',
@@ -744,28 +818,44 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </GameEndOverlay>
       )}
 
-      {/* Opponent disconnected overlay */}
-      {opponentDisconnected && !winner && (
+      {/* Idle countdown overlay (visible to both players) */}
+      {idleCountdown !== null && !winner && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
-          <div className="bg-gray-800 border border-orange-500 rounded-2xl p-6 text-center shadow-2xl max-w-xs">
-            <p className="text-orange-400 font-bold mb-2">Opponent disconnected</p>
-            <p className="text-gray-400 text-sm mb-4">
-              Your opponent hasn't made a move in over a minute. They may have disconnected.
+          <div style={{
+            background: '#0d0d1a',
+            border: `1px solid ${idleCountdown <= 10 ? '#ef4444' : '#d97706'}`,
+            borderRadius: '16px',
+            padding: '24px 32px',
+            textAlign: 'center',
+            maxWidth: '280px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+          }}>
+            <p style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '13px',
+              fontWeight: 600,
+              color: isMyTurn ? '#fbbf24' : '#f97316',
+              marginBottom: '8px',
+              letterSpacing: '0.05em',
+            }}>
+              {isMyTurn ? 'Your turn is almost up!' : 'Opponent away'}
             </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button
-                className="bg-red-700 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm"
-                onClick={async () => { await abandonGame(); onBackToLobby(); }}
-              >
-                Abandon Game
-              </button>
-              <button
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg text-sm"
-                onClick={onBackToLobby}
-              >
-                Keep Waiting
-              </button>
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '52px',
+              fontWeight: 700,
+              color: idleCountdown <= 10 ? '#ef4444' : '#C9A84C',
+              lineHeight: 1,
+              margin: '8px 0',
+            }}>
+              {idleCountdown}
             </div>
+            <p style={{ fontSize: '12px', color: '#8080a0', marginTop: '8px' }}>
+              {isMyTurn
+                ? 'Take an action or you will forfeit.'
+                : 'Reconnecting\u2026 forfeiting if no response.'}
+            </p>
           </div>
         </div>
       )}
@@ -887,7 +977,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       )}
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={myPlayerIndex} commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
+      <StatusBar state={state} myPlayerIndex={myPlayerIndex} commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} opponentConnected={opponentPresent} />
 
       {/* Middle content row */}
       <div className="flex gap-2 flex-1 min-h-0">
