@@ -1906,6 +1906,12 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
+  // The Iron Queen: direction selection — reuses pendingLineBlast / direction_select flow
+  if (unit.id === 'ironqueen') {
+    s.pendingLineBlast = { unitUid: unit.uid };
+    return s;
+  }
+
   // Mana Cannon: direction selection — uses same pendingLineBlast / direction_select flow as Vorn
   if (unit.id === 'manacannon') {
     if ((s.players[s.activePlayer].resources || 0) < 1) {
@@ -2349,10 +2355,10 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
   const p = state.players[state.activePlayer];
 
   switch (effect) {
-    // Smite: enemy within 2 tiles of champion (not hidden, not omen)
+    // Smite: enemy within 2 tiles of champion (not hidden, not omen, not spell-immune)
     case 'smite':
       return state.units
-        .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
     // Forge Weapon, Iron Shield, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden for most)
@@ -2365,10 +2371,10 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'moonleaf':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit').map(u => u.uid);
 
-    // Bloom step 0: friendly unit or champion; step 1: enemy unit (not omen)
+    // Bloom step 0: friendly unit or champion; step 1: enemy unit (not omen, not spell-immune)
     case 'bloom':
       if (step === 0) return ['champion' + state.activePlayer, ...state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid)];
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
     // Entangle: friendly Elf unit
     case 'entangle':
@@ -2393,48 +2399,48 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       }
       return [];
 
-    // Blood Offering step 0: friendly unit; step 1: any enemy (not omen)
+    // Blood Offering step 0: friendly unit; step 1: any enemy (not omen, not spell-immune)
     case 'bloodoffering':
       if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
-    // Pact of Ruin damage: any enemy unit or enemy champion (not omen)
+    // Pact of Ruin damage: any enemy unit or enemy champion (not omen, not spell-immune)
     case 'pactofruin_damage':
       return [
         'champion' + (1 - state.activePlayer),
-        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid),
+        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid),
       ];
 
-    // Dark Sentence: any enemy unit (not omen)
+    // Dark Sentence: any enemy unit (not omen, not spell-immune)
     case 'darksentence':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
-    // Devour: enemy with 2 or less HP (not omen — omens have no HP)
+    // Devour: enemy with 2 or less HP (not omen, not spell-immune)
     case 'devour':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && u.hp <= 2).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && u.hp <= 2).map(u => u.uid);
 
-    // Soul Drain: enemy unit (not omen)
+    // Soul Drain: enemy unit (not omen, not spell-immune)
     case 'souldrain':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
-    // Spirit Bolt: any enemy unit on the board (no range restriction, not omen)
+    // Spirit Bolt: any enemy unit on the board (no range restriction, not omen, not spell-immune)
     case 'spiritbolt':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
-    // Woodland Guard action: enemy within 2 tiles (not omen)
+    // Woodland Guard action: enemy within 2 tiles (not omen, not spell-immune)
     case 'woodlandguard_action': {
       const src = state.units.find(u => u.uid === (data.sourceUid || ''));
-      if (!src) return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen).map(u => u.uid);
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
+      if (!src) return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
     }
 
-    // Battle Priest summon trigger step 0: enemy within 1 tile (not omen); step 1: friendly within 1 tile
+    // Battle Priest summon trigger step 0: enemy within 1 tile (not omen, not spell-immune); step 1: friendly within 1 tile
     case 'battlepriestunit_summon': {
       const priest = state.units.find(u => u.uid === (data.sourceUid || ''));
       if (!priest) return [];
       const adj = cardinalNeighbors(priest.row, priest.col);
       if (step === 0) {
-        return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+        return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
       }
       return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
     }
@@ -2464,9 +2470,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       ).map(u => u.uid);
     }
 
-    // Clockwork Manimus action: any enemy combat unit (not omen, not relic)
+    // Clockwork Manimus action: any enemy combat unit (not omen, not relic, not spell-immune)
     case 'clockworkmanimus_action':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
     default:
       return [];
@@ -2483,7 +2489,7 @@ export function hasValidTargets(card, state, playerIndex) {
 
   const effect = card.effect;
   const champ = state.champions[playerIndex];
-  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen);
+  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells);
   const friendlyUnits = state.units.filter(u => u.owner === playerIndex);
 
   switch (effect) {

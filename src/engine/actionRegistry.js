@@ -228,6 +228,46 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  ironqueen: (unit, state, targets) => {
+    const dir = targets[0];
+    if (!dir) {
+      addLog(state, `The Iron Queen: no direction selected.`);
+      return state;
+    }
+    const deltas = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+    const [dr, dc] = deltas[dir] || [0, 0];
+    const adjR = unit.row + dr;
+    const adjC = unit.col + dc;
+    // If the adjacent tile in the chosen direction is occupied, she does not move
+    const adjOccupied =
+      adjR < 0 || adjR > 4 || adjC < 0 || adjC > 4 ||
+      state.units.some(u => u.uid !== unit.uid && u.row === adjR && u.col === adjC) ||
+      state.champions.some(ch => ch.row === adjR && ch.col === adjC);
+    if (adjOccupied) {
+      addLog(state, `The Iron Queen: path blocked — stays in place.`);
+      return state;
+    }
+    // Traverse to the furthest empty tile in the chosen direction
+    let destR = unit.row;
+    let destC = unit.col;
+    let r = adjR;
+    let c = adjC;
+    while (r >= 0 && r <= 4 && c >= 0 && c <= 4) {
+      const blocked =
+        state.units.some(u => u.uid !== unit.uid && u.row === r && u.col === c) ||
+        state.champions.some(ch => ch.row === r && ch.col === c);
+      if (blocked) break;
+      destR = r;
+      destC = c;
+      r += dr;
+      c += dc;
+    }
+    unit.row = destR;
+    unit.col = destC;
+    addLog(state, `The Iron Queen: charges ${dir} to (${destR}, ${destC}).`);
+    return state;
+  },
+
 };
 
 // ==========================================

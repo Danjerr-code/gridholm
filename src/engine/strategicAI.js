@@ -167,6 +167,66 @@ function getLegalActions(state) {
 
 // ── applyAction ───────────────────────────────────────────────────────────────
 
+// Picks the cardinal direction that maximises units hit in a line (for Vorn, Mana Cannon)
+// or — when the unit has an action that moves itself (Iron Queen) — the direction that
+// puts the unit closest to the enemy champion. Falls back to 'up' if all counts tie.
+function _pickBestDirection(state, unit) {
+  const DIRS = ['up', 'down', 'left', 'right'];
+  const deltas = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+  const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner);
+
+  // For Iron Queen, pick direction that moves her closest to the enemy champion
+  if (unit.id === 'ironqueen' && enemyChamp) {
+    const distances = DIRS.map(dir => {
+      const [dr, dc] = deltas[dir];
+      let r = unit.row + dr;
+      let c = unit.col + dc;
+      if (r < 0 || r > 4 || c < 0 || c > 4) return { dir, dist: Infinity };
+      // Blocked immediately — she won't move
+      const blocked = state.units.some(u => u.uid !== unit.uid && u.row === r && u.col === c) ||
+        state.champions.some(ch => ch.row === r && ch.col === c);
+      if (blocked) return { dir, dist: Infinity };
+      let destR = r;
+      let destC = c;
+      let nr = r + dr;
+      let nc = c + dc;
+      while (nr >= 0 && nr <= 4 && nc >= 0 && nc <= 4) {
+        const b = state.units.some(u => u.uid !== unit.uid && u.row === nr && u.col === nc) ||
+          state.champions.some(ch => ch.row === nr && ch.col === nc);
+        if (b) break;
+        destR = nr;
+        destC = nc;
+        nr += dr;
+        nc += dc;
+      }
+      return { dir, dist: Math.abs(destR - enemyChamp.row) + Math.abs(destC - enemyChamp.col) };
+    });
+    distances.sort((a, b) => a.dist - b.dist);
+    return distances[0].dir;
+  }
+
+  // Default: pick direction that hits the most units in a line
+  let best = 'up';
+  let bestCount = -1;
+  for (const dir of DIRS) {
+    const [dr, dc] = deltas[dir];
+    let r = unit.row + dr;
+    let c = unit.col + dc;
+    let count = 0;
+    while (r >= 0 && r <= 4 && c >= 0 && c <= 4) {
+      if (state.units.some(u => u.row === r && u.col === c && !u.isOmen) ||
+          state.champions.some(ch => ch.row === r && ch.col === c)) {
+        count++;
+        break;
+      }
+      r += dr;
+      c += dc;
+    }
+    if (count > bestCount) { bestCount = count; best = dir; }
+  }
+  return best;
+}
+
 export function applyAction(state, action) {
   const ap = state.activePlayer;
 
@@ -213,9 +273,8 @@ export function applyAction(state, action) {
     case 'unitAction': {
       let s = triggerUnitAction(state, action.unitId);
       if (s.pendingLineBlast) {
-        // Vorn, Thundercaller: AI picks the direction that hits the most units
-        const vorn = s.units.find(u => u.uid === s.pendingLineBlast.unitUid);
-        const bestDir = vorn ? _pickLineBlastDirection(s, vorn) : 'up';
+        const pendingUnit = s.units.find(u => u.uid === s.pendingLineBlast.unitUid);
+        const bestDir = pendingUnit ? _pickBestDirection(s, pendingUnit) : 'up';
         s = resolveLineBlast(s, s.pendingLineBlast.unitUid, bestDir);
       } else if (s.pendingDeckPeek) {
         // Arcane Lens: AI keeps the highest-cost card from the peeked cards
