@@ -40,7 +40,7 @@ export const RESONANCE_VALUES = {
 
 export const RESONANCE_THRESHOLDS = {
   attuned: 30,
-  ascended: 45,
+  ascended: 50,
 }
 
 export function calculateResonance(deck, primaryAttribute) {
