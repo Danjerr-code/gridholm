@@ -96,13 +96,15 @@ export function getAuraRangeBonus(state, unitUid) {
 }
 
 // Returns the SPD bonus from zoneSpdBuff modifiers for a unit.
-// Anchor 'enemyChampion': bonus applies when within `range` tiles of the enemy champion.
+// Anchor 'enemyChampion': bonus applies when the unit is within `range` tiles of the enemy champion.
+// The modifier belongs to a friendly source unit (same player); all friendly combat units in range benefit.
+// Multiple sources (e.g. two Siegeclaw Warchiefs) stack additively.
 export function getZoneSpdBonus(state, unit) {
   if (!state.activeModifiers) return 0;
   let bonus = 0;
   for (const mod of state.activeModifiers) {
     if (mod.type !== 'zoneSpdBuff') continue;
-    if (mod.unitUid !== unit.uid) continue;
+    if (mod.playerIndex !== unit.owner) continue;
     if (mod.anchor === 'enemyChampion') {
       const enemyChamp = state.champions[1 - unit.owner];
       if (!enemyChamp) continue;

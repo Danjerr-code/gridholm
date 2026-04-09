@@ -170,6 +170,16 @@ export function restoreHP(target, amount, state, source = 'effect') {
   } else {
     holder = target;
   }
+  // Lifedrinker Stag: apply the highest restoreHPMultiplier belonging to the active player
+  if (state.activeModifiers) {
+    let maxMultiplier = 1;
+    for (const mod of state.activeModifiers) {
+      if (mod.type === 'restoreHPMultiplier' && mod.playerIndex === state.activePlayer) {
+        if ((mod.multiplier || 1) > maxMultiplier) maxMultiplier = mod.multiplier;
+      }
+    }
+    if (maxMultiplier > 1) amount = amount * maxMultiplier;
+  }
   const actual = Math.min(amount, holder.maxHp - holder.hp);
   if (actual > 0) {
     holder.hp += actual;
@@ -1626,19 +1636,29 @@ export function triggerUnitAction(state, unitUid) {
 
   // No-target actions — dispatch immediately via ACTION_REGISTRY
   if (unit.id === 'sergeant') {
-    return _dispatchAction(unit, s, []);
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
   }
   if (unit.id === 'grovewarden') {
-    return _dispatchAction(unit, s, []);
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
   }
   if (unit.id === 'darkdealer') {
     const result = _dispatchAction(unit, s, []);
     checkWinner(result);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
   if (unit.id === 'siegemound') {
     const result = _dispatchAction(unit, s, []);
     checkWinner(result);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
 
@@ -1826,6 +1846,11 @@ export function moveUnit(state, unitUid, row, col) {
     // Fire attack triggers (Whisper, Crossbowman, Razorfang)
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
+    // Declarative trigger: onFriendlyAction — fired after attacker completes combat
+    const attackerAfterCombat = s.units.find(u => u.uid === unitUid);
+    if (attackerAfterCombat) {
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: attackerAfterCombat, triggeringUid: unitUid }, s);
+    }
   } else if (enemyChamp) {
     // Reveal hidden attacking unit before champion combat
     if (unit.hidden) {
@@ -1862,6 +1887,11 @@ export function moveUnit(state, unitUid, row, col) {
     // Fire attack triggers (Dread Knight)
     if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
+    // Declarative trigger: onFriendlyAction — fired after attacker completes champion combat
+    const attackerAfterChampCombat = s.units.find(u => u.uid === unitUid);
+    if (attackerAfterChampCombat) {
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: attackerAfterChampCombat, triggeringUid: unitUid }, s);
+    }
   } else {
     // Regular move — hidden units (including shadow-veil'd) do not reveal on move
     unit.row = row;

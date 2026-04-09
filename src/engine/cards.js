@@ -119,6 +119,11 @@ export const CARD_DB = {
   // Light/Mystic bridge units (Batch 2)
   runebladesentinel: { id: 'runebladesentinel', name: 'Runeblade Sentinel', type: 'unit', cost: 3, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'Has +3/+3 while you have 5 or more cards in hand.', modifier: { type: 'conditionalStatBuff', stat: 'atkAndHp', amount: 3, condition: { type: 'minCardsInHand', count: 5 } }, image: 'runebladesentinel.webp' },
 
+  // Light/Primal and Enemy Pair Bridge Cards (Batch 3)
+  siegeclawwarchief:  { id: 'siegeclawwarchief',  name: 'Siegeclaw Warchief',  type: 'unit', cost: 3, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.BEAST],  attribute: 'beast',   rules: 'Friendly combat units within 2 tiles of the enemy champion have +1 SPD.', modifier: [{ type: 'zoneSpdBuff', anchor: 'enemyChampion', range: 2, amount: 1 }], image: 'siegeclawwarchief.webp' },
+  vanguardtaskmaster: { id: 'vanguardtaskmaster', name: 'Vanguard Taskmaster', type: 'unit', cost: 3, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.HUMAN],  attribute: 'human',   rules: 'Whenever a friendly combat unit uses an action, it gains +1 HP.', triggers: [{ event: 'onFriendlyAction', effect: 'gainPlusOneHPOnAction', selfTrigger: true }], image: 'vanguardtaskmaster.webp' },
+  lifedrinkerstag:    { id: 'lifedrinkerstag',    name: 'Lifedrinker Stag',    type: 'unit', cost: 4, atk: 3, hp: 2, spd: 1, unitType: [UNIT_TYPES.BEAST],  attribute: 'beast',   rules: 'Whenever you restore HP, restore double that amount instead.', modifier: [{ type: 'restoreHPMultiplier', multiplier: 2 }], image: 'lifedrinkerstag.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
