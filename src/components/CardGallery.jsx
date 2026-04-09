@@ -214,6 +214,7 @@ function CardModal({ card, onClose }) {
 
 export default function CardGallery() {
   const grouped = getGroupedByAttribute();
+  const totalCardCount = Object.values(grouped).reduce((acc, cards) => acc + cards.length, 0);
   const [selectedCard, setSelectedCard] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [activeTypeTab, setActiveTypeTab] = useState('all');
@@ -269,6 +270,9 @@ export default function CardGallery() {
           </button>
           <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
             CARD GALLERY
+          </span>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#6b7280', letterSpacing: '0.04em' }}>
+            Cards: {totalCardCount}
           </span>
         </div>
 
