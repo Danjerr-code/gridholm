@@ -33,6 +33,7 @@ export const TRIGGER_EVENTS = [
   'onEndTurn',
   'onNonCombatChampionDamage',
   'onFriendlySacrifice',
+  'onEnemyAction',
 ];
 
 // Returns the initial triggerListeners object for state.
@@ -357,6 +358,17 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'negationcrystal_cancel': {
+      // Negation Crystal: prompt the owner to destroy it and cancel the enemy action.
+      if (!listenerUnit) break;
+      addLog(state, `Negation Crystal: ${state.players[listenerUnit.owner].name} may destroy it to cancel the action.`);
+      state.pendingNegationCancel = {
+        crystalUid: listenerUnit.uid,
+        playerIndex: listenerUnit.owner,
+      };
+      break;
+    }
+
     default:
       break;
   }
@@ -428,6 +440,10 @@ export function fireTrigger(event, context, state) {
       case 'onFriendlySacrifice':
         // Fires for the player who sacrificed the unit (the unit's owner)
         if (context?.sacrificingPlayerIndex == null || listener.playerIndex !== context.sacrificingPlayerIndex) continue;
+        break;
+      case 'onEnemyAction':
+        // Fires for the opposing player — listener owned by the player who is NOT acting
+        if (context?.actingPlayerIndex == null || listener.playerIndex === context.actingPlayerIndex) continue;
         break;
       default:
         break;

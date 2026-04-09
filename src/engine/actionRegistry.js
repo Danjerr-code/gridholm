@@ -159,6 +159,43 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // targets[0]: direction string 'up' | 'down' | 'left' | 'right'
+  manacannon: (unit, state, targets) => {
+    const activePlayer = unit.owner;
+    if ((state.players[activePlayer].resources || 0) < 1) {
+      addLog(state, `Mana Cannon: insufficient mana.`);
+      return state;
+    }
+    state.players[activePlayer].resources -= 1;
+    const dir = targets[0];
+    if (!dir) {
+      addLog(state, `Mana Cannon: no direction selected.`);
+      return state;
+    }
+    const deltas = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+    const [dr, dc] = deltas[dir] || [0, 0];
+    let r = unit.row + dr;
+    let c = unit.col + dc;
+    while (r >= 0 && r <= 4 && c >= 0 && c <= 4) {
+      const hit = state.units.find(u => u.row === r && u.col === c && !u.isOmen);
+      if (hit) {
+        addLog(state, `Mana Cannon: ${hit.name} struck for 1 damage.`);
+        applyDamageToUnit(state, hit, 1, 'Mana Cannon');
+        break;
+      }
+      const champHit = state.champions.find(ch => ch.row === r && ch.col === c);
+      if (champHit) {
+        champHit.hp -= 1;
+        const side = champHit.owner === unit.owner ? 'friendly' : 'enemy';
+        addLog(state, `Mana Cannon: ${side} champion struck for 1 damage (${champHit.hp} HP).`);
+        break;
+      }
+      r += dr;
+      c += dc;
+    }
+    return state;
+  },
+
   // Azulon: set spellEchoActive flag — the next spell cast this turn resolves twice
   azulonsilvertide: (unit, state) => {
     state.players[unit.owner].spellEchoActive = true;
@@ -179,6 +216,29 @@ export const ACTION_REGISTRY = {
   },
 
 };
+
+// ==========================================
+// ACTION DISPATCH WITH onEnemyAction TRIGGER
+// Single entry point called by _dispatchAction in gameEngine.js.
+// Fires onEnemyAction for the opposing player's triggers (e.g. Negation Crystal)
+// before resolving the action. If state.pendingNegationCancel is set after the
+// trigger fires, the action is paused and stored for later resolution.
+// ==========================================
+export function dispatchAction(unit, state, targets) {
+  fireTrigger('onEnemyAction', { actingUnit: unit, actingPlayerIndex: unit.owner }, state);
+  if (state.pendingNegationCancel) {
+    // Action paused — store context so it can be replayed or cancelled.
+    state.pendingNegationCancel.pendingUnitUid = unit.uid;
+    state.pendingNegationCancel.pendingTargets = targets;
+    return state;
+  }
+  const resolver = ACTION_REGISTRY[unit.id];
+  if (!resolver) {
+    console.error(`No action resolver found for unit: ${unit.id}`);
+    return state;
+  }
+  return resolver(unit, state, targets);
+}
 
 // ==========================================
 // VALIDATION

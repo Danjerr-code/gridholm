@@ -653,7 +653,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     && !selectedUnitObj.summoned
     && selectMode === 'unit_move'
     && phase === 'action'
-    && isActiveTurn;
+    && isActiveTurn
+    && !(selectedUnitObj.id === 'manacannon' && (state.players[myPlayerIndex]?.resources ?? 0) < 1);
   const showHiddenReveal = selectedUnitObj?.hidden
     && selectedUnitObj.owner === myPlayerIndex
     && !selectedUnitObj.moved

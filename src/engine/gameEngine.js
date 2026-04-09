@@ -15,7 +15,7 @@ import {
 } from './statUtils.js';
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 import { SPELL_REGISTRY } from './spellRegistry.js';
-import { ACTION_REGISTRY } from './actionRegistry.js';
+import { ACTION_REGISTRY, dispatchAction as _actionDispatch } from './actionRegistry.js';
 import {
   createTriggerListeners,
   registerUnit,
@@ -438,6 +438,19 @@ function fireBeginTurnTriggers(state, playerIdx) {
       if (wasAtMax) u.hp += 1;
     }
     if (nearby.length) addLog(state, `Paladin Aura: ${nearby.length} adjacent unit(s) gain +1 max HP.`);
+  }
+
+  // War Drum relic: the friendly combat unit with the lowest ATK gains +1 ATK this turn
+  const warDrums = state.units.filter(u => u.owner === playerIdx && u.id === 'wardrum');
+  if (warDrums.length > 0) {
+    const combatUnits = state.units.filter(u => u.owner === playerIdx && !u.isRelic && !u.isOmen);
+    if (combatUnits.length > 0) {
+      const minAtk = Math.min(...combatUnits.map(u => getEffectiveAtk(state, u)));
+      const candidates = combatUnits.filter(u => getEffectiveAtk(state, u) === minAtk);
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      chosen.turnAtkBonus = (chosen.turnAtkBonus || 0) + 1;
+      addLog(state, `War Drum: ${chosen.name} gains +1 ATK this turn (${getEffectiveAtk(state, chosen)} ATK).`);
+    }
   }
 }
 
@@ -915,6 +928,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
+    pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
     recalledThisTurn: [],
@@ -946,15 +960,11 @@ function _dispatchSpell(state, caster, spellId, targets, options = {}) {
 }
 
 // ── action dispatch ────────────────────────────────────────────────────────
-// Single dispatch point for all unit action abilities. Looks up the resolver
-// in ACTION_REGISTRY by unit.id and delegates. Returns updated state.
+// Single dispatch point for all unit action abilities. Delegates to
+// dispatchAction in actionRegistry.js which fires onEnemyAction before
+// resolving, enabling reactive triggers like Negation Crystal.
 function _dispatchAction(unit, state, targets) {
-  const resolver = ACTION_REGISTRY[unit.id];
-  if (!resolver) {
-    console.error(`No action resolver found for unit: ${unit.id}`);
-    return state;
-  }
-  return resolver(unit, state, targets);
+  return _actionDispatch(unit, state, targets);
 }
 
 // ── HIDDEN UNIT RULES ──────────────────────────────────────────────────────
@@ -1624,6 +1634,7 @@ export function cancelSpell(state) {
   s.pendingHandSelect = null;
   s.pendingTerrainCast = null;
   s.pendingLineBlast = null;
+  s.pendingNegationCancel = null;
   return s;
 }
 
@@ -1641,6 +1652,42 @@ export function resolveLineBlast(state, unitUid, direction) {
   const actorAfter = result.units.find(u => u.uid === unitUid);
   fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
   return result;
+}
+
+// ── Negation Crystal: resolve confirm/decline ─────────────────────────────
+// Called when the Negation Crystal owner responds to the prompt.
+// confirmed=true: destroy the crystal and cancel the stored action.
+// confirmed=false: clear pending state and execute the stored action.
+export function resolveNegationCancel(state, confirmed) {
+  const s = cloneState(state);
+  const pending = s.pendingNegationCancel;
+  if (!pending) return s;
+  s.pendingNegationCancel = null;
+
+  if (confirmed) {
+    const crystal = s.units.find(u => u.uid === pending.crystalUid);
+    if (crystal) {
+      addLog(s, `Negation Crystal destroyed — enemy action cancelled!`);
+      destroyUnit(crystal, s, 'negationcrystal_cancel');
+    }
+    checkWinner(s);
+    return s;
+  }
+
+  // Declined: execute the stored action now
+  addLog(s, `Negation Crystal: declined. Action resolves.`);
+  const unit = s.units.find(u => u.uid === pending.pendingUnitUid);
+  if (unit) {
+    const resolver = ACTION_REGISTRY[unit.id];
+    if (resolver) {
+      const result = resolver(unit, s, pending.pendingTargets || []);
+      checkWinner(result);
+      const actorAfter = result.units.find(u => u.uid === pending.pendingUnitUid);
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+      return result;
+    }
+  }
+  return s;
 }
 
 // ── terrain helpers ────────────────────────────────────────────────────────
@@ -1816,6 +1863,18 @@ export function triggerUnitAction(state, unitUid) {
 
   // Vorn: direction selection — sets pendingLineBlast for UI to enter direction_select mode
   if (unit.id === 'vornthundercaller') {
+    s.pendingLineBlast = { unitUid: unit.uid };
+    return s;
+  }
+
+  // Mana Cannon: direction selection — uses same pendingLineBlast / direction_select flow as Vorn
+  if (unit.id === 'manacannon') {
+    if ((s.players[s.activePlayer].resources || 0) < 1) {
+      // Insufficient mana — abort (unit.moved already set to true; undo it)
+      unit.moved = false;
+      s.players[s.activePlayer].commandsUsed = Math.max(0, (s.players[s.activePlayer].commandsUsed ?? 1) - 1);
+      return s;
+    }
     s.pendingLineBlast = { unitUid: unit.uid };
     return s;
   }
