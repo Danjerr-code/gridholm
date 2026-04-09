@@ -216,6 +216,19 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  tanglerootypew: (unit, state) => {
+    const enemy = 1 - unit.owner;
+    const affected = state.units.filter(u =>
+      u.owner === enemy &&
+      !u.isRelic &&
+      !u.isOmen &&
+      manhattan([unit.row, unit.col], [u.row, u.col]) === 1
+    );
+    for (const u of affected) u.rooted = true;
+    addLog(state, `Tangleroot Yew: adjacent enemies are Rooted.`);
+    return state;
+  },
+
   // targets[0]: any enemy combat unit (no range restriction)
   clockworkmanimus: (unit, state, targets) => {
     const target = targets[0];

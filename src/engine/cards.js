@@ -162,6 +162,7 @@ export const CARD_DB = {
   negationcrystal:  { id: 'negationcrystal',  name: 'Negation Crystal',  type: 'relic', cost: 2, atk: 0, hp: 1, spd: 0, isRelic: true, unitType: [], attribute: 'neutral', rules: 'When an enemy unit uses its Action ability, you may destroy this Relic to cancel that ability.', triggers: [{ event: 'onEnemyAction', effect: 'negationcrystal_cancel' }], image: null },
   arcanelens:       { id: 'arcanelens',       name: 'Arcane Lens',       type: 'relic', cost: 2, atk: 0, hp: 2, spd: 0, isRelic: true, unitType: [], attribute: 'neutral', rules: 'Action: Look at the top 3 cards of your deck. Put one on top and shuffle the rest back.', action: true, image: null },
   darkirongate:     { id: 'darkirongate',     name: 'Darkiron Gate',     type: 'relic', cost: 3, atk: 0, hp: 6, spd: 0, isRelic: true, unitType: [], attribute: 'neutral', rules: null, image: null },
+  tanglerootypew:   { id: 'tanglerootypew',   name: 'Tangleroot Yew',    type: 'relic', cost: 2, atk: 0, hp: 3, spd: 0, isRelic: true, unitType: [UNIT_TYPES.ELF], attribute: 'mystic', rules: 'Action: Adjacent enemy combat units become Rooted.', action: true, image: null },
   coldsteeldrifter: { id: 'coldsteeldrifter', name: 'Coldsteel Drifter', type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: null },
   stoneguard:       { id: 'stoneguard',       name: 'Stoneguard',        type: 'unit',  cost: 3, atk: 2, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Cannot be targeted by spells.', cannotBeTargetedBySpells: true, image: null },
   wanderingconstruct: { id: 'wanderingconstruct', name: 'Wandering Construct', type: 'unit', cost: 4, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: null },
@@ -298,6 +299,7 @@ const ELF_DECK = [
   'echostone',
   'enchanted_ground',
   'manawell',
+  'tanglerootypew',
   'azulonsilvertide',
 ];
 
