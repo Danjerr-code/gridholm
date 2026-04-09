@@ -114,7 +114,7 @@ export function getZoneSpdBonus(state, unit) {
 }
 
 // Returns the conditional stat bonus for a unit from conditionalStatBuff modifiers.
-// Condition type 'minHandSize': applies when hand size >= condition.count.
+// Condition type 'minHandSize' / 'minCardsInHand': applies when hand size >= condition.count.
 export function getConditionalStatBonus(state, unit) {
   if (!state.activeModifiers) return { atk: 0, hp: 0 };
   let atk = 0, hp = 0;
@@ -123,13 +123,13 @@ export function getConditionalStatBonus(state, unit) {
     if (mod.type !== 'conditionalStatBuff') continue;
     if (mod.unitUid !== unit.uid) continue;
     let condMet = false;
-    if (mod.condition?.type === 'minHandSize') {
+    if (mod.condition?.type === 'minHandSize' || mod.condition?.type === 'minCardsInHand') {
       condMet = hand.length >= (mod.condition.count || 0);
     }
     if (!condMet) continue;
     if (mod.stat === 'atk') atk += (mod.amount || 0);
     if (mod.stat === 'hp') hp += (mod.amount || 0);
-    if (mod.stat === 'both') { atk += (mod.amount || 0); hp += (mod.amount || 0); }
+    if (mod.stat === 'both' || mod.stat === 'atkAndHp') { atk += (mod.amount || 0); hp += (mod.amount || 0); }
   }
   return { atk, hp };
 }

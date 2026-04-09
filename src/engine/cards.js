@@ -112,6 +112,13 @@ export const CARD_DB = {
   gorethirstfiend: { id: 'gorethirstfiend', name: 'Gorethirst Fiend',     type: 'unit',  cost: 3, atk: 2, hp: 3, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Whenever you deal damage to the enemy champion, deal 2 damage to a random enemy combat unit.', triggers: [{ event: 'onChampionDamageDealt', effect: 'dealTwoToRandomEnemyUnit', preventRetrigger: true }], image: 'gorethirstfiend.webp' },
   hexbloodwarlock: { id: 'hexbloodwarlock', name: 'Hexblood Warlock',     type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Whenever you play a card, deal 1 damage to the enemy champion.', triggers: [{ event: 'onCardPlayed', effect: 'dealOneToEnemyChampion', selfTrigger: false }], image: 'hexbloodwarlock.webp' },
 
+  // Mystic/Dark bridge units (Batch 2)
+  duskbloomtender:  { id: 'duskbloomtender',  name: 'Duskbloom Tender',  type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic', rules: 'Whenever a friendly unit dies, this unit gains +1 HP.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'gainPlusOneHP', selfTrigger: false }], image: 'duskbloomtender.webp' },
+  oathrootkeeper:   { id: 'oathrootkeeper',   name: 'Oathroot Keeper',   type: 'unit',  cost: 3, atk: 1, hp: 4, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic', rules: 'At the end of your turn, if you control 4 or more combat units, restore 1 HP to each friendly combat unit.', triggers: [{ event: 'onEndTurn', effect: 'restoreOneHPToAllFriendly', condition: { type: 'minFriendlyUnits', count: 4 } }], image: 'oathrootkeeper.webp' },
+
+  // Light/Mystic bridge units (Batch 2)
+  runebladesentinel: { id: 'runebladesentinel', name: 'Runeblade Sentinel', type: 'unit', cost: 3, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'Has +3/+3 while you have 5 or more cards in hand.', modifier: { type: 'conditionalStatBuff', stat: 'atkAndHp', amount: 3, condition: { type: 'minCardsInHand', count: 5 } }, image: 'runebladesentinel.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },

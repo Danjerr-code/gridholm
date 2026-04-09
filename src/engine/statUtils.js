@@ -116,10 +116,11 @@ export function getEffectiveAtk(state, unit, combatTile = null) {
   return Math.max(0, base + sbBonus + packBonus + terrainMod + modBonus);
 }
 
-// Returns effective HP for display (current HP after damage counters + terrain bonus).
+// Returns effective HP for display (current HP after damage counters + terrain bonus + conditional modifier).
 export function getEffectiveHp(state, unit) {
   if (unit.hidden) return '?';
-  return unit.hp + getTerrainHpModifier(state, unit);
+  const modBonus = getConditionalStatBonus(state, unit).hp;
+  return unit.hp + getTerrainHpModifier(state, unit) + modBonus;
 }
 
 // Returns effective max HP for display.

@@ -24,6 +24,7 @@ import {
   unregisterModifiers,
   fireTrigger,
   resetTurnTriggers,
+  getConditionalStatBonus,
 } from './triggerRegistry.js';
 
 function unitTypes(u) {
@@ -63,6 +64,20 @@ export function cardinalNeighbors(row, col) {
 
 function unitAt(state, row, col) {
   return state.units.find(u => u.row === row && u.col === col) || null;
+}
+
+// Destroys any combat units whose effective HP (raw hp + conditional modifier bonus) <= 0.
+// Called after hand size decreases so that conditional HP buffs can cause death when conditions drop.
+function checkConditionalStatDeaths(state) {
+  const toDestroy = state.units.filter(u => {
+    if (u.isRelic || u.isOmen || u.hidden) return false;
+    const bonus = getConditionalStatBonus(state, u).hp;
+    if (bonus === 0) return false;
+    return u.hp + bonus <= 0;
+  });
+  for (const u of toDestroy) {
+    destroyUnit(u, state, 'conditional_stat');
+  }
 }
 
 // ── Wildborne Aura helpers ─────────────────────────────────────────────────
@@ -1113,6 +1128,8 @@ export function playCard(state, cardUid) {
       p.discard.push(card);
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+      // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
+      checkConditionalStatDeaths(s);
       checkWinner(s);
       return s;
     }
@@ -1195,6 +1212,9 @@ export function summonUnit(state, cardUid, row, col) {
 
   // Declarative trigger registry: fire onCardPlayed for the active player
   fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+
+  // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
+  checkConditionalStatDeaths(s);
 
   // ON SUMMON TRIGGERS
   fireOnSummonTriggers(unit, s);
@@ -2016,6 +2036,9 @@ export function discardCard(state, cardUid) {
   const [discarded] = p.hand.splice(cardIdx, 1);
   p.discard.push(discarded);
   addLog(s, `${p.name} discards ${discarded.name}.`);
+
+  // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
+  checkConditionalStatDeaths(s);
 
   if (p.hand.length <= 6) {
     return completeTurnAdvance(s);
