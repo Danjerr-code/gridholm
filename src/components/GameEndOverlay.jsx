@@ -104,6 +104,7 @@ export default function GameEndOverlay({ isWinner, children }) {
 
         <div className="text-4xl mb-4">⚔️</div>
         <h2
+          className="game-over-title-anim"
           style={{
             fontFamily: "'Cinzel', serif",
             fontSize: '24px',

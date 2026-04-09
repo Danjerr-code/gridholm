@@ -15,6 +15,15 @@ export const ANIM_BUFF_DURATION = 300;
 export const ANIM_HIDDEN_SUMMON_DURATION = 300;
 export const ANIM_REVEAL_DURATION = 400;
 
+// Batch 4: Terrain, Relic, Omen, and Game State animations
+export const ANIM_TERRAIN_DURATION = 800;
+export const ANIM_RELIC_SUMMON_DURATION = 400;
+export const ANIM_OMEN_SUMMON_DURATION = 400;
+export const ANIM_OMEN_TICK_DURATION = 200;
+export const ANIM_OMEN_DEATH_DURATION = 300;
+export const ANIM_THRONE_DURATION = 400;
+export const ANIM_TURN_BANNER_DURATION = 600;
+
 class AnimationManager {
   _queue = [];
   _animating = false;

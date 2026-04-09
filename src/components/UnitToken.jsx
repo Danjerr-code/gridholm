@@ -22,14 +22,22 @@ function getFactionColors(unitType) {
  * animState: { type: 'summon'|'move'|'lunge'|'damage'|'death'|'heal'|'buff'|'hidden_summon'|'reveal', ... }
  */
 function resolveAnimProps(animState) {
-  if (!animState) return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false };
+  if (!animState) return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
   switch (animState.type) {
     case 'summon':
-      return { cls: 'unit-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+      return { cls: 'unit-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
+    case 'relic_summon':
+      return { cls: 'unit-relic-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
+    case 'omen_summon':
+      return { cls: 'unit-omen-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
+    case 'omen_tick':
+      return { cls: 'omen-tick-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: true };
+    case 'omen_death':
+      return { cls: 'unit-omen-death-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
     case 'hidden_summon':
-      return { cls: 'unit-hidden-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+      return { cls: 'unit-hidden-summon-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
     case 'reveal':
-      return { cls: 'unit-reveal-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+      return { cls: 'unit-reveal-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
     case 'move': {
       // Offset from old tile to current tile, expressed in cell-width units (~104% per tile)
       // fromCol/fromRow are the previous position; current position comes from the unit prop
@@ -38,7 +46,7 @@ function resolveAnimProps(animState) {
       return {
         cls: 'unit-move-anim',
         style: { '--move-from-x': `${dx * 104}%`, '--move-from-y': `${dy * 104}%` },
-        showFlash: false, showHeal: false, showBuff: false,
+        showFlash: false, showHeal: false, showBuff: false, showOmenTick: false,
       };
     }
     case 'lunge': {
@@ -46,23 +54,23 @@ function resolveAnimProps(animState) {
       return {
         cls: 'unit-lunge-anim',
         style: { '--lunge-x': `${(animState.dx ?? 0) * 30}%`, '--lunge-y': `${(animState.dy ?? 0) * 30}%` },
-        showFlash: false, showHeal: false, showBuff: false,
+        showFlash: false, showHeal: false, showBuff: false, showOmenTick: false,
       };
     }
     case 'damage':
       return {
         cls: animState.heavy ? 'unit-damage-heavy-anim' : 'unit-damage-anim',
         style: {},
-        showFlash: true, showHeal: false, showBuff: false,
+        showFlash: true, showHeal: false, showBuff: false, showOmenTick: false,
       };
     case 'death':
-      return { cls: 'unit-death-anim', style: {}, showFlash: false, showHeal: false, showBuff: false };
+      return { cls: 'unit-death-anim', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
     case 'heal':
-      return { cls: '', style: {}, showFlash: false, showHeal: true, showBuff: false };
+      return { cls: '', style: {}, showFlash: false, showHeal: true, showBuff: false, showOmenTick: false };
     case 'buff':
-      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: true };
+      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: true, showOmenTick: false };
     default:
-      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false };
+      return { cls: '', style: {}, showFlash: false, showHeal: false, showBuff: false, showOmenTick: false };
   }
 }
 
@@ -83,7 +91,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     : { ring: '#ef4444', glow: 'rgba(239,68,68,0.55)' };
 
   // Animation props — computed once, applied to each return path
-  const { cls: animCls, style: animStyle, showFlash, showHeal, showBuff } = resolveAnimProps(animState);
+  const { cls: animCls, style: animStyle, showFlash, showHeal, showBuff, showOmenTick } = resolveAnimProps(animState);
   const animWrapClass = `w-full h-full relative${animCls ? ` ${animCls}` : ''}`;
 
   // Heal particles: 4 small circles that float upward with staggered delay
@@ -308,7 +316,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           opacity: 0.7,
         }}>✦</span>
         {/* Turns remaining counter — prominent */}
-        <div style={{
+        <div className={showOmenTick ? 'omen-number-tick-anim' : ''} style={{
           position: 'absolute',
           bottom: '3px',
           left: '50%',

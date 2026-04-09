@@ -28,6 +28,8 @@ export default function Cell({
   isTerrainTarget,
   isSpellTargetGlow,
   terrain,
+  terrainAnimActive = false,
+  isThroneShockwave = false,
   unitAnimState,
   champAnimState,
   dyingUnits = [],
@@ -47,7 +49,7 @@ export default function Cell({
   const terrainTint = terrain ? TERRAIN_TINTS[terrain.id] : null;
 
   let tileStyle;
-  let tileClass = 'relative w-full aspect-square transition-colors';
+  let tileClass = `relative w-full aspect-square transition-colors${isThroneShockwave ? ' throne-damage-pulse-anim' : ''}`;
 
   if (isTerrainTarget) {
     tileStyle = {
@@ -162,6 +164,16 @@ export default function Cell({
             boxShadow: `inset 0 0 0 1px ${terrainTint.border}`,
           }}
         />
+      )}
+
+      {/* Terrain placed flash — fires when terrain is first applied to a tile */}
+      {terrainAnimActive && (
+        <div className="terrain-placed-anim absolute inset-0 pointer-events-none" style={{ borderRadius: '4px', zIndex: 4 }} />
+      )}
+
+      {/* Throne shockwave ring — fires when Throne deals damage */}
+      {isThroneShockwave && (
+        <div className="throne-shockwave-ring" />
       )}
 
       {/* Opponent move flash overlay */}
@@ -279,7 +291,7 @@ export default function Cell({
             unit={d.unit}
             state={null}
             myPlayerIndex={myPlayerIndex}
-            animState={{ type: 'death' }}
+            animState={{ type: d.unit.isOmen ? 'omen_death' : 'death' }}
           />
         </div>
       ))}

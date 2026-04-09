@@ -10,6 +10,7 @@ import Log, { renderLogText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
+import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
 
 const PHASE_GUIDANCE = {
@@ -258,7 +259,8 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           <div className="hidden sm:flex flex-col items-center justify-center flex-shrink-0">
             <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
           </div>
-          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
+          <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
           <Board
             state={state}
             selectedUnit={selectedUnit}

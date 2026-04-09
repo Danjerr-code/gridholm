@@ -35,6 +35,7 @@ import Hand from './Hand.jsx';
 import Log from './Log.jsx';
 import PhaseTracker from './PhaseTracker.jsx';
 import GameEndOverlay from './GameEndOverlay.jsx';
+import TurnBanner from './TurnBanner.jsx';
 import { CommandDisplay } from '../App.jsx';
 
 const PHASE_GUIDANCE = {
@@ -903,7 +904,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         )}
 
         {/* Center: board */}
-        <div className="flex flex-col flex-1 min-w-0 min-h-0">
+        <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
+          <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={myPlayerIndex} />
           <Board
             state={state}
             selectedUnit={selectedUnit}

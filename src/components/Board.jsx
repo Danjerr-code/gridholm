@@ -13,6 +13,12 @@ import {
   ANIM_BUFF_DURATION,
   ANIM_HIDDEN_SUMMON_DURATION,
   ANIM_REVEAL_DURATION,
+  ANIM_TERRAIN_DURATION,
+  ANIM_RELIC_SUMMON_DURATION,
+  ANIM_OMEN_SUMMON_DURATION,
+  ANIM_OMEN_TICK_DURATION,
+  ANIM_OMEN_DEATH_DURATION,
+  ANIM_THRONE_DURATION,
 } from '../engine/animationManager.js';
 
 // Maps deckId → champion attribute for ability glow colour
@@ -59,9 +65,11 @@ export default function Board({
 
   // Animation state
   const prevStateRef = useRef(null);
-  const [unitAnimStates, setUnitAnimStates] = useState({});   // uid -> animState
-  const [champAnimStates, setChampAnimStates] = useState({}); // owner -> animState
-  const [dyingUnits, setDyingUnits] = useState([]);           // [{unit, id}]
+  const [unitAnimStates, setUnitAnimStates] = useState({});     // uid -> animState
+  const [champAnimStates, setChampAnimStates] = useState({});   // owner -> animState
+  const [dyingUnits, setDyingUnits] = useState([]);             // [{unit, id}]
+  const [terrainAnimStates, setTerrainAnimStates] = useState({}); // "row,col" -> true
+  const [throneAnimActive, setThroneAnimActive] = useState(false);
 
   useEffect(() => {
     const prev = prevStateRef.current;
@@ -74,13 +82,20 @@ export default function Board({
     const MAX_DUR = Math.max(
       ANIM_SUMMON_DURATION, ANIM_MOVE_DURATION, ANIM_LUNGE_TOTAL_DURATION, ANIM_DAMAGE_DURATION,
       ANIM_HEAL_DURATION, ANIM_BUFF_DURATION, ANIM_HIDDEN_SUMMON_DURATION, ANIM_REVEAL_DURATION,
+      ANIM_RELIC_SUMMON_DURATION, ANIM_OMEN_SUMMON_DURATION,
     );
 
     // 1. Summon: units that didn't exist in prev state
-    // Hidden summons use a dark smoke animation instead of the normal bright flash
+    // Relics rise from ground, omens shimmer in, hidden units use dark smoke, normal units flash
     for (const u of state.units) {
       if (!prev.units.find(p => p.uid === u.uid)) {
-        nextAnimStates[u.uid] = { type: u.hidden ? 'hidden_summon' : 'summon' };
+        if (u.isRelic) {
+          nextAnimStates[u.uid] = { type: 'relic_summon' };
+        } else if (u.isOmen) {
+          nextAnimStates[u.uid] = { type: 'omen_summon' };
+        } else {
+          nextAnimStates[u.uid] = { type: u.hidden ? 'hidden_summon' : 'summon' };
+        }
       }
     }
 
@@ -192,7 +207,17 @@ export default function Board({
       }
     }
 
-    // 7. Heal: unit HP increased (restoreHP called)
+    // 7. Omen tick: omen turnsRemaining decremented but unit still alive
+    for (const u of state.units) {
+      if (!u.isOmen || nextAnimStates[u.uid]) continue;
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+      if (u.turnsRemaining < pu.turnsRemaining) {
+        nextAnimStates[u.uid] = { type: 'omen_tick' };
+      }
+    }
+
+    // 8. Heal: unit HP increased (restoreHP called)
     for (const u of state.units) {
       if (nextAnimStates[u.uid]) continue;
       const pu = prev.units.find(p => p.uid === u.uid);
@@ -256,12 +281,59 @@ export default function Board({
     }
 
     // Add dying units and auto-remove after death animation
+    // Omens use a longer dissolve; regular units use the standard death sink
     if (dying.length > 0) {
       setDyingUnits(cur => [...cur, ...dying]);
-      const dyingIds = new Set(dying.map(d => d.id));
-      setTimeout(() => {
-        setDyingUnits(cur => cur.filter(d => !dyingIds.has(d.id)));
-      }, ANIM_DEATH_DURATION + 50);
+      // Group by duration so each batch clears at the right time
+      const regularDying = dying.filter(d => !d.unit.isOmen);
+      const omenDying = dying.filter(d => d.unit.isOmen);
+      if (regularDying.length > 0) {
+        const ids = new Set(regularDying.map(d => d.id));
+        setTimeout(() => {
+          setDyingUnits(cur => cur.filter(d => !ids.has(d.id)));
+        }, ANIM_DEATH_DURATION + 50);
+      }
+      if (omenDying.length > 0) {
+        const ids = new Set(omenDying.map(d => d.id));
+        setTimeout(() => {
+          setDyingUnits(cur => cur.filter(d => !ids.has(d.id)));
+        }, ANIM_OMEN_DEATH_DURATION + 50);
+      }
+    }
+
+    // Terrain placed: newly non-null terrain tiles
+    if (prev.terrainGrid && state.terrainGrid) {
+      const nextTerrainAnims = {};
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (!prev.terrainGrid[r]?.[c] && state.terrainGrid[r]?.[c]) {
+            nextTerrainAnims[`${r},${c}`] = true;
+          }
+        }
+      }
+      if (Object.keys(nextTerrainAnims).length > 0) {
+        setTerrainAnimStates(cur => ({ ...cur, ...nextTerrainAnims }));
+        setTimeout(() => {
+          setTerrainAnimStates(cur => {
+            const updated = { ...cur };
+            for (const key of Object.keys(nextTerrainAnims)) delete updated[key];
+            return updated;
+          });
+        }, ANIM_TERRAIN_DURATION + 50);
+      }
+    }
+
+    // Throne shockwave: opponent champion HP dropped when the active champion was at the throne tile
+    for (const pc of prev.champions) {
+      const nc = state.champions.find(c => c.owner === pc.owner);
+      if (!nc || nc.hp >= pc.hp) continue; // hp didn't drop for this champion
+      // Check if the OTHER champion (the one dealing throne damage) was at (2,2)
+      const attacker = prev.champions.find(c => c.owner !== pc.owner);
+      if (attacker && attacker.row === 2 && attacker.col === 2) {
+        setThroneAnimActive(true);
+        setTimeout(() => setThroneAnimActive(false), ANIM_THRONE_DURATION + 50);
+        break;
+      }
     }
   }, [state]);
 
@@ -425,6 +497,8 @@ export default function Board({
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
                 isTerrainTarget={terrainTargetSet.has(key)}
                 terrain={terrain}
+                terrainAnimActive={!!terrainAnimStates[key]}
+                isThroneShockwave={row === 2 && col === 2 && throneAnimActive}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}
