@@ -1138,6 +1138,12 @@ export function playCard(state, cardUid) {
       p.discard.push(card);
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+      // Azulon spell echo: targetless spells cast twice automatically
+      if (s.players[s.activePlayer].spellEchoActive) {
+        s.players[s.activePlayer].spellEchoActive = false;
+        s = _dispatchSpell(s, s.activePlayer, card.effect, []);
+        addLog(s, `Azulon amplifies the spell.`);
+      }
       // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
       checkConditionalStatDeaths(s);
       checkWinner(s);
@@ -1277,6 +1283,18 @@ export function resolveHandSelect(state, selectedCardUid) {
     }
     s.pendingHandSelect = null;
     return s;
+  }
+
+  if (hs.reason === 'discardOrDie') {
+    // Clockwork Manimus end-of-turn discard. After discard, advance the turn.
+    const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
+    if (idx !== -1) {
+      const [discarded] = p.hand.splice(idx, 1);
+      p.discard.push(discarded);
+      addLog(s, `Clockwork Manimus: ${discarded.name} discarded.`);
+    }
+    s.pendingHandSelect = null;
+    return completeTurnAdvance(s);
   }
 
   s.pendingHandSelect = null;
@@ -1499,6 +1517,31 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const unit = s.units.find(u => u.uid === data.sourceUid);
     if (unit && target) s = _dispatchAction(unit, s, [target]);
   }
+  // ── Clockwork Manimus action (deal 2 damage to target enemy combat unit) ──
+  else if (effect === 'clockworkmanimus_action') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) {
+      s = _dispatchAction(unit, s, [target]);
+      checkWinner(s);
+      const actorAfter = s.units.find(u => u.uid === unit.uid);
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    }
+  }
+
+  // Azulon spell echo: if spellEchoActive was set before this spell and we just completed a
+  // targeted spell (pendingSpell is now cleared by this resolution), schedule an echo cast.
+  if (!s.pendingSpell && s.players[s.activePlayer]?.spellEchoActive && !data?.isEcho) {
+    s.players[s.activePlayer].spellEchoActive = false;
+    // Only echo spells, not action effects (action effects have paid=true but no card cost)
+    const echoableEffects = new Set([
+      'smite', 'darksentence', 'devour', 'souldrain', 'spiritbolt',
+      'pactofruin_damage', 'bloodoffering', 'ambush',
+    ]);
+    if (echoableEffects.has(effect)) {
+      s.pendingSpell = { cardUid: null, effect, playerIdx: s.activePlayer, step: 0, data: { isEcho: true, paid: true } };
+      addLog(s, `Azulon amplifies the spell.`);
+    }
+  }
 
   return s;
 }
@@ -1510,7 +1553,24 @@ export function cancelSpell(state) {
   s.pendingSummon = null;
   s.pendingHandSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingLineBlast = null;
   return s;
+}
+
+// ── Vorn, Thundercaller: line blast direction resolution ──────────────────
+// Called when the player chooses a cardinal direction for Vorn's lineBlast action.
+// direction: 'up' | 'down' | 'left' | 'right'
+export function resolveLineBlast(state, unitUid, direction) {
+  const s = cloneState(state);
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit) return s;
+  s.pendingLineBlast = null;
+  unit.moved = true; // Mark action used
+  const result = _dispatchAction(unit, s, [direction]);
+  checkWinner(result);
+  const actorAfter = result.units.find(u => u.uid === unitUid);
+  fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
+  return result;
 }
 
 // ── terrain helpers ────────────────────────────────────────────────────────
@@ -1613,6 +1673,7 @@ export function endActionPhase(state) {
   s.pendingSummon = null;
   s.pendingHandSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingLineBlast = null;
   s.phase = 'end-turn';
   return s;
 }
@@ -1680,6 +1741,26 @@ export function triggerUnitAction(state, unitUid) {
 
   if (unit.id === 'bloodaltar') {
     s.pendingSpell = { cardUid: unit.uid, effect: 'bloodaltar_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    return s;
+  }
+
+  // Vorn: direction selection — sets pendingLineBlast for UI to enter direction_select mode
+  if (unit.id === 'vornthundercaller') {
+    s.pendingLineBlast = { unitUid: unit.uid };
+    return s;
+  }
+
+  // Azulon: untargeted — sets spellEchoActive flag
+  if (unit.id === 'azulonsilvertide') {
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
+  }
+
+  // Clockwork Manimus: targeted 2-damage action
+  if (unit.id === 'clockworkmanimus') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'clockworkmanimus_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
 
@@ -1981,6 +2062,9 @@ export function endTurn(state) {
   // END TURN TRIGGERS
   fireEndTurnTriggers(s, s.activePlayer);
   if (s.winner) return s;
+  // Clockwork Manimus (or any discardOrDie trigger) may set pendingHandSelect.
+  // If so, pause turn advance and wait for the player to choose a card.
+  if (s.pendingHandSelect) return s;
 
   // Hand limit: 6
   if (p.hand.length > 6) {
@@ -2001,7 +2085,7 @@ export function endTurn(state) {
   return completeTurnAdvance(s);
 }
 
-function completeTurnAdvance(state) {
+export function completeTurnAdvance(state) {
   const s = state;
   const champ = s.champions[s.activePlayer];
 
@@ -2044,7 +2128,9 @@ function completeTurnAdvance(state) {
   s.archerShot = [];
   s.recalledThisTurn = [];
   s.players[s.activePlayer].sergeantBuff = false;
+  s.players[s.activePlayer].spellEchoActive = false;
   if (s.pendingShadowVeil) s.pendingShadowVeil[s.activePlayer] = false;
+  s.pendingLineBlast = null;
 
   champ.moved = false;
 
@@ -2209,6 +2295,10 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         adj.some(([r, c]) => u.row === r && u.col === c)
       ).map(u => u.uid);
     }
+
+    // Clockwork Manimus action: any enemy combat unit (not omen, not relic)
+    case 'clockworkmanimus_action':
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden).map(u => u.uid);
 
     default:
       return [];

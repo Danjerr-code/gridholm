@@ -18,6 +18,8 @@ import {
   playCard,
   summonUnit,
   resolveSpell,
+  resolveHandSelect,
+  resolveLineBlast,
   applyChampionAbility,
   triggerUnitAction,
   getUnitMoveTiles,
@@ -43,7 +45,7 @@ const NO_TARGET_SPELLS = new Set([
 
 const TWO_STEP_SPELLS = new Set(['bloom', 'ambush']);
 
-const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher']);
+const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus']);
 
 // ── isGameOver ────────────────────────────────────────────────────────────────
 
@@ -209,14 +211,29 @@ export function applyAction(state, action) {
 
     case 'unitAction': {
       let s = triggerUnitAction(state, action.unitId);
-      if (s.pendingSpell && action.targetUid != null) {
+      if (s.pendingLineBlast) {
+        // Vorn, Thundercaller: AI picks the direction that hits the most units
+        const vorn = s.units.find(u => u.uid === s.pendingLineBlast.unitUid);
+        const bestDir = vorn ? _pickLineBlastDirection(s, vorn) : 'up';
+        s = resolveLineBlast(s, s.pendingLineBlast.unitUid, bestDir);
+      } else if (s.pendingSpell && action.targetUid != null) {
         s = resolveSpell(s, action.unitId, action.targetUid);
       }
       return s;
     }
 
-    case 'endTurn':
-      return endTurn(state);
+    case 'endTurn': {
+      let s = endTurn(state);
+      // Handle Clockwork Manimus discardOrDie prompt: discard the lowest-cost card in hand
+      if (s.pendingHandSelect?.reason === 'discardOrDie') {
+        const p = s.players[s.activePlayer];
+        if (p.hand.length > 0) {
+          const lowestCost = p.hand.reduce((min, c) => c.cost < min.cost ? c : min, p.hand[0]);
+          s = resolveHandSelect(s, lowestCost.uid);
+        }
+      }
+      return s;
+    }
 
     default:
       throw new Error(`[strategicAI] Unknown action type: ${action.type}`);

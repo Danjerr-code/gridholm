@@ -27,6 +27,7 @@ import {
   getApproachTiles,
   executeApproachAndAttack,
   manhattan,
+  resolveLineBlast,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -61,7 +62,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const [pendingApproach, setPendingApproach] = useState(null);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
-  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus']);
   const [inspectedItem, setInspectedItem] = useState(null);
 
   // True while the AI is computing its turn (shows "Thinking..." in UI)
@@ -281,10 +282,11 @@ export function useGameState({ deckId = 'human' } = {}) {
         setSelectMode('spell');
       } else {
         clearSelection();
+        scheduleAITurn();
       }
       return s;
     });
-  }, [clearSelection]);
+  }, [clearSelection, scheduleAITurn]);
 
   const handleFleshtitheSacrifice = useCallback((choice, sacrificeUid) => {
     setState(prev => resolveFleshtitheSacrifice(prev, choice, sacrificeUid));
@@ -417,6 +419,14 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const unit = prev.units.find(u => u.uid === unitUid);
       if (!unit) return prev;
+      // Vorn: direction selection mode
+      if (unit.id === 'vornthundercaller') {
+        const s = triggerUnitAction(prev, unitUid);
+        if (s.pendingLineBlast) {
+          setSelectMode('direction_select');
+        }
+        return s;
+      }
       if (TARGETED_ACTION_UNITS.has(unit.id)) {
         const s = triggerUnitAction(prev, unitUid);
         if (s.pendingSpell) {
@@ -430,6 +440,16 @@ export function useGameState({ deckId = 'human' } = {}) {
       return prev;
     });
   }, [TARGETED_ACTION_UNITS]);
+
+  const handleLineBlastDirection = useCallback((direction) => {
+    if (!selectedUnit) return;
+    setState(prev => {
+      const lb = prev.pendingLineBlast;
+      if (!lb) return prev;
+      return resolveLineBlast(prev, lb.unitUid, direction);
+    });
+    clearSelection();
+  }, [selectedUnit, clearSelection]);
 
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
@@ -542,6 +562,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleTriggerUnitAction,
       handleActionButtonClick,
       handleConfirmAction,
+      handleLineBlastDirection,
       handleNewGame,
       handleTerrainCast,
       clearSelection,

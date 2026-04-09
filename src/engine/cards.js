@@ -129,6 +129,11 @@ export const CARD_DB = {
   forbiddenchaplain: { id: 'forbiddenchaplain', name: 'Forbidden Chaplain', type: 'unit', cost: 4, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'human',  rules: 'The first time you sacrifice a friendly combat unit each turn, return that unit to play.', triggers: [{ event: 'onFriendlySacrifice', effect: 'returnSacrificedUnit', oncePerTurn: true }], image: 'forbiddenchaplain.webp' },
   exiledguardian:    { id: 'exiledguardian',    name: 'Exiled Guardian',    type: 'unit', cost: 4, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'demon',  rules: 'Friendly Aura effects have +1 range.', modifier: [{ type: 'auraRangeBuff', amount: 1 }], image: 'exiledguardian.webp' },
 
+  // Batch 5: Legendaries Part 1
+  vornthundercaller: { id: 'vornthundercaller', name: 'Vorn, Thundercaller', type: 'unit', cost: 4, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.BEAST],     attribute: 'beast',   rules: 'Action: Choose a direction. Deal 2 damage to every unit and champion in a straight line.', action: true, legendary: true, image: 'vornthundercaller.webp' },
+  azulonsilvertide:  { id: 'azulonsilvertide',  name: 'Azulon, Silver Tide', type: 'unit', cost: 7, atk: 5, hp: 6, spd: 2, unitType: [UNIT_TYPES.ELF],       attribute: 'elf',     rules: 'Action: The next spell you cast this turn casts twice.', action: true, legendary: true, image: 'azulonsilvertide.webp' },
+  clockworkmanimus:  { id: 'clockworkmanimus',  name: 'Clockwork Manimus',   type: 'unit', cost: 5, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'At the end of your turn, discard a card or destroy this unit. Action: Deal 2 damage to target combat unit.', action: true, legendary: true, triggers: [{ event: 'onEndTurn', effect: 'discardOrDie', oncePerTurn: true }], image: 'clockworkmanimus.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
@@ -221,6 +226,7 @@ const HUMAN_DECK = [
   'hallowed_ground',
   'battlestandard',
   'soulstone',
+  'clockworkmanimus',
 ];
 
 const BEAST_DECK = [
@@ -249,6 +255,7 @@ const BEAST_DECK = [
   'siegemound', 'siegemound',
   'feralsurge', 'feralsurge',
   'huntingground',
+  'vornthundercaller',
 ];
 
 const ELF_DECK = [
@@ -277,6 +284,7 @@ const ELF_DECK = [
   'echostone',
   'enchanted_ground',
   'manawell',
+  'azulonsilvertide',
 ];
 
 const DEMON_DECK = [

@@ -74,8 +74,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to apply the ability, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
+  if (selectMode === 'direction_select') guidance = 'Choose a direction for the line blast.';
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast' || selectMode === 'direction_select';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -349,6 +350,15 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                     <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" fullWidth />
                   </>
                 )}
+                {phase === 'action' && selectMode === 'direction_select' && (
+                  <>
+                    <ActionBtn onClick={() => handlers.handleLineBlastDirection('up')}    label="↑ Up"    variant="action" fullWidth />
+                    <ActionBtn onClick={() => handlers.handleLineBlastDirection('down')}  label="↓ Down"  variant="action" fullWidth />
+                    <ActionBtn onClick={() => handlers.handleLineBlastDirection('left')}  label="← Left"  variant="action" fullWidth />
+                    <ActionBtn onClick={() => handlers.handleLineBlastDirection('right')} label="→ Right" variant="action" fullWidth />
+                    <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" fullWidth />
+                  </>
+                )}
                 {phase === 'action' && showHiddenReveal && (
                   <ActionBtn
                     onClick={() => { handlers.handleRevealUnit(selectedUnit); handlers.clearSelection(); }}
@@ -411,6 +421,15 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           )}
           {phase === 'action' && selectMode === 'action_confirm' && (
             <ActionBtn onClick={handlers.clearSelection} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'direction_select' && (
+            <>
+              <ActionBtn onClick={() => handlers.handleLineBlastDirection('up')}    label="↑" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
+              <ActionBtn onClick={() => handlers.handleLineBlastDirection('down')}  label="↓" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
+              <ActionBtn onClick={() => handlers.handleLineBlastDirection('left')}  label="←" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
+              <ActionBtn onClick={() => handlers.handleLineBlastDirection('right')} label="→" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
+              <ActionBtn onClick={handlers.clearSelection} label="✕" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+            </>
           )}
           {phase === 'action' && selectedUnit && (
             <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />

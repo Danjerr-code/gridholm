@@ -125,6 +125,59 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // targets[0]: direction string 'up' | 'down' | 'left' | 'right'
+  vornthundercaller: (unit, state, targets) => {
+    const dir = targets[0];
+    if (!dir) {
+      addLog(state, `Vorn, Thundercaller: no direction selected.`);
+      return state;
+    }
+    const deltas = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+    const [dr, dc] = deltas[dir] || [0, 0];
+    let r = unit.row + dr;
+    let c = unit.col + dc;
+    // Collect all units in the line first (state may mutate as units die)
+    const lineUnits = [];
+    const lineChamps = [];
+    while (r >= 0 && r <= 4 && c >= 0 && c <= 4) {
+      const u = state.units.find(u => u.row === r && u.col === c && !u.isOmen);
+      if (u) lineUnits.push(u);
+      const ch = state.champions.find(ch => ch.row === r && ch.col === c);
+      if (ch) lineChamps.push(ch);
+      r += dr;
+      c += dc;
+    }
+    for (const ch of lineChamps) {
+      ch.hp -= 2;
+      const side = ch.owner === unit.owner ? 'friendly' : 'enemy';
+      addLog(state, `Vorn, Thundercaller: ${side} champion struck for 2 damage (${ch.hp} HP).`);
+    }
+    for (const t of lineUnits) {
+      addLog(state, `Vorn, Thundercaller: ${t.name} struck for 2 damage.`);
+      applyDamageToUnit(state, t, 2, 'Vorn, Thundercaller');
+    }
+    return state;
+  },
+
+  // Azulon: set spellEchoActive flag — the next spell cast this turn resolves twice
+  azulonsilvertide: (unit, state) => {
+    state.players[unit.owner].spellEchoActive = true;
+    addLog(state, `Azulon, Silver Tide: the next spell cast this turn will echo.`);
+    return state;
+  },
+
+  // targets[0]: any enemy combat unit (no range restriction)
+  clockworkmanimus: (unit, state, targets) => {
+    const target = targets[0];
+    if (!target) {
+      addLog(state, `Clockwork Manimus: no valid target selected.`);
+      return state;
+    }
+    addLog(state, `Clockwork Manimus: deals 2 damage to ${target.name}.`);
+    applyDamageToUnit(state, target, 2, 'Clockwork Manimus');
+    return state;
+  },
+
 };
 
 // ==========================================
