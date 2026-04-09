@@ -2506,7 +2506,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       unit.hp += bonus;
       unit.maxHp += bonus;
       p.resources -= 2;
-      addLog(s, `${p.name} uses Shield: ${unit.name} gains +2 HP until end of turn.`);
+      addLog(s, `${p.name} invokes Shield: ${unit.name} gains +2 HP until end of turn.`);
       break;
     }
     case 'howl': {
@@ -2514,7 +2514,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       if (!unit) return s;
       unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
       p.resources -= 2;
-      addLog(s, `${p.name} uses Howl: ${unit.name} gains +2 ATK until end of turn.`);
+      addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
       break;
     }
     case 'nurture': {
@@ -2524,7 +2524,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       unit.hp += 1;
       unit.maxHp += 1;
       p.resources -= 2;
-      addLog(s, `${p.name} uses Nurture: ${unit.name} gains +1/+1 permanently.`);
+      addLog(s, `${p.name} invokes Nurture: ${unit.name} gains +1/+1 permanently.`);
       break;
     }
     case 'corrupt': {
@@ -2532,7 +2532,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       if (!unit) return s;
       unit.hp -= 1;
       p.resources -= 2;
-      addLog(s, `${p.name} uses Corrupt: ${unit.name} takes 1 damage (${unit.hp} HP remaining).`);
+      addLog(s, `${p.name} invokes Corrupt: ${unit.name} takes 1 damage (${unit.hp} HP remaining).`);
       if (unit.hp <= 0) {
         destroyUnit(unit, s, 'corrupt');
       }
@@ -2543,9 +2543,9 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       const drawn = p.deck.shift();
       if (drawn) {
         p.hand.push(drawn);
-        addLog(s, `${p.name} uses Dark Pact: pays 2 HP and draws ${drawn.name}.`);
+        addLog(s, `${p.name} invokes Dark Pact: pays 2 HP and draws ${drawn.name}.`);
       } else {
-        addLog(s, `${p.name} uses Dark Pact: pays 2 HP but deck is empty.`);
+        addLog(s, `${p.name} invokes Dark Pact: pays 2 HP but deck is empty.`);
       }
       checkWinner(s);
       break;

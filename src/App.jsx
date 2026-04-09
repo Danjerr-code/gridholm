@@ -71,7 +71,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
-  if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to apply the ability, or Cancel.';
+  if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to Invoke, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
   if (selectMode === 'direction_select') guidance = 'Choose a direction for the line blast.';
@@ -813,7 +813,7 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
   return (
     <div style={{ borderTop: '0.5px solid #1e1e2e', paddingTop: 6, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ fontSize: '10px', fontWeight: 600, color: '#9090b8', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
-        Champion Action:
+        Invoke:
       </div>
       {activatedAbility && (
         <button
@@ -841,7 +841,7 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
             {activatedAbility.description}
           </div>
           {abilityUsed && (
-            <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: 2 }}>Action used — cannot move this turn</div>
+            <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: 2 }}>Invoke used — cannot move this turn</div>
           )}
         </button>
       )}
