@@ -1,32 +1,56 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { CARD_DB, DECKS } from '../engine/cards.js';
+import { CARD_DB } from '../engine/cards.js';
 import Card from './Card.jsx';
 import { getCardImageUrl } from '../supabase.js';
 
-
-const FACTIONS = [
-  { name: 'Light',   unitType: 'Human', color: '#4a8abf' },
-  { name: 'Primal',  unitType: 'Beast', color: '#4a8a4a' },
-  { name: 'Mystic',  unitType: 'Elf',   color: '#8a4abf' },
-  { name: 'Dark',    unitType: 'Demon', color: '#bf2a2a' },
+const ATTRIBUTE_SECTIONS = [
+  { key: 'light',   name: 'Light',   color: '#F0E6D2' },
+  { key: 'primal',  name: 'Primal',  color: '#22C55E' },
+  { key: 'mystic',  name: 'Mystic',  color: '#A855F7' },
+  { key: 'dark',    name: 'Dark',    color: '#EF4444' },
+  { key: 'neutral', name: 'Neutral', color: '#9CA3AF' },
 ];
 
-function getGroupedCards() {
-  const all = Object.values(CARD_DB);
-  return FACTIONS.map(faction => {
-    const deckKey = faction.unitType.toLowerCase();
-    const deckCards = DECKS[deckKey]?.cards ?? [];
-    const copyCount = {};
-    for (const id of deckCards) {
-      copyCount[id] = (copyCount[id] || 0) + 1;
+const TYPE_LABEL = {
+  unit:    'U',
+  spell:   'S',
+  relic:   'R',
+  omen:    'O',
+  terrain: 'T',
+};
+
+function getStatLine(card) {
+  switch (card.type) {
+    case 'unit':    return `${card.cost ?? 0} cost · ${card.atk ?? 0} ATK · ${card.hp ?? 0} HP · ${card.spd ?? 0} SPD`;
+    case 'relic':   return `${card.cost ?? 0} cost · ${card.hp ?? 0} HP`;
+    case 'omen':    return `${card.cost ?? 0} cost · ${card.turnsRemaining ?? 0} turns`;
+    case 'terrain': return `${card.cost ?? 0} cost`;
+    case 'spell':   return `${card.cost ?? 0} cost`;
+    default:        return `${card.cost ?? 0} cost`;
+  }
+}
+
+function getGroupedByAttribute() {
+  const all = Object.values(CARD_DB).filter(c => !c.token);
+  const byAttr = {};
+  for (const section of ATTRIBUTE_SECTIONS) {
+    byAttr[section.key] = [];
+  }
+  for (const card of all) {
+    const attr = card.attribute || 'neutral';
+    if (byAttr[attr]) {
+      byAttr[attr].push(card);
     }
-    const deckCardIds = new Set(deckCards);
-    const cards = all.filter(c => deckCardIds.has(c.id));
-    const units = cards.filter(c => c.type === 'unit').sort((a, b) => a.cost - b.cost);
-    const spells = cards.filter(c => c.type === 'spell').sort((a, b) => a.cost - b.cost);
-    return { ...faction, units, spells, copyCount };
-  });
+  }
+  for (const key of Object.keys(byAttr)) {
+    byAttr[key].sort((a, b) => {
+      const costDiff = (a.cost ?? 0) - (b.cost ?? 0);
+      if (costDiff !== 0) return costDiff;
+      return a.name.localeCompare(b.name);
+    });
+  }
+  return byAttr;
 }
 
 function CardModal({ card, onClose }) {
@@ -85,7 +109,7 @@ function CardModal({ card, onClose }) {
               border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
               fontSize: '13px', fontFamily: "'Cinzel', serif", fontWeight: 500,
             }}>
-              {card.type === 'spell' ? 'Spell' : (Array.isArray(card.unitType) ? card.unitType.join(' · ') : (card.unitType || 'Unit'))}
+              {TYPE_LABEL[card.type] || 'U'}
             </div>
           )}
         </div>
@@ -106,37 +130,55 @@ function CardModal({ card, onClose }) {
             borderRadius: '99px',
             flexShrink: 0,
             marginLeft: '8px',
-          }}>{card.cost}</span>
+          }}>{card.cost ?? 0}</span>
         </div>
 
-        {/* Type / Attribute */}
-        {card.type !== 'spell' && (
-          <div>
-            {card.attribute && (
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9090b8', textTransform: 'capitalize' }}>
-                {card.attribute}
-              </div>
-            )}
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9CA3AF' }}>
-              {Array.isArray(card.unitType) ? card.unitType.join(' · ') : card.unitType}
-            </div>
-          </div>
-        )}
+        {/* Type badge */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{
+            fontSize: '10px', fontWeight: 700, fontFamily: 'var(--font-sans)',
+            background: 'rgba(255,255,255,0.07)', color: '#9CA3AF',
+            padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>
+            {card.type}
+          </span>
+          {card.attribute && (
+            <span style={{ fontSize: '10px', fontWeight: 500, color: '#9090b8', fontFamily: 'var(--font-sans)', textTransform: 'capitalize' }}>
+              {card.attribute}
+            </span>
+          )}
+        </div>
 
         {/* Stats */}
         {card.type === 'unit' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
             <div>
               <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATK</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.atk}</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.atk ?? 0}</div>
             </div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.hp}</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.hp ?? 0}</div>
             </div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.spd}</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.spd ?? 0}</div>
+            </div>
+          </div>
+        )}
+        {card.type === 'relic' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.hp ?? 0}</div>
+            </div>
+          </div>
+        )}
+        {card.type === 'omen' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Turns</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>{card.turnsRemaining ?? 0}</div>
             </div>
           </div>
         )}
@@ -173,8 +215,9 @@ function CardModal({ card, onClose }) {
 }
 
 export default function CardGallery() {
-  const groups = getGroupedCards();
+  const grouped = getGroupedByAttribute();
   const [selectedCard, setSelectedCard] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
 
   const handleClose = useCallback(() => setSelectedCard(null), []);
 
@@ -184,6 +227,10 @@ export default function CardGallery() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedCard, handleClose]);
+
+  const visibleSections = activeTab === 'all'
+    ? ATTRIBUTE_SECTIONS
+    : ATTRIBUTE_SECTIONS.filter(s => s.key === activeTab);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e5e7eb', fontFamily: 'inherit' }}>
@@ -196,125 +243,139 @@ export default function CardGallery() {
         padding: '12px 24px',
         zIndex: 10,
         display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
+        flexDirection: 'column',
+        gap: '10px',
       }}>
-        <button
-          onClick={() => { window.location.hash = '/'; }}
-          style={{
-            background: 'none',
-            border: '0.5px solid rgba(255,255,255,0.2)',
-            borderRadius: '6px',
-            color: '#9ca3af',
-            fontSize: '13px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => e.target.style.color = '#fff'}
-          onMouseLeave={e => e.target.style.color = '#9ca3af'}
-        >
-          ← Back to Gridholm
-        </button>
-        <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
-          CARD GALLERY
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => { window.location.hash = '/'; }}
+            style={{
+              background: 'none',
+              border: '0.5px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              color: '#9ca3af',
+              fontSize: '13px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.target.style.color = '#fff'}
+            onMouseLeave={e => e.target.style.color = '#9ca3af'}
+          >
+            ← Back to Gridholm
+          </button>
+          <span style={{ fontFamily: "'Cinzel', serif", color: '#C9A84C', fontWeight: 600, fontSize: '14px', letterSpacing: '0.12em' }}>
+            CARD GALLERY
+          </span>
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('all')}
+            style={{
+              background: activeTab === 'all' ? 'rgba(255,255,255,0.12)' : 'transparent',
+              border: activeTab === 'all' ? '0.5px solid rgba(255,255,255,0.3)' : '0.5px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              color: activeTab === 'all' ? '#fff' : '#9ca3af',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '4px 12px',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            All
+          </button>
+          {ATTRIBUTE_SECTIONS.map(section => (
+            <button
+              key={section.key}
+              onClick={() => setActiveTab(section.key)}
+              style={{
+                background: activeTab === section.key ? `${section.color}22` : 'transparent',
+                border: activeTab === section.key ? `0.5px solid ${section.color}88` : '0.5px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                color: activeTab === section.key ? section.color : '#9ca3af',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '4px 12px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {section.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
-        {groups.map(faction => (
-          <div key={faction.unitType} style={{ marginBottom: 56 }}>
-            {/* Faction header */}
-            <h2 style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 20,
-              fontWeight: 600,
-              color: faction.color,
-              margin: '0 0 24px 0',
-              letterSpacing: '0.06em',
-              borderBottom: `0.5px solid ${faction.color}40`,
-              paddingBottom: 10,
-            }}>
-              {faction.name}
-            </h2>
-
-            {/* Units */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{
-                fontSize: 11,
+        {visibleSections.map(section => {
+          const cards = grouped[section.key] || [];
+          if (cards.length === 0) return null;
+          return (
+            <div key={section.key} style={{ marginBottom: 56 }}>
+              {/* Section header */}
+              <h2 style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 20,
                 fontWeight: 600,
-                color: '#6b7280',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
+                color: section.color,
+                margin: '0 0 8px 0',
+                letterSpacing: '0.06em',
+                borderBottom: `0.5px solid ${section.color}40`,
+                paddingBottom: 10,
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 10,
               }}>
-                Units
-              </div>
+                {section.name}
+                <span style={{ fontSize: 12, fontFamily: 'var(--font-sans)', fontWeight: 400, color: `${section.color}99`, letterSpacing: '0.03em' }}>
+                  {cards.length} cards
+                </span>
+              </h2>
+
+              {/* Cards grid */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {faction.units.map(card => (
-                  <div key={card.id} style={{ position: 'relative' }}>
+                {cards.map(card => (
+                  <div key={card.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <Card card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
+                    {/* Type label badge */}
                     <span style={{
                       position: 'absolute',
-                      bottom: 4,
-                      right: 4,
+                      top: 4,
+                      left: 4,
                       background: 'rgba(0,0,0,0.72)',
-                      color: '#C9A84C',
-                      fontSize: 10,
+                      color: section.color,
+                      fontSize: 9,
                       fontWeight: 700,
-                      padding: '1px 5px',
-                      borderRadius: 4,
+                      padding: '1px 4px',
+                      borderRadius: 3,
                       fontFamily: 'var(--font-sans)',
                       pointerEvents: 'none',
                       letterSpacing: '0.03em',
                     }}>
-                      {faction.copyCount[card.id] === 2 ? 'x2' : 'x1'}
+                      {TYPE_LABEL[card.type] || 'U'}
                     </span>
+                    {/* Stat line */}
+                    <div style={{
+                      fontSize: 9,
+                      fontFamily: 'var(--font-sans)',
+                      color: '#6b7280',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '0.02em',
+                    }}>
+                      {getStatLine(card)}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Spells */}
-            {faction.spells.length > 0 && (
-              <div>
-                <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#6b7280',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  marginBottom: 12,
-                }}>
-                  Spells
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {faction.spells.map(card => (
-                    <div key={card.id} style={{ position: 'relative' }}>
-                      <Card card={card} isSelected={false} isPlayable={true} onClick={() => setSelectedCard(card)} />
-                      <span style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        right: 4,
-                        background: 'rgba(0,0,0,0.72)',
-                        color: '#C9A84C',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-sans)',
-                        pointerEvents: 'none',
-                        letterSpacing: '0.03em',
-                      }}>
-                        {faction.copyCount[card.id] === 2 ? 'x2' : 'x1'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {selectedCard && <CardModal card={selectedCard} onClose={handleClose} />}
