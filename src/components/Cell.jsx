@@ -27,6 +27,9 @@ export default function Cell({
   isAbilityTarget,
   isTerrainTarget,
   terrain,
+  unitAnimState,
+  champAnimState,
+  dyingUnits = [],
   state,
   myPlayerIndex,
   onClick,
@@ -161,7 +164,7 @@ export default function Cell({
       {/* Champion */}
       {champion && (
         <div
-          className="absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none"
+          className={`absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none${champAnimState?.type === 'damage' ? (champAnimState.heavy ? ' unit-damage-heavy-anim' : ' unit-damage-anim') : ''}`}
           style={{
             background: `radial-gradient(circle, ${champColor}66 0%, transparent 100%)`,
             border: `2px solid ${isChampionSpellTarget ? '#f97316' : champColor}`,
@@ -170,10 +173,14 @@ export default function Cell({
           onClick={e => { e.stopPropagation(); onChampionClick && onChampionClick(); }}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
         >
+          {/* Red flash overlay on damage */}
+          {champAnimState?.type === 'damage' && (
+            <div className="unit-damage-flash-overlay" style={{ borderRadius: '50%' }} />
+          )}
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
             <path d="M2,18 L2,6 L8,14 L12,2 L16,14 L22,6 L22,18 Z"/>
           </svg>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
+          <span className={champAnimState?.type === 'damage' ? 'champ-hp-flash-anim' : ''} style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.hp}
           </span>
           {champion.skipNextAction && (
@@ -232,9 +239,22 @@ export default function Cell({
             onDragStart={onUnitDragStart}
             onDragMove={onUnitDragMove}
             onDragEnd={onUnitDragEnd}
+            animState={unitAnimState}
           />
         </div>
       )}
+
+      {/* Dying unit ghosts — rendered for death animation duration then removed */}
+      {dyingUnits.map(d => (
+        <div key={d.id} className="absolute inset-0.5 pointer-events-none" style={{ zIndex: 8 }}>
+          <UnitToken
+            unit={d.unit}
+            state={null}
+            myPlayerIndex={myPlayerIndex}
+            animState={{ type: 'death' }}
+          />
+        </div>
+      ))}
 
       {/* Row/Col label (debug, hidden) */}
       {false && (

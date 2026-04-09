@@ -101,3 +101,110 @@ button, input, .card-name, .card-stats, .card-rules,
 .unit-action-glow {
   animation: action-glow-pulse 1.5s ease-in-out infinite;
 }
+
+/* ── Core Combat Animations ────────────────────────────────────────────── */
+
+/* Summon: flash of light as the unit materialises */
+@keyframes unit-summon {
+  0%   { opacity: 0; transform: scale(0.8); box-shadow: 0 0 24px 10px rgba(255, 255, 200, 0.95); }
+  25%  { opacity: 1; transform: scale(1.06); box-shadow: 0 0 18px 6px rgba(255, 255, 200, 0.7); }
+  55%  { transform: scale(0.97); box-shadow: 0 0 8px 2px rgba(255, 255, 200, 0.3); }
+  100% { transform: scale(1); box-shadow: none; }
+}
+
+/* Move: slide from origin tile to destination */
+@keyframes unit-move {
+  from { transform: translate(var(--move-from-x, 0%), var(--move-from-y, 0%)); }
+  to   { transform: translate(0%, 0%); }
+}
+
+/* Lunge: 60% toward target then snap back */
+@keyframes unit-lunge {
+  0%   { transform: translate(0%, 0%); }
+  60%  { transform: translate(var(--lunge-x, 0%), var(--lunge-y, 0%)); }
+  100% { transform: translate(0%, 0%); }
+}
+
+/* Damage: shake left/right */
+@keyframes unit-damage-shake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-3px); }
+  40%  { transform: translateX(3px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+
+/* Heavy damage (5+ damage): more violent shake */
+@keyframes unit-damage-heavy-shake {
+  0%   { transform: translateX(0) scale(1); }
+  15%  { transform: translateX(-5px) scale(1.04); }
+  30%  { transform: translateX(6px) scale(0.96); }
+  45%  { transform: translateX(-5px) scale(1.04); }
+  60%  { transform: translateX(6px) scale(0.96); }
+  80%  { transform: translateX(-3px) scale(1); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Red overlay that fades in then out */
+@keyframes unit-damage-flash {
+  0%   { opacity: 0.55; }
+  50%  { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+
+/* Champion HP number flash */
+@keyframes champ-hp-flash {
+  0%   { color: #ff4444; text-shadow: 0 0 8px rgba(255,68,68,0.8); }
+  60%  { color: #ff6666; }
+  100% { color: #ffffff; text-shadow: none; }
+}
+
+/* Death: sink into the ground */
+@keyframes unit-death {
+  0%   { opacity: 1; transform: scale(1) translateY(0%); }
+  40%  { opacity: 0.7; transform: scale(0.88) translateY(8%); }
+  100% { opacity: 0; transform: scale(0.7) translateY(18%); }
+}
+
+/* ── Animation classes ─────────────────────────────────────────────────── */
+
+.unit-summon-anim {
+  animation: unit-summon 300ms ease-out forwards;
+}
+
+.unit-move-anim {
+  animation: unit-move 250ms ease-out forwards;
+}
+
+.unit-lunge-anim {
+  animation: unit-lunge 250ms ease-in-out forwards;
+}
+
+.unit-damage-anim {
+  animation: unit-damage-shake 200ms ease-out forwards;
+}
+
+.unit-damage-heavy-anim {
+  animation: unit-damage-heavy-shake 200ms ease-out forwards;
+}
+
+.unit-death-anim {
+  animation: unit-death 400ms ease-in forwards;
+  pointer-events: none;
+}
+
+/* Red flash overlay — lives inside the animated token wrapper */
+.unit-damage-flash-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(220, 40, 40, 0.5);
+  pointer-events: none;
+  z-index: 10;
+  animation: unit-damage-flash 200ms ease-out forwards;
+}
+
+.champ-hp-flash-anim {
+  animation: champ-hp-flash 200ms ease-out forwards;
+}

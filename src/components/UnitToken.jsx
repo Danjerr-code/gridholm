@@ -17,7 +17,48 @@ function getFactionColors(unitType) {
   return FACTION_COLORS[primary] || { border: '#2a2a3a', text: '#6a6a8a' };
 }
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd }) {
+/**
+ * Resolve animation class and inline style for the token wrapper.
+ * animState: { type: 'summon'|'move'|'lunge'|'damage'|'death', ... }
+ */
+function resolveAnimProps(animState) {
+  if (!animState) return { cls: '', style: {}, showFlash: false };
+  switch (animState.type) {
+    case 'summon':
+      return { cls: 'unit-summon-anim', style: {}, showFlash: false };
+    case 'move': {
+      // Offset from old tile to current tile, expressed in cell-width units (~104% per tile)
+      // fromCol/fromRow are the previous position; current position comes from the unit prop
+      const dx = (animState.fromCol ?? 0) - (animState.currentCol ?? 0);
+      const dy = (animState.fromRow ?? 0) - (animState.currentRow ?? 0);
+      return {
+        cls: 'unit-move-anim',
+        style: { '--move-from-x': `${dx * 104}%`, '--move-from-y': `${dy * 104}%` },
+        showFlash: false,
+      };
+    }
+    case 'lunge': {
+      // lunge 30% toward target (dx/dy are ±1 or 0 unit direction)
+      return {
+        cls: 'unit-lunge-anim',
+        style: { '--lunge-x': `${(animState.dx ?? 0) * 30}%`, '--lunge-y': `${(animState.dy ?? 0) * 30}%` },
+        showFlash: false,
+      };
+    }
+    case 'damage':
+      return {
+        cls: animState.heavy ? 'unit-damage-heavy-anim' : 'unit-damage-anim',
+        style: {},
+        showFlash: true,
+      };
+    case 'death':
+      return { cls: 'unit-death-anim', style: {}, showFlash: false };
+    default:
+      return { cls: '', style: {}, showFlash: false };
+  }
+}
+
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd, animState }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isRelic = !!unit.isRelic;
@@ -33,10 +74,15 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ? { ring: '#3b82f6', glow: 'rgba(59,130,246,0.55)' }
     : { ring: '#ef4444', glow: 'rgba(239,68,68,0.55)' };
 
+  // Animation props — computed once, applied to each return path
+  const { cls: animCls, style: animStyle, showFlash } = resolveAnimProps(animState);
+  const animWrapClass = `w-full h-full relative${animCls ? ` ${animCls}` : ''}`;
+
   // Opponent's hidden unit: face-down token with hidden-art image
   if (isOpponentHidden) {
     const hiddenArtUrl = getCardImageUrl('hidden-art.webp');
     return (
+      <div className={animWrapClass} style={animStyle}>
       <div
         className="w-full h-full flex flex-col items-center justify-center rounded cursor-pointer select-none relative"
         style={{
@@ -90,6 +136,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           zIndex: 2,
           lineHeight: 1.4,
         }}>?/?</div>
+        {showFlash && <div className="unit-damage-flash-overlay" />}
+      </div>
       </div>
     );
   }
@@ -212,6 +260,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       ? { ring: '#22d3ee', glow: 'rgba(34,211,238,0.6)', bg: '#0a1e2e', badge: '#0e7490' }
       : { ring: '#fbbf24', glow: 'rgba(251,191,36,0.6)', bg: '#1e1a0a', badge: '#b45309' };
     return (
+      <div className={animWrapClass} style={animStyle}>
       <div
         className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative"
         style={{
@@ -273,11 +322,14 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           zIndex: 2,
           letterSpacing: '0.05em',
         }}>OMEN</div>
+        {showFlash && <div className="unit-damage-flash-overlay" />}
+      </div>
       </div>
     );
   }
 
   return (
+    <div className={animWrapClass} style={animStyle}>
     <div
       className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
       draggable={false}
@@ -421,6 +473,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
+      {/* Damage flash overlay */}
+      {showFlash && <div className="unit-damage-flash-overlay" />}
+    </div>
     </div>
   );
 }

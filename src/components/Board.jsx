@@ -1,5 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Cell from './Cell.jsx';
+import UnitToken from './UnitToken.jsx';
+import {
+  ANIM_SUMMON_DURATION,
+  ANIM_MOVE_DURATION,
+  ANIM_LUNGE_TOTAL_DURATION,
+  ANIM_LUNGE_MIDPOINT,
+  ANIM_DAMAGE_DURATION,
+  ANIM_DEATH_DURATION,
+  ANIM_HEAVY_DAMAGE_THRESHOLD,
+} from '../engine/animationManager.js';
 
 export default function Board({
   state,
@@ -38,6 +48,164 @@ export default function Board({
 
   const boardRef = useRef(null);
   const [dragTargetKey, setDragTargetKey] = useState(null);
+
+  // Animation state
+  const prevStateRef = useRef(null);
+  const [unitAnimStates, setUnitAnimStates] = useState({});   // uid -> animState
+  const [champAnimStates, setChampAnimStates] = useState({}); // owner -> animState
+  const [dyingUnits, setDyingUnits] = useState([]);           // [{unit, id}]
+
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    prevStateRef.current = state;
+    if (!prev) return;
+
+    const nextAnimStates = {};
+    const nextChampAnims = {};
+    const dying = [];
+    const MAX_DUR = Math.max(ANIM_SUMMON_DURATION, ANIM_MOVE_DURATION, ANIM_LUNGE_TOTAL_DURATION, ANIM_DAMAGE_DURATION);
+
+    // 1. Summon: units that didn't exist in prev state
+    for (const u of state.units) {
+      if (!prev.units.find(p => p.uid === u.uid)) {
+        nextAnimStates[u.uid] = { type: 'summon' };
+      }
+    }
+
+    // 2. Death: units removed from state → keep as ghost for death animation
+    for (const pu of prev.units) {
+      if (!state.units.find(u => u.uid === pu.uid)) {
+        dying.push({ unit: pu, id: `${pu.uid}-${Date.now()}-${Math.random()}` });
+      }
+    }
+
+    // 3. Move and lunge detection
+    for (const u of state.units) {
+      if (nextAnimStates[u.uid]) continue; // already marked (summon)
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+
+      if (pu.row !== u.row || pu.col !== u.col) {
+        // Position changed — slide from old tile to new tile
+        nextAnimStates[u.uid] = {
+          type: 'move',
+          fromRow: pu.row, fromCol: pu.col,
+          currentRow: u.row, currentCol: u.col,
+        };
+      } else if (!pu.moved && u.moved) {
+        // Unit's moved flag turned true but position unchanged → attacked in place (lunge)
+        // Find adjacent enemy that took damage or died
+        const target =
+          prev.units.find(pu2 => {
+            if (pu2.owner === u.owner) return false;
+            if (Math.abs(pu2.row - u.row) > 1 || Math.abs(pu2.col - u.col) > 1) return false;
+            const nu2 = state.units.find(n => n.uid === pu2.uid);
+            return !nu2 || nu2.hp < pu2.hp; // died or damaged
+          }) ||
+          // Also check if an adjacent enemy champion took damage
+          prev.champions.find(pc => {
+            if (pc.owner === u.owner) return false;
+            if (Math.abs(pc.row - u.row) > 1 || Math.abs(pc.col - u.col) > 1) return false;
+            const nc = state.champions.find(c => c.owner === pc.owner);
+            return nc && nc.hp < pc.hp;
+          });
+
+        if (target) {
+          nextAnimStates[u.uid] = {
+            type: 'lunge',
+            dx: target.col - u.col,
+            dy: target.row - u.row,
+          };
+        }
+      }
+    }
+
+    // 4. Damage on surviving units — delay damage on lunge targets to midpoint
+    const lungeTargetUids = new Set();
+    for (const [uid, anim] of Object.entries(nextAnimStates)) {
+      if (anim.type !== 'lunge') continue;
+      const attacker = state.units.find(u => u.uid === uid);
+      if (!attacker) continue;
+      const targetRow = attacker.row + anim.dy;
+      const targetCol = attacker.col + anim.dx;
+      const targetUnit = state.units.find(u => u.row === targetRow && u.col === targetCol && u.owner !== attacker.owner);
+      if (targetUnit) {
+        const prevTarget = prev.units.find(p => p.uid === targetUnit.uid);
+        if (prevTarget && prevTarget.hp > targetUnit.hp) {
+          const heavy = (prevTarget.hp - targetUnit.hp) >= ANIM_HEAVY_DAMAGE_THRESHOLD;
+          lungeTargetUids.add(targetUnit.uid);
+          // Delay damage animation to lunge midpoint
+          setTimeout(() => {
+            setUnitAnimStates(cur => ({ ...cur, [targetUnit.uid]: { type: 'damage', heavy } }));
+            setTimeout(() => {
+              setUnitAnimStates(cur => {
+                const next = { ...cur };
+                delete next[targetUnit.uid];
+                return next;
+              });
+            }, ANIM_DAMAGE_DURATION + 50);
+          }, ANIM_LUNGE_MIDPOINT);
+        }
+      }
+    }
+
+    for (const u of state.units) {
+      if (nextAnimStates[u.uid] || lungeTargetUids.has(u.uid)) continue;
+      const pu = prev.units.find(p => p.uid === u.uid);
+      if (!pu) continue;
+      const dmg = pu.hp - u.hp;
+      if (dmg > 0) {
+        nextAnimStates[u.uid] = { type: 'damage', heavy: dmg >= ANIM_HEAVY_DAMAGE_THRESHOLD };
+      }
+    }
+
+    // 5. Champion damage
+    for (const c of state.champions) {
+      const pc = prev.champions.find(p => p.owner === c.owner);
+      if (!pc) continue;
+      const dmg = pc.hp - c.hp;
+      if (dmg > 0) {
+        nextChampAnims[c.owner] = { type: 'damage', heavy: dmg >= ANIM_HEAVY_DAMAGE_THRESHOLD };
+      }
+    }
+
+    // Apply and auto-clear unit anims
+    if (Object.keys(nextAnimStates).length > 0) {
+      setUnitAnimStates(cur => ({ ...cur, ...nextAnimStates }));
+      setTimeout(() => {
+        setUnitAnimStates(cur => {
+          const updated = { ...cur };
+          for (const uid of Object.keys(nextAnimStates)) {
+            if (updated[uid] === nextAnimStates[uid]) delete updated[uid];
+          }
+          return updated;
+        });
+      }, MAX_DUR + 50);
+    }
+
+    // Apply and auto-clear champ anims
+    if (Object.keys(nextChampAnims).length > 0) {
+      setChampAnimStates(cur => ({ ...cur, ...nextChampAnims }));
+      setTimeout(() => {
+        setChampAnimStates(cur => {
+          const updated = { ...cur };
+          for (const ownerId of Object.keys(nextChampAnims)) {
+            if (updated[ownerId] === nextChampAnims[ownerId]) delete updated[ownerId];
+          }
+          return updated;
+        });
+      }, ANIM_DAMAGE_DURATION + 50);
+    }
+
+    // Add dying units and auto-remove after death animation
+    if (dying.length > 0) {
+      setDyingUnits(cur => [...cur, ...dying]);
+      const dyingIds = new Set(dying.map(d => d.id));
+      setTimeout(() => {
+        setDyingUnits(cur => cur.filter(d => !dyingIds.has(d.id)));
+      }, ANIM_DEATH_DURATION + 50);
+    }
+  }, [state]);
 
   function handleUnitDragStart(unit) {
     if (!canInteract) return;
@@ -167,7 +335,7 @@ export default function Board({
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
-      <div ref={boardRef} className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div ref={boardRef} className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {Array.from({ length: 5 }, (_, row) =>
           Array.from({ length: 5 }, (_, col) => {
             const key = `${row},${col}`;
@@ -178,6 +346,8 @@ export default function Board({
             const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
             const isAbilityTarget = championAbilityTargetUids.includes(unit?.uid);
             const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
+            const cellDyingUnits = dyingUnits.filter(d => d.unit.row === row && d.unit.col === col);
+            const champAnimState = champion ? champAnimStates[champion.owner] : null;
 
             const terrain = state.terrainGrid?.[row]?.[col] ?? null;
             return (
@@ -202,6 +372,9 @@ export default function Board({
                 isArcherTarget={isArcherTarget}
                 isSacrificeTarget={isSacrificeTarget}
                 isAbilityTarget={isAbilityTarget}
+                unitAnimState={unit ? unitAnimStates[unit.uid] : null}
+                champAnimState={champAnimState}
+                dyingUnits={cellDyingUnits}
                 state={state}
                 myPlayerIndex={myPlayerIndex}
                 isMobile={isMobile}
