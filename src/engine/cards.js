@@ -134,6 +134,10 @@ export const CARD_DB = {
   azulonsilvertide:  { id: 'azulonsilvertide',  name: 'Azulon, Silver Tide', type: 'unit', cost: 7, atk: 5, hp: 6, spd: 2, unitType: [UNIT_TYPES.ELF],       attribute: 'elf',     rules: 'Action: The next spell you cast this turn casts twice.', action: true, legendary: true, image: 'azulonsilvertide.webp' },
   clockworkmanimus:  { id: 'clockworkmanimus',  name: 'Clockwork Manimus',   type: 'unit', cost: 5, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'At the end of your turn, discard a card or destroy this unit. Action: Deal 2 damage to target combat unit.', action: true, legendary: true, triggers: [{ event: 'onEndTurn', effect: 'discardOrDie', oncePerTurn: true }], image: 'clockworkmanimus.webp' },
 
+  // Batch 6: Legendaries Part 2
+  vexishollowking:   { id: 'vexishollowking',   name: 'Vexis, the Hollow King', type: 'unit', cost: 7, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'demon', rules: 'The first time an enemy combat unit dies each turn, summon a 1/1 shadow copy in an adjacent tile.', legendary: true, triggers: [{ event: 'onEnemyUnitDeath', effect: 'summonShadowCopy', oncePerTurn: true }], image: 'vexishollowking.webp' },
+  lucernunbrokenvow: { id: 'lucernunbrokenvow', name: 'Lucern, Unbroken Vow',    type: 'unit', cost: 5, atk: 3, hp: 3, spd: 2, unitType: [UNIT_TYPES.HUMAN], attribute: 'human', rules: 'When this unit dies on the Throne tile, resummon it at the end of your turn in your champion\'s starting tile. Retains all permanent stat changes.', legendary: true, image: 'lucernunbrokenvow.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
@@ -227,6 +231,7 @@ const HUMAN_DECK = [
   'battlestandard',
   'soulstone',
   'clockworkmanimus',
+  'lucernunbrokenvow',
 ];
 
 const BEAST_DECK = [
@@ -313,6 +318,7 @@ const DEMON_DECK = [
   'smokebomb',
   'cursed_ground',
   'bloodaltar',
+  'vexishollowking',
 ];
 
 export const DECKS = {

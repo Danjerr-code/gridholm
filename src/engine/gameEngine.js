@@ -1,4 +1,4 @@
-import { buildDeck, shuffle, TOKENS } from './cards.js';
+import { buildDeck, shuffle, TOKENS, CARD_DB } from './cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
 import { CHAMPIONS } from './champions.js';
 
@@ -341,6 +341,20 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     state.soulHarvestUsed = true;
   }
 
+  // Lucern, Unbroken Vow: if destroyed on the Throne tile (2,2), schedule resummon
+  if (unit.id === 'lucernunbrokenvow') {
+    const [lr, lc] = combatTile || [unit.row, unit.col];
+    if (lr === 2 && lc === 2) {
+      if (!state.lucernPendingResummon) state.lucernPendingResummon = [null, null];
+      state.lucernPendingResummon[unit.owner] = {
+        atk: unit.atk,
+        atkBonus: unit.atkBonus || 0,
+        maxHp: unit.maxHp,
+      };
+      addLog(state, `Lucern, Unbroken Vow: will rise again at end of owner's next turn.`);
+    }
+  }
+
   // Declarative trigger registry: fire onEnemyUnitDeath and onFriendlyUnitDeath
   if (!unit.isRelic && !unit.isOmen) {
     const deathCtx = { dyingUnit: unit, dyingPlayerIndex: unit.owner, triggeringUid: unit.uid };
@@ -546,6 +560,55 @@ function fireEndTurnTriggers(state, playerIdx) {
 
   // Declarative trigger registry: fire onEndTurn for cards with end-turn listeners
   fireTrigger('onEndTurn', { playerIndex: playerIdx }, state);
+
+  // Lucern, Unbroken Vow: resummon at end of owner's turn if scheduled
+  if (state.lucernPendingResummon?.[playerIdx]) {
+    const data = state.lucernPendingResummon[playerIdx];
+    const startTile = state.championStartTile?.[playerIdx];
+    const baseCard = CARD_DB['lucernunbrokenvow'];
+    if (baseCard && startTile) {
+      const candidates = [
+        [startTile.r, startTile.c],
+        ...cardinalNeighbors(startTile.r, startTile.c),
+      ];
+      let placed = false;
+      for (const [tr, tc] of candidates) {
+        if (tr < 0 || tr > 4 || tc < 0 || tc > 4) continue;
+        const occupied =
+          state.units.some(u => u.row === tr && u.col === tc) ||
+          state.champions.some(ch => ch.row === tr && ch.col === tc);
+        if (!occupied) {
+          const resummoned = {
+            ...baseCard,
+            atk: data.atk,
+            atkBonus: data.atkBonus,
+            hp: data.maxHp,
+            maxHp: data.maxHp,
+            owner: playerIdx,
+            row: tr,
+            col: tc,
+            summoned: true,
+            moved: false,
+            shield: 0,
+            speedBonus: 0,
+            turnAtkBonus: 0,
+            hidden: false,
+            uid: `lucernunbrokenvow_${Math.random().toString(36).slice(2)}`,
+          };
+          state.units.push(resummoned);
+          registerUnit(resummoned, state);
+          registerModifiers(resummoned, state);
+          addLog(state, `Lucern, Unbroken Vow rises again at (${tr},${tc})!`);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        addLog(state, `Lucern, Unbroken Vow could not rise — no open tiles near champion start position.`);
+      }
+    }
+    state.lucernPendingResummon[playerIdx] = null;
+  }
 }
 
 // ============================================
@@ -859,6 +922,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     championAbilityUsed: [false, false],
     triggerListeners: createTriggerListeners(),
     activeModifiers: [],
+    championStartTile: [null, null],    // { r, c } snapshot at turn start, per player
+    lucernPendingResummon: [null, null], // { atk, atkBonus, maxHp } when Lucern dies on Throne
   };
 }
 
@@ -987,6 +1052,11 @@ function doBeginTurnPhase(state) {
       if (u.id === 'razorfang') u.razorfangResetUsed = false;
     }
   });
+
+  // Track champion position at turn start (used by Lucern resummon)
+  const _startChamp = state.champions[state.activePlayer];
+  if (!state.championStartTile) state.championStartTile = [null, null];
+  state.championStartTile[state.activePlayer] = { r: _startChamp.row, c: _startChamp.col };
 
   // BEGIN TURN TRIGGERS
   fireBeginTurnTriggers(state, state.activePlayer);

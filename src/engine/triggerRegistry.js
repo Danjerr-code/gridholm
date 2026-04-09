@@ -21,7 +21,7 @@
 //   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
-import { addLog, restoreHP, applyDamageToUnit, destroyUnit } from './gameEngine.js';
+import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors } from './gameEngine.js';
 
 export const TRIGGER_EVENTS = [
   'onEnemyUnitDeath',
@@ -292,6 +292,56 @@ function resolveEffect(effectId, listener, context, state) {
     // plusOneAuraRange is handled statically via getAuraRangeBonus, not fired as an effect.
     case 'plusOneAuraRange':
       break;
+
+    case 'summonShadowCopy': {
+      // Vexis, the Hollow King: summon a 1/1 shadow copy of the dying enemy unit adjacent to Vexis.
+      if (!listenerUnit) break;
+      const dead = context?.dyingUnit;
+      if (!dead) break;
+      const adj = cardinalNeighbors(listenerUnit.row, listenerUnit.col).filter(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (adj.length === 0) {
+        addLog(state, `Vexis: no open tiles adjacent — Shadow ${dead.name} cannot be summoned.`);
+        break;
+      }
+      const [tr, tc] = adj[Math.floor(Math.random() * adj.length)];
+      const origTypes = Array.isArray(dead.unitType) ? dead.unitType : (dead.unitType ? [dead.unitType] : []);
+      const shadowUnit = {
+        id: `shadow_${dead.id}`,
+        name: `Shadow ${dead.name}`,
+        type: 'unit',
+        cost: dead.cost || 0,
+        atk: 1,
+        hp: 1,
+        maxHp: 1,
+        spd: 1,
+        unitType: [...origTypes, 'Shadow'],
+        attribute: 'demon',
+        rules: dead.rules || '',
+        action: dead.action || false,
+        triggers: dead.triggers ? [...dead.triggers] : [],
+        modifier: dead.modifier || null,
+        image: dead.image || '',
+        owner: playerIndex,
+        row: tr,
+        col: tc,
+        summoned: true,
+        moved: false,
+        atkBonus: 0,
+        shield: 0,
+        speedBonus: 0,
+        turnAtkBonus: 0,
+        hidden: false,
+        uid: `shadow_${dead.id}_${Math.random().toString(36).slice(2)}`,
+      };
+      state.units.push(shadowUnit);
+      registerUnit(shadowUnit, state);
+      registerModifiers(shadowUnit, state);
+      addLog(state, `Vexis summons Shadow ${dead.name} at (${tr},${tc}).`);
+      break;
+    }
 
     case 'discardOrDie': {
       // Clockwork Manimus: at end of turn, discard a card or the unit is destroyed.
