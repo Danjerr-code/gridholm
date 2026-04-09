@@ -224,14 +224,14 @@ const BEAST_DECK = [
 ];
 
 const ELF_DECK = [
-  'elfscout', 'elfscout',
-  'seedling', 'seedling',
+  'elfscout',
+  'seedling',
   'woodlandguard', 'woodlandguard',
   'whisper', 'whisper',
   'verdantarcher',
   'elfelder', 'elfelder',
   'thornweave', 'thornweave',
-  'elfranger', 'elfranger',
+  'elfranger',
   'grovewarden',
   'moonveilmystic',
   'elfarcher',
@@ -246,6 +246,9 @@ const ELF_DECK = [
   'ancientspring',
   'verdantsurge',
   'spiritbolt',
+  'echostone',
+  'enchanted_ground',
+  'manawell',
 ];
 
 const DEMON_DECK = [
@@ -254,8 +257,8 @@ const DEMON_DECK = [
   'dreadknight',
   'chaospawn',
   'voidtitan',
-  'hellhound', 'hellhound',
-  'brutedemon', 'brutedemon',
+  'hellhound',
+  'brutedemon',
   'shadowtrap',
   'shadowstalker', 'shadowstalker',
   'shadowfiend', 'shadowfiend',
@@ -270,8 +273,10 @@ const DEMON_DECK = [
   'darksentence',
   'devour',
   'infernalpact',
-  'shadowveil',
   'souldrain',
+  'smokebomb',
+  'cursed_ground',
+  'bloodaltar',
 ];
 
 export const DECKS = {
