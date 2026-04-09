@@ -24,6 +24,9 @@ import {
   applyChampionAbility,
   getTerrainCastTiles,
   castTerrainCard,
+  getApproachTiles,
+  executeApproachAndAttack,
+  manhattan,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -50,10 +53,12 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm' | 'champion_ability'
+  // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm' | 'champion_ability' | 'approach_select'
   const [selectMode, setSelectMode] = useState(null);
   // Active champion ability targeting: { abilityId, targetFilter } | null
   const [pendingChampionAbility, setPendingChampionAbility] = useState(null);
+  // Pending approach+attack: { unitUid, targetRow, targetCol } | null
+  const [pendingApproach, setPendingApproach] = useState(null);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
   const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
@@ -140,6 +145,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     setSelectedUnit(null);
     setSelectMode(null);
     setPendingChampionAbility(null);
+    setPendingApproach(null);
   }, []);
 
   const NO_TARGET_SPELL_EFFECTS = new Set([
@@ -340,9 +346,35 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleMoveUnit = useCallback((row, col) => {
     if (!selectedUnit) return;
-    setState(prev => moveUnit(prev, selectedUnit, row, col));
-    clearSelection();
+    let enteringApproach = false;
+    setState(prev => {
+      const unit = prev.units.find(u => u.uid === selectedUnit);
+      const targetHasEnemy = prev.units.some(u => u.owner !== prev.activePlayer && u.row === row && u.col === col)
+        || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col);
+      if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) > 1) {
+        const tiles = getApproachTiles(prev, unit, row, col);
+        if (tiles.length > 1) {
+          enteringApproach = true;
+          return prev;
+        }
+      }
+      return moveUnit(prev, selectedUnit, row, col);
+    });
+    if (enteringApproach) {
+      setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
+      setSelectMode('approach_select');
+    } else {
+      clearSelection();
+    }
   }, [selectedUnit, clearSelection]);
+
+  const handleApproachTileChosen = useCallback((approachRow, approachCol) => {
+    if (!pendingApproach) return;
+    const { unitUid, targetRow, targetCol } = pendingApproach;
+    setState(prev => executeApproachAndAttack(prev, unitUid, approachRow, approachCol, targetRow, targetCol));
+    setPendingApproach(null);
+    clearSelection();
+  }, [pendingApproach, clearSelection]);
 
   const handleArcherSelectTarget = useCallback((archerUid) => {
     setSelectedUnit(archerUid);
@@ -462,6 +494,13 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getTerrainCastTiles(state)
     : [];
 
+  const approachTiles = selectMode === 'approach_select' && pendingApproach
+    ? (() => {
+        const unit = state.units.find(u => u.uid === pendingApproach.unitUid);
+        return unit ? getApproachTiles(state, unit, pendingApproach.targetRow, pendingApproach.targetCol) : [];
+      })()
+    : [];
+
   return {
     state,
     selectedCard,
@@ -474,6 +513,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
+    approachTiles,
     terrainTargetTiles,
     spellTargetUids,
     archerShootTargets,
@@ -494,6 +534,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleChampionAbilityCancel,
       handleSelectUnit,
       handleMoveUnit,
+      handleApproachTileChosen,
       handleArcherSelectTarget,
       handleArcherShoot,
       handleDiscardCard,

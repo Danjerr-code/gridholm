@@ -31,6 +31,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     championAbilityTargetUids,
     summonTiles,
     unitMoveTiles,
+    approachTiles,
     terrainTargetTiles,
     spellTargetUids,
     archerShootTargets,
@@ -72,6 +73,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to apply the ability, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
+  if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
 
   const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast';
 
@@ -269,6 +271,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             championAbilityTargetUids={championAbilityTargetUids}
             summonTiles={summonTiles}
             unitMoveTiles={unitMoveTiles}
+            approachTiles={approachTiles}
             terrainTargetTiles={terrainTargetTiles}
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}

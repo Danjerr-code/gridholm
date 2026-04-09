@@ -1646,6 +1646,14 @@ function findIntermediateTile(state, unit, champRow, champCol) {
   return champNeighbors.find(([r, c]) => !isTileOccupied(state, r, c)) || [unit.row, unit.col];
 }
 
+// Returns valid approach tiles for a SPD 2 attacker targeting an enemy 2 tiles away.
+// An approach tile is adjacent to the target, unoccupied, and exactly 1 step from the attacker.
+export function getApproachTiles(state, unit, targetRow, targetCol) {
+  return cardinalNeighbors(targetRow, targetCol).filter(([r, c]) =>
+    !isTileOccupied(state, r, c) && manhattan([unit.row, unit.col], [r, c]) === 1
+  );
+}
+
 function isTileOccupiedByFriendly(state, owner, row, col) {
   return state.units.some(u => u.owner === owner && u.row === row && u.col === col)
       || state.champions.some(c => c.owner === owner && c.row === row && c.col === col);
@@ -1698,6 +1706,16 @@ export function moveUnit(state, unitUid, row, col) {
       destroyUnit(unit, s, 'shadowtrap');
       // Shadow Trap is now revealed (no longer hidden) but stays
       return s;
+    }
+
+    // SPD 2 approach: if attacker is more than 1 tile away, slide to adjacent approach tile first
+    const attackDist = manhattan([unit.row, unit.col], [row, col]);
+    if (attackDist > 1) {
+      const approachOptions = getApproachTiles(s, unit, row, col);
+      if (approachOptions.length === 0) return s; // no valid approach — abort
+      const [ar, ac] = approachOptions[0];
+      unit.row = ar;
+      unit.col = ac;
     }
 
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);
@@ -1789,6 +1807,30 @@ export function moveUnit(state, unitUid, row, col) {
   updateWildbornAura(s);
   updateStandardBearerAura(s);
   return s;
+}
+
+// Move a SPD 2 unit to a player-chosen approach tile, then resolve combat with the target.
+// Used when multiple approach tiles exist and the player selects one.
+export function executeApproachAndAttack(state, unitUid, approachRow, approachCol, targetRow, targetCol) {
+  const s = cloneState(state);
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit) return s;
+
+  // Command gate: counts as a single command for the whole approach+attack
+  if (unit.owner === s.activePlayer) {
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
+    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+  }
+
+  // Move unit to the chosen approach tile
+  unit.row = approachRow;
+  unit.col = approachCol;
+
+  // Temporarily undo the increment so moveUnit's own gate doesn't double-count
+  s.players[unit.owner].commandsUsed = (s.players[unit.owner].commandsUsed ?? 1) - 1;
+
+  // Resolve combat from approach tile (unit is now adjacent to target)
+  return moveUnit(s, unitUid, targetRow, targetCol);
 }
 
 export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null) {

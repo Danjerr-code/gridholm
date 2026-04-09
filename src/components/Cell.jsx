@@ -17,6 +17,7 @@ export default function Cell({
   isSummonTile,
   isUnitMoveTile,
   isEnemyMoveTile,
+  isApproachTile = false,
   isOpponentMoveTile,
   isDragTarget,
   isSelected,
@@ -85,6 +86,14 @@ export default function Cell({
       border: '1px solid #8a2020',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+    };
+  } else if (isApproachTile) {
+    tileStyle = {
+      background: '#1d1a00',
+      border: '2px solid #c9a020',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(201,160,32,0.5)',
+      cursor: 'pointer',
     };
   } else if (isCenter) {
     tileStyle = {

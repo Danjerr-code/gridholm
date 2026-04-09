@@ -27,6 +27,9 @@ import {
   getArcherShootTargets,
   playerRevealUnit,
   triggerUnitAction,
+  getApproachTiles,
+  executeApproachAndAttack,
+  manhattan,
 } from '../engine/gameEngine.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -88,6 +91,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectMode, setSelectMode] = useState(null);
+  const [pendingApproach, setPendingApproach] = useState(null);
   const [inspectedItem, setInspectedItem] = useState(null);
   const [mobileModalItem, setMobileModalItem] = useState(null);
   const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
@@ -182,6 +186,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectedCard(null);
     setSelectedUnit(null);
     setSelectMode(null);
+    setPendingApproach(null);
   }, []);
 
   const NO_TARGET_SPELL_EFFECTS = new Set([
@@ -319,8 +324,25 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleMoveUnit = useCallback(async (row, col) => {
     if (!gameState || !selectedUnit) return;
+    const unit = gameState.units.find(u => u.uid === selectedUnit);
+    const targetHasEnemy = gameState.units.some(u => u.owner !== gameState.activePlayer && u.row === row && u.col === col)
+      || gameState.champions.some(ch => ch.owner !== gameState.activePlayer && ch.row === row && ch.col === col);
+    if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) > 1) {
+      const tiles = getApproachTiles(gameState, unit, row, col);
+      if (tiles.length > 1) {
+        setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
+        setSelectMode('approach_select');
+        return;
+      }
+    }
     await dispatch(moveUnit(gameState, selectedUnit, row, col));
   }, [gameState, selectedUnit, dispatch]);
+
+  const handleApproachTileChosen = useCallback(async (approachRow, approachCol) => {
+    if (!gameState || !pendingApproach) return;
+    const { unitUid, targetRow, targetCol } = pendingApproach;
+    await dispatch(executeApproachAndAttack(gameState, unitUid, approachRow, approachCol, targetRow, targetCol));
+  }, [gameState, pendingApproach, dispatch]);
 
   const handleArcherSelectTarget = useCallback((archerUid) => {
     setSelectedUnit(archerUid);
@@ -624,6 +646,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
+  if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -649,6 +672,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const unitMoveTiles = selectMode === 'unit_move' && selectedUnit
     ? getUnitMoveTiles(state, selectedUnit)
+    : [];
+
+  const approachTiles = selectMode === 'approach_select' && pendingApproach
+    ? (() => {
+        const unit = state.units.find(u => u.uid === pendingApproach.unitUid);
+        return unit ? getApproachTiles(state, unit, pendingApproach.targetRow, pendingApproach.targetCol) : [];
+      })()
     : [];
 
   const spellTargetUids = selectMode === 'spell' && state.pendingSpell
@@ -679,6 +709,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleSelectChampion,
     handleSelectUnit,
     handleMoveUnit,
+    handleApproachTileChosen,
     handleArcherSelectTarget,
     handleArcherShoot,
     handleTriggerUnitAction,
@@ -1003,6 +1034,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             championMoveTiles={isActiveTurn ? championMoveTiles : []}
             summonTiles={isActiveTurn ? summonTiles : []}
             unitMoveTiles={isActiveTurn ? unitMoveTiles : []}
+            approachTiles={isActiveTurn ? approachTiles : []}
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
