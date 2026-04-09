@@ -66,12 +66,21 @@ export function getPackBonus(state, unit) {
   ).length;
 }
 
-// Returns the terrain whileOccupied ATK debuff for a unit at its current tile.
+// Returns true if the whileOccupied terrain effect applies to the given unit.
+function terrainEffectApplies(wo, unit) {
+  if (wo.attributeOnly && unit.attribute !== wo.attributeOnly) return false;
+  if (wo.combatOnly && (unit.isRelic || unit.isOmen)) return false;
+  return true;
+}
+
+// Returns the terrain whileOccupied ATK modifier for a unit at its current tile.
 function getTerrainAtkModifier(state, unit) {
   if (!state.terrainGrid) return 0;
   const terrain = state.terrainGrid[unit.row]?.[unit.col];
   if (!terrain?.whileOccupied) return 0;
   const wo = terrain.whileOccupied;
+  if (!terrainEffectApplies(wo, unit)) return 0;
+  if (wo.atkBuff != null) return wo.atkBuff;
   if (wo.atkDebuff != null) return -wo.atkDebuff;
   return 0;
 }
@@ -82,6 +91,7 @@ function getTerrainHpModifier(state, unit) {
   const terrain = state.terrainGrid[unit.row]?.[unit.col];
   if (!terrain?.whileOccupied) return 0;
   const wo = terrain.whileOccupied;
+  if (!terrainEffectApplies(wo, unit)) return 0;
   if (wo.hpBuff != null) {
     if (wo.friendlyOnly) {
       // friendlyOnly — only applies to units that aren't enemies (no per-faction check; friendly = same owner as terrain caster)
