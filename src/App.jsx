@@ -119,6 +119,53 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
         </GameEndOverlay>
       )}
 
+      {/* Arcane Lens deck peek modal */}
+      {state.pendingDeckPeek && isP1Turn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '480px',
+            width: '90vw',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Arcane Lens — Choose a card to keep on top
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {state.pendingDeckPeek.cards.map(card => (
+                <div
+                  key={card.uid}
+                  onClick={() => handlers.handleDeckPeekSelect(card.uid)}
+                  style={{
+                    background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                    border: '1px solid #3a3a60',
+                    borderRadius: '6px',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    minWidth: '100px',
+                    textAlign: 'center',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#C9A84C'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = '#3a3a60'}
+                >
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
+                  <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                  {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                  {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{card.rules}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile log drawer */}
       {logOpen && (
         <div

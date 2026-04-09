@@ -929,6 +929,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
     pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
+    pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
     recalledThisTurn: [],
@@ -1635,6 +1636,7 @@ export function cancelSpell(state) {
   s.pendingTerrainCast = null;
   s.pendingLineBlast = null;
   s.pendingNegationCancel = null;
+  s.pendingDeckPeek = null;
   return s;
 }
 
@@ -1687,6 +1689,42 @@ export function resolveNegationCancel(state, confirmed) {
       return result;
     }
   }
+  return s;
+}
+
+// ── Arcane Lens: deck peek resolution ────────────────────────────────────
+// Called when the player selects a card from the deck peek modal.
+// The selected card is placed at index 0 of the deck; remaining peeked cards are shuffled back.
+export function resolveDeckPeek(state, selectedCardUid) {
+  const s = cloneState(state);
+  const pending = s.pendingDeckPeek;
+  if (!pending) return s;
+  s.pendingDeckPeek = null;
+  const p = s.players[s.activePlayer];
+  const peekCount = pending.cards.length;
+  // Remove the top peekCount cards from the deck (they were peeked but not extracted)
+  const topCards = p.deck.splice(0, peekCount);
+  const selectedIdx = topCards.findIndex(c => c.uid === selectedCardUid);
+  if (selectedIdx === -1) {
+    // No valid selection — shuffle all peeked cards back
+    for (let i = topCards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [topCards[i], topCards[j]] = [topCards[j], topCards[i]];
+    }
+    p.deck.unshift(...topCards);
+    addLog(s, `Arcane Lens: cards shuffled back.`);
+    return s;
+  }
+  const [selected] = topCards.splice(selectedIdx, 1);
+  // Shuffle the remaining peeked cards
+  for (let i = topCards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [topCards[i], topCards[j]] = [topCards[j], topCards[i]];
+  }
+  // Place selected on top, shuffled rest below
+  p.deck.unshift(...topCards);
+  p.deck.unshift(selected);
+  addLog(s, `Arcane Lens: ${selected.name} placed on top of deck.`);
   return s;
 }
 
@@ -1791,6 +1829,7 @@ export function endActionPhase(state) {
   s.pendingHandSelect = null;
   s.pendingTerrainCast = null;
   s.pendingLineBlast = null;
+  s.pendingDeckPeek = null;
   s.phase = 'end-turn';
   return s;
 }

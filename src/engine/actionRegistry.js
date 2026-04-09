@@ -203,6 +203,19 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  arcanelens: (unit, state) => {
+    const p = state.players[unit.owner];
+    const peekCount = Math.min(3, p.deck.length);
+    if (peekCount === 0) {
+      addLog(state, `Arcane Lens: deck is empty.`);
+      return state;
+    }
+    const peekedCards = p.deck.slice(0, peekCount).map(c => ({ ...c }));
+    state.pendingDeckPeek = { unitUid: unit.uid, cards: peekedCards };
+    addLog(state, `Arcane Lens: looking at the top ${peekCount} card${peekCount > 1 ? 's' : ''} of your deck.`);
+    return state;
+  },
+
   // targets[0]: any enemy combat unit (no range restriction)
   clockworkmanimus: (unit, state, targets) => {
     const target = targets[0];

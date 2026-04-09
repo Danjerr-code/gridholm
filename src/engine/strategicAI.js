@@ -20,6 +20,7 @@ import {
   resolveSpell,
   resolveHandSelect,
   resolveLineBlast,
+  resolveDeckPeek,
   applyChampionAbility,
   triggerUnitAction,
   getUnitMoveTiles,
@@ -216,6 +217,11 @@ export function applyAction(state, action) {
         const vorn = s.units.find(u => u.uid === s.pendingLineBlast.unitUid);
         const bestDir = vorn ? _pickLineBlastDirection(s, vorn) : 'up';
         s = resolveLineBlast(s, s.pendingLineBlast.unitUid, bestDir);
+      } else if (s.pendingDeckPeek) {
+        // Arcane Lens: AI keeps the highest-cost card from the peeked cards
+        const peeked = s.pendingDeckPeek.cards;
+        const best = peeked.reduce((a, b) => b.cost > a.cost ? b : a, peeked[0]);
+        s = resolveDeckPeek(s, best.uid);
       } else if (s.pendingSpell && action.targetUid != null) {
         s = resolveSpell(s, action.unitId, action.targetUid);
       }

@@ -28,6 +28,7 @@ import {
   executeApproachAndAttack,
   manhattan,
   resolveLineBlast,
+  resolveDeckPeek,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -451,6 +452,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [selectedUnit, clearSelection]);
 
+  const handleDeckPeekSelect = useCallback((cardUid) => {
+    setState(prev => resolveDeckPeek(prev, cardUid));
+    clearSelection();
+  }, [clearSelection]);
+
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
     setState(prev => {
@@ -563,6 +569,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleActionButtonClick,
       handleConfirmAction,
       handleLineBlastDirection,
+      handleDeckPeekSelect,
       handleNewGame,
       handleTerrainCast,
       clearSelection,
