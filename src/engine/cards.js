@@ -82,7 +82,7 @@ export const CARD_DB = {
   sistersiofra:    { id: 'sistersiofra',    name: 'Sister Siofra, First Prayer', type: 'unit', cost: 5, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.ELF],attribute: 'mystic', rules: 'When a friendly combat unit is destroyed, your champion gains +2 HP.', legendary: true, image: 'sistersiofra.webp' },
   grovechampion:   { id: 'grovechampion',   name: 'Grove Champion',      type: 'unit',  cost: 5, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: '', image: 'grovechampion.webp' },
   yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 8, atk: 1, hp: 6, spd: 0, unitType: [UNIT_TYPES.SPIRIT, UNIT_TYPES.PLANT],   attribute: 'mystic',  rules: 'At the end of your turn, summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
-  sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.PLANT], attribute: 'mystic',  rules: 'When this unit is destroyed, restore 1 HP to your champion.', token: true, image: 'sapling-token.webp' },
+  sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.PLANT], attribute: 'mystic',  rules: 'When this unit dies, restore 1 HP to your champion.', token: true, image: 'sapling-token.webp' },
 
   // Elf spells
   moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Increase the HP of a friendly combat unit by the number of cards in your hand.', image: 'moonleaf.webp' },
