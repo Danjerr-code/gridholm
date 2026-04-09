@@ -24,8 +24,6 @@ let _aiMode = 'strategic';
 export function setAIMode(mode) { _aiMode = mode; }
 export function getAIMode() { return _aiMode; }
 
-// AI deck selection: always Human for now.
-// Update when AI difficulty levels are added.
 const AI_PLAYER = 1;
 
 function getAIChampion(state) {
