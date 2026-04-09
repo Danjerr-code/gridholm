@@ -31,7 +31,12 @@ export const KEYWORD_REMINDERS = {
   },
   stunned: {
     label: 'Stunned',
-    reminder: 'This unit cannot move or use its action this turn.',
+    reminder: 'This unit cannot move or use Action abilities this turn.',
     color: '#D97706', // amber
+  },
+  rooted: {
+    label: 'Rooted',
+    reminder: 'This unit cannot move this turn. It can still use Action abilities and fight.',
+    color: '#4D7C4D', // muted green
   },
 }

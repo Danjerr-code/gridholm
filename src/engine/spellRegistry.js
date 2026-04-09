@@ -110,7 +110,7 @@ export const SPELL_REGISTRY = {
       manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
     );
     for (const u of affected) {
-      u.martialLaw = true;
+      u.skipNextAction = true;
     }
     addLog(state, `${state.players[caster].name} casts Martial Law. ${affected.length} enemy unit(s) affected.`);
     return state;
@@ -255,7 +255,7 @@ export const SPELL_REGISTRY = {
       u.owner !== caster &&
       adj.some(([r, c]) => u.row === r && u.col === c)
     );
-    for (const u of affected) u.martialLaw = true;
+    for (const u of affected) u.rooted = true;
     addLog(state, `Entangle: ${affected.length} enemy unit(s) around ${target.name} cannot move next turn.`);
     return state;
   },

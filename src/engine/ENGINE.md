@@ -88,7 +88,8 @@ All game logic lives in the following files:
       dreadShadeRevealBonus: boolean, // Dread Shade +2 ATK on reveal turn
 
       // Status effects
-      martialLaw: boolean,         // cannot act next turn
+      skipNextAction: boolean,     // Stunned — cannot move or use Action abilities next turn
+      rooted: boolean,             // Rooted — cannot move next turn, can still fight and use Action abilities
       shield: number,              // damage absorption remaining (Iron Shield)
     }
   ],

@@ -1081,6 +1081,9 @@ function doBeginTurnPhase(state) {
       u.moved = true;
       u.skipNextAction = false;
     }
+    if (u.owner === state.activePlayer && u.rooted) {
+      u.rooted = false;
+    }
   });
   if (state.champions[state.activePlayer].skipNextAction) {
     state.champions[state.activePlayer].moved = true;
@@ -1946,8 +1949,8 @@ export function triggerUnitAction(state, unitUid) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer) return [];
-  // Relics, omens, and SPD 0 units cannot move
-  if (unit.isRelic || unit.isOmen || unit.spd === 0) return [];
+  // Relics, omens, SPD 0, and rooted units cannot move
+  if (unit.isRelic || unit.isOmen || unit.spd === 0 || unit.rooted) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }
@@ -2081,7 +2084,7 @@ export function moveUnit(state, unitUid, row, col) {
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
-        if (defenderDestroyed) {
+        if (defenderDestroyed && !stillAlive2.rooted) {
           stillAlive2.row = row;
           stillAlive2.col = col;
         }
