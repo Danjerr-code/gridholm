@@ -35,7 +35,7 @@ export const CARD_DB = {
 
   // Human spells
   smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 2, effect: 'smite',           unitType: [UNIT_TYPES.HUMAN],attribute: 'neutral', rules: 'Deal 4 damage to one enemy combat unit within 2 tiles of your champion.', image: 'smite.webp' },
-  ironshield:      { id: 'ironshield',      name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: [UNIT_TYPES.HUMAN],attribute: 'neutral', rules: 'Give a friendly unit a shield absorbing up to 5 damage from the next attack.', image: 'ironshield.webp' },
+  ironshield:      { id: 'ironshield',      name: 'Iron Shield',         type: 'spell', cost: 2, effect: 'ironshield',      unitType: [UNIT_TYPES.HUMAN],attribute: 'neutral', rules: 'Give a friendly combat unit a shield absorbing up to 5 damage from the next attack.', image: 'ironshield.webp' },
   ironthorns:      { id: 'ironthorns',      name: 'Iron Thorns',         type: 'spell', cost: 2, effect: 'ironthorns',      unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Give your champion a shield absorbing up to 3 damage from the next attack. The attacking unit takes 3 damage.', image: 'ironthorns.webp' },
   forgeweapon:     { id: 'forgeweapon',     name: 'Forge Weapon',        type: 'spell', cost: 2, effect: 'forgeweapon',     unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Give a friendly unit +3 ATK permanently.', image: 'forgeweapon.webp' },
   fortify:         { id: 'fortify',         name: 'Fortify',             type: 'spell', cost: 3, effect: 'fortify',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'All friendly combat units gain +2 HP until end of turn.', image: 'fortify.webp' },
