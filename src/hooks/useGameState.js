@@ -9,6 +9,7 @@ import {
   summonUnit,
   resolveSpell,
   resolveHandSelect,
+  resolveGraveSelect,
   resolveFleshtitheSacrifice,
   cancelSpell,
   endActionAndTurn,
@@ -289,6 +290,19 @@ export function useGameState({ deckId = 'human' } = {}) {
     });
   }, [clearSelection, scheduleAITurn]);
 
+  const handleGraveSelect = useCallback((cardUid) => {
+    setState(prev => {
+      const s = resolveGraveSelect(prev, cardUid);
+      if (s.pendingSpell) {
+        setSelectMode('spell');
+      } else {
+        clearSelection();
+        scheduleAITurn();
+      }
+      return s;
+    });
+  }, [clearSelection, scheduleAITurn]);
+
   const handleFleshtitheSacrifice = useCallback((choice, sacrificeUid) => {
     setState(prev => resolveFleshtitheSacrifice(prev, choice, sacrificeUid));
     clearSelection();
@@ -551,6 +565,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleSummonOnTile,
       handleSpellTarget,
       handleHandSelect,
+      handleGraveSelect,
       handleFleshtitheSacrifice,
       handleCancelSpell,
       handleEndAction,

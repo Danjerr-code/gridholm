@@ -208,6 +208,27 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   unregisterUnit(unit.uid, state);
   unregisterModifiers(unit.uid, state);
 
+  // Push non-token units to the owner's grave before removal
+  if (!unit.isToken && state.players[unit.owner]) {
+    const graveEntry = {
+      id: unit.id,
+      uid: unit.uid,
+      name: unit.name,
+      cost: unit.cost,
+      atk: unit.atk,
+      maxHp: unit.maxHp,
+      hp: unit.maxHp, // restored to full health
+      unitType: unit.unitType,
+      image: unit.image,
+      rules: unit.rules,
+      legendary: unit.legendary,
+      attribute: unit.attribute,
+      // permanent stat changes are captured via atk/maxHp above
+    };
+    if (!state.players[unit.owner].grave) state.players[unit.owner].grave = [];
+    state.players[unit.owner].grave.push(graveEntry);
+  }
+
   // Remove from board
   state.units = state.units.filter(u => u.uid !== unit.uid);
 
@@ -915,8 +936,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0 },
-      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0 },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
@@ -926,6 +947,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     log: [openingLog],
     pendingSpell: null,   // { cardUid, effect, playerIdx, step, data }
     pendingHandSelect: null, // { reason, cardUid, data } — when spell needs hand card selection
+    pendingGraveSelect: null, // { reason, playerIdx, data } — when spell prompts player to select from grave
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
     pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
@@ -1385,6 +1407,19 @@ export function resolveHandSelect(state, selectedCardUid) {
   return s;
 }
 
+// ── grave card selection ──────────────────────────────────────────────────
+// Called when player selects a unit from their grave during pendingGraveSelect.
+
+export function resolveGraveSelect(state, selectedUid) {
+  const s = cloneState(state);
+  const gs = s.pendingGraveSelect;
+  if (!gs) return s;
+  // Specific spell effects that use grave selection can be handled here by reason.
+  // No built-in effects yet — this sets up the infrastructure for spells to use.
+  s.pendingGraveSelect = null;
+  return s;
+}
+
 // ── Flesh Tithe sacrifice ─────────────────────────────────────────────────
 
 export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
@@ -1636,6 +1671,7 @@ export function cancelSpell(state) {
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
+  s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
   s.pendingLineBlast = null;
   s.pendingNegationCancel = null;
@@ -1830,6 +1866,7 @@ export function endActionPhase(state) {
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
+  s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
   s.pendingLineBlast = null;
   s.pendingDeckPeek = null;

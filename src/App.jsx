@@ -75,6 +75,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
   if (selectMode === 'direction_select') guidance = 'Choose a direction for the line blast.';
+  if (selectMode === 'grave_select') guidance = 'Select a unit from your grave.';
 
   const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast' || selectMode === 'direction_select';
 
@@ -162,6 +163,70 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grave select modal */}
+      {state.pendingGraveSelect && isP1Turn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '520px',
+            width: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Select a unit from your grave
+            </div>
+            {p1.grave && p1.grave.length > 0 ? (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {p1.grave.map((card, idx) => {
+                  const imageUrl = getCardImageUrl(card.image);
+                  return (
+                    <div
+                      key={card.uid ?? idx}
+                      onClick={() => handlers.handleGraveSelect(card.uid)}
+                      style={{
+                        background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                        border: '1px solid #3a3a60',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        minWidth: '100px',
+                        maxWidth: '130px',
+                        textAlign: 'center',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#C9A84C'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = '#3a3a60'}
+                    >
+                      {imageUrl && (
+                        <img
+                          src={imageUrl}
+                          alt={card.name}
+                          onError={e => { e.target.style.display = 'none'; }}
+                          style={{ width: '100%', borderRadius: '4px', marginBottom: '6px', objectFit: 'cover', maxHeight: '70px' }}
+                        />
+                      )}
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{card.name}</div>
+                      <div style={{ fontSize: '10px', color: '#C9A84C', marginBottom: '2px' }}>Cost {card.cost}</div>
+                      <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', color: '#6a6a8a', fontSize: '12px' }}>Your grave is empty.</div>
+            )}
           </div>
         </div>
       )}
