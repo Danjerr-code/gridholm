@@ -1065,7 +1065,7 @@ export function playCard(state, cardUid) {
     const NO_TARGET_SPELLS = new Set([
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
-      'ancientspring', 'verdantsurge',
+      'ancientspring', 'verdantsurge', 'predatorsmark',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= card.cost;
@@ -1302,9 +1302,9 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   else if (effect === 'entangle') {
     if (target) s = _dispatchSpell(s, s.activePlayer, 'entangle', [target]);
   }
-  // ── Predator's Mark ──
+  // ── Predator's Mark (no target — auto-targets enemy champion via registry) ──
   else if (effect === 'predatorsmark') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'predatorsmark', [target]);
+    s = _dispatchSpell(s, s.activePlayer, 'predatorsmark', []);
   }
   // ── Pounce ──
   else if (effect === 'pounce') {
@@ -1976,18 +1976,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'entangle':
       return state.units.filter(u => u.owner === state.activePlayer && unitTypes(u).includes('Elf') && !u.hidden).map(u => u.uid);
 
-    // Predator's Mark: enemy unit or champion within 2 tiles of caster's champion (not omen)
-    case 'predatorsmark': {
-      const enemyChampIdx = 1 - state.activePlayer;
-      const enemyChamp = state.champions[enemyChampIdx];
-      const unitTargets = state.units
-        .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
-        .map(u => u.uid);
-      const champTarget = manhattan([champ.row, champ.col], [enemyChamp.row, enemyChamp.col]) <= 2
-        ? ['champion' + enemyChampIdx]
-        : [];
-      return [...unitTargets, ...champTarget];
-    }
+    // Predator's Mark: always targets enemy champion
+    case 'predatorsmark':
+      return ['champion' + (1 - state.activePlayer)];
 
     // Pounce: friendly Beast unit (resets its action)
     case 'pounce':
@@ -2139,11 +2130,8 @@ export function hasValidTargets(card, state, playerIndex) {
     case 'spiritbolt':
       return !champ.moved && enemyUnits.length > 0;
 
-    case 'predatorsmark': {
-      const enemyChamp = state.champions[1 - playerIndex];
-      return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
-        || manhattan([champ.row, champ.col], [enemyChamp.row, enemyChamp.col]) <= 2;
-    }
+    case 'predatorsmark':
+      return true; // enemy champion always exists
 
     case 'martiallaw':
       return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);

@@ -164,11 +164,11 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
-  predatorsmark: (state, caster, targets) => {
-    const target = targets[0];
-    if (!target) return state;
-    target.skipNextAction = true;
-    addLog(state, `Predator's Mark: ${target.name} will skip its action next turn.`);
+  predatorsmark: (state, caster) => {
+    const enemyChamp = state.champions[1 - caster];
+    if (!enemyChamp) return state;
+    enemyChamp.skipNextAction = true;
+    addLog(state, `Predator's Mark: The enemy champion will skip their action next turn.`);
     return state;
   },
 
