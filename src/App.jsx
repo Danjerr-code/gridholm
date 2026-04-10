@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan } from './engine/gameEngine.js';
+import { CARD_DB } from './engine/cards.js';
 import { getCardImageUrl } from './supabase.js';
 import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
@@ -776,15 +777,44 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
       );
     }
   } else if (inspectedItem?.type === 'terrain') {
-    content = (
-      <div className="flex flex-col gap-2">
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Throne</span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Terrain</span>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
-          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+    const terrainCard = inspectedItem.terrain?.cardId ? CARD_DB[inspectedItem.terrain.cardId] : null;
+    if (terrainCard) {
+      const cardImageUrl = getCardImageUrl(terrainCard.image);
+      content = (
+        <div className="flex flex-col gap-2">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ width: 90, height: 120, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#252538' }}>
+              {cardImageUrl
+                ? <img src={cardImageUrl} alt={terrainCard.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4a6a', fontSize: 11, fontFamily: "'Cinzel', serif" }}>Terrain</div>
+              }
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>{terrainCard.name}</span>
+                <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{terrainCard.cost}</span>
+              </div>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Terrain</span>
+            </div>
+          </div>
+          {terrainCard.rules && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+              {terrainCard.rules}
+            </div>
+          )}
         </div>
-      </div>
-    );
+      );
+    } else {
+      content = (
+        <div className="flex flex-col gap-2">
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Throne</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Terrain</span>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
+            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+          </div>
+        </div>
+      );
+    }
   } else if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
     const cardImageUrl = getCardImageUrl(card.image);
@@ -1134,27 +1164,86 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
       );
     }
   } else if (inspectedItem?.type === 'terrain') {
-    content = (
-      <div className="flex flex-col gap-1">
-        <div className="flex justify-between items-start">
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>Throne</span>
+    const terrainCard = inspectedItem.terrain?.cardId ? CARD_DB[inspectedItem.terrain.cardId] : null;
+    if (terrainCard) {
+      const cardImageUrl = getCardImageUrl(terrainCard.image);
+      content = (
+        <div className="flex flex-col gap-1">
+          <div
+            style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}
+            data-art-slot="true"
+          >
+            {cardImageUrl ? (
+              <img
+                src={cardImageUrl}
+                alt={terrainCard.name}
+                onError={(e) => { e.target.style.display = 'none'; }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <div style={{
+                width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', background: 'rgba(255,255,255,0.03)',
+                border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)',
+                fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500,
+              }}>
+                Terrain
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between items-start">
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>{terrainCard.name}</span>
+            <span style={{
+              background: '#C9A84C',
+              color: '#0a0a0f',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '14px',
+              fontWeight: 700,
+              padding: '1px 7px',
+              borderRadius: '99px',
+            }}>{terrainCard.cost}</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>Terrain</div>
+          {terrainCard.rules && (
+            <div style={{
+              fontFamily: 'var(--font-sans)',
+              fontStyle: 'normal',
+              fontSize: '12px',
+              fontWeight: 400,
+              color: '#e2e8f0',
+              lineHeight: 1.6,
+              marginTop: '4px',
+              borderTop: '0.5px solid #1e1e2e',
+              paddingTop: '4px',
+            }}>
+              {terrainCard.rules}
+            </div>
+          )}
         </div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>Terrain</div>
-        <div style={{
-          fontFamily: 'var(--font-sans)',
-          fontStyle: 'normal',
-          fontSize: '12px',
-          fontWeight: 400,
-          color: '#e2e8f0',
-          lineHeight: 1.6,
-          marginTop: '4px',
-          borderTop: '0.5px solid #1e1e2e',
-          paddingTop: '4px',
-        }}>
-          End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+      );
+    } else {
+      content = (
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-start">
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>Throne</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#e2e8f0' }}>Terrain</div>
+          <div style={{
+            fontFamily: 'var(--font-sans)',
+            fontStyle: 'normal',
+            fontSize: '12px',
+            fontWeight: 400,
+            color: '#e2e8f0',
+            lineHeight: 1.6,
+            marginTop: '4px',
+            borderTop: '0.5px solid #1e1e2e',
+            paddingTop: '4px',
+          }}>
+            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   } else if (inspectedItem?.type === 'card') {
     const card = inspectedItem.card;
     const cardImageUrl = getCardImageUrl(card.image);

@@ -1944,7 +1944,7 @@ export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   const affectedTiles = getTerrainAffectedTiles(targetRow, targetCol, radius);
 
   for (const [r, c] of affectedTiles) {
-    s.terrainGrid[r][c] = { ...card.terrainEffect, ownerName: card.name };
+    s.terrainGrid[r][c] = { ...card.terrainEffect, ownerName: card.name, cardId: card.id };
   }
 
   addLog(s, `${p.name} casts ${card.name} at (${targetRow},${targetCol}). ${affectedTiles.length} tile(s) affected.`);

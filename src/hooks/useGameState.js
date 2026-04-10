@@ -175,8 +175,12 @@ export function useGameState({ deckId = 'human' } = {}) {
     setInspectedItem(null);
   }, []);
 
-  const handleInspectTerrain = useCallback(() => {
-    setInspectedItem({ type: 'terrain', name: 'Throne' });
+  const handleInspectTerrain = useCallback((terrain) => {
+    if (terrain?.cardId) {
+      setInspectedItem({ type: 'terrain', terrain });
+    } else {
+      setInspectedItem({ type: 'terrain', name: 'Throne' });
+    }
   }, []);
 
   // ── Phase helpers ─────────────────────────────────────────────────────
