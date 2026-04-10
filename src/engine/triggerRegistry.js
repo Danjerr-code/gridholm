@@ -475,6 +475,22 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'drawOnFirstSpell': {
+      // Cascade Sage: draw 1 card the first time a spell is cast each turn.
+      // If the played card is not a spell, return false to skip consuming the oncePerTurn flag.
+      const card = context?.card;
+      if (!card || card.type !== 'spell') return false;
+      const p = state.players[playerIndex];
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(state, `Cascade Sage channels the spell. Draw 1 card.`);
+      } else {
+        addLog(state, `Cascade Sage channels the spell — deck empty.`);
+      }
+      break;
+    }
+
     default:
       break;
   }
@@ -571,9 +587,9 @@ export function fireTrigger(event, context, state) {
       ? { ...context, retriggerUid: listener.unitUid }
       : context;
 
-    resolveEffect(listener.effect, listener, effectCtx, state);
+    const consumed = resolveEffect(listener.effect, listener, effectCtx, state);
 
-    if (listener.oncePerTurn) {
+    if (listener.oncePerTurn && consumed !== false) {
       listener.firedThisTurn = true;
     }
   }

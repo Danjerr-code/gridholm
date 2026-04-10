@@ -98,6 +98,10 @@ export const CARD_DB = {
   yggara:          { id: 'yggara',          name: 'Yggara, Rootmother',  type: 'unit',  cost: 8, atk: 1, hp: 6, spd: 0, unitType: [UNIT_TYPES.SPIRIT, UNIT_TYPES.PLANT],   attribute: 'mystic',  rules: 'At the end of your turn, summon a 1/1 Sapling in each adjacent tile.', legendary: true, image: 'yggara.webp' },
   sapling:         { id: 'sapling',         name: 'Sapling',             type: 'unit',  cost: 0, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.PLANT], attribute: 'mystic',  rules: 'When this unit dies, restore 1 HP to your champion.', token: true, image: 'sapling-token.webp' },
 
+  sylvancourier:    { id: 'sylvancourier',    name: 'Sylvan Courier',     type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: 'When summoned, draw a card.', image: 'sylvancourier.webp' },
+  canopysentinel:   { id: 'canopysentinel',   name: 'Canopy Sentinel',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: 'When summoned, summon a Sapling in an adjacent tile.', image: 'canopysentinel.webp' },
+  cascadesage:      { id: 'cascadesage',      name: 'Cascade Sage',       type: 'unit',  cost: 6, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: 'The first time you cast a spell each turn, draw a card.', triggers: [{ event: 'onCardPlayed', effect: 'drawOnFirstSpell', oncePerTurn: true }], image: 'cascadesage.webp' },
+
   // Elf spells
   moonleaf:        { id: 'moonleaf',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Increase the HP of a friendly combat unit equal to the number of cards in your hand.', image: 'moonleaf.webp' },
   overgrowth:      { id: 'overgrowth',      name: 'Overgrowth',          type: 'spell', cost: 4, effect: 'overgrowth',      unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Restore 2 HP to all friendly units.', image: 'overgrowth.webp' },
@@ -316,11 +320,12 @@ const BEAST_DECK = [
 const ELF_DECK = [
   'elfscout',
   'seedling',
-  'woodlandguard', 'woodlandguard',
+  'woodlandguard',
+  'sylvancourier',
   'whisper', 'whisper',
   'verdantarcher',
-  'elfelder', 'elfelder',
-  'thornweave', 'thornweave',
+  'elfelder',
+  'thornweave',
   'elfranger',
   'grovewarden',
   'moonveilmystic',
@@ -340,6 +345,8 @@ const ELF_DECK = [
   'tanglerootypew',
   'azulonsilvertide',
   'fennwickthequiet',
+  'canopysentinel',
+  'cascadesage',
 ];
 
 const DEMON_DECK = [

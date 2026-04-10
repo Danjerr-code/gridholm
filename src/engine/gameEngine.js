@@ -1005,7 +1005,49 @@ export function fireOnSummonTriggers(unit, state) {
     }
   }
 
-  // 11. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
+  // 11. Sylvan Courier: draw 1 card when summoned
+  if (unit.id === 'sylvancourier') {
+    const drawn = p.deck.shift();
+    if (drawn) {
+      p.hand.push(drawn);
+      addLog(state, `Sylvan Courier delivers a message. Draw 1 card.`);
+    } else {
+      addLog(state, `Sylvan Courier delivers a message — deck empty.`);
+    }
+  }
+
+  // 12. Canopy Sentinel: summon a Sapling in a random adjacent empty tile
+  if (unit.id === 'canopysentinel') {
+    const adj = cardinalNeighbors(unit.row, unit.col).filter(([r, c]) =>
+      !state.units.some(u => u.row === r && u.col === c) &&
+      !state.champions.some(ch => ch.row === r && ch.col === c)
+    );
+    if (adj.length > 0) {
+      const [tr, tc] = adj[Math.floor(Math.random() * adj.length)];
+      const sapling = {
+        ...TOKENS.sapling,
+        owner: unit.owner,
+        row: tr,
+        col: tc,
+        maxHp: TOKENS.sapling.hp,
+        summoned: true,
+        moved: false,
+        atkBonus: 0,
+        shield: 0,
+        speedBonus: 0,
+        turnAtkBonus: 0,
+        hidden: false,
+        uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
+      };
+      state.units.push(sapling);
+      registerUnit(sapling, state);
+      addLog(state, `Canopy Sentinel summons a Sapling.`);
+    } else {
+      addLog(state, `Canopy Sentinel: no adjacent tiles for a Sapling.`);
+    }
+  }
+
+  // 13. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
   if (unit.id === 'chainsoflight') {
     const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && !u.isOmen && !u.isRelic);
     if (hasEnemies) {
