@@ -64,6 +64,8 @@ export default function Board({
 
   const boardRef = useRef(null);
   const [dragTargetKey, setDragTargetKey] = useState(null);
+  // Double-tap tracking for champion tokens on mobile (keyed by champion.owner)
+  const lastChampTapRef = useRef({});
 
   // Animation state
   const prevStateRef = useRef(null);
@@ -469,6 +471,56 @@ export default function Board({
     }
   }
 
+  function handleChampionClick(champion, row, col) {
+    const cellKey = `${row},${col}`;
+    const isChampSpellTarget = spellTargetUids.includes('champion' + champion.owner);
+
+    // Priority: spell cast on champion
+    if (selectMode === 'spell' && isChampSpellTarget) {
+      handlers.handleSpellTarget('champion' + champion.owner);
+      return;
+    }
+    // Champion ability mode: do nothing on tap
+    if (selectMode === 'champion_ability') return;
+    // Unit move: enemy champion on a valid move tile = move-to (combat)
+    if (selectMode === 'unit_move' && champion.owner !== activePlayer) {
+      if (unitMoveSet.has(cellKey)) {
+        handlers.handleMoveUnit(row, col);
+        return;
+      }
+    }
+
+    const isOwnChampion = champion.owner === myPlayerIndex;
+
+    if (isMobile) {
+      // Mobile: double-tap within 300ms to inspect; single tap selects own champion only
+      const now = Date.now();
+      const ownerKey = String(champion.owner);
+      const last = lastChampTapRef.current[ownerKey] ?? 0;
+      lastChampTapRef.current[ownerKey] = now;
+
+      if (now - last < 300) {
+        // Double tap: show details for any champion
+        lastChampTapRef.current[ownerKey] = 0;
+        if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
+      } else if (isOwnChampion) {
+        // Single tap on own champion: select for movement only
+        if (canInteract && phase === 'action' && handlers.handleSelectChampion) {
+          handlers.handleSelectChampion();
+        }
+      }
+      // Single tap on opponent champion: no action
+      return;
+    }
+
+    // Desktop: inspect + select own champion (unchanged)
+    if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
+    if (!canInteract) return;
+    if (phase === 'action' && isOwnChampion && handlers.handleSelectChampion) {
+      handlers.handleSelectChampion();
+    }
+  }
+
   return (
     <div className="w-full max-w-[480px] mx-auto">
       <div ref={boardRef} className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
@@ -526,29 +578,10 @@ export default function Board({
                 onUnitDragEnd={handleUnitDragEnd}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
-                onChampionClick={() => {
-                  if (selectMode === 'spell' && isChampionSpellTarget) {
-                    handlers.handleSpellTarget('champion' + champion.owner);
-                    return;
-                  }
-                  if (selectMode === 'champion_ability') {
-                    return;
-                  }
-                  if (selectMode === 'unit_move' && champion && champion.owner !== activePlayer) {
-                    const key = `${row},${col}`;
-                    if (unitMoveSet.has(key)) {
-                      handlers.handleMoveUnit(row, col);
-                      return;
-                    }
-                  }
-                  if (handlers.handleInspectChampion && champion) {
-                    handlers.handleInspectChampion(champion.owner);
-                  }
-                  if (!canInteract) return;
-                  if (phase === 'action' && champion && champion.owner === activePlayer && handlers.handleSelectChampion) {
-                    handlers.handleSelectChampion();
-                  }
-                }}
+                onChampionClick={() => champion && handleChampionClick(champion, row, col)}
+                onChampionLongPress={champion ? () => {
+                  if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
+                } : undefined}
               />
             );
           })

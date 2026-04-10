@@ -39,6 +39,7 @@ export default function Cell({
   onClick,
   onUnitClick,
   onChampionClick,
+  onChampionLongPress,
   isMobile,
   onUnitLongPress,
   onLongPressDismiss,
@@ -118,6 +119,13 @@ export default function Cell({
   }, [onThroneLongPress]);
   const throneLongPress = useLongPress(throneLongPressCallback);
   const throneActive = isCenter && isMobile && !!onThroneLongPress;
+
+  // Long-press on champion token (mobile only) shows champion details.
+  const champLongPressCallback = useCallback(() => {
+    if (onChampionLongPress) onChampionLongPress();
+  }, [onChampionLongPress]);
+  const champLongPress = useLongPress(champLongPressCallback);
+  const hasChampLongPress = isMobile && !!onChampionLongPress;
   const tilePointerHandlers = throneActive ? {
     onPointerDown: throneLongPress.onPointerDown,
     onPointerUp: () => {
@@ -215,7 +223,21 @@ export default function Cell({
             boxShadow: `0 0 12px ${isChampionSpellTarget ? '#f9731660' : champColor + '60'}`,
             ...(champIsAbility ? { '--ability-glow-color': ATTR_GLOW_RGBA[champAnimState.attribute] ?? 'rgba(255,255,255,0.8)' } : {}),
           }}
-          onClick={e => { e.stopPropagation(); onChampionClick && onChampionClick(); }}
+          onPointerDown={hasChampLongPress ? (e) => { e.stopPropagation(); champLongPress.onPointerDown(); } : undefined}
+          onPointerUp={hasChampLongPress ? (e) => {
+            const fired = champLongPress.firedRef.current;
+            champLongPress.onPointerUp();
+            if (fired && onLongPressDismiss) onLongPressDismiss();
+          } : undefined}
+          onPointerCancel={hasChampLongPress ? champLongPress.onPointerCancel : undefined}
+          onClick={e => {
+            e.stopPropagation();
+            if (hasChampLongPress && champLongPress.firedRef.current) {
+              champLongPress.firedRef.current = false;
+              return;
+            }
+            onChampionClick && onChampionClick();
+          }}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
         >
           {/* Red flash overlay on damage */}
