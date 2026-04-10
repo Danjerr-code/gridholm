@@ -252,6 +252,15 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   if (destroyingUids.has(unit.uid)) return state;
   destroyingUids.add(unit.uid);
 
+  // Chains of Light: log stun release before modifier is unregistered
+  if (unit.id === 'chainsoflight' && state.activeModifiers) {
+    const mod = state.activeModifiers.find(m => m.type === 'stunTarget' && m.unitUid === unit.uid);
+    if (mod) {
+      const stunnedUnit = state.units.find(u => u.uid === mod.targetUid);
+      if (stunnedUnit) addLog(state, `Chains of Light fades. ${stunnedUnit.name} is no longer stunned.`);
+    }
+  }
+
   // Unregister declarative triggers and static modifiers before removal
   unregisterUnit(unit.uid, state);
   unregisterModifiers(unit.uid, state);
@@ -445,16 +454,6 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
       addLog(state, `Gilded Cage destroyed. Unit released.`);
     } else {
       addLog(state, `Gilded Cage destroyed. Released unit has no room — lost.`);
-    }
-  }
-
-  // Chains of Light omen: clear the stun on the unit it was tethered to.
-  if (unit.id === 'chainsoflight') {
-    const stunned = state.units.find(u => u.stunnedByOmen === unit.uid);
-    if (stunned) {
-      stunned.stunned = false;
-      delete stunned.stunnedByOmen;
-      addLog(state, `Chains of Light fades. ${stunned.name} is no longer stunned.`);
     }
   }
 
@@ -1234,7 +1233,7 @@ function doBeginTurnPhase(state) {
     if (u.owner === state.activePlayer && u.rooted) {
       u.rooted = false;
     }
-    if (u.owner === state.activePlayer && u.stunned) {
+    if (u.owner === state.activePlayer && state.activeModifiers?.some(m => m.type === 'stunTarget' && m.targetUid === u.uid)) {
       u.moved = true;
     }
   });

@@ -495,8 +495,8 @@ export const SPELL_REGISTRY = {
     const target = targets[0];
     const omenUid = options.omenUid;
     if (!target || !omenUid) return state;
-    target.stunned = true;
-    target.stunnedByOmen = omenUid;
+    if (!state.activeModifiers) state.activeModifiers = [];
+    state.activeModifiers.push({ type: 'stunTarget', unitUid: omenUid, playerIndex: caster, targetUid: target.uid });
     addLog(state, `Enemy unit stunned by Chains of Light.`);
     return state;
   },
