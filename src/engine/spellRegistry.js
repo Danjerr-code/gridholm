@@ -324,8 +324,24 @@ export const SPELL_REGISTRY = {
       manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
     ).length;
     const dmg = nearbyCount + 1; // +1 for the champion itself
-    addLog(state, `Spirit Bolt: deals ${dmg} damage to ${target.name}.`);
-    applyDamageToUnit(state, target, dmg, 'Spirit Bolt');
+    // Target may be a combat unit or the enemy champion (no uid)
+    if (!target.uid) {
+      // Enemy champion target
+      target.hp -= dmg;
+      addLog(state, `Spirit Bolt: deals ${dmg} damage to ${state.players[target.owner].name}'s champion.`);
+    } else {
+      addLog(state, `Spirit Bolt: deals ${dmg} damage to ${target.name}.`);
+      applyDamageToUnit(state, target, dmg, 'Spirit Bolt');
+    }
+    return state;
+  },
+
+  apexrampage: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    target.turnAtkBonus = (target.turnAtkBonus || 0) + 2;
+    target.extraActionsRemaining = (target.extraActionsRemaining || 0) + 2;
+    addLog(state, `Apex Rampage unleashed on ${target.name}.`);
     return state;
   },
 

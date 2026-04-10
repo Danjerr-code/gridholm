@@ -77,6 +77,7 @@ export const CARD_DB = {
   animus:          { id: 'animus',          name: 'Animus',              type: 'spell', cost: 1, effect: 'animus',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Target friendly combat unit gains +2 ATK this turn.', image: 'animus.webp' },
   gore:            { id: 'gore',            name: 'Gore',                type: 'spell', cost: 2, effect: 'gore',            unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Deal 2 damage to an enemy combat unit.', image: 'gore.webp' },
   demolish:        { id: 'demolish',        name: 'Demolish',            type: 'spell', cost: 2, effect: 'demolish',        unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Destroy target Relic or Omen.', image: 'demolish.webp' },
+  apexrampage:     { id: 'apexrampage',     name: 'Apex Rampage',        type: 'spell', cost: 7, effect: 'apexrampage',     unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Target friendly combat unit gains +2 ATK and 2 extra actions this turn.', image: 'apexrampage.webp' },
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: '', image: 'elfscout.webp' },
@@ -102,7 +103,7 @@ export const CARD_DB = {
   entangle:        { id: 'entangle',        name: 'Entangle',            type: 'spell', cost: 3, effect: 'entangle',        unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Choose a friendly Mystic unit. Enemy combat units adjacent to that unit cannot move next turn.', image: 'entangle.webp' },
   ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Draw 2 cards.', image: 'ancientspring.webp' },
   verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Give your champion and friendly units within 2 tiles of your champion +2/+2 this turn.', image: 'verdantsurge.webp' },
-  spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
+  spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 5, effect: 'spiritbolt',      unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: "Skip your champion's action this turn. Deal damage to any enemy unit or champion equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
   glimpse:         { id: 'glimpse',         name: 'Glimpse',             type: 'spell', cost: 1, effect: 'glimpse',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn. Look at the top card of your deck. You may shuffle it back. Draw a card.", image: 'glimpse.webp' },
   petrify:         { id: 'petrify',         name: 'Petrify',             type: 'spell', cost: 4, effect: 'petrify',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Transform target enemy combat unit with 4 or less HP into a Relic with no abilities.', image: 'petrify.webp' },
   glitteringgift:  { id: 'glitteringgift',  name: 'Glittering Gift',     type: 'spell', cost: 2, effect: 'glitteringgift',  unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Give a friendly combat unit +1/+1 and 'When this unit is destroyed, draw a card.'", image: 'glitteringgift.webp' },
@@ -298,7 +299,7 @@ const BEAST_DECK = [
   'siegemound', 'siegemound',
   'feralsurge', 'feralsurge',
   'bloodmoon',
-  'huntingground',
+  'spiritbolt',
   'vornthundercaller',
   'korraksecondang',
 ];

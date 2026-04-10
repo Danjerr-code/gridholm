@@ -1224,6 +1224,7 @@ function doBeginTurnPhase(state) {
       u.moved = false;
       u.speedBonus = 0;
       u.turnAtkBonus = 0;
+      u.extraActionsRemaining = 0;
       // Clear razorfang reset used flag
       if (u.id === 'razorfang') u.razorfangResetUsed = false;
       // Reset Iron Queen's per-turn action counter
@@ -2021,6 +2022,12 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Apex Rampage ──
+  else if (effect === 'apexrampage') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'apexrampage', [target]);
+    }
+  }
   // ── Animus ──
   else if (effect === 'animus') {
     if (target) s = _dispatchSpell(s, s.activePlayer, 'animus', [target]);
@@ -2050,7 +2057,10 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   else if (effect === 'spiritbolt') {
     const champ = s.champions[s.activePlayer];
     champ.moved = true;
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'spiritbolt', [target]);
+    if (target) {
+      s = _dispatchSpell(s, s.activePlayer, 'spiritbolt', [target]);
+      checkWinner(s);
+    }
   }
   // ── Crushing Blow ──
   else if (effect === 'crushingblow') {
@@ -2446,6 +2456,8 @@ export function triggerUnitAction(state, unitUid) {
   if (unit.id === 'ironqueen') {
     unit.ironQueenActionsUsed = (unit.ironQueenActionsUsed ?? 0) + 1;
     if (unit.ironQueenActionsUsed >= 2) unit.moved = true;
+  } else if ((unit.extraActionsRemaining ?? 0) > 0) {
+    unit.extraActionsRemaining--;
   } else {
     unit.moved = true;
   }
@@ -2625,6 +2637,8 @@ export function moveUnit(state, unitUid, row, col) {
       if (liveUnit.id === 'ironqueen') {
         liveUnit.ironQueenActionsUsed = (liveUnit.ironQueenActionsUsed ?? 0) + 1;
         if (liveUnit.ironQueenActionsUsed >= 2) liveUnit.moved = true;
+      } else if ((liveUnit.extraActionsRemaining ?? 0) > 0) {
+        liveUnit.extraActionsRemaining--;
       } else {
         liveUnit.moved = true;
       }
@@ -2693,6 +2707,8 @@ export function moveUnit(state, unitUid, row, col) {
         if (stillAlive2.id === 'ironqueen') {
           stillAlive2.ironQueenActionsUsed = (stillAlive2.ironQueenActionsUsed ?? 0) + 1;
           if (stillAlive2.ironQueenActionsUsed >= 2) stillAlive2.moved = true;
+        } else if ((stillAlive2.extraActionsRemaining ?? 0) > 0) {
+          stillAlive2.extraActionsRemaining--;
         } else {
           stillAlive2.moved = true;
         }
@@ -2754,6 +2770,8 @@ export function moveUnit(state, unitUid, row, col) {
       if (unitAfterThorn.id === 'ironqueen') {
         unitAfterThorn.ironQueenActionsUsed = (unitAfterThorn.ironQueenActionsUsed ?? 0) + 1;
         if (unitAfterThorn.ironQueenActionsUsed >= 2) unitAfterThorn.moved = true;
+      } else if ((unitAfterThorn.extraActionsRemaining ?? 0) > 0) {
+        unitAfterThorn.extraActionsRemaining--;
       } else {
         unitAfterThorn.moved = true;
       }
@@ -2773,6 +2791,8 @@ export function moveUnit(state, unitUid, row, col) {
     if (unit.id === 'ironqueen') {
       unit.ironQueenActionsUsed = (unit.ironQueenActionsUsed ?? 0) + 1;
       if (unit.ironQueenActionsUsed >= 2) unit.moved = true;
+    } else if ((unit.extraActionsRemaining ?? 0) > 0) {
+      unit.extraActionsRemaining--;
     } else {
       unit.moved = true;
     }
@@ -2907,6 +2927,7 @@ export function completeTurnAdvance(state) {
     if (u.owner === s.activePlayer) {
       u.speedBonus = 0;
       u.turnAtkBonus = 0;
+      u.extraActionsRemaining = 0;
       // Clear fortify bonus (revert temporary HP increase)
       if (u.fortifyBonus) {
         u.hp = Math.max(1, u.hp - u.fortifyBonus);
@@ -3072,9 +3093,18 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'souldrain':
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
-    // Spirit Bolt: any enemy unit on the board (no range restriction, not omen, not spell-immune)
+    // Spirit Bolt: any enemy unit or the enemy champion
     case 'spiritbolt':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      return [
+        'champion' + (1 - state.activePlayer),
+        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid),
+      ];
+
+    // Apex Rampage: friendly combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'apexrampage':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune
+      ).map(u => u.uid);
 
     // Crushing Blow: enemy combat unit adjacent (distance 1) to own champion (not relic, not omen, not spell-immune)
     case 'crushingblow':
@@ -3266,7 +3296,10 @@ export function hasValidTargets(card, state, playerIndex) {
     }
 
     case 'spiritbolt':
-      return !champ.moved && enemyUnits.length > 0;
+      return !champ.moved; // enemy champion is always a valid target
+
+    case 'apexrampage':
+      return state.units.some(u => u.owner === playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune);
 
     case 'petrify':
       return enemyUnits.some(u => !u.isRelic && u.hp <= 4);
