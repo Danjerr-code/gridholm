@@ -6,7 +6,7 @@ import { getCardImageUrl } from '../supabase.js';
 import { renderRules } from '../utils/rulesText.jsx';
 
 const ATTRIBUTE_SECTIONS = [
-  { key: 'light',   name: 'Light',   color: '#F0E6D2' },
+  { key: 'light',   name: 'Light',   color: '#3B82F6' },
   { key: 'primal',  name: 'Primal',  color: '#22C55E' },
   { key: 'mystic',  name: 'Mystic',  color: '#A855F7' },
   { key: 'dark',    name: 'Dark',    color: '#EF4444' },

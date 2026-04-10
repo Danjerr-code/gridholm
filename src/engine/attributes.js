@@ -1,7 +1,7 @@
 export const ATTRIBUTES = {
   light: {
     name: 'Light',
-    color: '#F0E6D2',
+    color: '#3B82F6',
     friendly: ['primal', 'mystic'],
     enemy: ['dark'],
   },
