@@ -32,6 +32,7 @@ export const CARD_DB = {
   captain:         { id: 'captain',         name: 'Captain',             type: 'unit',  cost: 5, atk: 4, hp: 5, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Aura 1: Friendly combat units within 1 tile have +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly' }, image: 'captain.webp' },
   aendor:          { id: 'aendor',          name: 'Aendor, The Ancient', type: 'unit',  cost: 6, atk: 4, hp: 6, spd: 1, unitType: [UNIT_TYPES.ANGEL], attribute: 'light',   rules: 'Aura 1: Enemy combat units within 1 tile have -1 ATK.', aura: { range: 1, stat: 'atk', value: -1, target: 'enemy' }, legendary: true, image: 'aendor.webp' },
   waddles:         { id: 'waddles',         name: 'Waddles, Trusted Aide', type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.PENGUIN], attribute: 'light',  rules: 'While Waddles is adjacent to your champion, combat damage dealt to your champion is reduced to 2.', legendary: true, image: 'waddles.webp' },
+  shimmerguardian: { id: 'shimmerguardian', name: 'Shimmer Guardian',      type: 'unit',  cost: 5, atk: 5, hp: 6, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'When this unit takes damage, return it to your hand.', triggers: [{ event: 'onDamageTaken', effect: 'returnToHand', selfTrigger: true }], image: 'shimmerguardian.webp' },
 
   // Human spells
   smite:           { id: 'smite',           name: 'Smite',               type: 'spell', cost: 3, effect: 'smite',           unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Deal 4 damage to one enemy combat unit within 2 tiles of your champion.', image: 'smite.webp' },
@@ -65,6 +66,7 @@ export const CARD_DB = {
   razorfang:       { id: 'razorfang',       name: 'Razorfang, Alpha',    type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 2, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: "Rush.|When this unit destroys an enemy combat unit, reset this unit's action. Once per turn.", rush: true, legendary: true, image: 'razorfang.webp' },
   wildborne:       { id: 'wildborne',       name: 'Wildborne',           type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 2, unitType: [UNIT_TYPES.HUMAN], attribute: 'primal',  rules: 'Aura 1: Friendly Primal units within 1 tile gain +1/+1.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendlybeast' }, image: 'wildborne.webp' },
   nighthoofreaver: { id: 'nighthoofreaver', name: 'Nighthoof Reaver',     type: 'unit',  cost: 3, atk: 2, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEASTKIN], attribute: 'primal',  rules: 'Gain +1/+1 whenever an enemy unit dies.', triggers: [{ event: 'onEnemyUnitDeath', effect: 'gainPlusOnePlusOne', selfTrigger: false }], image: 'nighthoofreaver.webp' },
+  kragorsbehemoth: { id: 'kragorsbehemoth', name: "Kragor's Behemoth",    type: 'unit',  cost: 7, atk: 5, hp: 4, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When this unit deals damage to the enemy champion, that champion is stunned next turn.', triggers: [{ event: 'onChampionDamageDealt', effect: 'stunEnemyChampion' }], image: 'kragorsbehemoth.webp' },
 
   // Beast spells
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
@@ -266,6 +268,7 @@ const HUMAN_DECK = [
   'paladin',
   'captain',
   'aendor',
+  'shimmerguardian',
   'smite', 'smite',
   'ironshield', 'ironshield',
   'ironthorns',
@@ -307,6 +310,7 @@ const BEAST_DECK = [
   'spiritbolt',
   'vornthundercaller',
   'korraksecondang',
+  'kragorsbehemoth',
 ];
 
 const ELF_DECK = [

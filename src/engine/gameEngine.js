@@ -1106,6 +1106,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     activeModifiers: [],
     championStartTile: [null, null],    // { r, c } snapshot at turn start, per player
     lucernPendingResummon: [null, null], // { atk, atkBonus, maxHp } when Lucern dies on Throne
+    championStunned: [false, false],    // true when champion is stunned next turn (Kragor's Behemoth)
   };
 }
 
@@ -1267,6 +1268,10 @@ function doBeginTurnPhase(state) {
   if (state.champions[state.activePlayer].skipNextAction) {
     state.champions[state.activePlayer].moved = true;
     state.champions[state.activePlayer].skipNextAction = false;
+  }
+  // Apply Kragor's Behemoth champion stun: champion cannot move or use abilities this turn.
+  if (state.championStunned?.[state.activePlayer]) {
+    state.champions[state.activePlayer].moved = true;
   }
 
   // Clear recalled-this-turn
@@ -3033,6 +3038,16 @@ export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = nul
   }
   unit.hp -= actualDmg;
   if (actualDmg > 0) addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
+  // Fire onDamageTaken before death check — allows bounce-before-death effects (e.g. Shimmer Guardian).
+  if (actualDmg > 0) {
+    fireTrigger('onDamageTaken', {
+      damagedUnit: unit,
+      damagedPlayerIndex: unit.owner,
+      triggeringUid: unit.uid,
+    }, state);
+    // If the unit was removed from the board (e.g. returned to hand), skip death processing.
+    if (!state.units.find(u => u.uid === unit.uid)) return;
+  }
   if (unit.hp <= 0) {
     destroyUnit(unit, state, 'combat', undefined, combatTile);
   }
@@ -3149,6 +3164,7 @@ export function completeTurnAdvance(state) {
   s.players[s.activePlayer].spellEchoActive = false;
   if (s.pendingShadowVeil) s.pendingShadowVeil[s.activePlayer] = false;
   if (s.graveAccessActive) s.graveAccessActive[s.activePlayer] = false;
+  if (s.championStunned) s.championStunned[s.activePlayer] = false;
   s.pendingLineBlast = null;
 
   champ.moved = false;

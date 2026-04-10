@@ -14,6 +14,7 @@
 //   onEndTurn              — end of the owner's turn
 //   onNonCombatChampionDamage — the owner deals non-combat damage to the enemy champion
 //   onFriendlySacrifice    — the owner destroys a friendly unit via sacrifice mechanic
+//   onDamageTaken          — a unit owned by the listener's player takes damage
 //
 // Static modifiers (not event-driven):
 //   conditionalStatBuff    — stat buff when a condition is met (e.g. minHandSize)
@@ -22,6 +23,7 @@
 // ============================================
 
 import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors } from './gameEngine.js';
+import { CARD_DB } from './cards.js';
 
 export const TRIGGER_EVENTS = [
   'onEnemyUnitDeath',
@@ -35,6 +37,7 @@ export const TRIGGER_EVENTS = [
   'onNonCombatChampionDamage',
   'onFriendlySacrifice',
   'onEnemyAction',
+  'onDamageTaken',
 ];
 
 // Returns the initial triggerListeners object for state.
@@ -445,6 +448,33 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'returnToHand': {
+      // Shimmer Guardian: when this unit takes damage, remove it from the board and return to hand at base stats.
+      if (!listenerUnit) break;
+      const ownerIdx = listenerUnit.owner;
+      const baseCard = CARD_DB[listenerUnit.id];
+      if (!baseCard) break;
+      unregisterUnit(listenerUnit.uid, state);
+      unregisterModifiers(listenerUnit.uid, state);
+      state.units = state.units.filter(u => u.uid !== listenerUnit.uid);
+      const handCard = {
+        ...baseCard,
+        uid: `${listenerUnit.id}_${Math.random().toString(36).slice(2)}`,
+      };
+      state.players[ownerIdx].hand.push(handCard);
+      addLog(state, 'Shimmer Guardian fades back to hand.');
+      break;
+    }
+
+    case 'stunEnemyChampion': {
+      // Kragor's Behemoth: when this unit deals damage to the enemy champion, stun that champion next turn.
+      const opponentIdx = 1 - playerIndex;
+      if (!state.championStunned) state.championStunned = [false, false];
+      state.championStunned[opponentIdx] = true;
+      addLog(state, 'Enemy champion stunned by Kragor\'s Behemoth.');
+      break;
+    }
+
     default:
       break;
   }
@@ -467,6 +497,7 @@ function resolveEffect(effectId, listener, context, state) {
 //   onEndTurn:                { playerIndex }
 //   onNonCombatChampionDamage:{ attackerPlayerIndex, damage, extraDamage? }
 //   onFriendlySacrifice:      { sacrificedUnit, sacrificingPlayerIndex }
+//   onDamageTaken:            { damagedUnit, damagedPlayerIndex, triggeringUid }
 export function fireTrigger(event, context, state) {
   const listeners = state.triggerListeners?.[event];
   if (!listeners || listeners.length === 0) return;
@@ -523,6 +554,10 @@ export function fireTrigger(event, context, state) {
       case 'onEnemyAction':
         // Fires for the opposing player — listener owned by the player who is NOT acting
         if (context?.actingPlayerIndex == null || listener.playerIndex === context.actingPlayerIndex) continue;
+        break;
+      case 'onDamageTaken':
+        // Fires for the owner of the damaged unit
+        if (context?.damagedPlayerIndex == null || listener.playerIndex !== context.damagedPlayerIndex) continue;
         break;
       default:
         break;
