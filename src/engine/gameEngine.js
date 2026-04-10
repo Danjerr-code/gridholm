@@ -425,6 +425,39 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
+  // Gilded Cage relic: when destroyed, release the trapped unit on its tile.
+  if (unit.id === 'gildedcage_relic' && unit.trappedUnit) {
+    const tileOccupied = state.units.some(u => u.row === unit.row && u.col === unit.col)
+      || state.champions.some(c => c.row === unit.row && c.col === unit.col);
+    if (!tileOccupied) {
+      const released = {
+        ...unit.trappedUnit,
+        row: unit.row,
+        col: unit.col,
+        summoned: true,
+        moved: false,
+        uid: `${unit.trappedUnit.id}_${Math.random().toString(36).slice(2)}`,
+      };
+      state.units.push(released);
+      // Register declarative triggers for the released unit (on-summon triggers do NOT fire)
+      registerUnit(released, state);
+      registerModifiers(released, state);
+      addLog(state, `Gilded Cage destroyed. Unit released.`);
+    } else {
+      addLog(state, `Gilded Cage destroyed. Released unit has no room — lost.`);
+    }
+  }
+
+  // Chains of Light omen: clear the stun on the unit it was tethered to.
+  if (unit.id === 'chainsoflight') {
+    const stunned = state.units.find(u => u.stunnedByOmen === unit.uid);
+    if (stunned) {
+      stunned.stunned = false;
+      delete stunned.stunnedByOmen;
+      addLog(state, `Chains of Light fades. ${stunned.name} is no longer stunned.`);
+    }
+  }
+
   // Declarative trigger registry: fire onEnemyUnitDeath and onFriendlyUnitDeath
   if (!unit.isRelic && !unit.isOmen) {
     const deathCtx = { dyingUnit: unit, dyingPlayerIndex: unit.owner, triggeringUid: unit.uid };
@@ -952,6 +985,22 @@ function fireOnSummonTriggers(unit, state) {
       addLog(state, `Feral Surge: ${unit.name} gains Rush!`);
     }
   }
+
+  // 11. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
+  if (unit.id === 'chainsoflight') {
+    const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && !u.isOmen && !u.isRelic);
+    if (hasEnemies) {
+      state.pendingSpell = {
+        cardUid: unit.uid,
+        effect: 'chainsoflight_summon',
+        playerIdx: unit.owner,
+        step: 0,
+        data: { omenUid: unit.uid, paid: true },
+      };
+    } else {
+      addLog(state, `Chains of Light: no valid enemy targets to stun.`);
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -1176,6 +1225,7 @@ function doBeginTurnPhase(state) {
   state.champions[state.activePlayer].moved = false;
 
   // Apply skipNextAction: lock units and champion that were marked last turn
+  // Also lock stunned units (Chains of Light) for the duration of the omen.
   state.units.forEach(u => {
     if (u.owner === state.activePlayer && u.skipNextAction) {
       u.moved = true;
@@ -1183,6 +1233,9 @@ function doBeginTurnPhase(state) {
     }
     if (u.owner === state.activePlayer && u.rooted) {
       u.rooted = false;
+    }
+    if (u.owner === state.activePlayer && u.stunned) {
+      u.moved = true;
     }
   });
   if (state.champions[state.activePlayer].skipNextAction) {
@@ -1913,6 +1966,24 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (target && target.hp <= 4 && !target.isRelic && !target.isOmen) {
       s = _dispatchSpell(s, s.activePlayer, 'petrify', [target]);
       checkWinner(s);
+    }
+  }
+  // ── Stand Firm ──
+  else if (effect === 'standfirm') {
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'standfirm', [target]);
+  }
+  // ── Gilded Cage ──
+  else if (effect === 'gildedcage') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'gildedcage', [target]);
+      checkWinner(s);
+    }
+  }
+  // ── Chains of Light stun (triggered after omen is placed) ──
+  else if (effect === 'chainsoflight_summon') {
+    const omenUid = data.omenUid;
+    if (target && omenUid) {
+      s = _dispatchSpell(s, s.activePlayer, 'chainsoflight_summon', [target], { omenUid });
     }
   }
   // ── Spirit Bolt ──
@@ -2958,6 +3029,25 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         u.hp <= 4
       ).map(u => u.uid);
 
+    // Stand Firm: any friendly combat unit (not hidden, not relic, not omen)
+    case 'standfirm':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen
+      ).map(u => u.uid);
+
+    // Gilded Cage: any enemy combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'gildedcage':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen &&
+        !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Chains of Light stun target: any enemy combat unit (not relic, not omen, not hidden)
+    case 'chainsoflight_summon':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen
+      ).map(u => u.uid);
+
     default:
       return [];
   }
@@ -3054,6 +3144,12 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'moonleaf':
       return friendlyUnits.some(u => !u.hidden && u.type === 'unit');
+
+    case 'standfirm':
+      return state.units.some(u => u.owner === playerIndex && !u.hidden && !u.isRelic && !u.isOmen);
+
+    case 'gildedcage':
+      return state.units.some(u => u.owner !== playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune);
 
     default:
       return true;

@@ -8,7 +8,7 @@ import {
   cardinalNeighbors,
 } from './gameEngine.js';
 import { getEffectiveAtk } from './statUtils.js';
-import { fireTrigger } from './triggerRegistry.js';
+import { fireTrigger, unregisterUnit, unregisterModifiers } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -414,6 +414,67 @@ export const SPELL_REGISTRY = {
 
   // glimpse: handled via pendingDeckPeek flow in gameEngine (no resolver body needed)
   glimpse: (state) => state,
+
+  standfirm: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    target.hp = Math.min(target.maxHp + 2, target.hp + 2);
+    target.fortifyBonus = (target.fortifyBonus || 0) + 2;
+    addLog(state, `Stand Firm: ${target.name} gains +2 HP this turn.`);
+    return state;
+  },
+
+  gildedcage: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    // Store the full unit state before removal
+    const trappedUnit = { ...target };
+    // Unregister declarative triggers and static modifiers (no death triggers)
+    unregisterUnit(target.uid, state);
+    unregisterModifiers(target.uid, state);
+    // Remove from board without firing death triggers
+    state.units = state.units.filter(u => u.uid !== target.uid);
+    // Place a Gilded Cage relic on the same tile
+    state.units.push({
+      id: 'gildedcage_relic',
+      name: 'Gilded Cage',
+      type: 'relic',
+      isRelic: true,
+      atk: 0,
+      hp: 5,
+      maxHp: 5,
+      spd: 0,
+      attribute: 'light',
+      unitType: [],
+      rules: 'When destroyed, release the trapped unit.',
+      image: 'gildedcage.webp',
+      owner: caster,
+      row: target.row,
+      col: target.col,
+      summoned: false,
+      moved: false,
+      atkBonus: 0,
+      shield: 0,
+      speedBonus: 0,
+      turnAtkBonus: 0,
+      hidden: false,
+      trappedUnit,
+      uid: `gildedcage_${Math.random().toString(36).slice(2)}`,
+    });
+    addLog(state, `Enemy unit trapped in Gilded Cage.`);
+    return state;
+  },
+
+  // Fired after chainsoflight omen is placed and player selects an enemy target
+  chainsoflight_summon: (state, caster, targets, options = {}) => {
+    const target = targets[0];
+    const omenUid = options.omenUid;
+    if (!target || !omenUid) return state;
+    target.stunned = true;
+    target.stunnedByOmen = omenUid;
+    addLog(state, `Enemy unit stunned by Chains of Light.`);
+    return state;
+  },
 
   petrify: (state, caster, targets) => {
     const target = targets[0];
