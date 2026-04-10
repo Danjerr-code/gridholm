@@ -31,6 +31,10 @@ import {
   resolveLineBlast,
   resolveDeckPeek,
   resolveGlimpse,
+  resolveScry,
+  resolveContractSelect,
+  resolveBloodPactFriendly,
+  resolveBloodPactEnemy,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -320,6 +324,32 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [clearSelection]);
 
+  const handleContractSelect = useCallback((contractId) => {
+    setState(prev => {
+      const s = resolveContractSelect(prev, contractId);
+      // If Blood Pact selected, stay in action phase with pendingBloodPact set
+      // If Dark Bargain selected, pendingHandSelect is set — handled by existing hand select UI
+      return s;
+    });
+  }, []);
+
+  const handleBloodPactSelect = useCallback((unitUid) => {
+    setState(prev => {
+      if (prev.pendingBloodPact?.step === 'selectFriendly') {
+        return resolveBloodPactFriendly(prev, unitUid);
+      }
+      if (prev.pendingBloodPact?.step === 'selectEnemy') {
+        const s = resolveBloodPactEnemy(prev, unitUid);
+        // Blood Pact complete — schedule AI if needed
+        if (!s.pendingBloodPact && s.activePlayer === 1 && !s.winner) {
+          scheduleAITurn();
+        }
+        return s;
+      }
+      return prev;
+    });
+  }, [scheduleAITurn]);
+
   const handleCancelSpell = useCallback(() => {
     setState(prev => cancelSpell(prev));
     clearSelection();
@@ -488,6 +518,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [clearSelection]);
 
+  const handleScryDismiss = useCallback(() => {
+    setState(prev => resolveScry(prev));
+    clearSelection();
+  }, [clearSelection]);
+
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
     setState(prev => {
@@ -603,6 +638,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleLineBlastDirection,
       handleDeckPeekSelect,
       handleGlimpseDecision,
+      handleScryDismiss,
+      handleContractSelect,
+      handleBloodPactSelect,
       handleNewGame,
       handleTerrainCast,
       clearSelection,

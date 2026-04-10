@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import UnitToken from './UnitToken.jsx';
 import useLongPress from '../hooks/useLongPress.js';
+import { getChampionAtkBuff } from '../engine/gameEngine.js';
 
 const TERRAIN_TINTS = {
   hallowed:  { bg: 'rgba(255,245,210,0.13)', border: 'rgba(255,235,150,0.35)' },
@@ -254,6 +255,11 @@ export default function Cell({
           <span className={champAnimState?.type === 'damage' ? 'champ-hp-flash-anim' : ''} style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.hp}
           </span>
+          {state && (() => { const atkBuff = getChampionAtkBuff(state, champion); return atkBuff > 0 ? (
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 700, color: '#f97316', lineHeight: 1 }}>
+              ⚔{atkBuff}
+            </span>
+          ) : null; })()}
           {champion.skipNextAction && (
             <span style={{
               position: 'absolute',

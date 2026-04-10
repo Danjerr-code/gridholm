@@ -18,6 +18,9 @@ import {
   getTerrainCastTiles,
   castTerrainCard,
   playCard,
+  resolveContractSelect,
+  resolveBloodPactFriendly,
+  resolveBloodPactEnemy,
 } from './gameEngine.js';
 import { chooseActionStrategic, applyAction as applyActionStrategic } from './strategicAI.js';
 
@@ -498,6 +501,57 @@ function aiPlayNonCombatCards(state) {
   return s;
 }
 
+// ── Nezzar contract auto-resolution ───────────────────────────────────────
+// AI picks the best available contract. Skips Final Gambit unless nothing else is available.
+function aiResolveContract(state) {
+  if (!state.pendingContractSelect) return state;
+  const contracts = state.pendingContractSelect.contracts;
+  if (contracts.length === 0) return resolveContractSelect(state, null);
+
+  // Prefer aggressive/value contracts over high-risk ones
+  const PRIORITY = ['cataclysm', 'soulPrice', 'darkBargain', 'bloodPact', 'darkTithe', 'finalGambit'];
+  const sorted = [...contracts].sort((a, b) => PRIORITY.indexOf(a.id) - PRIORITY.indexOf(b.id));
+  const chosen = sorted[0];
+
+  let s = resolveContractSelect(state, chosen.id);
+
+  // Auto-resolve Blood Pact's two-step selection
+  if (s.pendingBloodPact?.step === 'selectFriendly') {
+    const nezzarUid = s.pendingBloodPact.nezzarUid;
+    const friendlies = s.units.filter(u => u.owner === AI_PLAYER && !u.isRelic && !u.isOmen && u.uid !== nezzarUid);
+    if (friendlies.length > 0) {
+      // Sacrifice the lowest HP friendly unit
+      const sacrifice = friendlies.sort((a, b) => a.hp - b.hp)[0];
+      s = resolveBloodPactFriendly(s, sacrifice.uid);
+    } else {
+      s.pendingBloodPact = null;
+    }
+  }
+  if (s.pendingBloodPact?.step === 'selectEnemy') {
+    const enemies = s.units.filter(u => u.owner !== AI_PLAYER && !u.isRelic && !u.isOmen);
+    if (enemies.length > 0) {
+      // Destroy the highest HP enemy unit
+      const target = enemies.sort((a, b) => b.hp - a.hp)[0];
+      s = resolveBloodPactEnemy(s, target.uid);
+    } else {
+      s.pendingBloodPact = null;
+    }
+  }
+
+  // Auto-resolve Dark Bargain: discard lowest-cost card in hand
+  if (s.pendingHandSelect?.reason === 'darkBargain') {
+    const hand = s.players[AI_PLAYER].hand;
+    if (hand.length > 0) {
+      const discard = hand.slice().sort((a, b) => a.cost - b.cost)[0];
+      s = resolveHandSelect(s, discard.uid);
+    } else {
+      s.pendingHandSelect = null;
+    }
+  }
+
+  return s;
+}
+
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {
@@ -520,6 +574,9 @@ export function runAITurnSteps(state) {
 function runHeuristicTurn(state) {
   let s = cloneState(state);
 
+  // Auto-resolve Nezzar contract if pending at start of AI turn
+  s = aiResolveContract(s);
+
   // Pre-check lethal: if a unit can kill the enemy champion, do it first.
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) return endTurn(endActionPhase(lethalState));
@@ -538,6 +595,10 @@ function runHeuristicTurn(state) {
 function runHeuristicTurnSteps(state) {
   const steps = [];
   let s = cloneState(state);
+
+  // Auto-resolve Nezzar contract if pending at start of AI turn
+  s = aiResolveContract(s);
+  if (s !== cloneState(state)) steps.push(s);
 
   // Pre-check lethal: if a unit can kill the enemy champion, do it first.
   const lethalState = aiLethalCheck(s);

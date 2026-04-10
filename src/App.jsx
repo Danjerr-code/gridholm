@@ -205,7 +205,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
         </GameEndOverlay>
       )}
 
-      {/* Deck peek modal — Arcane Lens (click-to-select) or Glimpse (keep/shuffle) */}
+      {/* Deck peek modal — Arcane Lens (click-to-select), Glimpse (keep/shuffle), or Scry (dismiss) */}
       {state.pendingDeckPeek && isP1Turn && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center"
@@ -220,7 +220,27 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             width: '90vw',
             boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
           }}>
-            {state.pendingDeckPeek.reason === 'glimpse' ? (
+            {state.pendingDeckPeek.reason === 'scry' ? (
+              <>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+                  Fennwick — Top card of your deck
+                </div>
+                {state.pendingDeckPeek.cards.map(card => (
+                  <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
+                    <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                    {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => handlers.handleScryDismiss()}
+                    style={{ background: '#1a1a2a', border: '1px solid #4a4a7a', borderRadius: '4px', color: '#a0a0d0', fontSize: '11px', padding: '6px 20px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  >Dismiss</button>
+                </div>
+              </>
+            ) : state.pendingDeckPeek.reason === 'glimpse' ? (
               <>
                 <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
                   Glimpse — Top card of your deck
@@ -347,6 +367,168 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               </div>
             );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Nezzar contract selection modal */}
+      {state.pendingContractSelect && isP1Turn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.80)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '600px',
+            width: '92vw',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '4px', textAlign: 'center' }}>
+              Nezzar, Terms and Conditions
+            </div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8080a0', marginBottom: '16px', textAlign: 'center' }}>
+              Choose a deadly contract — or decline.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {state.pendingContractSelect.contracts.map(contract => (
+                <div
+                  key={contract.id}
+                  onClick={() => handlers.handleContractSelect(contract.id)}
+                  style={{
+                    background: 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)',
+                    border: '1px solid #7a2a2a',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    minWidth: '130px',
+                    maxWidth: '160px',
+                    textAlign: 'center',
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.background = 'linear-gradient(180deg, #2a0a0a 0%, #300d0d 100%)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#7a2a2a'; e.currentTarget.style.background = 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)'; }}
+                >
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#EF4444', marginBottom: '6px', letterSpacing: '0.04em' }}>{contract.name}</div>
+                  <div style={{ fontSize: '10px', color: '#c0a0a0', lineHeight: 1.4 }}>{contract.description}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={() => handlers.handleContractSelect(null)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2a2a42',
+                  borderRadius: '4px',
+                  color: '#6060a0',
+                  fontSize: '11px',
+                  padding: '6px 20px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >Decline</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blood Pact friendly unit selection */}
+      {state.pendingBloodPact?.step === 'selectFriendly' && isP1Turn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '520px',
+            width: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Blood Pact — Sacrifice a friendly unit
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {state.units
+                .filter(u => u.owner === 0 && !u.isRelic && !u.isOmen && u.uid !== state.pendingBloodPact.nezzarUid)
+                .map(u => (
+                  <div
+                    key={u.uid}
+                    onClick={() => handlers.handleBloodPactSelect(u.uid)}
+                    style={{
+                      background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                      border: '1px solid #7a2a2a',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      minWidth: '90px',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#EF4444'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#7a2a2a'}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{u.name}</div>
+                    <div style={{ fontSize: '10px', color: '#8080a0' }}>{u.atk}/{u.hp}</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blood Pact enemy unit selection */}
+      {state.pendingBloodPact?.step === 'selectEnemy' && isP1Turn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '520px',
+            width: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Blood Pact — Destroy an enemy unit
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {state.units
+                .filter(u => u.owner !== 0 && !u.isRelic && !u.isOmen)
+                .map(u => (
+                  <div
+                    key={u.uid}
+                    onClick={() => handlers.handleBloodPactSelect(u.uid)}
+                    style={{
+                      background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                      border: '1px solid #7a2a2a',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      minWidth: '90px',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#EF4444'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#7a2a2a'}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{u.name}</div>
+                    <div style={{ fontSize: '10px', color: '#8080a0' }}>{u.atk}/{u.hp}</div>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
       )}

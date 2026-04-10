@@ -241,6 +241,19 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // Fennwick scry: reveal the top card of the owner's deck (card stays on top).
+  fennwickthequiet: (unit, state) => {
+    const p = state.players[unit.owner];
+    if (p.deck.length === 0) {
+      addLog(state, `Fennwick peers into the future — the deck is empty.`);
+      return state;
+    }
+    const topCard = p.deck[0];
+    state.pendingDeckPeek = { unitUid: unit.uid, cards: [{ ...topCard }], reason: 'scry' };
+    addLog(state, `Fennwick peers into the future.`);
+    return state;
+  },
+
   ironqueen: (unit, state, targets) => {
     const dir = targets[0];
     if (!dir) {

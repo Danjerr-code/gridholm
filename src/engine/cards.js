@@ -234,7 +234,6 @@ const HUMAN_DECK = [
   'squire',
   'crossbowman',
   'waddles',
-  'shieldwall',
   'sergeant',
   'knight',
   'standardbearer',
@@ -248,8 +247,6 @@ const HUMAN_DECK = [
   'ironshield', 'ironshield',
   'ironthorns',
   'forgeweapon',
-  'fortify',
-  'rally',
   'crusade',
   'martiallaw',
   'hallowed_ground',
@@ -257,10 +254,11 @@ const HUMAN_DECK = [
   'soulstone',
   'clockworkmanimus',
   'lucernunbrokenvow',
+  'gavrielholystride',
 ];
 
 const BEAST_DECK = [
-  'boar', 'boar',
+  'boar',
   'swiftpaw',
   'wolf', 'wolf',
   'razorclaw',
@@ -269,14 +267,11 @@ const BEAST_DECK = [
   'eagerbeaver',
   'stalker',
   'packrunner',
-  'packrunt',
   'rockhorn', 'rockhorn',
   'plaguehog',
   'sabretooth', 'sabretooth',
   'razorfang',
   'crushingblow',
-  'wardrum',
-  'nighthoofreaver',
   'ambush',
   'packhowl',
   'pounce',
@@ -287,6 +282,7 @@ const BEAST_DECK = [
   'feralsurge', 'feralsurge',
   'huntingground',
   'vornthundercaller',
+  'korraksecondang',
 ];
 
 const ELF_DECK = [
@@ -302,7 +298,6 @@ const ELF_DECK = [
   'moonveilmystic',
   'elfarcher',
   'sistersiofra',
-  'grovechampion',
   'yggara',
   'glimpse',
   'petrify',
@@ -310,21 +305,19 @@ const ELF_DECK = [
   'moonleaf',
   'overgrowth',
   'bloom',
-  'entangle',
   'ancientspring',
   'verdantsurge',
-  'spiritbolt',
   'enchanted_ground',
   'manawell',
   'tanglerootypew',
   'azulonsilvertide',
+  'fennwickthequiet',
 ];
 
 const DEMON_DECK = [
   'imp', 'imp',
   'darkdealer',
   'dreadknight',
-  'chaospawn',
   'voidtitan',
   'hellhound',
   'brutedemon',
