@@ -42,7 +42,7 @@ export const CARD_DB = {
   rally:           { id: 'rally',           name: 'Rally',               type: 'spell', cost: 3, effect: 'rally',           unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'All friendly combat units gain +1 ATK until end of turn.', image: 'rally.webp' },
   crusade:         { id: 'crusade',         name: 'Crusade',             type: 'spell', cost: 5, effect: 'crusade',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'All friendly combat units gain +2 ATK until end of turn.', image: 'crusade.webp' },
   martiallaw:      { id: 'martiallaw',      name: 'Martial Law',         type: 'spell', cost: 4, effect: 'martiallaw',      unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Enemy combat units within 2 tiles of your champion skip their action next turn.', image: 'martiallaw.webp' },
-  rebirth:         { id: 'rebirth',         name: 'Rebirth',             type: 'spell', cost: 4, effect: 'rebirth',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: "Skip your champion's action this turn. Return a friendly combat unit from your Grave to an adjacent tile at full HP. It has summoning sickness.", image: 'rebirth.webp' },
+  rebirth:         { id: 'rebirth',         name: 'Rebirth',             type: 'spell', cost: 4, effect: 'rebirth',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: "Skip your champion's action this turn. Return a friendly combat unit from your grave to an adjacent tile.", image: 'rebirth.webp' },
 
   // Beast units
   boar:            { id: 'boar',            name: 'Boar',                type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'Rush.', rush: true, image: 'boar.webp' },
