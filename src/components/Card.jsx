@@ -1,5 +1,6 @@
 import { getCardImageUrl } from '../supabase.js';
 import { ATTRIBUTES } from '../engine/attributes.js';
+import { renderRules, rulesTitle } from '../utils/rulesText.jsx';
 
 const FACTION_TEXT_COLORS = {
   Human: '#4a8abf',
@@ -48,7 +49,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
         md:w-[124px] md:h-[172px]`}
       style={cardBaseStyle}
       onClick={onClick}
-      title={card.rules || card.name}
+      title={rulesTitle(card.rules) || card.name}
     >
       {/* === MOBILE LAYOUT (hidden on md+) === */}
       <div className="md:hidden flex flex-col h-full">
@@ -196,7 +197,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
 
         {/* Rules text */}
         {card.rules && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#e2e8f0', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{card.rules}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontSize: '8px', color: '#e2e8f0', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{renderRules(card.rules)}</div>
         )}
 
         {/* Card type label */}

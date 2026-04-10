@@ -13,6 +13,7 @@ import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
 import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
+import { renderRules } from './utils/rulesText.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -146,7 +147,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                     <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
                     <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
                     {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
-                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{card.rules}</div>}
+                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
                   </div>
                 ))}
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -186,7 +187,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                       <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
                       <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
                       {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
-                      {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{card.rules}</div>}
+                      {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
                     </div>
                   ))}
                 </div>
@@ -770,7 +771,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
           <KeywordPills item={unit} />
           {unit.rules && (
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
-              {unit.rules}
+              {renderRules(unit.rules)}
             </div>
           )}
         </div>
@@ -799,7 +800,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
           </div>
           {terrainCard.rules && (
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
-              {terrainCard.rules}
+              {renderRules(terrainCard.rules)}
             </div>
           )}
         </div>
@@ -847,7 +848,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
         <KeywordPills item={card} />
         {card.rules && (
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
-            {card.rules}
+            {renderRules(card.rules)}
           </div>
         )}
       </div>
@@ -1157,7 +1158,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
               borderTop: '0.5px solid #1e1e2e',
               paddingTop: '4px',
             }}>
-              {unit.rules}
+              {renderRules(unit.rules)}
             </div>
           )}
         </div>
@@ -1216,7 +1217,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
               borderTop: '0.5px solid #1e1e2e',
               paddingTop: '4px',
             }}>
-              {terrainCard.rules}
+              {renderRules(terrainCard.rules)}
             </div>
           )}
         </div>
@@ -1315,7 +1316,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
             borderTop: '0.5px solid #1e1e2e',
             paddingTop: '4px',
           }}>
-            {card.rules}
+            {renderRules(card.rules)}
           </div>
         )}
       </div>

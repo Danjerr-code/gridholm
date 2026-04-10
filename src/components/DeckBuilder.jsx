@@ -4,6 +4,7 @@ import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/
 import { CARD_DB } from '../engine/cards.js';
 import { getCardImageUrl } from '../supabase.js';
 import Card from './Card.jsx';
+import { renderRules } from '../utils/rulesText.jsx';
 
 const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
 
@@ -738,7 +739,7 @@ function CardPreviewTooltip({ card }) {
       )}
       {card.rules && (
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.5, borderTop: '0.5px solid #1e1e2e', paddingTop: '4px' }}>
-          {card.rules}
+          {renderRules(card.rules)}
         </div>
       )}
     </div>

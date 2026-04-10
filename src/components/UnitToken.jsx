@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
 import { getCardImageUrl } from '../supabase.js';
 import useLongPress from '../hooks/useLongPress.js';
+import { rulesTitle } from '../utils/rulesText.jsx';
 
 const FACTION_COLORS = {
   Human:  { border: '#2a4a7a', text: '#4a8abf' },
@@ -302,7 +303,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         onClick={handleClick}
-        title={`${unit.name} [Omen] | ${unit.turnsRemaining} turn(s) remaining — ${unit.rules || ''}`}
+        title={`${unit.name} [Omen] | ${unit.turnsRemaining} turn(s) remaining — ${rulesTitle(unit.rules)}`}
       >
         {/* Rune symbol */}
         <span style={{
@@ -386,7 +387,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       onPointerCancel={handlePointerCancel}
       onClick={handleClick}
       title={isRelic
-        ? `${unit.name} [Relic] | HP:${effectiveHp}/${effectiveMaxHp} — ${unit.rules || ''}`
+        ? `${unit.name} [Relic] | HP:${effectiveHp}/${effectiveMaxHp} — ${rulesTitle(unit.rules)}`
         : `${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
       {/* Card art fills token */}

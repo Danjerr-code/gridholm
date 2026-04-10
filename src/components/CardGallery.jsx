@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { CARD_DB } from '../engine/cards.js';
 import Card from './Card.jsx';
 import { getCardImageUrl } from '../supabase.js';
+import { renderRules } from '../utils/rulesText.jsx';
 
 const ATTRIBUTE_SECTIONS = [
   { key: 'light',   name: 'Light',   color: '#F0E6D2' },
@@ -203,7 +204,7 @@ function CardModal({ card, onClose }) {
             borderTop: '0.5px solid #1e1e2e',
             paddingTop: '8px',
           }}>
-            {card.rules}
+            {renderRules(card.rules)}
           </div>
         )}
       </div>
