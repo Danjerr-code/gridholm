@@ -2898,6 +2898,26 @@ export function moveUnit(state, unitUid, row, col) {
     }
     // Reveal hidden enemy unit before resolving combat
     const wasHidden = enemyUnit.hidden;
+
+    // Veilbreaker: destroy hidden enemy unit immediately without triggering the reveal sequence
+    if (wasHidden && unit.id === 'veilbreaker') {
+      addLog(s, `Veilbreaker strikes through the veil! ${enemyUnit.name} is destroyed without reveal.`);
+      destroyUnit(enemyUnit, s, 'combat');
+      const liveUnit = s.units.find(u => u.uid === unitUid);
+      if (liveUnit) {
+        liveUnit.row = row;
+        liveUnit.col = col;
+        if ((liveUnit.extraActionsRemaining ?? 0) > 0) {
+          liveUnit.extraActionsRemaining--;
+        } else {
+          liveUnit.moved = true;
+        }
+      }
+      updateWildbornAura(s);
+      updateStandardBearerAura(s);
+      return s;
+    }
+
     if (wasHidden) revealUnit(s, enemyUnit, unit);
 
     // Shadow Trap on reveal: destroy the attacker
