@@ -172,7 +172,7 @@ export const CARD_DB = {
   coldsteeldrifter: { id: 'coldsteeldrifter', name: 'Coldsteel Drifter', type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 2, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: 'coldsteeldrifter.webp' },
   stoneguard:       { id: 'stoneguard',       name: 'Stoneguard',        type: 'unit',  cost: 3, atk: 2, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Cannot be targeted by spells.', cannotBeTargetedBySpells: true, image: 'stoneguard.webp' },
   wanderingconstruct: { id: 'wanderingconstruct', name: 'Wandering Construct', type: 'unit', cost: 4, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: 'wanderingconstruct.webp' },
-  ironqueen:        { id: 'ironqueen',        name: 'The Iron Queen',    type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Action: Choose a direction. This unit moves to the furthest empty tile in that direction.', action: true, legendary: true, image: 'ironqueen.webp' },
+  ironqueen:        { id: 'ironqueen',        name: 'The Iron Queen',    type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Action: Choose a direction. This unit moves to the furthest empty tile in that direction. This unit may take 2 actions per turn.', action: true, legendary: true, image: 'ironqueen.webp' },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
   // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.

@@ -1083,6 +1083,8 @@ function doBeginTurnPhase(state) {
       u.turnAtkBonus = 0;
       // Clear razorfang reset used flag
       if (u.id === 'razorfang') u.razorfangResetUsed = false;
+      // Reset Iron Queen's per-turn action counter
+      if (u.id === 'ironqueen') u.ironQueenActionsUsed = 0;
     }
   });
 
@@ -1361,6 +1363,7 @@ export function summonUnit(state, cardUid, row, col) {
     turnAtkBonus: 0,
     hidden: card.hidden || false,
     ...(card.isOmen ? { turnsRemaining: card.turnsRemaining } : {}),
+    ...(card.id === 'ironqueen' ? { bonusActions: 1, ironQueenActionsUsed: 0 } : {}),
   };
 
   // Apply Sergeant buff if active
@@ -1771,7 +1774,10 @@ export function resolveLineBlast(state, unitUid, direction) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
   s.pendingLineBlast = null;
-  unit.moved = true; // Mark action used
+  // Iron Queen: action already counted in triggerUnitAction; other units mark moved here
+  if (unit.id !== 'ironqueen') {
+    unit.moved = true; // Mark action used
+  }
   const result = _dispatchAction(unit, s, [direction]);
   checkWinner(result);
   const actorAfter = result.units.find(u => u.uid === unitUid);
@@ -2000,7 +2006,13 @@ export function triggerUnitAction(state, unitUid) {
     revealUnit(s, unit);
   }
 
-  unit.moved = true;
+  // Iron Queen gets 2 actions per turn; track usage and only lock after the 2nd
+  if (unit.id === 'ironqueen') {
+    unit.ironQueenActionsUsed = (unit.ironQueenActionsUsed ?? 0) + 1;
+    if (unit.ironQueenActionsUsed >= 2) unit.moved = true;
+  } else {
+    unit.moved = true;
+  }
 
   // No-target actions — dispatch immediately via ACTION_REGISTRY
   if (unit.id === 'sergeant') {
@@ -2173,7 +2185,12 @@ export function moveUnit(state, unitUid, row, col) {
     if (liveUnit) {
       liveUnit.row = row;
       liveUnit.col = col;
-      liveUnit.moved = true;
+      if (liveUnit.id === 'ironqueen') {
+        liveUnit.ironQueenActionsUsed = (liveUnit.ironQueenActionsUsed ?? 0) + 1;
+        if (liveUnit.ironQueenActionsUsed >= 2) liveUnit.moved = true;
+      } else {
+        liveUnit.moved = true;
+      }
     }
     updateWildbornAura(s);
     updateStandardBearerAura(s);
@@ -2235,7 +2252,12 @@ export function moveUnit(state, unitUid, row, col) {
           stillAlive2.row = row;
           stillAlive2.col = col;
         }
-        stillAlive2.moved = true;
+        if (stillAlive2.id === 'ironqueen') {
+          stillAlive2.ironQueenActionsUsed = (stillAlive2.ironQueenActionsUsed ?? 0) + 1;
+          if (stillAlive2.ironQueenActionsUsed >= 2) stillAlive2.moved = true;
+        } else {
+          stillAlive2.moved = true;
+        }
       }
     }
     // Iron Shield is a one-battle effect: clear any remaining shield after combat resolves
@@ -2289,7 +2311,14 @@ export function moveUnit(state, unitUid, row, col) {
     addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
 
     const unitAfterThorn = s.units.find(u => u.uid === unitUid);
-    if (unitAfterThorn) unitAfterThorn.moved = true;
+    if (unitAfterThorn) {
+      if (unitAfterThorn.id === 'ironqueen') {
+        unitAfterThorn.ironQueenActionsUsed = (unitAfterThorn.ironQueenActionsUsed ?? 0) + 1;
+        if (unitAfterThorn.ironQueenActionsUsed >= 2) unitAfterThorn.moved = true;
+      } else {
+        unitAfterThorn.moved = true;
+      }
+    }
     // Fire attack triggers (Dread Knight)
     if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
@@ -2302,7 +2331,12 @@ export function moveUnit(state, unitUid, row, col) {
     // Regular move — hidden units (including shadow-veil'd) do not reveal on move
     unit.row = row;
     unit.col = col;
-    unit.moved = true;
+    if (unit.id === 'ironqueen') {
+      unit.ironQueenActionsUsed = (unit.ironQueenActionsUsed ?? 0) + 1;
+      if (unit.ironQueenActionsUsed >= 2) unit.moved = true;
+    } else {
+      unit.moved = true;
+    }
     // Terrain onOccupy: trigger when unit moves onto a terrain tile
     const movedUnit = s.units.find(u => u.uid === unitUid);
     if (movedUnit) fireTerrainOnOccupy(s, movedUnit, row, col);
