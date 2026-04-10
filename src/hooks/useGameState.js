@@ -34,7 +34,7 @@ import {
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
-import { playTurnStartSound } from '../audio.js';
+import { playTurnStartSound, playCardPlaySound } from '../audio.js';
 
 const AI_PLAYER = 1;
 const AI_DECKS = ['human', 'beast', 'elf', 'demon'];
@@ -244,6 +244,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleCastTargetlessSpell = useCallback(() => {
     if (!selectedCard || selectMode !== 'targetless_spell') return;
     const cardUid = selectedCard;
+    playCardPlaySound();
     setState(prev => playCard(prev, cardUid));
     clearSelection();
   }, [selectedCard, selectMode, clearSelection]);
@@ -257,6 +258,8 @@ export function useGameState({ deckId = 'human' } = {}) {
       } else if (s.pendingFleshtitheSacrifice) {
         setSelectMode('fleshtithe_sacrifice');
       } else {
+        // Unit was placed — pendingSummon cleared, card left hand
+        if (!s.pendingSummon) playCardPlaySound();
         setSelectedCard(null);
         setSelectedUnit(null);
         setSelectMode(null);

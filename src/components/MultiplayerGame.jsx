@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { isMuted, setMuted } from '../audio.js';
+import { isMuted, setMuted, playCardPlaySound } from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus } from '../engine/gameEngine.js';
@@ -256,6 +256,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleCastTargetlessSpell = useCallback(async () => {
     if (!gameState || !selectedCard || selectMode !== 'targetless_spell') return;
+    playCardPlaySound();
     const s = playCard(gameState, selectedCard);
     await dispatch(s);
   }, [gameState, selectedCard, selectMode, dispatch]);
@@ -270,6 +271,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       setSelectMode('fleshtithe_sacrifice');
       await dispatchAction(s);
     } else {
+      if (!s.pendingSummon) playCardPlaySound();
       await dispatch(s);
     }
   }, [gameState, selectedCard, dispatch, dispatchAction]);

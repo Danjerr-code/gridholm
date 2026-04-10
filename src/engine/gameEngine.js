@@ -1,6 +1,7 @@
 import { buildDeck, shuffle, TOKENS, CARD_DB } from './cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
 import { CHAMPIONS } from './champions.js';
+import { playUnitDeathSound, playCombatHitSound, playSpellCastSound, playChampionDamageSound } from '../audio.js';
 
 const FACTION_ATTRIBUTE = {
   human: 'light',
@@ -235,6 +236,7 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   // Fire death triggers
   fireDeathTriggers(unit, state, source, destroyingUids, combatTile);
 
+  playUnitDeathSound();
   addLog(state, `${unit.name} destroyed`);
   return state;
 }
@@ -573,6 +575,7 @@ function fireEndTurnTriggers(state, playerIdx) {
     const actualDamage = Math.min(2, maxDamage);
     if (actualDamage > 0) {
       state.champions[oppIdx].hp -= actualDamage;
+      playChampionDamageSound();
       addLog(state, `${p.name}'s champion controls the Throne! ${state.players[oppIdx].name}'s champion takes ${actualDamage} damage.`);
     } else {
       addLog(state, `${p.name}'s champion controls the Throne, but the enemy champion is protected at 1 HP.`);
@@ -979,6 +982,7 @@ function _dispatchSpell(state, caster, spellId, targets, options = {}) {
     console.error(`No resolver found for spell: ${spellId}`);
     return state;
   }
+  playSpellCastSound();
   return resolver(state, caster, targets, options);
 }
 
@@ -1170,6 +1174,7 @@ export function moveChampion(state, row, col) {
         }
       }
       champ.hp -= champIncomingDmg;
+      if (champIncomingDmg > 0) playChampionDamageSound();
       addLog(s, `${enemyUnit.name} counterattacks champion for ${champIncomingDmg} damage.`);
     }
     // If enemy was destroyed, champion advances to that tile
@@ -2232,6 +2237,7 @@ export function moveUnit(state, unitUid, row, col) {
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);
     const defenderAtk = getEffectiveAtk(s, enemyUnit, combatTile);
     addLog(s, `${unit.name} attacks ${enemyUnit.name}!`);
+    playCombatHitSound();
     // Fortitude: reduce damage to defending enemy unit if they're Light/ascended and within 2 of their champion
     const enemyFortRed = getFortitudeReduction(s, enemyUnit);
     const effectiveAttackerAtk = enemyFortRed > 0 && attackerAtk > 0 ? Math.max(1, attackerAtk - enemyFortRed) : attackerAtk;
@@ -2308,6 +2314,7 @@ export function moveUnit(state, unitUid, row, col) {
       enemyChamp.thornShield = null;
     }
     enemyChamp.hp -= champDmg;
+    if (champDmg > 0) playChampionDamageSound();
     addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
 
     const unitAfterThorn = s.units.find(u => u.uid === unitUid);
