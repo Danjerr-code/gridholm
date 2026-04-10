@@ -145,6 +145,30 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  animus: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    target.turnAtkBonus = (target.turnAtkBonus || 0) + 2;
+    addLog(state, `Animus: ${target.name} gains +2 ATK this turn.`);
+    return state;
+  },
+
+  gore: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    addLog(state, `Gore deals 2 damage to ${target.name}.`);
+    applyDamageToUnit(state, target, 2, 'Gore');
+    return state;
+  },
+
+  demolish: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    addLog(state, `Demolish destroys ${target.name}.`);
+    destroyUnit(target, state, 'demolish');
+    return state;
+  },
+
   packhowl: (state, caster) => {
     state.units.forEach(u => {
       if (u.owner === caster && unitTypes(u).includes('Beast')) {

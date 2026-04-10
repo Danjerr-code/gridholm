@@ -1979,6 +1979,24 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Animus ──
+  else if (effect === 'animus') {
+    if (target) s = _dispatchSpell(s, s.activePlayer, 'animus', [target]);
+  }
+  // ── Gore ──
+  else if (effect === 'gore') {
+    if (target) {
+      s = _dispatchSpell(s, s.activePlayer, 'gore', [target]);
+      checkWinner(s);
+    }
+  }
+  // ── Demolish ──
+  else if (effect === 'demolish') {
+    if (target && (target.isRelic || target.isOmen)) {
+      s = _dispatchSpell(s, s.activePlayer, 'demolish', [target]);
+      checkWinner(s);
+    }
+  }
   // ── Chains of Light stun (triggered after omen is placed) ──
   else if (effect === 'chainsoflight_summon') {
     const omenUid = data.omenUid;
@@ -3059,6 +3077,22 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         manhattan([champ.row, champ.col], [u.row, u.col]) === 1
       ).map(u => u.uid);
 
+    // Animus: friendly combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'animus':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Gore: enemy combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'gore':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Demolish: any relic or omen on the board (friendly or enemy)
+    case 'demolish':
+      return state.units.filter(u => u.isRelic || u.isOmen).map(u => u.uid);
+
     default:
       return [];
   }
@@ -3173,6 +3207,15 @@ export function hasValidTargets(card, state, playerIndex) {
         adjTiles.some(([r, c]) => u.row === r && u.col === c)
       );
     }
+
+    case 'animus':
+      return state.units.some(u => u.owner === playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune);
+
+    case 'gore':
+      return enemyUnits.some(u => !u.isRelic && !u.isOmen);
+
+    case 'demolish':
+      return state.units.some(u => u.isRelic || u.isOmen);
 
     case 'seconddawn': {
       const grave = state.players[playerIndex].grave.filter(u => CARD_DB[u.id]?.type === 'unit');

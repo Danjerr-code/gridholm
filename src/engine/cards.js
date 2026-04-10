@@ -74,6 +74,9 @@ export const CARD_DB = {
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Summon a 1/1 Snake in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
   crushingblow:    { id: 'crushingblow',    name: 'Crushing Blow',       type: 'spell', cost: 5, effect: 'crushingblow',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: "Skip your champion's action this turn. Deal 5 damage to the enemy champion.", image: 'crushingblow.webp' },
+  animus:          { id: 'animus',          name: 'Animus',              type: 'spell', cost: 1, effect: 'animus',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Target friendly combat unit gains +2 ATK this turn.', image: 'animus.webp' },
+  gore:            { id: 'gore',            name: 'Gore',                type: 'spell', cost: 2, effect: 'gore',            unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Deal 2 damage to an enemy combat unit.', image: 'gore.webp' },
+  demolish:        { id: 'demolish',        name: 'Demolish',            type: 'spell', cost: 2, effect: 'demolish',        unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Destroy target Relic or Omen.', image: 'demolish.webp' },
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: '', image: 'elfscout.webp' },
