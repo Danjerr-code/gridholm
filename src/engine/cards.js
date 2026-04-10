@@ -163,6 +163,11 @@ export const CARD_DB = {
   fennwickthequiet:  { id: 'fennwickthequiet',  name: 'Fennwick, the Quiet',   type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic', rules: 'Your spells cost 1 less, minimum 1. Action: Look at the top card of your deck.', legendary: true, action: true, modifier: [{ type: 'spellCostReduction', amount: 1 }], image: 'fennwickthequiet.webp' },
   gavrielholystride: { id: 'gavrielholystride', name: 'Gavriel, Holy Stride',  type: 'unit', cost: 4, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',  rules: 'Cannot be targeted by spells. When this unit moves into a tile, that tile becomes Hallowed Ground.', legendary: true, spellImmune: true, image: 'gavrielholystride.webp' },
 
+  // Demon omens and dark spells (Batch 17)
+  dreadmirror:     { id: 'dreadmirror',     name: 'Dread Mirror',        type: 'omen',  cost: 4, atk: 0, spd: 1, turnsRemaining: 2, isOmen: true, hidden: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Hidden. On reveal: Deal damage to the revealing unit equal to its ATK. Whenever an enemy combat unit dies, restore 1 HP to your champion.', image: 'dreadmirror.webp' },
+  fatesledger:     { id: 'fatesledger',     name: "Fate's Ledger",       type: 'spell', cost: 5, effect: 'fatesledger',     unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'You may play cards from your grave this turn.', image: 'fatesledger.webp' },
+  tollofshadows:   { id: 'tollofshadows',   name: 'Toll of Shadows',     type: 'spell', cost: 6, effect: 'tollofshadows',   unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Each player sacrifices a combat unit, an omen, a relic, and discards a card.', image: 'tollofshadows.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },

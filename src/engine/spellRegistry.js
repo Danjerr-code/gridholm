@@ -654,6 +654,53 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  // ==========================================
+  // DARK SPELLS (Batch 17)
+  // ==========================================
+
+  // Fate's Ledger: allow playing cards from grave this turn
+  fatesledger: (state, caster) => {
+    if (!state.graveAccessActive) state.graveAccessActive = [false, false];
+    state.graveAccessActive[caster] = true;
+    addLog(state, `Fate's Ledger opens the grave.`);
+    return state;
+  },
+
+  // Toll of Shadows: multi-step resolver — each step destroys one target
+  // steps 0-3: casting player; steps 4-7: opponent
+  // substep 0=sacrifice unit, 1=sacrifice omen, 2=sacrifice relic, 3=discard (handled in resolveSpell)
+  tollofshadows: (state, caster, targets, options = {}) => {
+    const target = targets[0];
+    if (!target) return state;
+    const step = options.step || 0;
+    const castIdx = options.casterIdx ?? caster;
+    const isOppStep = step >= 4;
+    const actorIdx = isOppStep ? (1 - castIdx) : castIdx;
+    const substep = step % 4;
+
+    if (substep === 0) {
+      // Sacrifice combat unit
+      if (!target.isRelic && !target.isOmen && target.owner === actorIdx) {
+        addLog(state, `${state.players[actorIdx].name} sacrifices ${target.name}.`);
+        fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...target }, sacrificingPlayerIndex: actorIdx }, state);
+        destroyUnit(target, state, 'sacrifice');
+      }
+    } else if (substep === 1) {
+      // Sacrifice omen
+      if (target.isOmen && target.owner === actorIdx) {
+        addLog(state, `${state.players[actorIdx].name} sacrifices ${target.name}.`);
+        destroyUnit(target, state, 'sacrifice');
+      }
+    } else if (substep === 2) {
+      // Sacrifice relic — death triggers fire (Amethyst Crystal, Soulstone, Gilded Cage)
+      if (target.isRelic && target.owner === actorIdx) {
+        addLog(state, `${state.players[actorIdx].name} sacrifices ${target.name}.`);
+        destroyUnit(target, state, 'sacrifice');
+      }
+    }
+    return state;
+  },
+
   pestilence: (state, caster) => {
     const champ = state.champions[caster];
     const affected = state.units.filter(u =>

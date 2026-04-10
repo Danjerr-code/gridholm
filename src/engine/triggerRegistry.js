@@ -436,6 +436,15 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'restoreOneHPToChampion': {
+      // Dread Mirror passive: restore 1 HP to owning champion when an enemy unit dies.
+      const champ = state.champions[playerIndex];
+      if (!champ) break;
+      const healed = restoreHP(champ, 1, state);
+      if (healed > 0) addLog(state, `Dread Mirror restores 1 HP to champion.`);
+      break;
+    }
+
     default:
       break;
   }

@@ -72,6 +72,7 @@ import {
   fireTrigger,
   resetTurnTriggers,
   getConditionalStatBonus,
+  registerDynamicTrigger,
 } from './triggerRegistry.js';
 import { filterAvailableContracts, pickRandomContracts } from './contracts.js';
 
@@ -692,9 +693,10 @@ function fireEndTurnTriggers(state, playerIdx) {
     checkWinner(state);
   }
 
-  // 7. Omen countdown: decrement turnsRemaining for each omen the active player controls.
+  // 7. Omen countdown: decrement turnsRemaining for each revealed omen the active player controls.
+  //    Hidden omens (e.g. Dread Mirror) do not tick until revealed.
   //    Destroy omens that reach 0 (fires death triggers so any on-death effects resolve).
-  const omensToTick = state.units.filter(u => u.owner === playerIdx && u.isOmen);
+  const omensToTick = state.units.filter(u => u.owner === playerIdx && u.isOmen && !u.hidden);
   for (const omen of omensToTick) {
     omen.turnsRemaining -= 1;
     addLog(state, `${omen.name}: ${omen.turnsRemaining} turn(s) remaining.`);
@@ -1097,6 +1099,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
     recalledThisTurn: [],
+    graveAccessActive: [false, false],
     waddlesActive: [false, false],
     championAbilityUsed: [false, false],
     triggerListeners: createTriggerListeners(),
@@ -1162,6 +1165,10 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
     // On reveal: gains +2 ATK this turn
     unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
     addLog(state, `Dread Shade reveal: +2 ATK this turn.`);
+  }
+  if (unit.id === 'dreadmirror') {
+    // Register passive: restore 1 HP to champion whenever an enemy unit dies
+    registerDynamicTrigger(unit.uid, { event: 'onEnemyUnitDeath', effect: 'restoreOneHPToChampion' }, state);
   }
 }
 
@@ -1331,6 +1338,26 @@ export function moveChampion(state, row, col) {
     if (enemyUnit.hidden) {
       revealUnit(s, enemyUnit);
       // Shadow Trap Hole on reveal: destroy the revealer — champion can't be destroyed, skip
+
+      // Dread Mirror on reveal: deal ATK damage (champion's ATK, usually 0) to champion
+      if (enemyUnit.id === 'dreadmirror') {
+        const champAtkDmg = getChampionAtkBuff(s, champ);
+        if (champAtkDmg > 0) {
+          champ.hp -= champAtkDmg;
+          if (champAtkDmg > 0) playChampionDamageSound();
+          addLog(s, `Dread Mirror revealed. Champion takes ${champAtkDmg} damage.`);
+        } else {
+          addLog(s, `Dread Mirror revealed. Champion takes 0 damage.`);
+        }
+        // Destroy the now-revealed omen; champion advances to tile
+        const liveOmen = s.units.find(u => u.uid === enemyUnit.uid);
+        if (liveOmen) destroyUnit(liveOmen, s, 'omen_removed');
+        champ.row = row;
+        champ.col = col;
+        champ.moved = true;
+        checkWinner(s);
+        return s;
+      }
     }
     // Combat: champion moves into enemy unit tile — simultaneous damage
     const combatTile = [row, col];
@@ -1396,6 +1423,18 @@ export function playCard(state, cardUid) {
   // Block card play while awaiting a hand-card selection (discard prompt must resolve first)
   if (s.pendingHandSelect) return s;
   const p = s.players[s.activePlayer];
+
+  // Fate's Ledger grave access: if graveAccessActive, allow playing cards from the grave
+  if (s.graveAccessActive?.[s.activePlayer] && p.hand.findIndex(c => c.uid === cardUid) === -1) {
+    const graveIdx = p.grave.findIndex(c => c.uid === cardUid);
+    if (graveIdx !== -1) {
+      // Temporarily move the grave card to hand so standard processing handles it
+      const [graveCard] = p.grave.splice(graveIdx, 1);
+      p.hand.push(graveCard);
+      // Fall through to standard hand play logic below
+    }
+  }
+
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
   if (cardIdx === -1) return s;
   const card = p.hand[cardIdx];
@@ -1462,7 +1501,7 @@ export function playCard(state, cardUid) {
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
       'ancientspring', 'verdantsurge', 'predatorsmark',
-      'agonizingsymphony', 'pestilence',
+      'agonizingsymphony', 'pestilence', 'fatesledger',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
@@ -1511,6 +1550,16 @@ export function playCard(state, cardUid) {
       p.discard.push(card);
       s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
       if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: pendingHandSelect set:', JSON.stringify(s.pendingHandSelect));
+      return s;
+    }
+
+    // Toll of Shadows: consume resources/card upfront and immediately enter multi-step resolution
+    if (card.effect === 'tollofshadows') {
+      p.resources -= effectiveCost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      addLog(s, `${p.name} casts Toll of Shadows.`);
+      s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: s.activePlayer } };
       return s;
     }
 
@@ -1659,6 +1708,23 @@ export function resolveHandSelect(state, selectedCardUid) {
     }
     s.pendingHandSelect = null;
     return completeTurnAdvance(s);
+  }
+
+  if (hs.reason === 'tollofshadows_discard') {
+    const { currentStep, casterIdx } = hs.data;
+    const isOppStep = currentStep >= 4;
+    const actorIdx = isOppStep ? (1 - casterIdx) : casterIdx;
+    const actorHand = s.players[actorIdx].hand;
+    const idx = actorHand.findIndex(c => c.uid === selectedCardUid);
+    if (idx !== -1) {
+      const [discarded] = actorHand.splice(idx, 1);
+      s.players[actorIdx].discard.push(discarded);
+      addLog(s, `${s.players[actorIdx].name} discards ${discarded.name}.`);
+    }
+    s.pendingHandSelect = null;
+    // Continue with next Toll of Shadows step via pendingSpell
+    s.pendingSpell = { cardUid: null, effect: 'tollofshadows', playerIdx: s.activePlayer, step: currentStep + 1, data: { paid: true, casterIdx } };
+    return s;
   }
 
   if (hs.reason === 'darkBargain') {
@@ -2136,6 +2202,88 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
     }
   }
+  // ── Toll of Shadows (multi-step: each player sacrifices unit/omen/relic, discards card) ──
+  // steps 0-3: casting player; steps 4-7: opponent
+  // substep 0=unit, 1=omen, 2=relic, 3=discard
+  else if (effect === 'tollofshadows') {
+    const castIdx = data.casterIdx ?? s.activePlayer;
+    const oppIdx = 1 - castIdx;
+
+    // Helper: check if a step has valid targets for a given actor
+    function tollHasTargets(st, actorIdx) {
+      const sub = st % 4;
+      if (sub === 0) return s.units.some(u => u.owner === actorIdx && !u.isRelic && !u.isOmen);
+      if (sub === 1) return s.units.some(u => u.owner === actorIdx && u.isOmen);
+      if (sub === 2) return s.units.some(u => u.owner === actorIdx && u.isRelic);
+      if (sub === 3) return s.players[actorIdx].hand.length > 0;
+      return false;
+    }
+
+    // Current step: determine if it's a casting-player or opponent step
+    const curActorIdx = step >= 4 ? oppIdx : castIdx;
+    const curSubstep = step % 4;
+
+    if (target) {
+      // Player confirmed a target — execute and advance
+      s = _dispatchSpell(s, castIdx, 'tollofshadows', [target], { step, casterIdx: castIdx });
+      checkWinner(s);
+    } else if (curActorIdx !== 1 && tollHasTargets(step, curActorIdx)) {
+      // Human player has targets but provided none — pause and re-prompt the same step
+      if (curSubstep === 3) {
+        s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { currentStep: step, casterIdx: castIdx } };
+      } else {
+        s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step, data: { paid: true, casterIdx: castIdx } };
+      }
+      return s;
+    }
+    // If target was null and either AI actor or no targets: fall through to advance
+
+    // Advance through remaining steps, auto-resolving AI steps and skipping empty steps
+    let nextStep = step + 1;
+    while (nextStep < 8 && !s.winner) {
+      const isOppStep = nextStep >= 4;
+      const actorIdx = isOppStep ? oppIdx : castIdx;
+      const substep = nextStep % 4;
+      const isAI = actorIdx === 1;
+
+      if (!tollHasTargets(nextStep, actorIdx)) { nextStep++; continue; }
+
+      if (isAI) {
+        // Auto-resolve for AI: pick lowest-value target
+        if (substep === 0) {
+          const units = s.units.filter(u => u.owner === actorIdx && !u.isRelic && !u.isOmen);
+          const autoUnit = units.sort((a, b) => (a.cost || 0) - (b.cost || 0))[0];
+          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoUnit], { step: nextStep, casterIdx: castIdx });
+          checkWinner(s);
+        } else if (substep === 1) {
+          const omens = s.units.filter(u => u.owner === actorIdx && u.isOmen);
+          const autoOmen = omens.sort((a, b) => (a.turnsRemaining || 0) - (b.turnsRemaining || 0))[0];
+          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoOmen], { step: nextStep, casterIdx: castIdx });
+        } else if (substep === 2) {
+          const relics = s.units.filter(u => u.owner === actorIdx && u.isRelic);
+          const autoRelic = relics.sort((a, b) => (a.hp || 0) - (b.hp || 0))[0];
+          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoRelic], { step: nextStep, casterIdx: castIdx });
+          checkWinner(s);
+        } else if (substep === 3) {
+          const hand = s.players[actorIdx].hand;
+          const lowestCard = [...hand].sort((a, b) => (a.cost || 0) - (b.cost || 0))[0];
+          const idx = hand.findIndex(c => c.uid === lowestCard.uid);
+          const [discarded] = s.players[actorIdx].hand.splice(idx, 1);
+          s.players[actorIdx].discard.push(discarded);
+          addLog(s, `${s.players[actorIdx].name} discards ${discarded.name}.`);
+        }
+        nextStep++;
+      } else {
+        // Human player — pause and wait for selection
+        if (substep === 3) {
+          s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { currentStep: nextStep, casterIdx: castIdx } };
+        } else {
+          s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: nextStep, data: { paid: true, casterIdx: castIdx } };
+        }
+        return s;
+      }
+    }
+  }
 
   // Azulon spell echo: if spellEchoActive was set before this spell and we just completed a
   // targeted spell (pendingSpell is now cleared by this resolution), schedule an echo cast.
@@ -2556,8 +2704,9 @@ export function triggerUnitAction(state, unitUid) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer) return [];
-  // Relics, omens, SPD 0, and rooted units cannot move
-  if (unit.isRelic || unit.isOmen || unit.spd === 0 || unit.rooted) return [];
+  // Relics, revealed omens, SPD 0, and rooted units cannot move.
+  // Exception: hidden omens with spd > 0 (e.g. Dread Mirror) can move while hidden.
+  if (unit.isRelic || (unit.isOmen && !unit.hidden) || unit.spd === 0 || unit.rooted) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }
@@ -2625,9 +2774,38 @@ export function moveUnit(state, unitUid, row, col) {
     s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost;
   }
 
-  // Check for enemy omen on destination tile — destroy it with no combat
+  // Check for enemy omen on destination tile
   const enemyOmen = s.units.find(u => u.owner !== unit.owner && u.isOmen && u.row === row && u.col === col);
   if (enemyOmen) {
+    // Special case: hidden Dread Mirror reveals and deals ATK damage to the moving unit
+    if (enemyOmen.id === 'dreadmirror' && enemyOmen.hidden) {
+      const revealerAtk = getEffectiveAtk(s, unit);
+      revealUnit(s, enemyOmen, unit);
+      addLog(s, `Dread Mirror revealed. ${unit.name} takes ${revealerAtk} damage.`);
+      if (revealerAtk > 0) applyDamageToUnit(s, unit, revealerAtk, 'Dread Mirror');
+      const liveUnit = s.units.find(u => u.uid === unitUid);
+      if (!liveUnit) return s; // unit died to reveal damage — omen stays
+      // Unit survived: destroy the now-revealed omen, unit moves onto tile
+      const liveOmen = s.units.find(u => u.uid === enemyOmen.uid);
+      if (liveOmen) destroyUnit(liveOmen, s, 'omen_removed');
+      const uu = s.units.find(u => u.uid === unitUid);
+      if (uu) {
+        uu.row = row;
+        uu.col = col;
+        if (uu.id === 'ironqueen') {
+          uu.ironQueenActionsUsed = (uu.ironQueenActionsUsed ?? 0) + 1;
+          if (uu.ironQueenActionsUsed >= 2) uu.moved = true;
+        } else if ((uu.extraActionsRemaining ?? 0) > 0) {
+          uu.extraActionsRemaining--;
+        } else {
+          uu.moved = true;
+        }
+      }
+      updateWildbornAura(s);
+      updateStandardBearerAura(s);
+      return s;
+    }
+    // Normal omen: destroy it with no combat
     addLog(s, `${unit.name} moves through ${enemyOmen.name}! The omen is destroyed.`);
     destroyUnit(enemyOmen, s, 'omen_removed');
     const liveUnit = s.units.find(u => u.uid === unitUid);
@@ -2970,6 +3148,7 @@ export function completeTurnAdvance(state) {
   s.players[s.activePlayer].sergeantBuff = false;
   s.players[s.activePlayer].spellEchoActive = false;
   if (s.pendingShadowVeil) s.pendingShadowVeil[s.activePlayer] = false;
+  if (s.graveAccessActive) s.graveAccessActive[s.activePlayer] = false;
   s.pendingLineBlast = null;
 
   champ.moved = false;
