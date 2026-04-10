@@ -397,6 +397,95 @@ export const SPELL_REGISTRY = {
   },
 
   // ==========================================
+  // CHAMPION ACTION SPELL CYCLE
+  // ==========================================
+
+  // rebirth: handled via pendingGraveSelect flow in gameEngine (no resolver body needed)
+  rebirth: (state) => state,
+
+  crushingblow: (state, caster) => {
+    const champ = state.champions[caster];
+    champ.moved = true;
+    const enemyChamp = state.champions[1 - caster];
+    enemyChamp.hp -= 5;
+    addLog(state, `Crushing Blow: ${state.players[caster].name}'s champion strikes for 5 damage!`);
+    return state;
+  },
+
+  // glimpse: handled via pendingDeckPeek flow in gameEngine (no resolver body needed)
+  glimpse: (state) => state,
+
+  petrify: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target || target.hp > 4 || target.isRelic || target.isOmen) return state;
+    addLog(state, `Petrify: ${target.name} is turned to stone!`);
+    // Remove unit from board
+    state.units = state.units.filter(u => u.uid !== target.uid);
+    // Add a relic owned by the caster in the same tile
+    state.units.push({
+      id: 'petrified_relic',
+      name: `Petrified ${target.name}`,
+      type: 'relic',
+      isRelic: true,
+      atk: 0,
+      hp: target.hp,
+      maxHp: target.hp,
+      spd: 0,
+      unitType: [],
+      rules: '',
+      image: null,
+      owner: caster,
+      row: target.row,
+      col: target.col,
+      summoned: false,
+      moved: false,
+      atkBonus: 0,
+      shield: 0,
+      speedBonus: 0,
+      turnAtkBonus: 0,
+      hidden: false,
+      uid: `petrified_${Math.random().toString(36).slice(2)}`,
+    });
+    return state;
+  },
+
+  agonizingsymphony: (state, caster) => {
+    const champ = state.champions[caster];
+    champ.moved = true;
+    const oppHand = state.players[1 - caster].hand;
+    const discardCount = Math.min(2, oppHand.length);
+    for (let i = 0; i < discardCount; i++) {
+      const idx = Math.floor(Math.random() * oppHand.length);
+      const [card] = oppHand.splice(idx, 1);
+      state.players[1 - caster].discard.push(card);
+      addLog(state, `Agonizing Symphony: opponent discards ${card.name}.`);
+    }
+    if (discardCount === 0) addLog(state, `Agonizing Symphony: opponent has no cards to discard.`);
+    return state;
+  },
+
+  pestilence: (state, caster) => {
+    const champ = state.champions[caster];
+    const affected = state.units.filter(u =>
+      u.owner !== caster &&
+      !u.isRelic &&
+      !u.isOmen &&
+      manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
+    );
+    for (const u of affected) {
+      u.turnAtkBonus = (u.turnAtkBonus || 0) - 2;
+      u.hp -= 2;
+      u.pestilenceBonus = (u.pestilenceBonus || 0) + 2;
+      addLog(state, `Pestilence: ${u.name} takes -2/-2 (${u.hp}/${u.maxHp} HP).`);
+      if (u.hp <= 0) {
+        destroyUnit(u, state, 'pestilence');
+      }
+    }
+    if (affected.length === 0) addLog(state, `Pestilence: no enemy units in range.`);
+    return state;
+  },
+
+  // ==========================================
   // SPELL EFFECTS THAT NEED gameEngine helpers
   // ==========================================
 

@@ -30,6 +30,7 @@ import {
   manhattan,
   resolveLineBlast,
   resolveDeckPeek,
+  resolveGlimpse,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -155,6 +156,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
     'ancientspring', 'shadowveil',
+    'crushingblow', 'agonizingsymphony', 'pestilence',
   ]);
 
   const handleInspectUnit = useCallback((unit) => {
@@ -293,7 +295,10 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleGraveSelect = useCallback((cardUid) => {
     setState(prev => {
       const s = resolveGraveSelect(prev, cardUid);
-      if (s.pendingSpell) {
+      if (s.pendingSummon?.rebirthMode) {
+        setSelectedCard(s.pendingSummon.card.uid);
+        setSelectMode('summon');
+      } else if (s.pendingSpell) {
         setSelectMode('spell');
       } else {
         clearSelection();
@@ -471,6 +476,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [clearSelection]);
 
+  const handleGlimpseDecision = useCallback((keepTop) => {
+    setState(prev => resolveGlimpse(prev, keepTop));
+    clearSelection();
+  }, [clearSelection]);
+
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
     setState(prev => {
@@ -585,6 +595,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleConfirmAction,
       handleLineBlastDirection,
       handleDeckPeekSelect,
+      handleGlimpseDecision,
       handleNewGame,
       handleTerrainCast,
       clearSelection,

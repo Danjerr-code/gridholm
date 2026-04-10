@@ -42,6 +42,7 @@ export const CARD_DB = {
   rally:           { id: 'rally',           name: 'Rally',               type: 'spell', cost: 3, effect: 'rally',           unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'All friendly combat units gain +1 ATK until end of turn.', image: 'rally.webp' },
   crusade:         { id: 'crusade',         name: 'Crusade',             type: 'spell', cost: 5, effect: 'crusade',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'All friendly combat units gain +2 ATK until end of turn.', image: 'crusade.webp' },
   martiallaw:      { id: 'martiallaw',      name: 'Martial Law',         type: 'spell', cost: 4, effect: 'martiallaw',      unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Enemy combat units within 2 tiles of your champion skip their action next turn.', image: 'martiallaw.webp' },
+  rebirth:         { id: 'rebirth',         name: 'Rebirth',             type: 'spell', cost: 4, effect: 'rebirth',         unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: "Skip your champion's action this turn. Return a friendly combat unit from your Grave to an adjacent tile at full HP. It has summoning sickness.", image: null },
 
   // Beast units
   boar:            { id: 'boar',            name: 'Boar',                type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'Rush.', rush: true, image: 'boar.webp' },
@@ -67,6 +68,7 @@ export const CARD_DB = {
   predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'The enemy champion skips their action next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Summon a 1/1 Snake in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
+  crushingblow:    { id: 'crushingblow',    name: 'Crushing Blow',       type: 'spell', cost: 5, effect: 'crushingblow',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: "Skip your champion's action this turn. Deal 5 damage to the enemy champion.", image: null },
 
   // Elf units
   elfscout:        { id: 'elfscout',        name: 'Elf Scout',           type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 2, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic',  rules: '', image: 'elfscout.webp' },
@@ -93,6 +95,8 @@ export const CARD_DB = {
   ancientspring:   { id: 'ancientspring',   name: 'Ancient Spring',      type: 'spell', cost: 3, effect: 'ancientspring',   unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Draw 2 cards.', image: 'ancientspring.webp' },
   verdantsurge:    { id: 'verdantsurge',    name: 'Verdant Surge',       type: 'spell', cost: 5, effect: 'verdantsurge',    unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Give your champion and friendly units within 2 tiles of your champion +2/+2 this turn.', image: 'verdantsurge.webp' },
   spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
+  glimpse:         { id: 'glimpse',         name: 'Glimpse',             type: 'spell', cost: 1, effect: 'glimpse',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn. Look at the top card of your deck. You may shuffle it back. Draw a card.", image: null },
+  petrify:         { id: 'petrify',         name: 'Petrify',             type: 'spell', cost: 4, effect: 'petrify',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Transform target enemy combat unit with 4 or less HP into a Relic with no abilities.', image: null },
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Hidden.', hidden: true, image: 'imp.webp' },
@@ -146,6 +150,8 @@ export const CARD_DB = {
   infernalpact:    { id: 'infernalpact',    name: 'Infernal Pact',       type: 'spell', cost: 3, effect: 'infernalpact',    unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Deal 3 damage to your champion. All friendly Dark units gain +2 ATK this turn.', image: 'infernalpact.webp' },
   shadowveil:      { id: 'shadowveil',      name: 'Shadow Veil',         type: 'spell', cost: 1, effect: 'shadowveil',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'The next combat unit you play this turn is summoned with Hidden.', image: 'shadowveil.webp' },
   souldrain:       { id: 'souldrain',       name: 'Soul Drain',          type: 'spell', cost: 3, effect: 'souldrain',       unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Deal 2 damage to an enemy combat unit. Restore HP to your champion equal to the damage dealt.', image: 'souldrain.webp' },
+  agonizingsymphony: { id: 'agonizingsymphony', name: 'Agonizing Symphony', type: 'spell', cost: 3, effect: 'agonizingsymphony', unitType: [UNIT_TYPES.DEMON],attribute: 'dark',  rules: "Skip your champion's action this turn. Your opponent discards 2 cards at random.", image: null },
+  pestilence:      { id: 'pestilence',      name: 'Pestilence',          type: 'spell', cost: 3, effect: 'pestilence',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Enemy combat units within 2 tiles of your champion have -2/-2 this turn.', image: null },
 
   // ── Relics ─────────────────────────────────────────────────────────────────
   // Relics are non-combat board entities: ATK 0, SPD 0, isRelic: true.

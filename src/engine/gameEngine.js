@@ -1232,11 +1232,49 @@ export function playCard(state, cardUid) {
       if (s.champions[s.activePlayer].moved) return s;
     }
 
+    // Champion action spells: check champion has not moved
+    if (['crushingblow', 'agonizingsymphony'].includes(card.effect)) {
+      if (s.champions[s.activePlayer].moved) return s;
+    }
+
+    // Rebirth: consume card, mark champion action, open grave selection
+    if (card.effect === 'rebirth') {
+      if (s.champions[s.activePlayer].moved) return s;
+      const grave = p.grave.filter(u => u.type === 'unit' && !u.token);
+      if (grave.length === 0) return s; // nothing to revive
+      s.champions[s.activePlayer].moved = true;
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      s.pendingGraveSelect = { reason: 'rebirth', playerIdx: s.activePlayer };
+      addLog(s, `${p.name} casts Rebirth.`);
+      return s;
+    }
+
+    // Glimpse: consume card, mark champion action, open deck peek
+    if (card.effect === 'glimpse') {
+      if (s.champions[s.activePlayer].moved) return s;
+      s.champions[s.activePlayer].moved = true;
+      p.resources -= card.cost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      if (p.deck.length === 0) {
+        addLog(s, `Glimpse: deck is empty. Drawing a card.`);
+        // Draw from discard if possible (shuffle logic not in scope — just skip peek)
+        return s;
+      }
+      const topCard = { ...p.deck[0] };
+      s.pendingDeckPeek = { reason: 'glimpse', playerIdx: s.activePlayer, cards: [topCard] };
+      addLog(s, `${p.name} casts Glimpse.`);
+      return s;
+    }
+
     // No-target spells: execute via registry directly
     const NO_TARGET_SPELLS = new Set([
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
       'ancientspring', 'verdantsurge', 'predatorsmark',
+      'crushingblow', 'agonizingsymphony', 'pestilence',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= card.cost;
@@ -1282,6 +1320,22 @@ export function playCard(state, cardUid) {
 
 export function summonUnit(state, cardUid, row, col) {
   const s = cloneState(state);
+
+  // Rebirth placement: place revived unit adjacent to champion (no hand lookup)
+  if (s.pendingSummon?.rebirthMode) {
+    const unit = s.pendingSummon.card;
+    const champ = s.champions[s.activePlayer];
+    const adj = cardinalNeighbors(champ.row, champ.col);
+    if (!adj.some(([r, c]) => r === row && c === col)) return s;
+    if (isTileOccupied(s, row, col)) return s;
+    const placed = { ...unit, owner: s.activePlayer, row, col };
+    s.units.push(placed);
+    s.pendingSummon = null;
+    addLog(s, `Rebirth: ${placed.name} returns to the battlefield at full HP!`);
+    checkWinner(s);
+    return s;
+  }
+
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
   if (cardIdx === -1) return s;
@@ -1414,8 +1468,31 @@ export function resolveGraveSelect(state, selectedUid) {
   const s = cloneState(state);
   const gs = s.pendingGraveSelect;
   if (!gs) return s;
+
+  if (gs.reason === 'rebirth') {
+    const p = s.players[gs.playerIdx];
+    const graveIdx = p.grave.findIndex(u => u.uid === selectedUid);
+    if (graveIdx === -1) { s.pendingGraveSelect = null; return s; }
+    const [graveUnit] = p.grave.splice(graveIdx, 1);
+    const revived = {
+      ...graveUnit,
+      uid: `${graveUnit.id}_${Math.random().toString(36).slice(2)}`,
+      hp: graveUnit.maxHp,
+      summoned: true, // summoning sickness
+      moved: false,
+      atkBonus: graveUnit.atkBonus || 0,
+      shield: 0,
+      speedBonus: 0,
+      turnAtkBonus: 0,
+      hidden: false,
+    };
+    s.pendingGraveSelect = null;
+    s.pendingSummon = { rebirthMode: true, card: revived, cardUid: revived.uid };
+    addLog(s, `Rebirth: select a tile adjacent to your champion to place ${revived.name}.`);
+    return s;
+  }
+
   // Specific spell effects that use grave selection can be handled here by reason.
-  // No built-in effects yet — this sets up the infrastructure for spells to use.
   s.pendingGraveSelect = null;
   return s;
 }
@@ -1572,6 +1649,13 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   // ── Soul Drain ──
   else if (effect === 'souldrain') {
     if (target) s = _dispatchSpell(s, s.activePlayer, 'souldrain', [target]);
+  }
+  // ── Petrify ──
+  else if (effect === 'petrify') {
+    if (target && target.hp <= 4 && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'petrify', [target]);
+      checkWinner(s);
+    }
   }
   // ── Spirit Bolt ──
   else if (effect === 'spiritbolt') {
@@ -1764,6 +1848,32 @@ export function resolveDeckPeek(state, selectedCardUid) {
   p.deck.unshift(...topCards);
   p.deck.unshift(selected);
   addLog(s, `Arcane Lens: ${selected.name} placed on top of deck.`);
+  return s;
+}
+
+// ── Glimpse: deck peek resolution ────────────────────────────────────────
+// keepTop: true = leave card on top of deck (draw it), false = shuffle it back then draw
+export function resolveGlimpse(state, keepTop) {
+  const s = cloneState(state);
+  const pending = s.pendingDeckPeek;
+  if (!pending || pending.reason !== 'glimpse') return s;
+  s.pendingDeckPeek = null;
+  const p = s.players[s.activePlayer];
+  if (!keepTop && p.deck.length > 0) {
+    // Shuffle the top card back into the deck
+    const top = p.deck.shift();
+    const insertAt = Math.floor(Math.random() * (p.deck.length + 1));
+    p.deck.splice(insertAt, 0, top);
+    addLog(s, `Glimpse: card shuffled back into the deck.`);
+  }
+  // Draw 1 card
+  const drawn = p.deck.shift();
+  if (drawn) {
+    p.hand.push(drawn);
+    addLog(s, `Glimpse: drew ${drawn.name}.`);
+  } else {
+    addLog(s, `Glimpse: deck is empty, no card drawn.`);
+  }
   return s;
 }
 
@@ -2329,6 +2439,14 @@ export function completeTurnAdvance(state) {
     }
   });
 
+  // Clear pestilence bonus on ALL units (affects enemy units, expires at end of caster's turn)
+  s.units.forEach(u => {
+    if (u.pestilenceBonus) {
+      u.hp = Math.min(u.maxHp, u.hp + u.pestilenceBonus);
+      u.pestilenceBonus = 0;
+    }
+  });
+
   // Reset champion ability used flag
   if (s.championAbilityUsed) s.championAbilityUsed[s.activePlayer] = false;
 
@@ -2514,6 +2632,17 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'clockworkmanimus_action':
       return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.cannotBeTargetedBySpells).map(u => u.uid);
 
+    // Petrify: enemy combat unit with 4 or less HP (not relic, not omen, not hidden, not spell-immune)
+    case 'petrify':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer &&
+        !u.isRelic &&
+        !u.isOmen &&
+        !u.hidden &&
+        !u.cannotBeTargetedBySpells &&
+        u.hp <= 4
+      ).map(u => u.uid);
+
     default:
       return [];
   }
@@ -2577,6 +2706,22 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'spiritbolt':
       return !champ.moved && enemyUnits.length > 0;
+
+    case 'petrify':
+      return enemyUnits.some(u => !u.isRelic && u.hp <= 4);
+
+    case 'rebirth':
+      return !champ.moved && state.players[playerIndex].grave.some(u => u.type === 'unit' && !u.token);
+
+    case 'glimpse':
+      return !champ.moved;
+
+    case 'crushingblow':
+    case 'agonizingsymphony':
+      return !champ.moved;
+
+    case 'pestilence':
+      return enemyUnits.some(u => !u.isRelic && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
 
     case 'predatorsmark':
       return true; // enemy champion always exists
