@@ -100,7 +100,7 @@ export const CARD_DB = {
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Hidden.', hidden: true, image: 'imp.webp' },
-  darkdealer:      { id: 'darkdealer',      name: 'Nameless Dealer',         type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 0, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, legendary: true, image: 'darkdealer.webp' },
+  darkdealer:      { id: 'darkdealer',      name: 'Nameless Dealer',      type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 0, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Action: Deal 2 damage to your champion. Draw a card.', action: true, legendary: true, image: 'darkdealer.webp' },
   dreadknight:     { id: 'dreadknight',     name: 'Dread Knight',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON, UNIT_TYPES.KNIGHT], attribute: 'dark',    rules: 'Hidden.|When this unit deals damage to the enemy champion, that player discards a card at random.', hidden: true, image: 'dreadknight.webp' },
   chaospawn:       { id: 'chaospawn',       name: 'Chaos Spawn',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HORROR], attribute: 'dark',    rules: 'When summoned, draw a card then discard a card.', image: 'chaospawn.webp' },
   hellhound:       { id: 'hellhound',       name: 'Hellhound',           type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: [UNIT_TYPES.DEMON, UNIT_TYPES.BEAST], attribute: 'dark',    rules: '', image: 'hellhound.webp' },
@@ -142,6 +142,14 @@ export const CARD_DB = {
   vexishollowking:   { id: 'vexishollowking',   name: 'Vexis, the Hollow King', type: 'unit', cost: 7, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.SHADOW], attribute: 'dark',  rules: 'The first time an enemy combat unit dies each turn, summon a 1/1 shadow copy in an adjacent tile.', legendary: true, triggers: [{ event: 'onEnemyUnitDeath', effect: 'summonShadowCopy', oncePerTurn: true }], image: 'vexis.webp' },
   lucernunbrokenvow: { id: 'lucernunbrokenvow', name: 'Lucern, Unbroken Vow',    type: 'unit', cost: 5, atk: 3, hp: 3, spd: 2, unitType: [UNIT_TYPES.HUMAN], attribute: 'light', rules: 'When this unit dies on the Throne tile, resummon it at the end of your turn in your champion\'s starting tile. Retains all permanent stat changes.', legendary: true, image: 'lucern.webp' },
 
+  // Batch 8: Legendaries Part 4
+  nezzartermsandconditions: { id: 'nezzartermsandconditions', name: 'Nezzar, Terms and Conditions', type: 'unit', cost: 4, atk: 1, hp: 3, spd: 0, unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'At the beginning of your turn, choose a deadly contract.', legendary: true, image: 'nezzartermsandconditions.webp' },
+
+  // Batch 7: Legendaries Part 3
+  korraksecondang:   { id: 'korraksecondang',   name: 'Korrak, Second Fang',   type: 'unit', cost: 5, atk: 3, hp: 2, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal', rules: 'While your champion is within 2 tiles, your champion has +3 ATK and +1 SPD.', legendary: true, modifier: [{ type: 'championAtkBuff', range: 2, amount: 3 }, { type: 'championSpdBuff', range: 2, amount: 1 }], image: 'korraksecondang.webp' },
+  fennwickthequiet:  { id: 'fennwickthequiet',  name: 'Fennwick, the Quiet',   type: 'unit', cost: 2, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic', rules: 'Your spells cost 1 less, minimum 1. Action: Look at the top card of your deck.', legendary: true, action: true, modifier: [{ type: 'spellCostReduction', amount: 1 }], image: 'fennwickthequiet.webp' },
+  gavrielholystride: { id: 'gavrielholystride', name: 'Gavriel, Holy Stride',  type: 'unit', cost: 4, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',  rules: 'Cannot be targeted by spells. When this unit moves into a tile, that tile becomes Hallowed Ground.', legendary: true, spellImmune: true, image: 'gavrielholystride.webp' },
+
   // Demon spells
   bloodoffering:   { id: 'bloodoffering',   name: 'Blood Offering',      type: 'spell', cost: 2, effect: 'bloodoffering',   unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Destroy a friendly combat unit. Deal damage equal to its current ATK to any enemy combat unit.', image: 'bloodoffering.webp' },
   pactofruin:      { id: 'pactofruin',      name: 'Pact of Ruin',        type: 'spell', cost: 1, effect: 'pactofruin',      unitType: [UNIT_TYPES.DEMON],attribute: 'dark',    rules: 'Discard a card to deal 3 damage to any enemy unit.', image: 'pactofruin.webp' },
@@ -173,6 +181,7 @@ export const CARD_DB = {
   stoneguard:       { id: 'stoneguard',       name: 'Stoneguard',        type: 'unit',  cost: 3, atk: 2, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Cannot be targeted by spells.', cannotBeTargetedBySpells: true, image: 'stoneguard.webp' },
   wanderingconstruct: { id: 'wanderingconstruct', name: 'Wandering Construct', type: 'unit', cost: 4, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: 'wanderingconstruct.webp' },
   ironqueen:        { id: 'ironqueen',        name: 'The Iron Queen',    type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Action: Choose a direction. This unit moves to the furthest empty tile in that direction.|This unit may take 2 actions per turn.', action: true, legendary: true, image: 'ironqueen.webp' },
+  grindgearcolossus: { id: 'grindgearcolossus', name: 'Grindgear Colossus', type: 'unit', cost: 8, atk: 8, hp: 8, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: "This unit's actions cost 2 commands.", doubleCommandCost: true, image: 'grindgearcolossus.webp' },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
   // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.

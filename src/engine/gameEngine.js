@@ -15,6 +15,52 @@ import {
   getEffectiveSpd,
 } from './statUtils.js';
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
+
+// ── Champion modifier helpers ──────────────────────────────────────────────
+// Returns total ATK bonus granted to a champion from championAtkBuff modifiers
+// when the champion is within range of each modifier's source unit.
+export function getChampionAtkBuff(state, champion) {
+  if (!state.activeModifiers) return 0;
+  let buff = 0;
+  for (const mod of state.activeModifiers) {
+    if (mod.type !== 'championAtkBuff') continue;
+    if (mod.playerIndex !== champion.owner) continue;
+    const src = state.units.find(u => u.uid === mod.unitUid);
+    if (!src) continue;
+    const dist = Math.abs(src.row - champion.row) + Math.abs(src.col - champion.col);
+    if (dist <= (mod.range || 0)) buff += (mod.amount || 0);
+  }
+  return buff;
+}
+
+// Returns total SPD bonus granted to a champion from championSpdBuff modifiers.
+export function getChampionSpdBuff(state, champion) {
+  if (!state.activeModifiers) return 0;
+  let buff = 0;
+  for (const mod of state.activeModifiers) {
+    if (mod.type !== 'championSpdBuff') continue;
+    if (mod.playerIndex !== champion.owner) continue;
+    const src = state.units.find(u => u.uid === mod.unitUid);
+    if (!src) continue;
+    const dist = Math.abs(src.row - champion.row) + Math.abs(src.col - champion.col);
+    if (dist <= (mod.range || 0)) buff += (mod.amount || 0);
+  }
+  return buff;
+}
+
+// Returns the effective spell cost for a card, accounting for spellCostReduction modifiers.
+// Only applies to spell-type cards. Minimum cost is 1.
+export function getEffectiveSpellCost(state, card) {
+  if (card.type !== 'spell') return card.cost;
+  if (!state.activeModifiers) return card.cost;
+  let reduction = 0;
+  for (const mod of state.activeModifiers) {
+    if (mod.type !== 'spellCostReduction') continue;
+    if (mod.playerIndex !== state.activePlayer) continue;
+    reduction += (mod.amount || 0);
+  }
+  return Math.max(1, card.cost - reduction);
+}
 import { SPELL_REGISTRY } from './spellRegistry.js';
 import { ACTION_REGISTRY, dispatchAction as _actionDispatch } from './actionRegistry.js';
 import {
@@ -27,6 +73,7 @@ import {
   resetTurnTriggers,
   getConditionalStatBonus,
 } from './triggerRegistry.js';
+import { filterAvailableContracts, pickRandomContracts } from './contracts.js';
 
 function unitTypes(u) {
   if (!u) return [];
@@ -463,6 +510,18 @@ function fireBeginTurnTriggers(state, playerIdx) {
     if (nearby.length) addLog(state, `Paladin Aura: ${nearby.length} adjacent unit(s) gain +1 max HP.`);
   }
 
+  // Nezzar, Terms and Conditions: at beginning of owner's turn, offer 3 random contracts
+  const nezzars = state.units.filter(u => u.owner === playerIdx && u.id === 'nezzartermsandconditions');
+  for (const nezzar of nezzars) {
+    const available = filterAvailableContracts(state, playerIdx, nezzar.uid);
+    const contracts = pickRandomContracts(available);
+    if (contracts.length > 0) {
+      state.pendingContractSelect = { contracts, nezzarUid: nezzar.uid };
+      addLog(state, `Nezzar offers contracts.`);
+    }
+    break; // Only one Nezzar fires per turn
+  }
+
   // War Drum relic: the friendly combat unit with the lowest ATK gains +1 ATK this turn
   const warDrums = state.units.filter(u => u.owner === playerIdx && u.id === 'wardrum');
   if (warDrums.length > 0) {
@@ -645,6 +704,16 @@ function fireEndTurnTriggers(state, playerIdx) {
       }
     }
     state.lucernPendingResummon[playerIdx] = null;
+  }
+
+  // Final Gambit: player loses at end of turn if the flag is set
+  if (state.finalGambitActive?.[playerIdx] && !state.winner) {
+    const loser = state.players[playerIdx];
+    const winner = state.players[1 - playerIdx];
+    state.finalGambitActive[playerIdx] = false;
+    addLog(state, `Final Gambit: ${loser.name} has sealed their fate!`);
+    state.winner = winner.name;
+    addLog(state, `Game over! ${winner.name} wins!`);
   }
 }
 
@@ -955,6 +1024,9 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
     pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
+    pendingContractSelect: null, // { contracts, nezzarUid } — Nezzar contract choice at turn start
+    pendingBloodPact: null, // { step: 'selectFriendly'|'selectEnemy', nezzarUid, sacrificedUid? }
+    finalGambitActive: [false, false], // true when Final Gambit was chosen; player loses at end of their turn
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
     recalledThisTurn: [],
@@ -1130,16 +1202,51 @@ function doBeginTurnPhase(state) {
 export function getChampionMoveTiles(state) {
   const champ = state.champions[state.activePlayer];
   if (champ.moved) return [];
-  const champAtk = getEffectiveAtk(state, champ);
-  return cardinalNeighbors(champ.row, champ.col)
-    .filter(([r, c]) => {
-      if (isTileOccupied(state, r, c)) {
-        // Allow enemy unit tiles only when champion has ATK > 0
-        const enemyUnit = state.units.find(u => u.owner !== state.activePlayer && u.row === r && u.col === c);
-        return !!enemyUnit && champAtk > 0;
+  const champAtk = getChampionAtkBuff(state, champ);
+  const spdBuff = getChampionSpdBuff(state, champ);
+  const speed = 1 + (spdBuff > 0 ? 1 : 0);
+
+  if (speed === 1) {
+    return cardinalNeighbors(champ.row, champ.col)
+      .filter(([r, c]) => {
+        if (isTileOccupied(state, r, c)) {
+          // Allow enemy unit tiles only when champion has ATK > 0
+          const enemyUnit = state.units.find(u => u.owner !== state.activePlayer && u.row === r && u.col === c);
+          return !!enemyUnit && champAtk > 0;
+        }
+        return true;
+      });
+  }
+
+  // Speed 2 champion: BFS up to 2 tiles, blocked by friendly units
+  const visited = new Set();
+  const frontier = [[champ.row, champ.col, speed]];
+  const result = [];
+  visited.add(`${champ.row},${champ.col}`);
+  while (frontier.length) {
+    const [r, c, remaining] = frontier.shift();
+    for (const [nr, nc] of cardinalNeighbors(r, c)) {
+      const key = `${nr},${nc}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const friendlyUnit = state.units.find(u => u.owner === state.activePlayer && u.row === nr && u.col === nc);
+      const friendlyChamp = state.champions.find(ch => ch.owner === state.activePlayer && ch.row === nr && ch.col === nc);
+      if (friendlyUnit || friendlyChamp) continue;
+      const enemyUnit = state.units.find(u => u.owner !== state.activePlayer && u.row === nr && u.col === nc);
+      const enemyChamp = state.champions.find(ch => ch.owner !== state.activePlayer && ch.row === nr && ch.col === nc);
+      if (enemyUnit) {
+        if (champAtk > 0) result.push([nr, nc]);
+        continue; // cannot pass through enemy units
       }
-      return true;
-    });
+      if (enemyChamp) {
+        result.push([nr, nc]);
+        continue; // cannot pass through enemy champion
+      }
+      result.push([nr, nc]);
+      if (remaining > 1) frontier.push([nr, nc, remaining - 1]);
+    }
+  }
+  return result;
 }
 
 export function moveChampion(state, row, col) {
@@ -1155,7 +1262,7 @@ export function moveChampion(state, row, col) {
     }
     // Combat: champion moves into enemy unit tile — simultaneous damage
     const combatTile = [row, col];
-    const champAtk = getEffectiveAtk(s, champ, combatTile);
+    const champAtk = getChampionAtkBuff(s, champ);
     const enemyAtk = getEffectiveAtk(s, enemyUnit, combatTile);
     addLog(s, `${getPlayer(s).name}'s champion attacks ${enemyUnit.name}!`);
     // Fortitude: reduce damage to enemy unit if they're Light/ascended and within 2 of their champion
@@ -1220,7 +1327,9 @@ export function playCard(state, cardUid) {
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
   if (cardIdx === -1) return s;
   const card = p.hand[cardIdx];
-  if (p.resources < card.cost) return s;
+  // Use effective cost (applies spell cost reduction from Fennwick etc.)
+  const effectiveCost = getEffectiveSpellCost(s, card);
+  if (p.resources < effectiveCost) return s;
 
   if (card.type === 'unit' || card.type === 'relic' || card.type === 'omen') {
     if ((s.recalledThisTurn || []).includes(card.id)) return s;
@@ -1250,7 +1359,7 @@ export function playCard(state, cardUid) {
       const grave = p.grave.filter(u => u.type === 'unit' && !u.token);
       if (grave.length === 0) return s; // nothing to revive
       s.champions[s.activePlayer].moved = true;
-      p.resources -= card.cost;
+      p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s.pendingGraveSelect = { reason: 'rebirth', playerIdx: s.activePlayer };
@@ -1262,7 +1371,7 @@ export function playCard(state, cardUid) {
     if (card.effect === 'glimpse') {
       if (s.champions[s.activePlayer].moved) return s;
       s.champions[s.activePlayer].moved = true;
-      p.resources -= card.cost;
+      p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       if (p.deck.length === 0) {
@@ -1284,7 +1393,7 @@ export function playCard(state, cardUid) {
       'crushingblow', 'agonizingsymphony', 'pestilence',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
-      p.resources -= card.cost;
+      p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
@@ -1310,7 +1419,7 @@ export function playCard(state, cardUid) {
         return s;
       }
       // Need to select a card to discard first
-      p.resources -= card.cost;
+      p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
@@ -1465,6 +1574,26 @@ export function resolveHandSelect(state, selectedCardUid) {
     return completeTurnAdvance(s);
   }
 
+  if (hs.reason === 'darkBargain') {
+    // Dark Bargain contract: discard selected card, then draw 2 cards
+    const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
+    if (idx !== -1) {
+      const [discarded] = p.hand.splice(idx, 1);
+      p.discard.push(discarded);
+      addLog(s, `Dark Bargain: ${discarded.name} discarded.`);
+    }
+    // Draw 2 cards
+    for (let i = 0; i < 2; i++) {
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(s, `Dark Bargain: drew ${drawn.name}.`);
+      }
+    }
+    s.pendingHandSelect = null;
+    return s;
+  }
+
   s.pendingHandSelect = null;
   return s;
 }
@@ -1503,6 +1632,126 @@ export function resolveGraveSelect(state, selectedUid) {
   // Specific spell effects that use grave selection can be handled here by reason.
   s.pendingGraveSelect = null;
   return s;
+}
+
+// ── Nezzar contract selection ─────────────────────────────────────────────
+// Called when the player chooses a contract (or passes with contractId = null).
+
+export function resolveContractSelect(state, contractId) {
+  const s = cloneState(state);
+  const pending = s.pendingContractSelect;
+  if (!pending) return s;
+  s.pendingContractSelect = null;
+
+  const playerIdx = s.activePlayer;
+  const p = s.players[playerIdx];
+  const champ = s.champions[playerIdx];
+  const enemyChamp = s.champions[1 - playerIdx];
+
+  if (!contractId) {
+    addLog(s, `Contracts declined.`);
+    return s;
+  }
+
+  switch (contractId) {
+    case 'soulPrice': {
+      // Pay 2 life, deal 4 damage to enemy champion
+      champ.hp -= 2;
+      addLog(s, `Soul Price accepted. ${p.name}'s champion pays 2 life (${champ.hp} HP remaining).`);
+      enemyChamp.hp -= 4;
+      playChampionDamageSound();
+      addLog(s, `Soul Price: enemy champion takes 4 damage (${enemyChamp.hp} HP remaining).`);
+      checkWinnerLocal(s);
+      break;
+    }
+    case 'cataclysm': {
+      // Deal 2 damage to all other combat units (not Nezzar)
+      const nezzarUid = pending.nezzarUid;
+      const targets = [...s.units].filter(u => !u.isRelic && !u.isOmen && u.uid !== nezzarUid);
+      addLog(s, `Cataclysm accepted. All other combat units take 2 damage.`);
+      for (const t of targets) {
+        if (s.units.find(u => u.uid === t.uid)) {
+          applyDamageToUnit(s, t, 2, 'Cataclysm');
+        }
+      }
+      break;
+    }
+    case 'darkTithe': {
+      // Skip champion action, gain 2 temporary mana
+      champ.moved = true;
+      p.resources = Math.min((p.resources || 0) + 2, 10);
+      addLog(s, `Dark Tithe accepted. Champion's action skipped. Gained 2 temporary mana (${p.resources} total).`);
+      break;
+    }
+    case 'finalGambit': {
+      // Gain an extra command, lose at end of turn
+      p.commandsUsed = Math.max(0, (p.commandsUsed || 0) - 1);
+      if (!s.finalGambitActive) s.finalGambitActive = [false, false];
+      s.finalGambitActive[playerIdx] = true;
+      addLog(s, `Final Gambit accepted. ${p.name} gains an extra command — but will lose at end of turn.`);
+      break;
+    }
+    case 'bloodPact': {
+      // Two-step: select friendly unit to sacrifice, then enemy unit to destroy
+      s.pendingBloodPact = { step: 'selectFriendly', nezzarUid: pending.nezzarUid };
+      addLog(s, `Blood Pact accepted.`);
+      break;
+    }
+    case 'darkBargain': {
+      // Discard a card from hand, then draw 2
+      s.pendingHandSelect = { reason: 'darkBargain', data: {} };
+      addLog(s, `Dark Bargain accepted.`);
+      break;
+    }
+    default:
+      break;
+  }
+
+  return s;
+}
+
+// Called when the player selects a friendly unit to sacrifice for Blood Pact.
+export function resolveBloodPactFriendly(state, unitUid) {
+  const s = cloneState(state);
+  const bp = s.pendingBloodPact;
+  if (!bp || bp.step !== 'selectFriendly') return s;
+
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit || unit.owner !== s.activePlayer || unit.isRelic || unit.isOmen || unit.uid === bp.nezzarUid) return s;
+
+  const sacrificedUid = unit.uid;
+  const unitName = unit.name;
+  destroyUnit(unit, s, 'bloodPact');
+  addLog(s, `Blood Pact: ${unitName} sacrificed.`);
+  s.pendingBloodPact = { step: 'selectEnemy', nezzarUid: bp.nezzarUid, sacrificedUid };
+  return s;
+}
+
+// Called when the player selects an enemy unit to destroy for Blood Pact.
+export function resolveBloodPactEnemy(state, unitUid) {
+  const s = cloneState(state);
+  const bp = s.pendingBloodPact;
+  if (!bp || bp.step !== 'selectEnemy') return s;
+
+  const unit = s.units.find(u => u.uid === unitUid);
+  if (!unit || unit.owner === s.activePlayer || unit.isRelic || unit.isOmen) return s;
+
+  const unitName = unit.name;
+  destroyUnit(unit, s, 'bloodPact');
+  addLog(s, `Blood Pact: ${unitName} destroyed.`);
+  s.pendingBloodPact = null;
+  return s;
+}
+
+// Local checkWinner used within contract resolve (can't call exported version directly)
+function checkWinnerLocal(state) {
+  for (const champ of state.champions) {
+    if (champ.hp <= 0) {
+      const winner = state.players[1 - champ.owner];
+      state.winner = winner.name;
+      addLog(state, `Game over! ${winner.name} wins!`);
+    }
+  }
 }
 
 // ── Flesh Tithe sacrifice ─────────────────────────────────────────────────
@@ -1554,8 +1803,9 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
     if (cardIdx === -1) return s;
     const card = p.hand[cardIdx];
-    if (p.resources < card.cost) return s;
-    p.resources -= card.cost;
+    const effectiveCost = getEffectiveSpellCost(s, card);
+    if (p.resources < effectiveCost) return s;
+    p.resources -= effectiveCost;
     p.hand.splice(cardIdx, 1);
     p.discard.push(card);
   }
@@ -1888,6 +2138,14 @@ export function resolveGlimpse(state, keepTop) {
   return s;
 }
 
+// ── Fennwick scry: dismiss without drawing ────────────────────────────────
+// The card stays on top of the deck — just clears pendingDeckPeek.
+export function resolveScry(state) {
+  const s = cloneState(state);
+  s.pendingDeckPeek = null;
+  return s;
+}
+
 // ── terrain helpers ────────────────────────────────────────────────────────
 
 // Tiles where terrain cannot be placed (champion starts + throne).
@@ -2002,9 +2260,10 @@ export function triggerUnitAction(state, unitUid) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== s.activePlayer || unit.moved || unit.summoned) return s;
 
-  // Command gate: action abilities cost 1 command
-  if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
-  s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+  // Command gate: action abilities cost 1 command (2 for doubleCommandCost units)
+  const actionCmdCost = unit.doubleCommandCost ? 2 : 1;
+  if ((s.players[s.activePlayer].commandsUsed ?? 0) + actionCmdCost > 3) return s;
+  s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + actionCmdCost;
 
   // Reveal hidden unit when it uses an action ability
   if (unit.hidden) {
@@ -2175,10 +2434,11 @@ export function moveUnit(state, unitUid, row, col) {
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
 
-  // Command gate: player-directed unit moves cost 1 command; champion moves are exempt
+  // Command gate: player-directed unit moves cost 1 command (2 for doubleCommandCost); champion moves are exempt
   if (unit.owner === s.activePlayer) {
-    if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
-    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+    const moveCmdCost = unit.doubleCommandCost ? 2 : 1;
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost > 3) return s;
+    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost;
   }
 
   // Check for enemy omen on destination tile — destroy it with no combat
@@ -2349,6 +2609,19 @@ export function moveUnit(state, unitUid, row, col) {
     if (movedUnit) fireTerrainOnOccupy(s, movedUnit, row, col);
   }
 
+  // Gavriel, Holy Stride: consecrate the tile Gavriel moved to as Hallowed Ground
+  const gavriel = s.units.find(u => u.uid === unitUid && u.id === 'gavrielholystride');
+  if (gavriel) {
+    if (!s.terrainGrid) s.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
+    s.terrainGrid[gavriel.row][gavriel.col] = {
+      id: 'hallowed',
+      whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'light', combatOnly: true },
+      ownerName: 'Gavriel, Holy Stride',
+      cardId: 'hallowed_ground',
+    };
+    addLog(s, `Gavriel consecrates the ground.`);
+  }
+
   updateWildbornAura(s);
   updateStandardBearerAura(s);
   return s;
@@ -2361,10 +2634,11 @@ export function executeApproachAndAttack(state, unitUid, approachRow, approachCo
   const unit = s.units.find(u => u.uid === unitUid);
   if (!unit) return s;
 
-  // Command gate: counts as a single command for the whole approach+attack
+  // Command gate: counts as a single command for the whole approach+attack (2 for doubleCommandCost)
+  const approachCmdCost = unit.doubleCommandCost ? 2 : 1;
   if (unit.owner === s.activePlayer) {
-    if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
-    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) + approachCmdCost > 3) return s;
+    s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + approachCmdCost;
   }
 
   // Move unit to the chosen approach tile
@@ -2372,7 +2646,7 @@ export function executeApproachAndAttack(state, unitUid, approachRow, approachCo
   unit.col = approachCol;
 
   // Temporarily undo the increment so moveUnit's own gate doesn't double-count
-  s.players[unit.owner].commandsUsed = (s.players[unit.owner].commandsUsed ?? 1) - 1;
+  s.players[unit.owner].commandsUsed = (s.players[unit.owner].commandsUsed ?? approachCmdCost) - approachCmdCost;
 
   // Resolve combat from approach tile (unit is now adjacent to target)
   return moveUnit(s, unitUid, targetRow, targetCol);
@@ -2557,23 +2831,23 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     // Smite: enemy within 2 tiles of champion (not hidden, not omen, not spell-immune)
     case 'smite':
       return state.units
-        .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
-    // Forge Weapon, Iron Shield, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden for most)
+    // Forge Weapon, Iron Shield, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden, not spell-immune)
     case 'forgeweapon':
     case 'ironshield':
     case 'savagegrowth':
-      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid);
     case 'recall':
-      return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && !u.spellImmune).map(u => u.uid);
     case 'moonleaf':
-      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit').map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit' && !u.spellImmune).map(u => u.uid);
 
     // Bloom step 0: friendly unit or champion; step 1: enemy unit (not omen, not spell-immune)
     case 'bloom':
-      if (step === 0) return ['champion' + state.activePlayer, ...state.units.filter(u => u.owner === state.activePlayer && !u.hidden).map(u => u.uid)];
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      if (step === 0) return ['champion' + state.activePlayer, ...state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid)];
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Entangle: friendly Elf unit
     case 'entangle':
@@ -2601,36 +2875,36 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     // Blood Offering step 0: friendly unit; step 1: any enemy (not omen, not spell-immune)
     case 'bloodoffering':
       if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Pact of Ruin damage: any enemy unit or enemy champion (not omen, not spell-immune)
     case 'pactofruin_damage':
       return [
         'champion' + (1 - state.activePlayer),
-        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid),
+        ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid),
       ];
 
     // Dark Sentence: any enemy unit (not omen, not spell-immune)
     case 'darksentence':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Devour: enemy with 2 or less HP (not omen, not spell-immune)
     case 'devour':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && u.hp <= 2).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && u.hp <= 2).map(u => u.uid);
 
     // Soul Drain: enemy unit (not omen, not spell-immune)
     case 'souldrain':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Spirit Bolt: any enemy unit on the board (no range restriction, not omen, not spell-immune)
     case 'spiritbolt':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Woodland Guard action: enemy within 2 tiles (not omen, not spell-immune)
     case 'woodlandguard_action': {
       const src = state.units.find(u => u.uid === (data.sourceUid || ''));
-      if (!src) return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells).map(u => u.uid);
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
+      if (!src) return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && manhattan([src.row, src.col], [u.row, u.col]) <= 2).map(u => u.uid);
     }
 
     // Battle Priest summon trigger step 0: enemy within 1 tile (not omen, not spell-immune); step 1: friendly within 1 tile
@@ -2639,7 +2913,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
       if (!priest) return [];
       const adj = cardinalNeighbors(priest.row, priest.col);
       if (step === 0) {
-        return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
+        return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
       }
       return state.units.filter(u => u.owner === state.activePlayer && u.uid !== priest.uid && adj.some(([r, c]) => u.row === r && u.col === c)).map(u => u.uid);
     }
@@ -2671,7 +2945,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 
     // Clockwork Manimus action: any enemy combat unit (not omen, not relic, not spell-immune)
     case 'clockworkmanimus_action':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.cannotBeTargetedBySpells).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Petrify: enemy combat unit with 4 or less HP (not relic, not omen, not hidden, not spell-immune)
     case 'petrify':
@@ -2680,7 +2954,7 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         !u.isRelic &&
         !u.isOmen &&
         !u.hidden &&
-        !u.cannotBeTargetedBySpells &&
+        !u.cannotBeTargetedBySpells && !u.spellImmune &&
         u.hp <= 4
       ).map(u => u.uid);
 
@@ -2699,8 +2973,8 @@ export function hasValidTargets(card, state, playerIndex) {
 
   const effect = card.effect;
   const champ = state.champions[playerIndex];
-  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells);
-  const friendlyUnits = state.units.filter(u => u.owner === playerIndex);
+  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune);
+  const friendlyUnits = state.units.filter(u => u.owner === playerIndex && !u.spellImmune);
 
   switch (effect) {
     case 'smite':
