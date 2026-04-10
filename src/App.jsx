@@ -481,7 +481,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 )}
                 {phase === 'action' && selectMode === 'targetless_spell' && (
                   <>
-                    <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
+                    <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={isMobile ? 'Cast' : `Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
                     <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
                   </>
                 )}
@@ -564,7 +564,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           )}
           {phase === 'action' && selectMode === 'targetless_spell' && (
             <>
-              <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" style={{ minHeight: '44px' }} />
+              <ActionBtn onClick={handlers.handleCastTargetlessSpell} label={isMobile ? 'Cast' : `Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" style={{ minHeight: '44px' }} />
               <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
             </>
           )}

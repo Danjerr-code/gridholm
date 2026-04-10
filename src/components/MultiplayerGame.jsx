@@ -1101,7 +1101,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                   )}
                   {phase === 'action' && selectMode === 'targetless_spell' && (
                     <>
-                      <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
+                      <ActionBtn onClick={handleCastTargetlessSpell} label={isMobile ? 'Cast' : `Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" fullWidth />
                       <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
                     </>
                   )}
@@ -1170,7 +1170,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           )}
           {phase === 'action' && selectMode === 'targetless_spell' && (
             <>
-              <ActionBtn onClick={handleCastTargetlessSpell} label={`Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" style={{ minHeight: '44px' }} />
+              <ActionBtn onClick={handleCastTargetlessSpell} label={isMobile ? 'Cast' : `Cast ${selectedCardObj?.name ?? 'Spell'}`} variant="action" style={{ minHeight: '44px' }} />
               <ActionBtn onClick={handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
             </>
           )}
