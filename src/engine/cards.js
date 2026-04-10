@@ -105,6 +105,10 @@ export const CARD_DB = {
   spiritbolt:      { id: 'spiritbolt',      name: 'Spirit Bolt',         type: 'spell', cost: 3, effect: 'spiritbolt',      unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn to deal damage to an enemy combat unit equal to the number of friendly units within 2 tiles of your champion.", image: 'spiritbolt.webp' },
   glimpse:         { id: 'glimpse',         name: 'Glimpse',             type: 'spell', cost: 1, effect: 'glimpse',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Skip your champion's action this turn. Look at the top card of your deck. You may shuffle it back. Draw a card.", image: 'glimpse.webp' },
   petrify:         { id: 'petrify',         name: 'Petrify',             type: 'spell', cost: 4, effect: 'petrify',         unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Transform target enemy combat unit with 4 or less HP into a Relic with no abilities.', image: 'petrify.webp' },
+  glitteringgift:  { id: 'glitteringgift',  name: 'Glittering Gift',     type: 'spell', cost: 2, effect: 'glitteringgift',  unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Give a friendly combat unit +1/+1 and 'When this unit is destroyed, draw a card.'", image: 'glitteringgift.webp' },
+  recall:          { id: 'recall',          name: 'Recall',              type: 'spell', cost: 2, effect: 'recall',          unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: "Return target combat unit to its owner's hand.", image: 'recall.webp' },
+  amethystcache:   { id: 'amethystcache',   name: 'Amethyst Cache',      type: 'spell', cost: 5, effect: 'amethystcache',   unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Create an Amethyst Crystal in a tile adjacent to your champion.', image: 'amethystcache.webp' },
+  amethystcrystal: { id: 'amethystcrystal', name: 'Amethyst Crystal',    type: 'relic', cost: 0, atk: 0, hp: 5, spd: 0, isRelic: true, unitType: [], attribute: 'mystic',  rules: 'When this relic is destroyed, draw 3 cards.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'drawThreeCards', selfTrigger: true }], token: true, image: 'amethystcrystal.webp' },
 
   // Demon units
   imp:             { id: 'imp',             name: 'Imp',                 type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Hidden.', hidden: true, image: 'imp.webp' },
@@ -190,6 +194,10 @@ export const CARD_DB = {
   wanderingconstruct: { id: 'wanderingconstruct', name: 'Wandering Construct', type: 'unit', cost: 4, atk: 4, hp: 4, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: null, image: 'wanderingconstruct.webp' },
   ironqueen:        { id: 'ironqueen',        name: 'The Iron Queen',    type: 'unit',  cost: 6, atk: 6, hp: 6, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'Action: Choose a direction. This unit moves to the furthest empty tile in that direction.|This unit may take 2 actions per turn.', action: true, legendary: true, image: 'ironqueen.webp' },
   grindgearcolossus: { id: 'grindgearcolossus', name: 'Grindgear Colossus', type: 'unit', cost: 8, atk: 8, hp: 8, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: "This unit's actions cost 2 commands.", doubleCommandCost: true, image: 'grindgearcolossus.webp' },
+
+  // Elf spells (Batch 16)
+  temporalrift: { id: 'temporalrift', name: 'Temporal Rift',  type: 'omen',  cost: 6, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [UNIT_TYPES.ELF], attribute: 'mystic', rules: 'You have an extra command each turn.', modifier: [{ type: 'commandBonus', amount: 1 }], triggers: [{ event: 'onBeginTurn', effect: 'temporalrift_log' }], image: 'temporalrift.webp' },
+  mindseize:    { id: 'mindseize',    name: 'Mind Seize',     type: 'spell', cost: 7, effect: 'mindseize',    unitType: [UNIT_TYPES.ELF], attribute: 'mystic', rules: "Skip your champion's action. Gain control of target enemy combat unit adjacent to your champion.", image: 'mindseize.webp' },
 
   // ── Omens ──────────────────────────────────────────────────────────────────
   // Omens are temporary non-combat board entities: ATK 0, SPD 0, no HP, isOmen: true.

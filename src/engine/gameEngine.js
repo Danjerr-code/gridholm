@@ -1088,6 +1088,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingGraveSelect: null, // { reason, playerIdx, data } — when spell prompts player to select from grave
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
+    pendingRelicPlace: null,  // { effect, playerIdx } — waiting for tile to place a relic (e.g. Amethyst Cache)
     pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
     pendingContractSelect: null, // { contracts, nezzarUid } — Nezzar contract choice at turn start
@@ -1477,6 +1478,21 @@ export function playCard(state, cardUid) {
       // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
       checkConditionalStatDeaths(s);
       checkWinner(s);
+      return s;
+    }
+
+    // Amethyst Cache: needs an empty tile adjacent to champion — use pendingRelicPlace
+    if (card.effect === 'amethystcache') {
+      const champ = s.champions[s.activePlayer];
+      const validTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+        !s.units.some(u => u.row === r && u.col === c) &&
+        !s.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (validTiles.length === 0) return s; // no valid tiles — cannot cast
+      p.resources -= effectiveCost;
+      p.hand.splice(cardIdx, 1);
+      p.discard.push(card);
+      s.pendingRelicPlace = { effect: 'amethystcache', playerIdx: s.activePlayer };
       return s;
     }
 
@@ -1904,7 +1920,16 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   }
   // ── Recall ──
   else if (effect === 'recall') {
-    if (target) s = _dispatchSpell(s, s.activePlayer, 'recall', [target]);
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'recall', [target]);
+      checkWinner(s);
+    }
+  }
+  // ── Glittering Gift ──
+  else if (effect === 'glitteringgift') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'glitteringgift', [target]);
+    }
   }
   // ── Moonleaf ──
   else if (effect === 'moonleaf') {
@@ -2128,6 +2153,7 @@ export function cancelSpell(state) {
   s.pendingHandSelect = null;
   s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingRelicPlace = null;
   s.pendingLineBlast = null;
   s.pendingNegationCancel = null;
   s.pendingDeckPeek = null;
@@ -2259,6 +2285,38 @@ export function resolveScry(state) {
   return s;
 }
 
+// ── Amethyst Cache tile placement ─────────────────────────────────────────
+
+// Returns empty tiles adjacent (distance 1) to the active player's champion.
+export function getAmethystCacheTiles(state) {
+  const champ = state.champions[state.activePlayer];
+  return cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+    !state.units.some(u => u.row === r && u.col === c) &&
+    !state.champions.some(ch => ch.row === r && ch.col === c)
+  );
+}
+
+// Place the Amethyst Crystal relic at the chosen tile.
+export function resolveRelicPlace(state, row, col) {
+  let s = cloneState(state);
+  if (!s.pendingRelicPlace) return s;
+  const { effect, playerIdx } = s.pendingRelicPlace;
+
+  // Validate the tile is still empty and adjacent to champion
+  const champ = s.champions[playerIdx];
+  const adj = cardinalNeighbors(champ.row, champ.col);
+  const isAdj = adj.some(([r, c]) => r === row && c === col);
+  const isEmpty = !s.units.some(u => u.row === row && u.col === col) &&
+                  !s.champions.some(ch => ch.row === row && ch.col === col);
+  if (!isAdj || !isEmpty) return s;
+
+  s.pendingRelicPlace = null;
+  s = _dispatchSpell(s, playerIdx, effect, [], { row, col });
+  fireTrigger('onCardPlayed', { playerIndex: playerIdx, card: { effect } }, s);
+  checkWinner(s);
+  return s;
+}
+
 // ── terrain helpers ────────────────────────────────────────────────────────
 
 // Tiles where terrain cannot be placed (champion starts + throne).
@@ -2360,6 +2418,7 @@ export function endActionPhase(state) {
   s.pendingHandSelect = null;
   s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingRelicPlace = null;
   s.pendingLineBlast = null;
   s.pendingDeckPeek = null;
   s.phase = 'end-turn';
@@ -2947,13 +3006,17 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
-    // Forge Weapon, Iron Shield, Recall, Moonleaf, Savage Growth, Pounce: friendly (not hidden, not spell-immune)
+    // Forge Weapon, Iron Shield, Savage Growth: friendly units (not hidden, not spell-immune)
     case 'forgeweapon':
     case 'ironshield':
     case 'savagegrowth':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid);
+    // Recall: any combat unit (friendly or enemy), not a relic/omen, not spell-immune
     case 'recall':
-      return state.units.filter(u => u.owner === state.activePlayer && !u.spellImmune).map(u => u.uid);
+      return state.units.filter(u => !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
+    // Glittering Gift: friendly combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'glitteringgift':
+      return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
     case 'moonleaf':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit' && !u.spellImmune).map(u => u.uid);
 
@@ -3129,6 +3192,18 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'demolish':
       return state.units.filter(u => u.isRelic || u.isOmen).map(u => u.uid);
 
+    // Mind Seize: enemy combat unit adjacent (distance 1) to own champion (not relic, not omen, not hidden, not spell-immune)
+    case 'mindseize':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer &&
+        !u.hidden &&
+        !u.isRelic &&
+        !u.isOmen &&
+        !u.cannotBeTargetedBySpells &&
+        !u.spellImmune &&
+        manhattan([champ.row, champ.col], [u.row, u.col]) === 1
+      ).map(u => u.uid);
+
     default:
       return [];
   }
@@ -3248,6 +3323,20 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'animus':
       return state.units.some(u => u.owner === playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune);
+
+    case 'glitteringgift':
+      return state.units.some(u => u.owner === playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune);
+
+    case 'recall':
+      return state.units.some(u => !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune);
+
+    case 'amethystcache': {
+      const adjTiles = cardinalNeighbors(state.champions[playerIndex].row, state.champions[playerIndex].col);
+      return adjTiles.some(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+    }
 
     case 'gore':
       return enemyUnits.some(u => !u.isRelic && !u.isOmen);

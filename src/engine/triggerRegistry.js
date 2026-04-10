@@ -42,6 +42,24 @@ export function createTriggerListeners() {
   return Object.fromEntries(TRIGGER_EVENTS.map(e => [e, []]));
 }
 
+// Dynamically register a single trigger on an already-placed unit.
+// Use this when a spell or effect grants a new trigger to an existing unit.
+export function registerDynamicTrigger(unitUid, trigger, state) {
+  const unit = state.units.find(u => u.uid === unitUid);
+  if (!unit) return;
+  if (!TRIGGER_EVENTS.includes(trigger.event)) return;
+  state.triggerListeners[trigger.event].push({
+    unitUid,
+    playerIndex: unit.owner,
+    effect: trigger.effect,
+    condition: trigger.condition || null,
+    selfTrigger: trigger.selfTrigger || false,
+    oncePerTurn: trigger.oncePerTurn || false,
+    preventRetrigger: trigger.preventRetrigger || false,
+    firedThisTurn: false,
+  });
+}
+
 // Called when any unit enters the board (summon, respawn, etc.).
 // Reads the unit's `triggers` array and adds listener entries to state.
 export function registerUnit(unit, state) {
@@ -288,6 +306,41 @@ function resolveEffect(effectId, listener, context, state) {
       if (!placed) {
         addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: ${sacrificed.name} could not return — no open tiles.`);
       }
+      break;
+    }
+
+    case 'drawOneCard': {
+      const p = state.players[playerIndex];
+      const drawn = p.deck.shift();
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: drew ${drawn.name}.`);
+      } else {
+        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: deck is empty, no card drawn.`);
+      }
+      break;
+    }
+
+    case 'drawThreeCards': {
+      const p = state.players[playerIndex];
+      let drawn = 0;
+      for (let i = 0; i < 3; i++) {
+        const card = p.deck.shift();
+        if (card) {
+          p.hand.push(card);
+          drawn++;
+        }
+      }
+      if (listenerUnit && listenerUnit.id === 'amethystcrystal') {
+        addLog(state, `Amethyst Crystal shattered. Draw 3 cards.`);
+      } else {
+        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: drew ${drawn} card(s).`);
+      }
+      break;
+    }
+
+    case 'temporalrift_log': {
+      addLog(state, 'Temporal Rift grants an extra command.');
       break;
     }
 

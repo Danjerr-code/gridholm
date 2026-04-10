@@ -9,7 +9,7 @@ import {
   fireOnSummonTriggers,
 } from './gameEngine.js';
 import { getEffectiveAtk } from './statUtils.js';
-import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers } from './triggerRegistry.js';
+import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -663,17 +663,82 @@ export const SPELL_REGISTRY = {
   // SPELL EFFECTS THAT NEED gameEngine helpers
   // ==========================================
 
-  // Recall: return a unit to hand (triggered via spell card or ability)
+  // Recall: return a unit to hand without triggering death effects.
+  // Returns to the unit's owner (may be the opponent), using base card stats.
   recall: (state, caster, targets) => {
     const target = targets[0];
-    if (!target) return state;
-    const { owner: _o, row: _r, col: _c, maxHp: _mh, summoned: _s, moved: _mv,
-            atkBonus: _ab, shield: _sh, speedBonus: _sb, turnAtkBonus: _ta, ...baseFields } = target;
-    const recalledCard = { ...baseFields, hp: target.maxHp, uid: `${target.id}_${Math.random().toString(36).slice(2)}` };
+    if (!target || target.isRelic || target.isOmen) return state;
+    const base = CARD_DB[target.id];
+    if (!base) return state;
+    const ownerIdx = target.owner;
+    // Clean up all trigger listeners and modifiers for this unit before removing it
+    unregisterUnit(target.uid, state);
+    unregisterModifiers(target.uid, state);
     state.units = state.units.filter(u => u.uid !== target.uid);
-    state.players[caster].hand.push(recalledCard);
+    // Add fresh card (base stats) to the unit's owner's hand
+    const recalledCard = { ...base, uid: `${base.id}_${Math.random().toString(36).slice(2)}` };
+    state.players[ownerIdx].hand.push(recalledCard);
     state.recalledThisTurn = [...(state.recalledThisTurn || []), recalledCard.id];
-    addLog(state, `${target.name} recalled to hand. Cannot be played this turn.`);
+    addLog(state, `${target.name} recalled to hand.`);
+    return state;
+  },
+
+  // Glittering Gift: give a friendly combat unit +1/+1 and a death-draw trigger
+  glitteringgift: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    target.atk += 1;
+    target.hp += 1;
+    target.maxHp += 1;
+    registerDynamicTrigger(target.uid, { event: 'onFriendlyUnitDeath', effect: 'drawOneCard', selfTrigger: true }, state);
+    addLog(state, `Glittering Gift enchants ${target.name}.`);
+    return state;
+  },
+
+  // Mind Seize: skip champion's action, gain control of an adjacent enemy combat unit.
+  mindseize: (state, caster, targets) => {
+    const champ = state.champions[caster];
+    champ.moved = true;
+    const target = targets[0];
+    if (!target) return state;
+    const liveTarget = state.units.find(u => u.uid === target.uid);
+    if (!liveTarget) return state;
+    unregisterUnit(liveTarget.uid, state);
+    unregisterModifiers(liveTarget.uid, state);
+    liveTarget.owner = caster;
+    registerUnit(liveTarget, state);
+    registerModifiers(liveTarget, state);
+    liveTarget.summoned = true; // summoning sickness
+    addLog(state, `${liveTarget.name} seized by Mind Seize.`);
+    return state;
+  },
+
+  // Amethyst Cache: create an Amethyst Crystal relic on a player-chosen adjacent tile.
+  // The tile selection is handled via pendingRelicPlace in gameEngine; this resolver
+  // is called by resolveRelicPlace with (state, caster, [], { row, col }).
+  amethystcache: (state, caster, targets, options = {}) => {
+    const { row, col } = options;
+    if (row == null || col == null) return state;
+    const crystalBase = CARD_DB['amethystcrystal'];
+    if (!crystalBase) return state;
+    const crystal = {
+      ...crystalBase,
+      owner: caster,
+      row,
+      col,
+      maxHp: crystalBase.hp,
+      summoned: false,
+      moved: false,
+      atkBonus: 0,
+      shield: 0,
+      speedBonus: 0,
+      turnAtkBonus: 0,
+      hidden: false,
+      uid: `amethystcrystal_${Math.random().toString(36).slice(2)}`,
+    };
+    state.units.push(crystal);
+    registerUnit(crystal, state);
+    addLog(state, `Amethyst Crystal created.`);
     return state;
   },
 
