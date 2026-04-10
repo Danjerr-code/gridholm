@@ -66,6 +66,8 @@ export default function Board({
   const [dragTargetKey, setDragTargetKey] = useState(null);
   // Double-tap tracking for champion tokens on mobile (keyed by champion.owner)
   const lastChampTapRef = useRef({});
+  // Double-tap tracking for unit tokens on mobile (keyed by unit uid)
+  const lastUnitTapRef = useRef({});
 
   // Animation state
   const prevStateRef = useRef(null);
@@ -426,6 +428,33 @@ export default function Board({
   function handleUnitClick(unit) {
     // On mobile, tap selects only — detail is shown via long-press, not tap
     if (!isMobile && onInspectUnit) onInspectUnit(unit);
+
+    if (isMobile) {
+      const now = Date.now();
+      const last = lastUnitTapRef.current[unit.uid] ?? 0;
+      lastUnitTapRef.current[unit.uid] = now;
+
+      if (now - last < 300) {
+        // Double tap — reset to prevent triple-tap treating as another double
+        lastUnitTapRef.current[unit.uid] = 0;
+
+        const canUseAction = (
+          unit.action === true &&
+          !unit.moved &&
+          !unit.summoned &&
+          unit.owner === myPlayerIndex &&
+          canInteract &&
+          phase === 'action' &&
+          commandsUsed < 3
+        );
+
+        if (canUseAction && handlers.handleActionButtonClick) {
+          handlers.handleActionButtonClick(unit.uid);
+          return;
+        }
+        // No action ability or ineligible: fall through to single-tap selection
+      }
+    }
 
     if (!canInteract) return;
     if (selectMode === 'champion_ability') {
