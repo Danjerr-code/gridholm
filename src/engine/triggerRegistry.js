@@ -31,6 +31,7 @@ export const TRIGGER_EVENTS = [
   'onFriendlyAction',
   'onHPRestored',
   'onEndTurn',
+  'onBeginTurn',
   'onNonCombatChampionDamage',
   'onFriendlySacrifice',
   'onEnemyAction',
@@ -290,6 +291,19 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'bloodmoonBuff': {
+      const omen = state.units.find(u => u.uid === unitUid);
+      if (!omen) break;
+      const turns = omen.turnsRemaining || 0;
+      if (turns <= 0) break;
+      const allies = state.units.filter(u => u.owner === playerIndex && !u.isRelic && !u.isOmen);
+      for (const ally of allies) {
+        ally.turnAtkBonus = (ally.turnAtkBonus || 0) + turns;
+      }
+      addLog(state, `Bloodmoon empowers your units. +${turns} ATK this turn.`);
+      break;
+    }
+
     // plusOneAuraRange is handled statically via getAuraRangeBonus, not fired as an effect.
     case 'plusOneAuraRange':
       break;
@@ -432,6 +446,9 @@ export function fireTrigger(event, context, state) {
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
       case 'onEndTurn':
+        if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
+        break;
+      case 'onBeginTurn':
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
       case 'onNonCombatChampionDamage':

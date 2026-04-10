@@ -73,7 +73,7 @@ export const CARD_DB = {
   predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'The enemy champion skips their action next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Summon a 1/1 Snake in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
-  crushingblow:    { id: 'crushingblow',    name: 'Crushing Blow',       type: 'spell', cost: 5, effect: 'crushingblow',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: "Skip your champion's action this turn. Deal 5 damage to the enemy champion.", image: 'crushingblow.webp' },
+  crushingblow:    { id: 'crushingblow',    name: 'Crushing Blow',       type: 'spell', cost: 4, effect: 'crushingblow',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: "Skip your champion's action this turn. Deal 4 damage to an adjacent combat unit. If the tile behind that unit is empty, push it back 1 tile.", image: 'crushingblow.webp' },
   animus:          { id: 'animus',          name: 'Animus',              type: 'spell', cost: 1, effect: 'animus',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Target friendly combat unit gains +2 ATK this turn.', image: 'animus.webp' },
   gore:            { id: 'gore',            name: 'Gore',                type: 'spell', cost: 2, effect: 'gore',            unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Deal 2 damage to an enemy combat unit.', image: 'gore.webp' },
   demolish:        { id: 'demolish',        name: 'Demolish',            type: 'spell', cost: 2, effect: 'demolish',        unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Destroy target Relic or Omen.', image: 'demolish.webp' },
@@ -201,6 +201,7 @@ export const CARD_DB = {
   smokebomb:      { id: 'smokebomb',      name: 'Smoke Bomb',      type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, unitType: [], attribute: 'dark',    rules: 'Friendly combat units within 2 tiles become hidden. Any friendly combat unit summoned within 2 tiles gains Hidden.', image: 'smokebomb.webp' },
   manawell:       { id: 'manawell',       name: 'Mana Well',       type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 4, isOmen: true, unitType: [], attribute: 'mystic',  rules: 'At the start of your turn, gain 1 temporary mana this turn.', image: 'manawell.webp' },
   feralsurge:     { id: 'feralsurge',     name: 'Feral Surge',     type: 'omen', cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'primal',  rules: 'Friendly combat units summoned adjacent to this omen gain Rush.', image: 'feralsurge.webp' },
+  bloodmoon:      { id: 'bloodmoon',      name: 'Bloodmoon',       type: 'omen', cost: 4, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'beast',   rules: 'At the beginning of your turn, friendly combat units gain ATK equal to the number of time counters remaining on this omen.', triggers: [{ event: 'onBeginTurn', effect: 'bloodmoonBuff' }], image: 'bloodmoon.webp' },
 
   // ── Terrain Spells ─────────────────────────────────────────────────────────
   // Terrain cards (type: 'terrain', isTerrain: true) modify tiles on the board.
@@ -288,6 +289,7 @@ const BEAST_DECK = [
   'callofthesnakes',
   'siegemound', 'siegemound',
   'feralsurge', 'feralsurge',
+  'bloodmoon',
   'huntingground',
   'vornthundercaller',
   'korraksecondang',

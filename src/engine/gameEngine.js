@@ -246,6 +246,21 @@ export function restoreHP(target, amount, state, source = 'effect') {
   return actual;
 }
 
+// ── Command limit ───────────────────────────────────────────────────────────
+// Returns the maximum commands allowed this turn for the given player.
+// Base is 3; commandBonus modifiers in activeModifiers add to it.
+export function getCommandLimit(state, playerIndex) {
+  let limit = 3;
+  if (state.activeModifiers) {
+    for (const mod of state.activeModifiers) {
+      if (mod.type === 'commandBonus' && mod.playerIndex === playerIndex) {
+        limit += (mod.amount || 0);
+      }
+    }
+  }
+  return limit;
+}
+
 // ── Unit destruction ────────────────────────────────────────────────────────
 // Single point of unit removal for the entire engine. Fires death triggers.
 export function destroyUnit(unit, state, source = 'combat', destroyingUids = new Set(), combatTile = null) {
@@ -566,6 +581,9 @@ function fireBeginTurnTriggers(state, playerIdx) {
       addLog(state, `War Drum: ${chosen.name} gains +1 ATK this turn (${getEffectiveAtk(state, chosen)} ATK).`);
     }
   }
+
+  // Declarative onBeginTurn triggers (e.g. Bloodmoon)
+  fireTrigger('onBeginTurn', { playerIndex: playerIdx }, state);
 }
 
 // ============================================
@@ -1401,7 +1419,7 @@ export function playCard(state, cardUid) {
     }
 
     // Champion action spells: check champion has not moved
-    if (['crushingblow', 'agonizingsymphony'].includes(card.effect)) {
+    if (['agonizingsymphony', 'crushingblow'].includes(card.effect)) {
       if (s.champions[s.activePlayer].moved) return s;
     }
 
@@ -1442,7 +1460,7 @@ export function playCard(state, cardUid) {
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
       'ancientspring', 'verdantsurge', 'predatorsmark',
-      'crushingblow', 'agonizingsymphony', 'pestilence',
+      'agonizingsymphony', 'pestilence',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
@@ -2008,6 +2026,13 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const champ = s.champions[s.activePlayer];
     champ.moved = true;
     if (target) s = _dispatchSpell(s, s.activePlayer, 'spiritbolt', [target]);
+  }
+  // ── Crushing Blow ──
+  else if (effect === 'crushingblow') {
+    if (target) {
+      s = _dispatchSpell(s, s.activePlayer, 'crushingblow', [target]);
+      checkWinner(s);
+    }
   }
   // ── Woodland Guard action ──
   else if (effect === 'woodlandguard_action') {
@@ -2988,6 +3013,18 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'spiritbolt':
       return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
+    // Crushing Blow: enemy combat unit adjacent (distance 1) to own champion (not relic, not omen, not spell-immune)
+    case 'crushingblow':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer &&
+        !u.hidden &&
+        !u.isRelic &&
+        !u.isOmen &&
+        !u.cannotBeTargetedBySpells &&
+        !u.spellImmune &&
+        manhattan([champ.row, champ.col], [u.row, u.col]) === 1
+      ).map(u => u.uid);
+
     // Woodland Guard action: enemy within 2 tiles (not omen, not spell-immune)
     case 'woodlandguard_action': {
       const src = state.units.find(u => u.uid === (data.sourceUid || ''));
@@ -3166,6 +3203,8 @@ export function hasValidTargets(card, state, playerIndex) {
       return !champ.moved;
 
     case 'crushingblow':
+      return !champ.moved && enemyUnits.some(u => !u.isRelic && !u.isOmen && manhattan([champ.row, champ.col], [u.row, u.col]) === 1);
+
     case 'agonizingsymphony':
       return !champ.moved;
 

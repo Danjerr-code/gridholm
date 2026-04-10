@@ -428,12 +428,30 @@ export const SPELL_REGISTRY = {
   // rebirth: handled via pendingGraveSelect flow in gameEngine (no resolver body needed)
   rebirth: (state) => state,
 
-  crushingblow: (state, caster) => {
+  crushingblow: (state, caster, targets) => {
     const champ = state.champions[caster];
     champ.moved = true;
-    const enemyChamp = state.champions[1 - caster];
-    enemyChamp.hp -= 5;
-    addLog(state, `Crushing Blow: ${state.players[caster].name}'s champion strikes for 5 damage!`);
+    const target = targets[0];
+    if (!target) return state;
+    addLog(state, `Crushing Blow deals 4 damage to ${target.name}.`);
+    applyDamageToUnit(state, target, 4, 'Crushing Blow');
+    // If target survived, push it back 1 tile (away from champion)
+    const liveTarget = state.units.find(u => u.uid === target.uid);
+    if (liveTarget) {
+      const dr = liveTarget.row - champ.row;
+      const dc = liveTarget.col - champ.col;
+      const pushRow = liveTarget.row + Math.sign(dr) * (dr !== 0 ? 1 : 0);
+      const pushCol = liveTarget.col + Math.sign(dc) * (dc !== 0 ? 1 : 0);
+      const inBounds = pushRow >= 0 && pushRow < 5 && pushCol >= 0 && pushCol < 5;
+      const isEmpty = inBounds &&
+        !state.units.some(u => u.row === pushRow && u.col === pushCol) &&
+        !state.champions.some(c => c.row === pushRow && c.col === pushCol);
+      if (isEmpty) {
+        liveTarget.row = pushRow;
+        liveTarget.col = pushCol;
+        addLog(state, `${liveTarget.name} is pushed back.`);
+      }
+    }
     return state;
   },
 
