@@ -828,7 +828,7 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
 // Fires when a unit enters the board
 // ADD NEW SUMMON TRIGGERS HERE
 // ============================================
-function fireOnSummonTriggers(unit, state) {
+export function fireOnSummonTriggers(unit, state) {
   const p = state.players[unit.owner];
 
   // 1. Elf Elder: restore 2 HP to controlling champion
@@ -3048,6 +3048,17 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen
       ).map(u => u.uid);
 
+    // Angelic Blessing: friendly combat unit adjacent (distance 1) to own champion, not relic, not omen, not spell-immune
+    case 'angelicblessing':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer &&
+        !u.hidden &&
+        !u.isRelic &&
+        !u.isOmen &&
+        !u.spellImmune &&
+        manhattan([champ.row, champ.col], [u.row, u.col]) === 1
+      ).map(u => u.uid);
+
     default:
       return [];
   }
@@ -3150,6 +3161,28 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'gildedcage':
       return state.units.some(u => u.owner !== playerIndex && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune);
+
+    case 'angelicblessing': {
+      const adjTiles = cardinalNeighbors(state.champions[playerIndex].row, state.champions[playerIndex].col);
+      return state.units.some(u =>
+        u.owner === playerIndex &&
+        !u.hidden &&
+        !u.isRelic &&
+        !u.isOmen &&
+        !u.spellImmune &&
+        adjTiles.some(([r, c]) => u.row === r && u.col === c)
+      );
+    }
+
+    case 'seconddawn': {
+      const grave = state.players[playerIndex].grave.filter(u => CARD_DB[u.id]?.type === 'unit');
+      if (grave.length === 0) return false;
+      const champPos = state.champions[playerIndex];
+      return cardinalNeighbors(champPos.row, champPos.col).some(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+    }
 
     default:
       return true;

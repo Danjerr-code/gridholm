@@ -6,9 +6,10 @@ import {
   fireAttackTriggers,
   manhattan,
   cardinalNeighbors,
+  fireOnSummonTriggers,
 } from './gameEngine.js';
 import { getEffectiveAtk } from './statUtils.js';
-import { fireTrigger, unregisterUnit, unregisterModifiers } from './triggerRegistry.js';
+import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -473,6 +474,76 @@ export const SPELL_REGISTRY = {
     target.stunned = true;
     target.stunnedByOmen = omenUid;
     addLog(state, `Enemy unit stunned by Chains of Light.`);
+    return state;
+  },
+
+  angelicblessing: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    target.atk = (target.atk || 0) + 4;
+    target.hp = (target.hp || 0) + 4;
+    target.maxHp = (target.maxHp || 0) + 4;
+    target.spellImmune = true;
+    addLog(state, `Unit receives Angelic Blessing.`);
+    return state;
+  },
+
+  seconddawn: (state, caster) => {
+    const p = state.players[caster];
+    const champ = state.champions[caster];
+
+    // Collect revivable combat units from grave
+    const graveUnits = p.grave.filter(u => CARD_DB[u.id]?.type === 'unit');
+    if (graveUnits.length === 0) return state;
+
+    // Sort by cost descending (most expensive first)
+    graveUnits.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+
+    // Find empty tiles adjacent to champion
+    const adjTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+      !state.units.some(u => u.row === r && u.col === c) &&
+      !state.champions.some(ch => ch.row === r && ch.col === c)
+    );
+
+    const summoned = [];
+    for (let i = 0; i < Math.min(graveUnits.length, adjTiles.length); i++) {
+      const graveUnit = graveUnits[i];
+      const base = CARD_DB[graveUnit.id];
+      if (!base) continue;
+      const [row, col] = adjTiles[i];
+
+      // Remove from grave before pushing to board
+      const graveIdx = p.grave.indexOf(graveUnit);
+      if (graveIdx !== -1) p.grave.splice(graveIdx, 1);
+
+      const unit = {
+        ...base,
+        owner: caster,
+        row,
+        col,
+        maxHp: base.hp,
+        summoned: true, // summoning sickness
+        moved: false,
+        atkBonus: 0,
+        shield: 0,
+        speedBonus: 0,
+        turnAtkBonus: 0,
+        hidden: false,
+        uid: `${base.id}_${Math.random().toString(36).slice(2)}`,
+      };
+
+      state.units.push(unit);
+      summoned.push(unit);
+      addLog(state, `${unit.name} rises again.`);
+    }
+
+    // Register triggers and fire on-summon effects for each returned unit
+    for (const unit of summoned) {
+      registerUnit(unit, state);
+      registerModifiers(unit, state);
+      fireOnSummonTriggers(unit, state);
+    }
+
     return state;
   },
 
