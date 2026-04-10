@@ -475,6 +475,20 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'deathPing': {
+      // Spiteling: when this unit dies, deal 1 damage to a random enemy combat unit.
+      // Note: fired via fireDeathTriggers (listener is unregistered before declarative triggers fire).
+      // This entry documents the effect and supports shadow copies or future uses.
+      const pingEnemies = state.units.filter(
+        u => u.owner !== playerIndex && !u.isRelic && !u.isOmen && !u.hidden
+      );
+      if (pingEnemies.length === 0) break;
+      const pingTarget = pingEnemies[Math.floor(Math.random() * pingEnemies.length)];
+      addLog(state, `Spiteling lashes out. 1 damage to ${pingTarget.name}.`);
+      applyDamageToUnit(state, pingTarget, 1, 'Spiteling');
+      break;
+    }
+
     case 'drawOnFirstSpell': {
       // Cascade Sage: draw 1 card the first time a spell is cast each turn.
       // If the played card is not a spell, return false to skip consuming the oncePerTurn flag.

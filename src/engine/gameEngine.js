@@ -473,6 +473,19 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
+  // Spiteling: when this unit dies, deal 1 damage to a random enemy combat unit.
+  // Fired here because the declarative listener is unregistered before fireTrigger runs.
+  // Works for shadow copies too (checked via triggers array, not unit.id).
+  if (!unit.isRelic && !unit.isOmen && Array.isArray(unit.triggers) &&
+      unit.triggers.some(t => t.event === 'onFriendlyUnitDeath' && t.effect === 'deathPing' && t.selfTrigger)) {
+    const pingEnemies = state.units.filter(u => u.owner !== unit.owner && !u.isRelic && !u.isOmen && !u.hidden);
+    if (pingEnemies.length > 0) {
+      const pingTarget = pingEnemies[Math.floor(Math.random() * pingEnemies.length)];
+      addLog(state, `Spiteling lashes out. 1 damage to ${pingTarget.name}.`);
+      applyDamageToUnit(state, pingTarget, 1, 'Spiteling', null);
+    }
+  }
+
   // Declarative trigger registry: fire onEnemyUnitDeath and onFriendlyUnitDeath
   if (!unit.isRelic && !unit.isOmen) {
     const deathCtx = { dyingUnit: unit, dyingPlayerIndex: unit.owner, triggeringUid: unit.uid };
