@@ -15,6 +15,9 @@ import {
   getChampionDef,
   getChampionAbilityTargets,
   applyChampionAbility,
+  getTerrainCastTiles,
+  castTerrainCard,
+  playCard,
 } from './gameEngine.js';
 import { chooseActionStrategic, applyAction as applyActionStrategic } from './strategicAI.js';
 
@@ -48,8 +51,8 @@ function aiSummonCast(state) {
   let s = cloneState(state);
   const p = s.players[AI_PLAYER];
 
-  // Play units and relics first (highest cost)
-  const units = p.hand.filter(c => c.type === 'unit' || c.type === 'relic').sort((a, b) => b.cost - a.cost);
+  // Play units first (highest cost). Relics, omens, and terrain are handled by aiPlayNonCombatCards.
+  const units = p.hand.filter(c => c.type === 'unit').sort((a, b) => b.cost - a.cost);
   for (const card of units) {
     if (p.resources < card.cost) continue;
     const summonTiles = getSummonTiles(s);
@@ -290,6 +293,211 @@ function aiChampionAbility(state) {
   return s;
 }
 
+// ── Non-combat card placement: terrain, omens, relics ────────────────────────
+
+// Score a terrain tile for a given terrain card (higher = better; 0 = skip).
+function scoreTerrainTile(card, row, col, s) {
+  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.isRelic && !u.isOmen);
+  const aiChamp = s.champions[AI_PLAYER];
+  const enemyChamp = s.champions[0];
+  let score = 0;
+
+  if (card.terrainEffect?.onOccupy?.damage) {
+    // Scorched Earth: prefer tiles between AI champion and enemy champion to create a hazard zone.
+    const midRow = Math.round((aiChamp.row + enemyChamp.row) / 2);
+    const midCol = Math.round((aiChamp.col + enemyChamp.col) / 2);
+    score = 5 - manhattan([row, col], [midRow, midCol]);
+  } else if (card.terrainEffect?.whileOccupied?.attributeOnly) {
+    // Attribute-buffing terrain: score tiles where matching-attribute friendly units stand or are nearby.
+    const attr = card.terrainEffect.whileOccupied.attributeOnly;
+    for (const unit of aiUnits) {
+      if (unit.attribute === attr) {
+        const d = manhattan([unit.row, unit.col], [row, col]);
+        if (d === 0) score += 3;
+        else if (d <= 1) score += 2;
+        else if (d <= 2) score += 1;
+      }
+    }
+  }
+
+  return score;
+}
+
+// Score a summon tile for a given omen card (higher = better; 0 = skip).
+function scoreOmenTile(card, row, col, s) {
+  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.isRelic && !u.isOmen);
+  const enemyUnits = s.units.filter(u => u.owner !== AI_PLAYER && !u.isRelic && !u.isOmen);
+  const aiChamp = s.champions[AI_PLAYER];
+  let score = 0;
+
+  if (card.id === 'battlestandard') {
+    // Place adjacent to AI champion's summon zone so future unit summons gain +1/+1.
+    const distToChamp = manhattan([row, col], [aiChamp.row, aiChamp.col]);
+    score += Math.max(0, 3 - distToChamp);
+  } else if (card.id === 'feralsurge') {
+    // Central position where multiple existing friendly units can benefit (adjacent).
+    for (const unit of aiUnits) {
+      if (manhattan([unit.row, unit.col], [row, col]) <= 1) score += 2;
+    }
+    score += 1; // base value even if no units yet
+  } else if (card.id === 'manawell') {
+    // Safe tile — far from enemy units to maximise lifespan.
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 4);
+  } else if (card.id === 'smokebomb') {
+    // Prefer if AI has hidden units or friendly units that benefit from concealment.
+    const hasHiddenUnits = aiUnits.some(u => u.hidden);
+    const unitsWithin2 = aiUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 2);
+    score += unitsWithin2.length;
+    if (hasHiddenUnits) score += 2;
+  } else {
+    // Unknown omen: safe tile away from enemies.
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 4);
+  }
+
+  // Penalise tiles adjacent to enemy units (unsafe — enemies destroy omens on entry).
+  const adjEnemies = enemyUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1);
+  score -= adjEnemies.length * 3;
+
+  return score;
+}
+
+// Score a summon tile for a given relic card (higher = better; 0 = skip).
+function scoreRelicTile(card, row, col, s) {
+  const aiUnits = s.units.filter(u => u.owner === AI_PLAYER && !u.isRelic && !u.isOmen);
+  const enemyUnits = s.units.filter(u => u.owner !== AI_PLAYER && !u.isRelic && !u.isOmen);
+  const aiChamp = s.champions[AI_PLAYER];
+  const enemyChamp = s.champions[0];
+  let score = 0;
+
+  if (card.id === 'bloodaltar') {
+    // Adjacent to a low HP friendly unit the AI intends to sacrifice for card draw.
+    const adjLowHp = aiUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1);
+    adjLowHp.sort((a, b) => a.hp - b.hp);
+    if (adjLowHp.length > 0) {
+      score += adjLowHp[0].hp <= 2 ? 4 : 2;
+    }
+  } else if (card.id === 'soulstone') {
+    // Safe tile so it can capture a dying unit — far from enemies.
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 4);
+  } else if (card.id === 'echostone') {
+    // Safe central tile for maximum HP restoration longevity.
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 4);
+  } else if (card.id === 'siegemound') {
+    // Aggressive forward position — closer to enemy champion.
+    score += Math.max(0, 5 - manhattan([row, col], [enemyChamp.row, enemyChamp.col]));
+  } else if (card.id === 'tanglerootypew') {
+    // Adjacent to enemy units so its root Action can immediately be used.
+    const adjEnemies = enemyUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1);
+    score += adjEnemies.length * 3;
+  } else if (card.id === 'darkirongate') {
+    // Block key lane between AI champion and enemy champion.
+    const midRow = Math.round((aiChamp.row + enemyChamp.row) / 2);
+    const midCol = Math.round((aiChamp.col + enemyChamp.col) / 2);
+    score += Math.max(0, 5 - manhattan([row, col], [midRow, midCol]));
+  } else {
+    // Neutral relics: safe, central position for broad board impact.
+    const distToCenter = manhattan([row, col], [2, 2]);
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.max(0, 3 - distToCenter) + Math.min(minEnemyDist, 3);
+  }
+
+  return score;
+}
+
+// Play terrain, omen, and relic cards from hand with intelligent tile selection.
+// Called after champion ability and move, before unit summons.
+// General rules:
+//   - Skip on turns 1-2 (prioritise unit development).
+//   - Never play a non-combat card if fewer than 2 mana remain after the play.
+//   - Skip a card if no tile scores above 0.
+function aiPlayNonCombatCards(state) {
+  let s = cloneState(state);
+
+  // Skip on turns 1-2
+  if (s.turn <= 2) return s;
+
+  const resources = () => s.players[AI_PLAYER].resources;
+  const hand = () => s.players[AI_PLAYER].hand;
+
+  // ── Terrain ────────────────────────────────────────────────────────────────
+  const terrainCards = hand().filter(c => c.type === 'terrain');
+  for (const card of terrainCards) {
+    if (resources() < card.cost) continue;
+    if (resources() - card.cost < 2) continue;
+
+    const castTiles = getTerrainCastTiles(s);
+    if (castTiles.length === 0) continue;
+
+    let bestTile = null;
+    let bestScore = 0;
+    for (const [r, c] of castTiles) {
+      const score = scoreTerrainTile(card, r, c, s);
+      if (score > bestScore) { bestScore = score; bestTile = [r, c]; }
+    }
+    if (!bestTile) continue; // no meaningful placement this turn
+
+    s = playCard(s, card.uid);
+    if (!s.pendingTerrainCast) continue;
+    s = castTerrainCard(s, card.uid, bestTile[0], bestTile[1]);
+  }
+
+  // ── Omens ──────────────────────────────────────────────────────────────────
+  const omenCards = hand().filter(c => c.type === 'omen');
+  for (const card of omenCards) {
+    if (resources() < card.cost) continue;
+    if (resources() - card.cost < 2) continue;
+
+    const summonTiles = getSummonTiles(s);
+    if (summonTiles.length === 0) continue;
+
+    let bestTile = null;
+    let bestScore = 0;
+    for (const [r, c] of summonTiles) {
+      const score = scoreOmenTile(card, r, c, s);
+      if (score > bestScore) { bestScore = score; bestTile = [r, c]; }
+    }
+    if (!bestTile) continue;
+
+    s = summonUnit(s, card.uid, bestTile[0], bestTile[1]);
+  }
+
+  // ── Relics ─────────────────────────────────────────────────────────────────
+  const relicCards = hand().filter(c => c.type === 'relic').sort((a, b) => b.cost - a.cost);
+  for (const card of relicCards) {
+    if (resources() < card.cost) continue;
+    if (resources() - card.cost < 2) continue;
+
+    const summonTiles = getSummonTiles(s);
+    if (summonTiles.length === 0) continue;
+
+    let bestTile = null;
+    let bestScore = 0;
+    for (const [r, c] of summonTiles) {
+      const score = scoreRelicTile(card, r, c, s);
+      if (score > bestScore) { bestScore = score; bestTile = [r, c]; }
+    }
+    if (!bestTile) continue;
+
+    s = summonUnit(s, card.uid, bestTile[0], bestTile[1]);
+  }
+
+  return s;
+}
+
 // ── Main AI turn driver ────────────────────────────────────────────────────
 
 export function runAITurn(state) {
@@ -318,6 +526,7 @@ function runHeuristicTurn(state) {
 
   s = aiChampionAbility(s);
   s = aiChampionMove(s);
+  s = aiPlayNonCombatCards(s);
   s = aiSummonCast(s);
   s = aiUnitMove(s);
 
@@ -340,6 +549,7 @@ function runHeuristicTurnSteps(state) {
 
   s = aiChampionAbility(s); steps.push(s);
   s = aiChampionMove(s); steps.push(s);
+  s = aiPlayNonCombatCards(s); steps.push(s);
   s = aiSummonCast(s); steps.push(s);
   s = aiUnitMove(s); steps.push(s);
   s = endActionPhase(s);
