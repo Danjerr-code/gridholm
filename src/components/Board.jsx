@@ -552,7 +552,7 @@ export default function Board({
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
-      <div ref={boardRef} className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div ref={boardRef} data-board-grid="true" className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {Array.from({ length: 5 }, (_, row) =>
           Array.from({ length: 5 }, (_, col) => {
             const key = `${row},${col}`;

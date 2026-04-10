@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useGameState } from './hooks/useGameState.js';
 import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan } from './engine/gameEngine.js';
 import { CARD_DB } from './engine/cards.js';
@@ -7,6 +7,7 @@ import { KEYWORD_REMINDERS } from './engine/keywords.js';
 import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
+import Card from './components/Card.jsx';
 import Log, { renderLogText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
@@ -44,6 +45,88 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   const isMobile = useIsMobile();
   const [logOpen, setLogOpen] = useState(false);
   const [muted, setMutedState] = useState(() => isMuted());
+
+  // ── Card drag state ────────────────────────────────────────────────────
+  const [dragCard, setDragCard] = useState(null);
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
+  const [dragSnapping, setDragSnapping] = useState(false);
+
+  const handleCardDragStart = useCallback((card, clientX, clientY, rect) => {
+    setDragCard(card);
+    setDragPos({ x: clientX, y: clientY });
+    setDragOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    setDragSnapping(false);
+    handlers.handlePlayCard(card.uid);
+  }, [handlers]);
+
+  const handleCardDragMove = useCallback((clientX, clientY) => {
+    setDragPos({ x: clientX, y: clientY });
+  }, []);
+
+  const handleCardDragEnd = useCallback((clientX, clientY) => {
+    if (clientX === null || clientY === null) {
+      // Pointer was cancelled — snap back
+      handlers.handleCancelSpell();
+      setDragSnapping(true);
+      setTimeout(() => { setDragCard(null); setDragSnapping(false); }, 300);
+      return;
+    }
+
+    // Try to resolve drop on the board grid
+    const boardGrid = document.querySelector('[data-board-grid]');
+    if (boardGrid) {
+      const rect = boardGrid.getBoundingClientRect();
+      const col = Math.floor((clientX - rect.left) / (rect.width / 5));
+      const row = Math.floor((clientY - rect.top) / (rect.height / 5));
+      if (row >= 0 && row < 5 && col >= 0 && col < 5) {
+        // Use the selectMode that was set by handlePlayCard at drag-start
+        // Access via the closure — selectMode is current when this callback runs
+        if (selectMode === 'summon') {
+          if (summonTiles.some(([r, c]) => r === row && c === col)) {
+            handlers.handleSummonOnTile(row, col);
+            setDragCard(null);
+            return;
+          }
+        } else if (selectMode === 'terrain_cast') {
+          if (terrainTargetTiles.some(([r, c]) => r === row && c === col)) {
+            handlers.handleTerrainCast(row, col);
+            setDragCard(null);
+            return;
+          }
+        } else if (selectMode === 'spell') {
+          const unit = state.units.find(u => u.row === row && u.col === col);
+          const champion = state.champions.find(c => c.row === row && c.col === col);
+          if (unit && spellTargetUids.includes(unit.uid)) {
+            handlers.handleSpellTarget(unit.uid);
+            setDragCard(null);
+            return;
+          }
+          if (champion && spellTargetUids.includes('champion' + champion.owner)) {
+            handlers.handleSpellTarget('champion' + champion.owner);
+            setDragCard(null);
+            return;
+          }
+        }
+      }
+    }
+
+    // Targetless spell: cast when dragged more than 1/3 of screen height from hand
+    if (selectMode === 'targetless_spell') {
+      if (clientY < window.innerHeight * 0.67) {
+        handlers.handleCastTargetlessSpell();
+        setDragCard(null);
+        return;
+      }
+    }
+
+    // Invalid drop — snap ghost back to hand
+    setDragSnapping(true);
+    handlers.handleCancelSpell();
+    setTimeout(() => { setDragCard(null); setDragSnapping(false); }, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handlers, selectMode, summonTiles, terrainTargetTiles, spellTargetUids, state.units, state.champions]);
+
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
 
@@ -637,10 +720,15 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               pendingDiscard={pendingDiscard && isP1Turn}
               pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
               selectedCard={selectedCard}
+              gameState={state}
+              playerIndex={0}
               onPlayCard={handlers.handlePlayCard}
               onDiscardCard={handlers.handleDiscardCard}
               onHandSelect={handlers.handleHandSelect}
               onInspectCard={handlers.handleInspectCard}
+              onCardDragStart={handleCardDragStart}
+              onCardDragMove={handleCardDragMove}
+              onCardDragEnd={handleCardDragEnd}
             />
           </div>
         </div>
@@ -664,6 +752,8 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             pendingDiscard={pendingDiscard && isP1Turn}
             pendingHandSelect={isP1Turn && selectMode === 'hand_select'}
             selectedCard={selectedCard}
+            gameState={state}
+            playerIndex={0}
             onPlayCard={handlers.handlePlayCard}
             onDiscardCard={handlers.handleDiscardCard}
             onHandSelect={handlers.handleHandSelect}
@@ -674,6 +764,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             }}
             onLongPressCard={handlers.handleInspectCard}
             onLongPressDismiss={handlers.handleClearInspect}
+            onCardDragStart={handleCardDragStart}
+            onCardDragMove={handleCardDragMove}
+            onCardDragEnd={handleCardDragEnd}
           />
         </div>
       </div>
@@ -687,6 +780,44 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           handlers={handlers}
           phase={phase}
           isP1Turn={isP1Turn}
+        />
+      )}
+
+      {/* Drag ghost card — follows pointer, semi-transparent */}
+      {dragCard && (
+        <div
+          style={{
+            position: 'fixed',
+            left: dragSnapping ? dragOrigin.x : dragPos.x,
+            top: dragSnapping ? dragOrigin.y : dragPos.y,
+            transform: 'translate(-50%, -60%)',
+            opacity: 0.65,
+            zIndex: 9999,
+            pointerEvents: 'none',
+            transition: dragSnapping ? 'left 0.25s ease, top 0.25s ease' : 'none',
+          }}
+        >
+          <Card card={dragCard} isSelected={false} isPlayable={false} />
+        </div>
+      )}
+
+      {/* Targetless spell cast ring — shown when dragged past threshold */}
+      {dragCard && selectMode === 'targetless_spell' && dragPos.y < window.innerHeight * 0.67 && (
+        <div
+          style={{
+            position: 'fixed',
+            left: '50%',
+            top: '42%',
+            transform: 'translate(-50%, -50%)',
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            border: '2px solid #C9A84C',
+            boxShadow: '0 0 20px #C9A84C70, 0 0 40px #C9A84C30',
+            pointerEvents: 'none',
+            zIndex: 50,
+            animation: 'drag-cast-ring 1s ease-in-out infinite',
+          }}
         />
       )}
     </div>

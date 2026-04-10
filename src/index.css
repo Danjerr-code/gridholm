@@ -10,6 +10,11 @@
   animation: phase-flash 0.6s ease-out forwards;
 }
 
+@keyframes drag-cast-ring {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50%       { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
 @keyframes legendaryShimmer {
   0%, 100% { border-color: #C9A84C; box-shadow: 0 0 8px #C9A84C40; }
   50% { border-color: #ffd700; box-shadow: 0 0 16px #ffd70060; }

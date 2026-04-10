@@ -3,34 +3,94 @@ import Card from './Card.jsx';
 import useLongPress from '../hooks/useLongPress.js';
 import { hasValidTargets } from '../engine/gameEngine.js';
 
-function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss, onClick, children }) {
+function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss, onClick, onDragStart, onDragMove, onDragEnd, canDrag, children }) {
   const longPress = useLongPress(() => {
     if (onLongPressCard) onLongPressCard(card);
   });
 
-  const handlePointerUp = () => {
-    const fired = longPress.firedRef.current;
-    longPress.onPointerUp();
-    if (fired && onLongPressDismiss) onLongPressDismiss();
-  };
+  const dragRef = useRef({ active: false, id: null, startX: 0, startY: 0, started: false });
+  const didDragRef = useRef(false);
 
-  const handleClick = (e) => {
+  // Simple click-only version when neither drag nor long press is needed
+  if (!canDrag && (!isMobile || !onLongPressCard)) {
+    return <div onClick={onClick}>{children}</div>;
+  }
+
+  function handlePointerDown(e) {
+    didDragRef.current = false;
+    dragRef.current = { active: true, id: e.pointerId, startX: e.clientX, startY: e.clientY, started: false };
+    if (isMobile && onLongPressCard) longPress.onPointerDown(e);
+  }
+
+  function handlePointerMove(e) {
+    const d = dragRef.current;
+    if (!d.active || d.id !== e.pointerId) return;
+    if (d.started) {
+      if (onDragMove) onDragMove(e.clientX, e.clientY);
+      return;
+    }
+    if (!canDrag) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (Math.hypot(dx, dy) > 8) {
+      d.started = true;
+      didDragRef.current = true;
+      // Cancel long press timer if on mobile
+      if (isMobile && onLongPressCard) longPress.onPointerCancel(e);
+      // Capture the pointer so move/up events keep firing on this element
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const rect = e.currentTarget.getBoundingClientRect();
+      if (onDragStart) onDragStart(card, e.clientX, e.clientY, rect);
+    }
+  }
+
+  function handlePointerUp(e) {
+    const d = dragRef.current;
+    if (!d.active) return;
+    d.active = false;
+    if (d.started) {
+      d.started = false;
+      if (onDragEnd) onDragEnd(e.clientX, e.clientY);
+    } else {
+      // Normal tap / long press release
+      if (isMobile && onLongPressCard) {
+        const fired = longPress.firedRef.current;
+        longPress.onPointerUp(e);
+        if (fired && onLongPressDismiss) onLongPressDismiss();
+      }
+    }
+  }
+
+  function handlePointerCancel(e) {
+    const d = dragRef.current;
+    if (!d.active) return;
+    d.active = false;
+    if (d.started) {
+      d.started = false;
+      if (onDragEnd) onDragEnd(null, null); // null = cancelled/snaps back
+    } else {
+      if (isMobile && onLongPressCard) longPress.onPointerCancel(e);
+    }
+  }
+
+  function handleClick(e) {
+    if (didDragRef.current) {
+      didDragRef.current = false;
+      return;
+    }
     if (longPress.firedRef.current) {
       longPress.firedRef.current = false;
       return;
     }
     onClick(e);
-  };
-
-  if (!isMobile || !onLongPressCard) {
-    return <div onClick={onClick}>{children}</div>;
   }
 
   return (
     <div
-      onPointerDown={longPress.onPointerDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={longPress.onPointerCancel}
+      onPointerCancel={handlePointerCancel}
       onClick={handleClick}
     >
       {children}
@@ -58,7 +118,7 @@ function buildDisplayList(hand, exitingCards) {
   return result;
 }
 
-export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss }) {
+export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss, onCardDragStart, onCardDragMove, onCardDragEnd }) {
   // ── Animation state ────────────────────────────────────────────────────
   const [animInUids, setAnimInUids] = useState(new Set());
   const [exitingCards, setExitingCards] = useState([]); // {uid, card, animType, originalIndex}
@@ -127,6 +187,9 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
   const dimmed = !canPlay && !pendingDiscard && !pendingHandSelect;
   const displayList = buildDisplayList(player.hand, exitingCards);
 
+  // Drag is enabled only when cards can actually be played
+  const canDrag = !!(canPlay && !pendingDiscard && !pendingHandSelect && onCardDragStart);
+
   return (
     <div
       className={`flex flex-nowrap overflow-x-auto gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''} md:justify-center`}
@@ -168,6 +231,10 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
             isMobile={isMobile}
             onLongPressCard={onLongPressCard}
             onLongPressDismiss={onLongPressDismiss}
+            canDrag={canDrag}
+            onDragStart={onCardDragStart}
+            onDragMove={onCardDragMove}
+            onDragEnd={onCardDragEnd}
             onClick={() => {
               if (pendingHandSelect) {
                 if (onHandSelect) onHandSelect(card.uid);
@@ -184,6 +251,8 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
             <div
               className={`${(pendingDiscard || pendingHandSelect) ? 'relative' : ''} ${animClass}`}
               style={{ scrollSnapAlign: 'start', flexShrink: 0 }}
+              draggable={false}
+              onDragStart={e => e.preventDefault()}
             >
               <Card
                 card={card}
