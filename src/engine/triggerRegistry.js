@@ -416,14 +416,19 @@ function resolveEffect(effectId, listener, context, state) {
 
     case 'discardOrDie': {
       // Clockwork Manimus: at end of turn, discard a card or the unit is destroyed.
+      console.log('[ClockworkManimus] discardOrDie trigger fired. playerIndex:', listener.playerIndex, 'activePlayer:', state.activePlayer, 'unitUid:', listenerUnit?.uid);
       if (!listenerUnit) break;
       const p = state.players[listener.playerIndex];
+      console.log('[ClockworkManimus] hand length:', p.hand?.length ?? 0, 'hand cards:', p.hand?.map(c => c.name));
       if (!p.hand || p.hand.length === 0) {
         addLog(state, `Clockwork Manimus: no cards in hand — destroyed!`);
+        console.log('[ClockworkManimus] no cards in hand — destroying unit:', listenerUnit.uid);
         destroyUnit(listenerUnit, state, 'discardOrDie');
+        console.log('[ClockworkManimus] unit destroyed. state.winner:', state.winner ?? 'none');
       } else {
         addLog(state, `Clockwork Manimus: discard a card to keep it alive.`);
         state.pendingHandSelect = { reason: 'discardOrDie', cardUid: listenerUnit.uid, data: { unitUid: listenerUnit.uid } };
+        console.log('[ClockworkManimus] pendingHandSelect set:', JSON.stringify(state.pendingHandSelect));
       }
       break;
     }

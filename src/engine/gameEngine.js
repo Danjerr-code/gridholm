@@ -1781,13 +1781,18 @@ export function resolveHandSelect(state, selectedCardUid) {
 
   if (hs.reason === 'discardOrDie') {
     // Clockwork Manimus end-of-turn discard. After discard, advance the turn.
+    console.log('[ClockworkManimus] resolveHandSelect: discardOrDie — selectedCardUid:', selectedCardUid, 'activePlayer:', s.activePlayer, 'hand:', p.hand.map(c => c.uid));
     const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
     if (idx !== -1) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Clockwork Manimus: ${discarded.name} discarded.`);
+      console.log('[ClockworkManimus] resolveHandSelect: discarded', discarded.name, '— clearing pendingHandSelect and advancing turn.');
+    } else {
+      console.log('[ClockworkManimus] resolveHandSelect: selectedCardUid not found in hand — no discard. Hand uids:', p.hand.map(c => c.uid));
     }
     s.pendingHandSelect = null;
+    console.log('[ClockworkManimus] resolveHandSelect: pendingHandSelect cleared. Calling completeTurnAdvance.');
     return completeTurnAdvance(s);
   }
 
@@ -3177,12 +3182,16 @@ export function endTurn(state) {
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
 
+  console.log('[ClockworkManimus] endTurn called. activePlayer:', s.activePlayer, 'turn:', s.turn);
   // END TURN TRIGGERS
   fireEndTurnTriggers(s, s.activePlayer);
   if (s.winner) return s;
   // Clockwork Manimus (or any discardOrDie trigger) may set pendingHandSelect.
   // If so, pause turn advance and wait for the player to choose a card.
-  if (s.pendingHandSelect) return s;
+  if (s.pendingHandSelect) {
+    console.log('[ClockworkManimus] endTurn: pendingHandSelect detected — pausing turn advance. reason:', s.pendingHandSelect.reason, 'cardUid:', s.pendingHandSelect.cardUid);
+    return s;
+  }
 
   // Hand limit: 6
   if (p.hand.length > 6) {
