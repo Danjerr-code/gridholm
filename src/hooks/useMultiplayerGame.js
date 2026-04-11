@@ -383,24 +383,34 @@ export function useMultiplayerGame(gameId) {
   const startRematch = useCallback(async () => {
     if (!session || !supabase) return;
     const lastFirstPlayerId = session.game_state?.firstPlayerId || session.player1_id;
+    // Alternate first player; fall back to player1_id if player2_id is somehow missing
     const nextFirstPlayer = lastFirstPlayerId === session.player1_id
-      ? session.player2_id
+      ? (session.player2_id ?? session.player1_id)
       : session.player1_id;
 
-    const { data: updated } = await supabase
+    const updateBody = {
+      game_state: null,
+      status: 'deck_select',
+      winner: null,
+      active_player: nextFirstPlayer,
+      player1_deck: null,
+      player2_deck: null,
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log('[Rematch] PATCH game_sessions', { gameId, body: updateBody });
+
+    const { data: updated, error: rematchError } = await supabase
       .from('game_sessions')
-      .update({
-        game_state: null,
-        status: 'deck_select',
-        winner: null,
-        active_player: nextFirstPlayer,
-        player1_deck: null,
-        player2_deck: null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateBody)
       .eq('id', gameId)
       .select()
       .single();
+
+    if (rematchError) {
+      console.error('[Rematch] PATCH failed', rematchError);
+      return;
+    }
 
     if (updated) setSession(updated);
   }, [session, gameId]);
