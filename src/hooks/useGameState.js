@@ -215,7 +215,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       if (prev.pendingHandSelect) return prev;
       setSelectMode(null);
       // Cancel any leftover pending state from a previous selection
-      const base = (prev.pendingSpell || prev.pendingSummon) ? cancelSpell(prev) : prev;
+      const base = (prev.pendingSpell || prev.pendingSummon || prev.pendingTerrainCast) ? cancelSpell(prev) : prev;
       const p = base.players[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid);
       if (!card || p.resources < card.cost) return base;
@@ -241,7 +241,6 @@ export function useGameState({ deckId = 'human' } = {}) {
         setSelectedCard(cardUid);
         setSelectMode('summon');
       } else if (s.pendingTerrainCast) {
-        console.log('[EnchantedGround] handlePlayCard: pendingTerrainCast detected, setting selectMode=terrain_cast. card:', s.pendingTerrainCast.card?.id);
         setSelectedCard(cardUid);
         setSelectMode('terrain_cast');
       } else if (s.pendingSpell) {
@@ -544,17 +543,8 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [selectedUnit, clearSelection]);
 
   const handleTerrainCast = useCallback((row, col) => {
-    console.log('[EnchantedGround] handleTerrainCast: entered. row:', row, 'col:', col, 'selectedCard:', selectedCard);
-    if (!selectedCard) {
-      console.log('[EnchantedGround] handleTerrainCast: EARLY RETURN — selectedCard is null/undefined');
-      return;
-    }
-    setState(prev => {
-      console.log('[EnchantedGround] handleTerrainCast setState: pendingTerrainCast before cast:', JSON.stringify(prev.pendingTerrainCast?.card?.id));
-      const s = castTerrainCard(prev, selectedCard, row, col);
-      console.log('[EnchantedGround] handleTerrainCast setState: pendingTerrainCast after cast:', JSON.stringify(s.pendingTerrainCast));
-      return s;
-    });
+    if (!selectedCard) return;
+    setState(prev => castTerrainCard(prev, selectedCard, row, col));
     clearSelection();
   }, [selectedCard, clearSelection]);
 
