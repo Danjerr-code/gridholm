@@ -932,6 +932,8 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             gap: 8,
             padding: '6px 0',
             marginBottom: 4,
+            position: 'relative',
+            zIndex: 10,
           }}>
             <ResourceDisplay current={p1.resources} max={10} maxThisTurn={p1.maxResourcesThisTurn} playerColor="#185FA5" singleRow={true} />
           </div>

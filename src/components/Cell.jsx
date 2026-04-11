@@ -45,6 +45,7 @@ export default function Cell({
   onUnitLongPress,
   onLongPressDismiss,
   onThroneLongPress,
+  onTerrainLongPress,
   onUnitDragStart,
   onUnitDragMove,
   onUnitDragEnd,
@@ -121,6 +122,13 @@ export default function Cell({
   const throneLongPress = useLongPress(throneLongPressCallback);
   const throneActive = isCenter && isMobile && !!onThroneLongPress;
 
+  // Long-press on a terrain tile (mobile only, 500ms) shows terrain detail.
+  const terrainLongPressCallback = useCallback(() => {
+    if (onTerrainLongPress) onTerrainLongPress();
+  }, [onTerrainLongPress]);
+  const terrainLongPress = useLongPress(terrainLongPressCallback, 500);
+  const terrainLongPressActive = !isCenter && !!terrain && isMobile && !unit && !champion && !!onTerrainLongPress;
+
   // Long-press on champion token (mobile only) shows champion details.
   const champLongPressCallback = useCallback(() => {
     if (onChampionLongPress) onChampionLongPress();
@@ -135,11 +143,27 @@ export default function Cell({
       if (fired && onLongPressDismiss) onLongPressDismiss();
     },
     onPointerCancel: throneLongPress.onPointerCancel,
+  } : terrainLongPressActive ? {
+    onPointerDown: terrainLongPress.onPointerDown,
+    onPointerUp: () => {
+      const fired = terrainLongPress.firedRef.current;
+      terrainLongPress.onPointerUp();
+      if (fired && onLongPressDismiss) onLongPressDismiss();
+    },
+    onPointerCancel: terrainLongPress.onPointerCancel,
   } : {};
   const handleTileClick = throneActive
     ? (e) => {
         if (throneLongPress.firedRef.current) {
           throneLongPress.firedRef.current = false;
+          return;
+        }
+        onClick && onClick(e);
+      }
+    : terrainLongPressActive
+    ? (e) => {
+        if (terrainLongPress.firedRef.current) {
+          terrainLongPress.firedRef.current = false;
           return;
         }
         onClick && onClick(e);

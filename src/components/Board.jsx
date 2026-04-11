@@ -400,8 +400,8 @@ export default function Board({
     // Mobile: Throne inspect is triggered by long-press (not tap), so treat tap as a normal move target.
     if (isThrone && onInspectTerrain && !isMobile) {
       onInspectTerrain(null);
-    } else if (!isThrone && cellTerrain && !cellUnit && !cellChamp && onInspectTerrain) {
-      // Terrain-only tile: clicking shows terrain detail on both desktop and mobile
+    } else if (!isThrone && cellTerrain && !cellUnit && !cellChamp && onInspectTerrain && !isMobile) {
+      // Terrain-only tile: clicking shows terrain detail on desktop; mobile uses long press
       onInspectTerrain(cellTerrain);
     } else if (!isThrone && cellTerrain && (cellUnit || cellChamp) && onInspectTerrain && !isMobile) {
       // Desktop: clicking tile background (unit click stops propagation) shows terrain detail
@@ -607,6 +607,7 @@ export default function Board({
                 onUnitLongPress={onLongPressUnit}
                 onLongPressDismiss={onLongPressDismiss}
                 onThroneLongPress={onInspectTerrain}
+                onTerrainLongPress={isMobile && terrain && !unit && !champion && onInspectTerrain ? () => onInspectTerrain(terrain) : undefined}
                 onUnitDragStart={handleUnitDragStart}
                 onUnitDragMove={handleUnitDragMove}
                 onUnitDragEnd={handleUnitDragEnd}
