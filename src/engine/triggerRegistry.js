@@ -23,7 +23,7 @@
 //   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
-import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors } from './gameEngine.js';
+import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner } from './gameEngine.js';
 import { CARD_DB } from './cards.js';
 
 export const TRIGGER_EVENTS = [
@@ -215,6 +215,7 @@ function resolveEffect(effectId, listener, context, state) {
       const enemyChamp = state.champions[enemyIdx];
       enemyChamp.hp -= 1;
       addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: deals 1 damage to enemy champion (${enemyChamp.hp} HP remaining).`);
+      checkWinner(state);
       break;
     }
 

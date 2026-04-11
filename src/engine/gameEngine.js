@@ -3379,7 +3379,7 @@ export function discardCard(state, cardUid) {
   return s;
 }
 
-function checkWinner(state) {
+export function checkWinner(state) {
   for (const champ of state.champions) {
     if (champ.hp <= 0) {
       const winner = state.players[1 - champ.owner];
