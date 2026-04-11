@@ -2901,26 +2901,17 @@ export function getUnitMoveTiles(state, unitUid) {
 }
 
 function reachableTiles(state, unit, speed) {
-  const visited = new Set();
-  const frontier = [[unit.row, unit.col, speed]];
   const result = [];
-  visited.add(`${unit.row},${unit.col}`);
-
-  while (frontier.length) {
-    const [r, c, remaining] = frontier.shift();
-    for (const [nr, nc] of cardinalNeighbors(r, c)) {
-      const key = `${nr},${nc}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
-      const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
+  for (let nr = 0; nr < 5; nr++) {
+    for (let nc = 0; nc < 5; nc++) {
+      const dist = Math.abs(nr - unit.row) + Math.abs(nc - unit.col);
+      if (dist === 0 || dist > speed) continue;
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
       if (friendlyOccupied) continue;
+      const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
+      const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       if (unit.canAttack === false && (enemyUnit || enemyChamp)) continue;
       result.push([nr, nc]);
-      if (remaining > 1 && !enemyUnit && !enemyChamp && !friendlyOccupied) {
-        frontier.push([nr, nc, remaining - 1]);
-      }
     }
   }
   return result;
