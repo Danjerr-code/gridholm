@@ -27,10 +27,11 @@ const DAMAGE_SPELL_DAMAGE = {
 };
 
 // Spell effects that are classified as buffs (not damage).
+// Note: overgrowth and bloom are excluded here — handled with HP-aware scoring below.
 const BUFF_SPELL_EFFECTS = new Set([
   'ironshield', 'forgeweapon', 'fortify', 'rally', 'crusade', 'martiallaw',
   'ambush', 'packhowl', 'pounce', 'savagegrowth', 'callofthesnakes', 'moonleaf',
-  'overgrowth', 'bloom', 'entangle', 'ancientspring', 'verdantsurge', 'ironthorns',
+  'entangle', 'ancientspring', 'verdantsurge', 'ironthorns',
   'infernalpact', 'shadowveil', 'bloodoffering', 'recall',
 ]);
 
@@ -111,6 +112,14 @@ function scoreAction(action, state) {
       const newDistToEnemyChamp = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
       if (newDistToEnemyChamp < curDistToEnemyChamp) return 15;
 
+      // Champion protection: bonus for moving adjacent to own champion when it is threatened
+      const myChamp = state.champions[ap];
+      const isAdjacentToMyChamp = manhattan([tr, tc], [myChamp.row, myChamp.col]) === 1;
+      const myChampThreatened = state.units.some(u =>
+        u.owner === enemyIdx && manhattan([u.row, u.col], [myChamp.row, myChamp.col]) <= 2
+      );
+      if (isAdjacentToMyChamp && myChampThreatened) return 17;
+
       const curDistToThrone = manhattan([unit.row, unit.col], THRONE);
       const newDistToThrone = manhattan([tr, tc], THRONE);
       if (newDistToThrone < curDistToThrone) return 12;
@@ -140,6 +149,15 @@ function scoreAction(action, state) {
       const card = p.hand.find(c => c.uid === action.cardUid);
       if (!card) return -1;
       const effect = card.effect;
+
+      // Healing spells: urgency scales with champion HP deficit
+      if (effect === 'overgrowth' || effect === 'bloom') {
+        const myChamp = state.champions[ap];
+        if (myChamp.hp <= 5)  return 65; // emergency — top priority
+        if (myChamp.hp <= 10) return 45; // urgent
+        if (myChamp.hp <= 15) return 25; // proactive
+        return 12; // minor value at full HP
+      }
 
       if (BUFF_SPELL_EFFECTS.has(effect)) return 15;
 
