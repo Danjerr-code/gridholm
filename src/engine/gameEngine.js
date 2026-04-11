@@ -2581,14 +2581,14 @@ export function resolveRelicPlace(state, row, col) {
 const TERRAIN_RESTRICTED = new Set(['2,2']);
 
 // Returns all valid tiles for casting a terrain card.
-// Valid tiles must be within Manhattan distance 2 of the casting player's champion.
+// Valid tiles must be within Manhattan distance 1 of the casting player's champion (adjacent only).
 export function getTerrainCastTiles(state) {
   const champ = state.champions[state.activePlayer];
   const tiles = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
       if (TERRAIN_RESTRICTED.has(`${r},${c}`)) continue;
-      if (manhattan([champ.row, champ.col], [r, c]) > 2) continue;
+      if (manhattan([champ.row, champ.col], [r, c]) > 1) continue;
       tiles.push([r, c]);
     }
   }
