@@ -171,19 +171,32 @@ function HeroSection() {
           GRIDHOLM
         </h1>
 
-        <p style={{
+        <div style={{
           marginTop: 20,
           marginBottom: 36,
-          color: '#cbd5e1',
-          fontSize: 'clamp(15px, 2.5vw, 18px)',
-          lineHeight: 1.6,
           maxWidth: 520,
           marginLeft: 'auto',
           marginRight: 'auto',
         }}>
-          A tactical card game played on a 5×5 grid.
-          Part chess, part card game. Every match plays out differently.
-        </p>
+          <p style={{
+            margin: '0 0 10px',
+            color: '#cbd5e1',
+            fontSize: 'clamp(14px, 2vw, 16px)',
+            lineHeight: 1.6,
+          }}>
+            A tactical card battler played on a 5×5 grid. Part Chess, Part TCG.
+          </p>
+          <p style={{
+            margin: 0,
+            color: '#e2e8f0',
+            fontSize: 'clamp(17px, 3vw, 22px)',
+            fontWeight: 700,
+            lineHeight: 1.4,
+            letterSpacing: '0.02em',
+          }}>
+            Command the board. Destroy their champion.
+          </p>
+        </div>
 
         <div style={{
           display: 'flex',
