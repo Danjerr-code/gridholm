@@ -65,6 +65,15 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   }, []);
 
   const handleCardDragEnd = useCallback((clientX, clientY) => {
+    // If the card play triggered a hand-card selection prompt (e.g. Pact of Ruin), the drag
+    // started before pendingHandSelect was set. Just snap the ghost back — do NOT cancel the
+    // spell or clear pendingHandSelect; the player still needs to click a card to discard.
+    if (selectMode === 'hand_select') {
+      setDragSnapping(true);
+      setTimeout(() => { setDragCard(null); setDragSnapping(false); }, 300);
+      return;
+    }
+
     if (clientX === null || clientY === null) {
       // Pointer was cancelled — snap back
       handlers.handleCancelSpell();

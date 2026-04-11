@@ -205,11 +205,13 @@ export function useGameState({ deckId = 'human' } = {}) {
     }
 
     setSelectedUnit(null);
-    setSelectMode(null);
 
     setState(prev => {
-      // Block normal card play while awaiting a hand-card selection (e.g. Pact of Ruin, Chaos Spawn)
+      // Block normal card play while awaiting a hand-card selection (e.g. Pact of Ruin, Chaos Spawn).
+      // Guard BEFORE setSelectMode(null) so a drag-triggered handlePlayCard during pendingHandSelect
+      // cannot corrupt the selectMode and break the discard UI.
       if (prev.pendingHandSelect) return prev;
+      setSelectMode(null);
       // Cancel any leftover pending state from a previous selection
       const base = (prev.pendingSpell || prev.pendingSummon) ? cancelSpell(prev) : prev;
       const p = base.players[base.activePlayer];
