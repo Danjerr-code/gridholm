@@ -1634,6 +1634,7 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
       if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: pendingHandSelect set:', JSON.stringify(s.pendingHandSelect));
       return s;
@@ -1645,6 +1646,7 @@ export function playCard(state, cardUid) {
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       addLog(s, `${p.name} casts Toll of Shadows.`);
+      fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: s.activePlayer } };
       return s;
     }
@@ -2049,6 +2051,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   // Special case: 'pactofruin_damage' was already paid (card and resources consumed at creation).
   const isPaid = pending.effect === 'pactofruin_damage' || pending.data?.paid === true;
 
+  let resolvedSpellCard = null;
   if (!isPaid) {
     const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
     if (cardIdx === -1) return s;
@@ -2058,6 +2061,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     p.resources -= effectiveCost;
     p.hand.splice(cardIdx, 1);
     p.discard.push(card);
+    resolvedSpellCard = card;
   }
 
   s.pendingSpell = null;
@@ -2381,6 +2385,13 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
         return s;
       }
     }
+  }
+
+  // Fire onCardPlayed for targeted spells (the card was consumed in the !isPaid block above).
+  // Unit actions (paid+sourceUid), echo casts (paid+isEcho), and multi-step continuations
+  // (paid without a real card) are excluded.
+  if (resolvedSpellCard && !s.pendingSpell) {
+    fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card: resolvedSpellCard }, s);
   }
 
   // Azulon spell echo: if spellEchoActive was set before this spell and we just completed a
