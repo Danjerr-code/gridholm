@@ -398,7 +398,7 @@ function HeroSection() {
           })}
         </div>
 
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
+        <div style={{ marginTop: 60, textAlign: 'center' }}>
           <a
             href="https://store.steampowered.com"
             target="_blank"
