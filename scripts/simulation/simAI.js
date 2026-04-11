@@ -112,13 +112,20 @@ function scoreAction(action, state) {
       const newDistToEnemyChamp = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
       if (newDistToEnemyChamp < curDistToEnemyChamp) return 15;
 
-      // Champion protection: bonus for moving adjacent to own champion when it is threatened
+      // Champion protection: contextual score based on proximity of nearest threat.
+      // Beats advance (15) only when an enemy is immediately adjacent to own champion.
       const myChamp = state.champions[ap];
       const isAdjacentToMyChamp = manhattan([tr, tc], [myChamp.row, myChamp.col]) === 1;
-      const myChampThreatened = state.units.some(u =>
-        u.owner === enemyIdx && manhattan([u.row, u.col], [myChamp.row, myChamp.col]) <= 2
-      );
-      if (isAdjacentToMyChamp && myChampThreatened) return 17;
+      if (isAdjacentToMyChamp) {
+        const enemyAdjacentToChamp = state.units.some(u =>
+          u.owner === enemyIdx && manhattan([u.row, u.col], [myChamp.row, myChamp.col]) === 1
+        );
+        if (enemyAdjacentToChamp) return 16; // immediate threat — beats advance
+        const enemyNearChamp = state.units.some(u =>
+          u.owner === enemyIdx && manhattan([u.row, u.col], [myChamp.row, myChamp.col]) === 2
+        );
+        if (enemyNearChamp) return 12; // nearby threat — tiebreaker with throne approach
+      }
 
       const curDistToThrone = manhattan([unit.row, unit.col], THRONE);
       const newDistToThrone = manhattan([tr, tc], THRONE);
@@ -150,13 +157,13 @@ function scoreAction(action, state) {
       if (!card) return -1;
       const effect = card.effect;
 
-      // Healing spells: urgency scales with champion HP deficit
+      // Healing spells: urgency scales with champion HP deficit.
+      // Only beats advancing (score 15) when champion is at 50% HP or below.
       if (effect === 'overgrowth' || effect === 'bloom') {
         const myChamp = state.champions[ap];
-        if (myChamp.hp <= 5)  return 65; // emergency — top priority
-        if (myChamp.hp <= 10) return 45; // urgent
-        if (myChamp.hp <= 15) return 25; // proactive
-        return 12; // minor value at full HP
+        if (myChamp.hp <= 5)  return 60; // emergency (<=25% health)
+        if (myChamp.hp <= 10) return 30; // urgent (<=50% health)
+        return 8; // not urgent — below advance (15), avoid defensive stalling
       }
 
       if (BUFF_SPELL_EFFECTS.has(effect)) return 15;
