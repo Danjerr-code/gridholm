@@ -486,9 +486,9 @@ function FourAttributes() {
 
 function Screenshots() {
   const shots = [
-    { label: 'Gameplay', caption: 'Deploy units, claim the Throne, and outmaneuver your opponent on the 5×5 grid.' },
-    { label: 'Card Gallery', caption: 'Browse the full collection of cards across all four factions.' },
-    { label: 'Deck Builder', caption: 'Build your 30-card deck and customize your playstyle.' },
+    { label: 'Gameplay', src: '/screenshot-gameplay.png', caption: 'Deploy units, claim the Throne, and outmaneuver your opponent on the 5×5 grid.' },
+    { label: 'Card Gallery', src: '/screenshot-gallery.png', caption: 'Browse the full collection of cards across all four factions.' },
+    { label: 'Deck Builder', src: '/screenshot-deckbuilder.png', caption: 'Build your 30-card deck and customize your playstyle.' },
   ];
 
   return (
@@ -512,24 +512,16 @@ function Screenshots() {
       <div className="lp-screenshot-grid">
         {shots.map(shot => (
           <div key={shot.label} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{
-              height: 180,
-              background: '#1f2937',
-              borderRadius: 8,
-              border: '1px solid #374151',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <span style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 13,
-                color: '#4b5563',
-                letterSpacing: '0.08em',
-              }}>
-                {shot.label}
-              </span>
-            </div>
+            <img
+              src={shot.src}
+              alt={shot.label}
+              style={{
+                width: '100%',
+                borderRadius: 8,
+                border: '1px solid #374151',
+                display: 'block',
+              }}
+            />
             <p style={{
               margin: 0,
               color: '#6b7280',
