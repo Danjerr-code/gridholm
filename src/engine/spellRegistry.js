@@ -339,9 +339,13 @@ export const SPELL_REGISTRY = {
   apexrampage: (state, caster, targets) => {
     const target = targets[0];
     if (!target) return state;
-    target.turnAtkBonus = (target.turnAtkBonus || 0) + 2;
+    // +2 ATK permanently (written to base stat, not turnAtkBonus which resets each turn)
+    target.atk = (target.atk || 0) + 2;
+    // Grant 2 extra actions this turn via extraActionsRemaining counter.
+    // Reset moved so an already-acted unit can use the granted actions.
     target.extraActionsRemaining = (target.extraActionsRemaining || 0) + 2;
-    addLog(state, `Apex Rampage unleashed on ${target.name}.`);
+    if (target.moved) target.moved = false;
+    addLog(state, `Apex Rampage: ${target.name} gains +2 ATK and 2 extra actions.`);
     return state;
   },
 
