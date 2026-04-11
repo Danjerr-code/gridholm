@@ -186,6 +186,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
 
   // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
+  // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
+  // SPD 0 units with no Action (e.g. Seedling) have nothing to do on the board.
   const commandsUsed = state?.players?.[myPlayerIndex]?.commandsUsed ?? 0;
   const isMyTurn = state?.activePlayer === myPlayerIndex;
   const showActionGlow = (
@@ -194,7 +196,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     !unit.summoned &&
     !unit.skipNextAction &&
     !unit.moved &&
-    commandsUsed < 3
+    commandsUsed < 3 &&
+    (effectiveSpd > 0 || !!unit.action)
   );
 
   // Long-press inspect on mobile
