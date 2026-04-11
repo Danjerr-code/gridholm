@@ -276,16 +276,17 @@ export function getLegalActions(state) {
   // 5. Champion ability
   if (!champ.moved && !state.championAbilityUsed?.[ap]) {
     const champDef = getChampionDef(p);
-    if (champDef?.ability) {
-      const abilityCost = champDef.ability.cost ?? 2;
+    const attuned = champDef?.abilities?.attuned;
+    if (attuned?.type === 'activated') {
+      const abilityCost = attuned.cost?.amount ?? 2;
       if (p.resources >= abilityCost) {
-        const tf = champDef.ability.targetFilter;
+        const tf = attuned.targetFilter;
         if (!tf || tf === 'none') {
-          actions.push({ type: 'championAbility', abilityId: champDef.ability.id, targetUid: null });
+          actions.push({ type: 'championAbility', abilityId: attuned.id, targetUid: null });
         } else {
           const abilityTargets = getChampionAbilityTargets(state, ap, tf);
           for (const targetUid of abilityTargets) {
-            actions.push({ type: 'championAbility', abilityId: champDef.ability.id, targetUid });
+            actions.push({ type: 'championAbility', abilityId: attuned.id, targetUid });
           }
         }
       }
