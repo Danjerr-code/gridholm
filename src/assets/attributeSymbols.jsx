@@ -14,7 +14,7 @@ import { memo } from 'react';
 
 function LightSymbolInner({ size = 24 }) {
   return (
-    <img src="/gem-light.png" alt="Light" style={{ display: 'block', width: size, height: size, objectFit: 'contain' }} />
+    <img src="/gem-light.png" width={size} height={size} alt="Light" style={{ display: 'inline-block', objectFit: 'contain' }} />
   );
 }
 
@@ -38,7 +38,7 @@ export const MysticSymbol = memo(MysticSymbolInner);
 
 function DarkSymbolInner({ size = 24 }) {
   return (
-    <img src="/gem-dark.png" alt="Dark" style={{ display: 'block', width: size, height: size, objectFit: 'contain' }} />
+    <img src="/gem-dark.png" width={size} height={size} alt="Dark" style={{ display: 'inline-block', objectFit: 'contain' }} />
   );
 }
 
