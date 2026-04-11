@@ -58,6 +58,11 @@ function aiSummonCast(state) {
   const units = p.hand.filter(c => c.type === 'unit').sort((a, b) => b.cost - a.cost);
   for (const card of units) {
     if (p.resources < card.cost) continue;
+    // Clockwork Manimus: requires discarding at end of turn — only play if at least 1 other card in hand.
+    if (card.id === 'clockworkmanimus') {
+      const handAfterPlay = s.players[AI_PLAYER].hand.filter(c => c.uid !== card.uid);
+      if (handAfterPlay.length === 0) continue;
+    }
     const summonTiles = getSummonTiles(s);
     if (summonTiles.length === 0) break;
     const [r, c] = summonTiles[0];
@@ -355,6 +360,28 @@ function scoreOmenTile(card, row, col, s) {
     const unitsWithin2 = aiUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 2);
     score += unitsWithin2.length;
     if (hasHiddenUnits) score += 2;
+  } else if (card.id === 'bloodmoon') {
+    // Buff all friendly units each turn. Central position maximises adjacency to friendly units.
+    const distToCenter = manhattan([row, col], [2, 2]);
+    score += Math.max(0, 3 - distToCenter);
+    for (const unit of aiUnits) {
+      if (manhattan([unit.row, unit.col], [row, col]) <= 2) score += 1;
+    }
+  } else if (card.id === 'temporalrift') {
+    // Extra command each turn. Safe central position for maximum longevity.
+    const distToCenter = manhattan([row, col], [2, 2]);
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.max(0, 3 - distToCenter) + Math.min(minEnemyDist, 3);
+  } else if (card.id === 'chainsoflight') {
+    // Stun enemy unit on placement. Score tiles adjacent to enemy units.
+    const adjEnemyCount = enemyUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1).length;
+    score += adjEnemyCount * 3;
+  } else if (card.id === 'dreadmirror') {
+    // Hidden omen — deals damage on reveal. Place adjacent to enemy units.
+    const adjEnemyCount = enemyUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1).length;
+    score += adjEnemyCount * 2;
   } else {
     // Unknown omen: safe tile away from enemies.
     const minEnemyDist = enemyUnits.length > 0
@@ -364,8 +391,11 @@ function scoreOmenTile(card, row, col, s) {
   }
 
   // Penalise tiles adjacent to enemy units (unsafe — enemies destroy omens on entry).
+  // Exception: omens that specifically want to be near enemies.
   const adjEnemies = enemyUnits.filter(u => manhattan([u.row, u.col], [row, col]) <= 1);
-  score -= adjEnemies.length * 3;
+  if (card.id !== 'chainsoflight' && card.id !== 'dreadmirror') {
+    score -= adjEnemies.length * 3;
+  }
 
   return score;
 }
@@ -409,6 +439,37 @@ function scoreRelicTile(card, row, col, s) {
     const midRow = Math.round((aiChamp.row + enemyChamp.row) / 2);
     const midCol = Math.round((aiChamp.col + enemyChamp.col) / 2);
     score += Math.max(0, 5 - manhattan([row, col], [midRow, midCol]));
+  } else if (card.id === 'wardrum') {
+    // Buffs lowest ATK friendly unit each turn. Place safely for longevity.
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 4);
+  } else if (card.id === 'manacannon') {
+    // Action deals damage in a chosen direction. Score tiles where enemies are in line of fire.
+    for (const unit of enemyUnits) {
+      if (unit.row === row || unit.col === col) score += 2;
+    }
+    // Bonus if enemy champion is in line of fire
+    if (enemyChamp.row === row || enemyChamp.col === col) score += 2;
+  } else if (card.id === 'negationcrystal') {
+    // Cancels an enemy Action ability. Most valuable when enemies with Action units are present.
+    const enemyActionUnits = enemyUnits.filter(u => u.action);
+    score += enemyActionUnits.length * 2;
+    // Safe position so it survives long enough to be useful
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 2);
+  } else if (card.id === 'arcanelens') {
+    // Deck filter Action. Most useful when hand is small.
+    const handSize = s.players[AI_PLAYER].hand.length;
+    score += handSize < 3 ? 4 : handSize < 5 ? 2 : 1;
+    // Safe tile
+    const minEnemyDist = enemyUnits.length > 0
+      ? Math.min(...enemyUnits.map(u => manhattan([u.row, u.col], [row, col])))
+      : 4;
+    score += Math.min(minEnemyDist, 2);
   } else {
     // Neutral relics: safe, central position for broad board impact.
     const distToCenter = manhattan([row, col], [2, 2]);
@@ -421,11 +482,19 @@ function scoreRelicTile(card, row, col, s) {
   return score;
 }
 
+// Returns true if, after spending `cardCost` mana, the AI can still afford at least one
+// unit or spell from the given hand (excluding the card being evaluated).
+function canAffordCombatAfter(hand, currentResources, cardUid, cardCost) {
+  const remaining = currentResources - cardCost;
+  return hand.some(c => c.uid !== cardUid && (c.type === 'unit' || c.type === 'spell') && c.cost <= remaining);
+}
+
 // Play terrain, omen, and relic cards from hand with intelligent tile selection.
-// Called after champion ability and move, before unit summons.
+// Called after unit summons so placement decisions are informed by the current board state.
 // General rules:
 //   - Skip on turns 1-2 (prioritise unit development).
-//   - Never play a non-combat card if fewer than 2 mana remain after the play.
+//   - Only play if the AI has enough mana to also play at least one unit/spell after, unless
+//     no units/spells in hand are affordable anyway.
 //   - Skip a card if no tile scores above 0.
 function aiPlayNonCombatCards(state) {
   let s = cloneState(state);
@@ -436,11 +505,20 @@ function aiPlayNonCombatCards(state) {
   const resources = () => s.players[AI_PLAYER].resources;
   const hand = () => s.players[AI_PLAYER].hand;
 
+  // Helper: enforce mana guard — skip non-combat card unless it's the only option.
+  function manaGuard(card) {
+    if (resources() < card.cost) return true; // can't afford
+    const combatAffordable = hand().some(
+      c => c.uid !== card.uid && (c.type === 'unit' || c.type === 'spell') && c.cost <= resources()
+    );
+    if (!combatAffordable) return false; // no combat cards anyway — play freely
+    return !canAffordCombatAfter(hand(), resources(), card.uid, card.cost);
+  }
+
   // ── Terrain ────────────────────────────────────────────────────────────────
   const terrainCards = hand().filter(c => c.type === 'terrain');
   for (const card of terrainCards) {
-    if (resources() < card.cost) continue;
-    if (resources() - card.cost < 2) continue;
+    if (manaGuard(card)) continue;
 
     const castTiles = getTerrainCastTiles(s);
     if (castTiles.length === 0) continue;
@@ -461,8 +539,7 @@ function aiPlayNonCombatCards(state) {
   // ── Omens ──────────────────────────────────────────────────────────────────
   const omenCards = hand().filter(c => c.type === 'omen');
   for (const card of omenCards) {
-    if (resources() < card.cost) continue;
-    if (resources() - card.cost < 2) continue;
+    if (manaGuard(card)) continue;
 
     const summonTiles = getSummonTiles(s);
     if (summonTiles.length === 0) continue;
@@ -481,8 +558,13 @@ function aiPlayNonCombatCards(state) {
   // ── Relics ─────────────────────────────────────────────────────────────────
   const relicCards = hand().filter(c => c.type === 'relic').sort((a, b) => b.cost - a.cost);
   for (const card of relicCards) {
-    if (resources() < card.cost) continue;
-    if (resources() - card.cost < 2) continue;
+    if (manaGuard(card)) continue;
+
+    // Blood Altar: only play if there's a low HP friendly unit the AI is willing to sacrifice.
+    if (card.id === 'bloodaltar') {
+      const hasLowHpUnit = s.units.some(u => u.owner === AI_PLAYER && !u.isRelic && !u.isOmen && u.hp <= 2);
+      if (!hasLowHpUnit) continue;
+    }
 
     const summonTiles = getSummonTiles(s);
     if (summonTiles.length === 0) continue;
@@ -583,8 +665,8 @@ function runHeuristicTurn(state) {
 
   s = aiChampionAbility(s);
   s = aiChampionMove(s);
-  s = aiPlayNonCombatCards(s);
   s = aiSummonCast(s);
+  s = aiPlayNonCombatCards(s);
   s = aiUnitMove(s);
 
   s = endActionPhase(s);
@@ -610,8 +692,8 @@ function runHeuristicTurnSteps(state) {
 
   s = aiChampionAbility(s); steps.push(s);
   s = aiChampionMove(s); steps.push(s);
-  s = aiPlayNonCombatCards(s); steps.push(s);
   s = aiSummonCast(s); steps.push(s);
+  s = aiPlayNonCombatCards(s); steps.push(s);
   s = aiUnitMove(s); steps.push(s);
   s = endActionPhase(s);
   s = endTurn(s);
