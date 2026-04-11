@@ -1530,7 +1530,9 @@ export function playCard(state, cardUid) {
   }
 
   if (card.type === 'terrain') {
+    console.log('[EnchantedGround] playCard: terrain branch entered. cardId:', card.id, 'cardUid:', cardUid, 'cost:', card.cost, 'effectiveCost:', effectiveCost, 'resources:', p.resources);
     s.pendingTerrainCast = { cardUid, card };
+    console.log('[EnchantedGround] playCard: pendingTerrainCast set:', JSON.stringify(s.pendingTerrainCast?.card?.id));
     return s;
   }
 
@@ -2565,6 +2567,7 @@ const TERRAIN_RESTRICTED = new Set(['0,0', '4,4', '2,2']);
 // Valid tiles must be within Manhattan distance 2 of the casting player's champion.
 export function getTerrainCastTiles(state) {
   const champ = state.champions[state.activePlayer];
+  console.log('[EnchantedGround] getTerrainCastTiles: champion at row:', champ.row, 'col:', champ.col, 'activePlayer:', state.activePlayer);
   const tiles = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
@@ -2573,6 +2576,7 @@ export function getTerrainCastTiles(state) {
       tiles.push([r, c]);
     }
   }
+  console.log('[EnchantedGround] getTerrainCastTiles: valid placement tiles:', JSON.stringify(tiles));
   return tiles;
 }
 
@@ -2600,20 +2604,32 @@ export function getTerrainAt(state, row, col) {
 // Place a terrain card at the target tile (and all tiles within radius).
 export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   const s = cloneState(state);
-  if (!s.pendingTerrainCast) return s;
+  console.log('[EnchantedGround] castTerrainCard: entered. cardUid:', cardUid, 'targetRow:', targetRow, 'targetCol:', targetCol);
+  if (!s.pendingTerrainCast) {
+    console.log('[EnchantedGround] castTerrainCard: EARLY RETURN — pendingTerrainCast is null/undefined');
+    return s;
+  }
   const pending = s.pendingTerrainCast;
+  console.log('[EnchantedGround] castTerrainCard: pendingTerrainCast card:', pending.card?.id, 'pendingCardUid:', pending.cardUid);
   const p = s.players[s.activePlayer];
 
   // Validate restricted
   if (TERRAIN_RESTRICTED.has(`${targetRow},${targetCol}`)) {
+    console.log('[EnchantedGround] castTerrainCard: EARLY RETURN — target tile', targetRow, targetCol, 'is restricted');
     return s;
   }
 
   // Deduct cost and remove from hand
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) return s;
+  if (cardIdx === -1) {
+    console.log('[EnchantedGround] castTerrainCard: EARLY RETURN — cardUid', cardUid, 'not found in hand. hand uids:', p.hand.map(c => c.uid));
+    return s;
+  }
   const card = p.hand[cardIdx];
-  if (p.resources < card.cost) return s;
+  if (p.resources < card.cost) {
+    console.log('[EnchantedGround] castTerrainCard: EARLY RETURN — insufficient resources. have:', p.resources, 'need:', card.cost);
+    return s;
+  }
   p.resources -= card.cost;
   p.hand.splice(cardIdx, 1);
   p.discard.push(card);

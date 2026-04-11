@@ -239,6 +239,7 @@ export function useGameState({ deckId = 'human' } = {}) {
         setSelectedCard(cardUid);
         setSelectMode('summon');
       } else if (s.pendingTerrainCast) {
+        console.log('[EnchantedGround] handlePlayCard: pendingTerrainCast detected, setting selectMode=terrain_cast. card:', s.pendingTerrainCast.card?.id);
         setSelectedCard(cardUid);
         setSelectMode('terrain_cast');
       } else if (s.pendingSpell) {
@@ -537,9 +538,15 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [selectedUnit, clearSelection]);
 
   const handleTerrainCast = useCallback((row, col) => {
-    if (!selectedCard) return;
+    console.log('[EnchantedGround] handleTerrainCast: entered. row:', row, 'col:', col, 'selectedCard:', selectedCard);
+    if (!selectedCard) {
+      console.log('[EnchantedGround] handleTerrainCast: EARLY RETURN — selectedCard is null/undefined');
+      return;
+    }
     setState(prev => {
+      console.log('[EnchantedGround] handleTerrainCast setState: pendingTerrainCast before cast:', JSON.stringify(prev.pendingTerrainCast?.card?.id));
       const s = castTerrainCard(prev, selectedCard, row, col);
+      console.log('[EnchantedGround] handleTerrainCast setState: pendingTerrainCast after cast:', JSON.stringify(s.pendingTerrainCast));
       return s;
     });
     clearSelection();
