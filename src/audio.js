@@ -16,25 +16,59 @@ export function setMuted(value) {
   }
 }
 
+// Shared AudioContext singleton — avoids repeated suspend/resume issues.
+let _audioCtx = null;
+
+function getAudioContext() {
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _audioCtx;
+}
+
+async function resumeAudioContext(ctx) {
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+}
+
+// Resume audio when the page becomes visible again (e.g. after tab switch).
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && _audioCtx && _audioCtx.state === 'suspended') {
+      _audioCtx.resume().catch(() => {
+        // Resume failed silently
+      });
+    }
+  });
+}
+
 // Card play: soft descending whoosh, ~400ms.
 export function playCardPlaySound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, t);
-    osc.frequency.exponentialRampToValueAtTime(200, t + 0.35);
-    osc.connect(gain);
-    osc.start(t);
-    osc.stop(t + 0.4);
-    setTimeout(() => ctx.close(), 700);
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.35);
+        osc.connect(gain);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
@@ -44,21 +78,28 @@ export function playCardPlaySound() {
 export function playUnitDeathSound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.28, t + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(110, t);
-    osc.frequency.exponentialRampToValueAtTime(45, t + 0.25);
-    osc.connect(gain);
-    osc.start(t);
-    osc.stop(t + 0.3);
-    setTimeout(() => ctx.close(), 600);
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.28, t + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(110, t);
+        osc.frequency.exponentialRampToValueAtTime(45, t + 0.25);
+        osc.connect(gain);
+        osc.start(t);
+        osc.stop(t + 0.3);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
@@ -68,21 +109,28 @@ export function playUnitDeathSound() {
 export function playCombatHitSound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.22, t + 0.003);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    const osc = ctx.createOscillator();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(280, t);
-    osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
-    osc.connect(gain);
-    osc.start(t);
-    osc.stop(t + 0.2);
-    setTimeout(() => ctx.close(), 500);
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.003);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(280, t);
+        osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+        osc.connect(gain);
+        osc.start(t);
+        osc.stop(t + 0.2);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
@@ -92,27 +140,34 @@ export function playCombatHitSound() {
 export function playSpellCastSound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
 
-    function shimmer(freq, startTime, duration, volume) {
-      const gain = ctx.createGain();
-      gain.connect(ctx.destination);
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      osc.connect(gain);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    }
+        function shimmer(freq, startTime, duration, volume) {
+          const gain = ctx.createGain();
+          gain.connect(ctx.destination);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          osc.connect(gain);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        }
 
-    shimmer(880, t, 0.45, 0.12);
-    shimmer(1320, t + 0.04, 0.4, 0.09);
-    shimmer(660, t + 0.1, 0.4, 0.07);
-    setTimeout(() => ctx.close(), 900);
+        shimmer(880, t, 0.45, 0.12);
+        shimmer(1320, t + 0.04, 0.4, 0.09);
+        shimmer(660, t + 0.1, 0.4, 0.07);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
@@ -122,21 +177,28 @@ export function playSpellCastSound() {
 export function playChampionDamageSound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.32, t + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(95, t);
-    osc.frequency.exponentialRampToValueAtTime(48, t + 0.35);
-    osc.connect(gain);
-    osc.start(t);
-    osc.stop(t + 0.4);
-    setTimeout(() => ctx.close(), 700);
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.32, t + 0.006);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(95, t);
+        osc.frequency.exponentialRampToValueAtTime(48, t + 0.35);
+        osc.connect(gain);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
@@ -146,29 +208,35 @@ export function playChampionDamageSound() {
 export function playTurnStartSound() {
   if (isMuted()) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
 
-    function note(freq, startTime, duration, volume = 0.25) {
-      const gain = ctx.createGain();
-      gain.connect(ctx.destination);
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        function note(freq, startTime, duration, volume = 0.25) {
+          const gain = ctx.createGain();
+          gain.connect(ctx.destination);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      osc.connect(gain);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    }
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          osc.connect(gain);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        }
 
-    const t = ctx.currentTime;
-    // Two-note ascending chime: C5 then E5
-    note(523.25, t, 0.6);
-    note(659.25, t + 0.12, 0.7);
-
-    setTimeout(() => ctx.close(), 1200);
+        // Two-note ascending chime: C5 then E5
+        note(523.25, t, 0.6);
+        note(659.25, t + 0.12, 0.7);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
   } catch {
     // Web Audio API not available — silent fail
   }
