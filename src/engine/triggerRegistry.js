@@ -576,9 +576,16 @@ export function fireTrigger(event, context, state) {
       case 'onChampionDamageDealt':
         if (context?.attackerPlayerIndex == null || listener.playerIndex !== context.attackerPlayerIndex) continue;
         break;
-      case 'onCardPlayed':
+      case 'onCardPlayed': {
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
+        // Guard: if selfTrigger=false, skip when the played card is the same card type as the unit
+        // owning this trigger (e.g. Hexblood Warlock must not trigger on its own summon event).
+        if (!listener.selfTrigger && context?.card?.id != null) {
+          const ownerUnit = state.units.find(u => u.uid === listener.unitUid);
+          if (ownerUnit && ownerUnit.id === context.card.id) continue;
+        }
         break;
+      }
       case 'onFriendlyAction':
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
