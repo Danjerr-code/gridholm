@@ -495,6 +495,14 @@ export default function Board({
           return;
         }
       }
+      // Enemy unit on a valid champion move tile — treat as champion attack
+      if (selectMode === 'champion_move' && unit.owner !== activePlayer) {
+        const key = `${unit.row},${unit.col}`;
+        if (champMoveSet.has(key)) {
+          handlers.handleChampionMoveTile(unit.row, unit.col);
+          return;
+        }
+      }
       if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved && commandsUsed < 3) {
         if (unit.uid === selectedUnit) {
           handlers.clearSelection();
