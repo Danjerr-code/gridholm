@@ -10,6 +10,7 @@
 //   onChampionDamageDealt  — the owner deals damage to the enemy champion
 //   onCardPlayed           — the owner plays a card from hand
 //   onFriendlyAction       — a friendly combat unit completes an action
+//   onFriendlyCommand      — a friendly combat unit spends a command (movement or action use)
 //   onHPRestored           — the owner restores HP to any target
 //   onEndTurn              — end of the owner's turn
 //   onNonCombatChampionDamage — the owner deals non-combat damage to the enemy champion
@@ -31,6 +32,7 @@ export const TRIGGER_EVENTS = [
   'onChampionDamageDealt',
   'onCardPlayed',
   'onFriendlyAction',
+  'onFriendlyCommand',
   'onHPRestored',
   'onEndTurn',
   'onBeginTurn',
@@ -244,6 +246,20 @@ function resolveEffect(effectId, listener, context, state) {
 
     case 'gainPlusOneHPOnAction': {
       // Increases the HP of the acting unit (passed in context.actingUnit)
+      const acting = context?.actingUnit
+        ? state.units.find(u => u.uid === context.actingUnit.uid)
+        : null;
+      if (acting && acting.owner === playerIndex) {
+        acting.hp += 1;
+        acting.maxHp += 1;
+        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: ${acting.name} gains +1 HP.`);
+      }
+      break;
+    }
+
+    case 'gainPlusOneHPOnCommand': {
+      // Increases HP of the unit that spent a command (moved or used action).
+      // Triggers on onFriendlyCommand; champion excluded naturally (not in state.units).
       const acting = context?.actingUnit
         ? state.units.find(u => u.uid === context.actingUnit.uid)
         : null;
@@ -563,6 +579,9 @@ export function fireTrigger(event, context, state) {
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
       case 'onFriendlyAction':
+        if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
+        break;
+      case 'onFriendlyCommand':
         if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
       case 'onHPRestored':

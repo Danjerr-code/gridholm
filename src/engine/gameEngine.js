@@ -2297,6 +2297,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
       const actorAfter = s.units.find(u => u.uid === unit.uid);
       fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
     }
   }
   // ── Toll of Shadows (multi-step: each player sacrifices unit/omen/relic, discards card) ──
@@ -2431,6 +2432,7 @@ export function resolveLineBlast(state, unitUid, direction) {
   checkWinner(result);
   const actorAfter = result.units.find(u => u.uid === unitUid);
   fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
+  fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
   return result;
 }
 
@@ -2464,6 +2466,7 @@ export function resolveNegationCancel(state, confirmed) {
       checkWinner(result);
       const actorAfter = result.units.find(u => u.uid === pending.pendingUnitUid);
       fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
       return result;
     }
   }
@@ -2710,12 +2713,14 @@ export function triggerUnitAction(state, unitUid) {
     const result = _dispatchAction(unit, s, []);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
   if (unit.id === 'grovewarden') {
     const result = _dispatchAction(unit, s, []);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
   if (unit.id === 'darkdealer') {
@@ -2723,6 +2728,7 @@ export function triggerUnitAction(state, unitUid) {
     checkWinner(result);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
   if (unit.id === 'siegemound') {
@@ -2730,6 +2736,7 @@ export function triggerUnitAction(state, unitUid) {
     checkWinner(result);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
 
@@ -2782,6 +2789,7 @@ export function triggerUnitAction(state, unitUid) {
     const result = _dispatchAction(unit, s, []);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
 
@@ -2790,6 +2798,7 @@ export function triggerUnitAction(state, unitUid) {
     const result = _dispatchAction(unit, s, []);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
   }
 
@@ -3029,10 +3038,11 @@ export function moveUnit(state, unitUid, row, col) {
     // Fire attack triggers (Whisper, Crossbowman, Razorfang)
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
-    // Declarative trigger: onFriendlyAction — fired after attacker completes combat
+    // Declarative trigger: onFriendlyAction / onFriendlyCommand — fired after attacker completes combat
     const attackerAfterCombat = s.units.find(u => u.uid === unitUid);
     if (attackerAfterCombat) {
       fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: attackerAfterCombat, triggeringUid: unitUid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: attackerAfterCombat, triggeringUid: unitUid }, s);
     }
   } else if (enemyChamp) {
     // Reveal hidden attacking unit before champion combat
@@ -3080,10 +3090,11 @@ export function moveUnit(state, unitUid, row, col) {
     // Fire attack triggers (Dread Knight)
     if (champDmg > 0) fireAttackTriggers(unit, enemyChamp, s, false);
     checkWinner(s);
-    // Declarative trigger: onFriendlyAction — fired after attacker completes champion combat
+    // Declarative trigger: onFriendlyAction / onFriendlyCommand — fired after attacker completes champion combat
     const attackerAfterChampCombat = s.units.find(u => u.uid === unitUid);
     if (attackerAfterChampCombat) {
       fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: attackerAfterChampCombat, triggeringUid: unitUid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: attackerAfterChampCombat, triggeringUid: unitUid }, s);
     }
   } else {
     // Regular move — hidden units (including shadow-veil'd) do not reveal on move
@@ -3100,6 +3111,11 @@ export function moveUnit(state, unitUid, row, col) {
     // Terrain onOccupy: trigger when unit moves onto a terrain tile
     const movedUnit = s.units.find(u => u.uid === unitUid);
     if (movedUnit) fireTerrainOnOccupy(s, movedUnit, row, col);
+    // onFriendlyCommand: fire for non-combat moves (movement costs a command)
+    const unitAfterMove = s.units.find(u => u.uid === unitUid);
+    if (unitAfterMove && unit.owner === s.activePlayer) {
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: unitAfterMove, triggeringUid: unitUid }, s);
+    }
   }
 
   // Gavriel, Holy Stride: consecrate the tile Gavriel moved to as Hallowed Ground
