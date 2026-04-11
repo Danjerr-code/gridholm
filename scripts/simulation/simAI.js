@@ -83,7 +83,9 @@ function scoreAction(action, state) {
       if (hitsChamp) {
         const dmgToChamp = attackerAtk;
         if (dmgToChamp >= enemyChamp.hp) return 1000; // lethal
-        return dmgToChamp * 10;
+        // Scale attack urgency: much higher priority when champion is low HP
+        const atkUrgency = enemyChamp.hp <= 8 ? 20 : (enemyChamp.hp <= 15 ? 15 : 10);
+        return dmgToChamp * atkUrgency;
       }
 
       // Check if moving to an enemy unit's tile (combat)
@@ -107,10 +109,12 @@ function scoreAction(action, state) {
         // Neither dies: scoring as "approach"
       }
 
-      // Regular move: score by proximity improvements
+      // Regular move: score by proximity improvements.
+      // Urgency scales with enemy champion's HP — converge harder on a wounded champion.
       const curDistToEnemyChamp = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
       const newDistToEnemyChamp = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
-      if (newDistToEnemyChamp < curDistToEnemyChamp) return 15;
+      const chaseUrgency = enemyChamp.hp <= 8 ? 35 : (enemyChamp.hp <= 15 ? 22 : 15);
+      if (newDistToEnemyChamp < curDistToEnemyChamp) return chaseUrgency;
 
       // Champion protection: contextual score based on proximity of nearest threat.
       // Beats advance (15) only when an enemy is immediately adjacent to own champion.
@@ -172,6 +176,14 @@ function scoreAction(action, state) {
       if (effect in DAMAGE_SPELL_DAMAGE) {
         const targetUid = action.targets?.[0];
         if (!targetUid) return 10;
+        // Check if the spell targets the enemy champion directly
+        if (targetUid === `champion${enemyIdx}`) {
+          const champ = state.champions[enemyIdx];
+          const dmg = estimateSpellDamage(effect, null, state);
+          if (dmg >= champ.hp) return 1000; // lethal
+          const spellUrgency = champ.hp <= 8 ? 20 : (champ.hp <= 15 ? 15 : 10);
+          return dmg * spellUrgency;
+        }
         const target = state.units.find(u => u.uid === targetUid);
         if (!target) return 10;
         const dmg = estimateSpellDamage(effect, target, state);
@@ -225,6 +237,12 @@ function scoreAction(action, state) {
     }
 
     case 'unitAction': {
+      // If the action targets the enemy champion, apply urgency scaling
+      if (action.targetUid === `champion${enemyIdx}`) {
+        const champ = state.champions[enemyIdx];
+        const urgency = champ.hp <= 8 ? 30 : (champ.hp <= 15 ? 22 : 15);
+        return urgency;
+      }
       return 15; // unit actions are generally useful
     }
 
