@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import App from './App.jsx';
 import Lobby from './components/Lobby.jsx';
+import LandingPage from './components/LandingPage.jsx';
 import MultiplayerGame from './components/MultiplayerGame.jsx';
 import DeckSelect from './components/DeckSelect.jsx';
 import DeckBuilder from './components/DeckBuilder.jsx';
@@ -18,16 +19,17 @@ function generateGameId() {
 
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '');
-  if (!hash || hash === '/') return { view: 'lobby' };
+  if (!hash || hash === '/') return { view: 'landing' };
+  if (hash === 'lobby') return { view: 'lobby' };
   if (hash === 'ai') return { view: 'ai_deck_select' };
-  if (hash === 'how-to-play') return { view: 'how_to_play' };
+  if (hash === 'how-to-play' || hash === 'howtoplay') return { view: 'how_to_play' };
   if (hash === 'card-gallery') return { view: 'card_gallery' };
   if (hash === 'deck-builder') return { view: 'deck_builder' };
   if (hash === 'custom-play') return { view: 'custom_play' };
   if (hash === 'custom-ai') return { view: 'custom_ai' };
   const gameMatch = hash.match(/^game\/([A-Z0-9]{6})$/i);
   if (gameMatch) return { view: 'game', gameId: gameMatch[1].toUpperCase() };
-  return { view: 'lobby' };
+  return { view: 'landing' };
 }
 
 export default function Root() {
@@ -46,6 +48,10 @@ export default function Root() {
 
   function navigate(path) {
     window.location.hash = path.startsWith('/') ? path : `/${path}`;
+  }
+
+  if (route.view === 'landing') {
+    return <LandingPage />;
   }
 
   if (route.view === 'how_to_play') {
