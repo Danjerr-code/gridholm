@@ -191,6 +191,30 @@ function scoreAction(action, state) {
       return 15; // unit actions are generally useful
     }
 
+    case 'fleshtitheSacrifice': {
+      if (action.choice === 'no') return 5; // baseline: decline
+      if (action.choice === 'yes' && action.sacrificeUid) {
+        // Sacrifice weakest unit for +2/+2 on Flesh Tithe — usually worth it
+        const sacrifice = state.units.find(u => u.uid === action.sacrificeUid);
+        if (!sacrifice) return 5;
+        // Prefer sacrificing low-cost, low-HP units
+        const sacrificeCost = sacrifice.cost ?? 0;
+        if (sacrificeCost <= 2) return 30; // great trade
+        if (sacrificeCost <= 3) return 15; // acceptable
+        return 3; // too expensive to sacrifice
+      }
+      return 5;
+    }
+
+    case 'handSelect': {
+      // Select cheapest card to discard (minimize resource loss)
+      const p = state.players[state.activePlayer];
+      const card = p.hand.find(c => c.uid === action.cardUid);
+      if (!card) return 5;
+      // Lower cost = better discard candidate (keep expensive cards)
+      return Math.max(1, 10 - (card.cost ?? 0));
+    }
+
     case 'endTurn': {
       return 0;
     }

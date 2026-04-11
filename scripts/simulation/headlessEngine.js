@@ -23,6 +23,8 @@ import {
   playCard,
   summonUnit,
   resolveSpell,
+  resolveFleshtitheSacrifice,
+  resolveHandSelect,
   applyChampionAbility,
   triggerUnitAction,
   getChampionMoveTiles,
@@ -150,8 +152,48 @@ export function getLegalActions(state) {
   const actions = [];
   if (state.winner) return actions;
   if (state.phase !== 'action') return actions;
-  // Skip if mid-spell or mid-summon (caller should resolve pending state first)
-  if (state.pendingSpell || state.pendingSummon || state.pendingHandSelect || state.pendingFleshtitheSacrifice) return actions;
+
+  // ── Resolve Flesh Tithe sacrifice prompt ────────────────────────────────────
+  if (state.pendingFleshtitheSacrifice) {
+    const ap = state.activePlayer;
+    const pending = state.pendingFleshtitheSacrifice;
+    // Decline sacrifice (always available)
+    actions.push({ type: 'fleshtitheSacrifice', choice: 'no', sacrificeUid: null });
+    // Accept sacrifice: pick any friendly unit except Flesh Tithe itself
+    for (const unit of state.units.filter(u => u.owner === ap && u.uid !== pending.unitUid && !u.isRelic && !u.isOmen)) {
+      actions.push({ type: 'fleshtitheSacrifice', choice: 'yes', sacrificeUid: unit.uid });
+    }
+    return actions;
+  }
+
+  // ── Resolve hand selection prompt (Pact of Ruin, etc.) ─────────────────────
+  if (state.pendingHandSelect) {
+    const ap = state.activePlayer;
+    for (const card of state.players[ap].hand) {
+      actions.push({ type: 'handSelect', cardUid: card.uid });
+    }
+    // If hand is empty, still need to advance (return a no-op marker)
+    if (actions.length === 0) actions.push({ type: 'handSelect', cardUid: null });
+    return actions;
+  }
+
+  // ── Resolve orphaned pendingSpell (set by resolveHandSelect, unit summon, etc.) ──
+  if (state.pendingSpell) {
+    const { effect, step, data } = state.pendingSpell;
+    const targets = getSpellTargets(state, effect, step ?? 0, data ?? {});
+    if (targets.length > 0) {
+      for (const targetUid of targets) {
+        actions.push({ type: 'pendingSpellTarget', targetUid });
+      }
+    } else {
+      // No targets available — resolve with null to let the spell fire or fizzle
+      actions.push({ type: 'pendingSpellTarget', targetUid: null });
+    }
+    return actions;
+  }
+
+  // Skip if mid-summon (caller should resolve pending state first)
+  if (state.pendingSummon) return actions;
   if (state.pendingDiscard) return actions;
 
   const ap = state.activePlayer;
@@ -358,6 +400,21 @@ export function applyAction(state, action) {
         s = resolveSpell(s, action.unitId, action.targetUid);
       }
       return s;
+    }
+
+    case 'fleshtitheSacrifice': {
+      return resolveFleshtitheSacrifice(state, action.choice, action.sacrificeUid);
+    }
+
+    case 'handSelect': {
+      return resolveHandSelect(state, action.cardUid);
+    }
+
+    case 'pendingSpellTarget': {
+      // Resolve a pending spell that was set up internally (e.g. by resolveHandSelect)
+      const pending = state.pendingSpell;
+      if (!pending) return cloneState(state);
+      return resolveSpell(state, pending.cardUid, action.targetUid);
     }
 
     case 'endTurn': {
