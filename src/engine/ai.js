@@ -22,13 +22,16 @@ import {
   resolveBloodPactFriendly,
   resolveBloodPactEnemy,
 } from './gameEngine.js';
-import { chooseActionStrategic, applyAction as applyActionStrategic } from './strategicAI.js';
+import { chooseActionStrategic, applyAction as applyActionStrategic, setAIDebug, getAIDebug } from './strategicAI.js';
 
 // ── AI mode ────────────────────────────────────────────────────────────────────
 // 'strategic' uses minimax (default). 'heuristic' uses the rule-based AI.
 let _aiMode = 'strategic';
 export function setAIMode(mode) { _aiMode = mode; }
 export function getAIMode() { return _aiMode; }
+
+// Re-export debug toggle so callers can enable/disable from a single import.
+export { setAIDebug, getAIDebug };
 
 const AI_PLAYER = 1;
 
@@ -659,16 +662,36 @@ export function runAITurnSteps(state) {
 function runHeuristicTurn(state) {
   let s = cloneState(state);
 
+  // Diagnostic: log turn context when debug mode is active
+  if (getAIDebug()) {
+    const p = s.players[AI_PLAYER];
+    console.log(`[HeuristicAI] Turn ${s.turn ?? '?'} | mana ${p.resources} | hand: ${p.hand.map(c => `${c.name}(${c.cost})`).join(', ')}`);
+    console.log(`[HeuristicAI] My units: ${s.units.filter(u => u.owner === AI_PLAYER).map(u => `${u.name}(${u.atk}/${u.hp})`).join(', ') || 'none'}`);
+    console.log(`[HeuristicAI] My champ HP: ${s.champions[AI_PLAYER].hp} | Opp champ HP: ${s.champions[0].hp}`);
+  }
+
   // Auto-resolve Nezzar contract if pending at start of AI turn
   s = aiResolveContract(s);
 
   // Pre-check lethal: if a unit can kill the enemy champion, do it first.
   const lethalState = aiLethalCheck(s);
-  if (lethalState !== s) return endTurn(endActionPhase(lethalState));
+  if (lethalState !== s) {
+    if (getAIDebug()) console.log('[HeuristicAI] → LETHAL: moving unit onto enemy champion');
+    return endTurn(endActionPhase(lethalState));
+  }
 
+  const before = { champAbil: s.champions[AI_PLAYER].moved, unitCount: s.units.filter(u => u.owner === AI_PLAYER).length };
   s = aiChampionAbility(s);
+  if (getAIDebug() && !s.champions[AI_PLAYER].moved && before.champAbil !== s.champions[AI_PLAYER].moved) {
+    console.log('[HeuristicAI] Champion ability used');
+  }
   s = aiChampionMove(s);
   s = aiSummonCast(s);
+  if (getAIDebug()) {
+    const played = s.units.filter(u => u.owner === AI_PLAYER).length - before.unitCount;
+    if (played > 0) console.log(`[HeuristicAI] Summoned ${played} unit(s)`);
+    console.log(`[HeuristicAI] Mana after summon: ${s.players[AI_PLAYER].resources}`);
+  }
   s = aiPlayNonCombatCards(s);
   s = aiUnitMove(s);
 

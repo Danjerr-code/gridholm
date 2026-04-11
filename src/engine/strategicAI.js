@@ -538,6 +538,56 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
   }
 }
 
+// ── Diagnostic logging ────────────────────────────────────────────────────────
+
+let _aiDebugEnabled = false;
+
+/**
+ * Enable/disable verbose AI decision logging.
+ * When enabled, chooseActionStrategic logs every turn's context and chosen action.
+ */
+export function setAIDebug(enabled) { _aiDebugEnabled = enabled; }
+export function getAIDebug() { return _aiDebugEnabled; }
+
+function aiLog(...args) {
+  if (_aiDebugEnabled) console.log('[AI]', ...args);
+}
+
+function describeAction(action, state) {
+  const ap = state.activePlayer;
+  switch (action.type) {
+    case 'move': {
+      const unit = state.units.find(u => u.uid === action.unitId);
+      return `move ${unit?.name ?? action.unitId} → [${action.targetTile}]`;
+    }
+    case 'championMove':
+      return `championMove → [${action.row},${action.col}]`;
+    case 'summon': {
+      const card = state.players[ap].hand.find(c => c.uid === action.cardUid);
+      return `summon ${card?.name ?? action.cardUid} @ [${action.targetTile}]`;
+    }
+    case 'cast': {
+      const card = state.players[ap].hand.find(c => c.uid === action.cardUid);
+      const tgtStr = action.targets?.length ? ` → ${action.targets.join(',')}` : '';
+      return `cast ${card?.name ?? action.cardUid}${tgtStr}`;
+    }
+    case 'terrain': {
+      const card = state.players[ap].hand.find(c => c.uid === action.cardUid);
+      return `terrain ${card?.name ?? action.cardUid} @ [${action.targetTile}]`;
+    }
+    case 'championAbility':
+      return `championAbility ${action.abilityId}${action.targetUid ? ' → ' + action.targetUid : ''}`;
+    case 'unitAction': {
+      const unit = state.units.find(u => u.uid === action.unitId);
+      return `unitAction ${unit?.name ?? action.unitId}${action.targetUid ? ' → ' + action.targetUid : ''}`;
+    }
+    case 'endTurn':
+      return 'endTurn';
+    default:
+      return JSON.stringify(action);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -553,6 +603,18 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
   const cmds = commandsUsed ?? (gameState.players[gameState.activePlayer].commandsUsed ?? 0);
   const ap = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
+
+  // ── Diagnostic context ────────────────────────────────────────────────────
+  if (_aiDebugEnabled) {
+    const p = gameState.players[ap];
+    const myChamp = gameState.champions[ap];
+    const oppChamp = gameState.champions[1 - ap];
+    aiLog(`── Turn ${gameState.turn ?? '?'} | ${playerId} | mana ${p.resources} | cmds used ${cmds}`);
+    aiLog(`   Hand (${p.hand.length}): ${p.hand.map(c => `${c.name}(${c.cost})`).join(', ')}`);
+    aiLog(`   My units: ${gameState.units.filter(u => u.owner === ap).map(u => `${u.name}(${u.atk}/${u.hp})`).join(', ') || 'none'}`);
+    aiLog(`   My champion HP: ${myChamp.hp} | Opp champion HP: ${oppChamp.hp}`);
+    aiLog(`   Legal actions: ${getLegalActions(gameState).length}`);
+  }
 
   // ── Pre-check: lethal detection ─────────────────────────────────────────────
   // If any legal action wins the game immediately, take it without running minimax.
@@ -570,6 +632,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
         action.targetTile[1] === enemyChamp.col &&
         unit.atk >= enemyChamp.hp
       ) {
+        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
         console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
@@ -582,6 +645,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
         action.col === enemyChamp.col &&
         (myChamp.atk ?? 0) >= enemyChamp.hp
       ) {
+        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
         console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
@@ -590,6 +654,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
     if (action.type === 'cast') {
       const newState = applyAction(gameState, action);
       if (newState.winner) {
+        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
         console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
@@ -598,6 +663,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
     if (action.type === 'championAbility') {
       const newState = applyAction(gameState, action);
       if (newState.winner) {
+        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
         console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
         return action;
       }
@@ -613,8 +679,11 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
       if (typeof window !== 'undefined') console.warn('[strategicAI] Search timed out — falling back to first legal action');
     }
     const actions = getLegalActions(gameState);
-    return actions[0] ?? { type: 'endTurn' };
+    const fallback = actions[0] ?? { type: 'endTurn' };
+    aiLog(`   → FALLBACK (timeout/no result): ${describeAction(fallback, gameState)}`);
+    return fallback;
   }
 
+  aiLog(`   → CHOSEN (score ${result.score?.toFixed(1)}): ${describeAction(result.action, gameState)}`);
   return result.action;
 }
