@@ -414,7 +414,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       const unit = prev.units.find(u => u.uid === selectedUnit);
       const targetHasEnemy = prev.units.some(u => u.owner !== prev.activePlayer && u.row === row && u.col === col)
         || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col);
-      if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) > 1) {
+      if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
         const tiles = getApproachTiles(prev, unit, row, col);
         if (tiles.length > 1) {
           enteringApproach = true;

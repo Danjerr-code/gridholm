@@ -2928,9 +2928,9 @@ export function moveUnit(state, unitUid, row, col) {
       return s;
     }
 
-    // SPD 2 approach: if attacker is more than 1 tile away, slide to adjacent approach tile first
+    // SPD 2 approach: if attacker is exactly 2 tiles away, slide to adjacent approach tile first
     const attackDist = manhattan([unit.row, unit.col], [row, col]);
-    if (attackDist > 1) {
+    if (attackDist === 2) {
       const approachOptions = getApproachTiles(s, unit, row, col);
       if (approachOptions.length === 0) return s; // no valid approach — abort
       const [ar, ac] = approachOptions[0];

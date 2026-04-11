@@ -338,7 +338,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     const unit = gameState.units.find(u => u.uid === selectedUnit);
     const targetHasEnemy = gameState.units.some(u => u.owner !== gameState.activePlayer && u.row === row && u.col === col)
       || gameState.champions.some(ch => ch.owner !== gameState.activePlayer && ch.row === row && ch.col === col);
-    if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) > 1) {
+    if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
       const tiles = getApproachTiles(gameState, unit, row, col);
       if (tiles.length > 1) {
         setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
