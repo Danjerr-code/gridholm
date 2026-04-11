@@ -777,9 +777,14 @@ export const SPELL_REGISTRY = {
     unregisterUnit(liveTarget.uid, state);
     unregisterModifiers(liveTarget.uid, state);
     liveTarget.owner = caster;
+    // Clear enemy-side status effects and action flags so the unit starts clean
+    liveTarget.rooted = false;
+    liveTarget.turnAtkBonus = 0;
+    liveTarget.moved = true;   // cannot move this turn
+    liveTarget.actioned = true; // cannot act this turn
+    liveTarget.summoned = true; // summoning sickness lifts on caster's next turn
     registerUnit(liveTarget, state);
     registerModifiers(liveTarget, state);
-    liveTarget.summoned = true; // summoning sickness
     addLog(state, `${liveTarget.name} seized by Mind Seize.`);
     return state;
   },

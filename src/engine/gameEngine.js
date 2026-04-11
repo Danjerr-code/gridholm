@@ -2213,6 +2213,12 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Mind Seize ──
+  else if (effect === 'mindseize') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'mindseize', [target]);
+    }
+  }
   // ── Chains of Light stun (triggered after omen is placed) ──
   else if (effect === 'chainsoflight_summon') {
     const omenUid = data.omenUid;
