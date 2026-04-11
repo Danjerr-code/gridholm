@@ -881,7 +881,7 @@ function BrowserCard({ card, copies, atLimit, onClick }) {
           width: '20px',
           height: '20px',
           borderRadius: '50%',
-          background: '#C9A84C',
+          background: '#ffffff',
           color: '#0a0a0f',
           fontFamily: "'Cinzel', serif",
           fontSize: '11px',
