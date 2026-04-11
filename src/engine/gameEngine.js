@@ -1226,6 +1226,27 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
     // Register passive: restore 1 HP to champion whenever an enemy unit dies
     registerDynamicTrigger(unit.uid, { event: 'onEnemyUnitDeath', effect: 'restoreOneHPToChampion' }, state);
   }
+  if (unit.id === 'curseflayer') {
+    // On reveal: place Cursed Ground on the tile this unit was revealed on
+    if (!state.terrainGrid) state.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
+    state.terrainGrid[unit.row][unit.col] = {
+      id: 'cursed',
+      whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'dark', combatOnly: true },
+      ownerName: 'Curse Flayer',
+      cardId: 'curseflayer',
+    };
+    addLog(state, `Curse Flayer reveal: Cursed Ground placed at (${unit.row},${unit.col}).`);
+  }
+  if (unit.id === 'gravecaller') {
+    // On reveal: return a random combat unit from owner's grave to hand
+    const owner = unit.owner;
+    const combatGrave = state.players[owner].grave.filter(u => !u.token && (u.type === 'unit'));
+    if (combatGrave.length > 0) {
+      const chosen = combatGrave[Math.floor(Math.random() * combatGrave.length)];
+      state.players[owner].hand.push(chosen);
+      addLog(state, `Gravecaller reveal: ${chosen.name} returned to hand.`);
+    }
+  }
 }
 
 export function playerRevealUnit(state, unitUid) {
