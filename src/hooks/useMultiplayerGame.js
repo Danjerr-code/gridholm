@@ -3,6 +3,7 @@ import { supabase, getGuestId } from '../supabase.js';
 import { playTurnStartSound } from '../audio.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 
+const TURN_TIMER_ENABLED = false; // set to true to re-enable the idle forfeit timer
 const IDLE_WARN_SECONDS = 30;  // show countdown when this many seconds remain
 const IDLE_FORFEIT_SECONDS = 60; // forfeit after this many idle seconds
 
@@ -97,8 +98,9 @@ export function useMultiplayerGame(gameId) {
   }, [gameId, guestId]);
 
   // Idle elapsed ticker: counts seconds since last session update during active gameplay
+  // Disabled when TURN_TIMER_ENABLED is false
   useEffect(() => {
-    if (!session || session.status !== 'active') {
+    if (!TURN_TIMER_ENABLED || !session || session.status !== 'active') {
       setIdleElapsed(0);
       return;
     }
@@ -118,8 +120,9 @@ export function useMultiplayerGame(gameId) {
   }, [session?.active_player]);
 
   // Auto-forfeit idle player: triggered by the waiting player when opponent is idle >= 60s
+  // Disabled when TURN_TIMER_ENABLED is false
   useEffect(() => {
-    if (!session || session.status !== 'active' || !supabase) return;
+    if (!TURN_TIMER_ENABLED || !session || session.status !== 'active' || !supabase) return;
     if (session.active_player === guestId) return; // it's my turn — I don't forfeit myself
     if (idleElapsed < IDLE_FORFEIT_SECONDS) return;
     if (forfeitCalledRef.current) return;
