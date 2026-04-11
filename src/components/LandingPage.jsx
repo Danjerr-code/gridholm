@@ -147,7 +147,7 @@ function ChampionPortrait({ champion, size = 80, height = 110 }) {
         src={url}
         alt={champion.name}
         className="lp-hero-portrait"
-        style={{ width: size, height }}
+        style={{ width: size, height, objectFit: 'cover' }}
       />
     );
   }
@@ -421,12 +421,9 @@ function FourAttributes() {
                   width: '100%',
                   height: 160,
                   background: '#1f2937',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   borderBottom: `1px solid ${faction.color}30`,
                 }}>
-                  <ChampionPortrait champion={champion} size={90} height={130} />
+                  <ChampionPortrait champion={champion} size="100%" height={160} />
                 </div>
               </div>
 
