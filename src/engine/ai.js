@@ -49,6 +49,7 @@ function aiChampionMove(state) {
 
   moveTiles.sort((a, b) => manhattan(a, [2, 2]) - manhattan(b, [2, 2]));
   const [r, c] = moveTiles[0];
+  if (getAIDebug()) console.log(`[HeuristicAI] Champion move: [${champ.row},${champ.col}] → [${r},${c}]`);
   return moveChampion(state, r, c);
 }
 
@@ -69,6 +70,7 @@ function aiSummonCast(state) {
     const summonTiles = getSummonTiles(s);
     if (summonTiles.length === 0) break;
     const [r, c] = summonTiles[0];
+    if (getAIDebug()) console.log(`[HeuristicAI] Summon: ${card.name}(cost ${card.cost}) @ [${r},${c}]`);
     s = summonUnit(s, card.uid, r, c);
     // Clear any pending states from on-summon effects (auto-resolve for AI)
     if (s.pendingHandSelect) {
@@ -99,7 +101,10 @@ function aiSummonCast(state) {
           .map(uid => s.units.find(u => u.uid === uid))
           .filter(Boolean)
           .sort((a, b) => b.hp - a.hp)[0];
-        if (targetUnit) s = resolveSpell(s, spell.uid, targetUnit.uid);
+        if (targetUnit) {
+          if (getAIDebug()) console.log(`[HeuristicAI] Cast: ${spell.name}(cost ${spell.cost}) → ${targetUnit.name}(hp ${targetUnit.hp})`);
+          s = resolveSpell(s, spell.uid, targetUnit.uid);
+        }
       }
     } else if (spell.effect === 'ironshield') {
       // Target lowest HP friendly
@@ -108,10 +113,14 @@ function aiSummonCast(state) {
           .map(uid => s.units.find(u => u.uid === uid))
           .filter(Boolean)
           .sort((a, b) => a.hp - b.hp)[0];
-        if (targetUnit) s = resolveSpell(s, spell.uid, targetUnit.uid);
+        if (targetUnit) {
+          if (getAIDebug()) console.log(`[HeuristicAI] Cast: ${spell.name}(cost ${spell.cost}) → ${targetUnit.name}(hp ${targetUnit.hp})`);
+          s = resolveSpell(s, spell.uid, targetUnit.uid);
+        }
       }
     } else if (targets.length > 0) {
       // Cast on first valid target
+      if (getAIDebug()) console.log(`[HeuristicAI] Cast: ${spell.name}(cost ${spell.cost}) → target ${targets[0]}`);
       s = resolveSpell(s, spell.uid, targets[0]);
       // Clear multi-step pending spells
       if (s.pendingSpell) s.pendingSpell = null;
@@ -119,6 +128,7 @@ function aiSummonCast(state) {
                spell.effect === 'infernalpact' || spell.effect === 'packhowl' || spell.effect === 'callofthesnakes' ||
                spell.effect === 'martiallaw' || spell.effect === 'fortify') {
       // No-target spells — resolve with null
+      if (getAIDebug()) console.log(`[HeuristicAI] Cast: ${spell.name}(cost ${spell.cost}) [no-target]`);
       s = resolveSpell(s, spell.uid, null);
     }
   }
@@ -175,6 +185,7 @@ function aiUnitMove(state) {
     });
 
     const [tr, tc] = moveTiles[0];
+    if (getAIDebug()) console.log(`[HeuristicAI] Unit move: ${liveUnit.name}(${liveUnit.atk}/${liveUnit.hp}) [${liveUnit.row},${liveUnit.col}] → [${tr},${tc}]`);
     s = moveUnit(s, liveUnit.uid, tr, tc);
   }
 
@@ -200,6 +211,8 @@ function aiChampionAbility(state) {
     : champDef.abilities.attuned;
 
   if (!ability || ability.type !== 'activated') return s;
+
+  if (getAIDebug()) console.log(`[HeuristicAI] Considering champion ability: ${ability.id} (mana ${p.resources})`);
 
   // Determine mana cost (dark_pact costs HP not mana)
   const manaCost = ability.cost?.type === 'mana' ? ability.cost.amount : 0;
