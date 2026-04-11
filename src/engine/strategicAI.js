@@ -41,7 +41,7 @@ const THRONE_COL = 2;
 const NO_TARGET_SPELLS = new Set([
   'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
   'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
-  'ancientspring', 'verdantsurge', 'predatorsmark',
+  'ancientspring', 'verdantsurge', 'predatorsmark', 'seconddawn',
 ]);
 
 const TWO_STEP_SPELLS = new Set(['bloom', 'ambush']);

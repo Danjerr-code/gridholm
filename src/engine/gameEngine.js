@@ -1587,7 +1587,7 @@ export function playCard(state, cardUid) {
       'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
       'ancientspring', 'verdantsurge', 'predatorsmark',
-      'agonizingsymphony', 'pestilence', 'fatesledger',
+      'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
@@ -3690,15 +3690,8 @@ export function hasValidTargets(card, state, playerIndex) {
     case 'demolish':
       return state.units.some(u => u.isRelic || u.isOmen);
 
-    case 'seconddawn': {
-      const grave = state.players[playerIndex].grave.filter(u => CARD_DB[u.id]?.type === 'unit');
-      if (grave.length === 0) return false;
-      const champPos = state.champions[playerIndex];
-      return cardinalNeighbors(champPos.row, champPos.col).some(([r, c]) =>
-        !state.units.some(u => u.row === r && u.col === c) &&
-        !state.champions.some(ch => ch.row === r && ch.col === c)
-      );
-    }
+    case 'seconddawn':
+      return state.players[playerIndex].grave.some(u => u.type === 'unit' && !u.token);
 
     default:
       return true;
