@@ -682,93 +682,6 @@ function Screenshots() {
   );
 }
 
-function SteamSection() {
-  return (
-    <section style={{
-      background: '#0a0a0f',
-      padding: '80px 24px',
-    }}>
-      <div style={{
-        maxWidth: 600,
-        margin: '0 auto',
-        textAlign: 'center',
-        background: '#1b2838',
-        borderRadius: 12,
-        padding: '48px 32px',
-        border: '1px solid #2a475e',
-      }}>
-        {/* Steam logo placeholder */}
-        <div style={{
-          width: 56,
-          height: 56,
-          background: '#2a475e',
-          borderRadius: '50%',
-          margin: '0 auto 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 24,
-        }}>
-          🎮
-        </div>
-
-        <h2 style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: 'clamp(20px, 4vw, 28px)',
-          fontWeight: 700,
-          color: '#c6d4df',
-          letterSpacing: '0.08em',
-          margin: '0 0 16px',
-        }}>
-          Coming to Steam
-        </h2>
-
-        <p style={{
-          color: '#8f98a0',
-          fontSize: 16,
-          lineHeight: 1.6,
-          margin: '0 0 28px',
-        }}>
-          Gridholm is coming to Steam. Wishlist now to be notified at launch.
-        </p>
-
-        <a
-          href="https://store.steampowered.com"
-          className="lp-btn-steam"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            background: '#1b2838',
-            color: '#c6d4df',
-            fontFamily: "'Cinzel', serif",
-            fontSize: 14,
-            fontWeight: 600,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            padding: '12px 28px',
-            borderRadius: 4,
-            border: '1px solid #4c6b82',
-            transition: 'all 150ms ease',
-            cursor: 'pointer',
-          }}
-        >
-          Wishlist on Steam
-        </a>
-
-        <p style={{
-          marginTop: 20,
-          color: '#4b5563',
-          fontSize: 13,
-        }}>
-          Free to play. Card packs and cosmetic skins available at launch.
-        </p>
-      </div>
-    </section>
-  );
-}
-
 function Footer() {
   return (
     <footer style={{
@@ -830,7 +743,6 @@ export default function LandingPage() {
         <WhatIsGridholm />
         <FourAttributes />
         <Screenshots />
-        <SteamSection />
         <Footer />
       </div>
     </>
