@@ -424,18 +424,30 @@ export const FACTION_INFO = {
 export function buildDeck(deckId = 'human') {
   if (deckId === 'custom') {
     const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
+    console.log('[buildDeck] deckId=custom | localStorage gridholm_custom_deck:', saved ? `found (${saved.cards?.length ?? 0} cards)` : 'null');
     if (saved && Array.isArray(saved.cards) && saved.cards.length > 0) {
-      return saved.cards.map(id => ({
+      const cards = saved.cards.map(id => ({
         ...CARD_DB[id],
         uid: `${id}_${Math.random().toString(36).slice(2)}`,
       })).filter(c => c.id);
+      const legendaries = cards.filter(c => c.legendary).map(c => c.name);
+      console.log('[buildDeck] custom deck card IDs:', saved.cards);
+      console.log('[buildDeck] custom deck card names:', cards.map(c => c.name));
+      console.log('[buildDeck] custom deck legendaries:', legendaries.length ? legendaries : '(none)');
+      return cards;
     }
   }
   const deck = DECKS[deckId] ?? DECKS.human;
-  return deck.cards.map(id => ({
+  const resolvedDeckId = DECKS[deckId] ? deckId : 'human';
+  const cards = deck.cards.map(id => ({
     ...CARD_DB[id],
     uid: `${id}_${Math.random().toString(36).slice(2)}`,
   }));
+  const legendaries = cards.filter(c => c.legendary).map(c => c.name);
+  console.log(`[buildDeck] requested deckId="${deckId}" → resolved="${resolvedDeckId}" | card IDs:`, deck.cards);
+  console.log(`[buildDeck] card names:`, cards.map(c => c.name));
+  console.log(`[buildDeck] legendaries:`, legendaries.length ? legendaries : '(none)');
+  return cards;
 }
 
 // Deck validation

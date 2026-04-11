@@ -107,7 +107,11 @@ export default function Root() {
     if (!selectedDeck) {
       return (
         <DeckSelect
-          onSelect={(deckId) => setSelectedDeck(deckId)}
+          onSelect={(deckId) => {
+            const customDeck = localStorage.getItem('gridholm_custom_deck');
+            console.log(`[DeckSelect] Player selected deckId="${deckId}" | localStorage gridholm_custom_deck: ${customDeck ? `found (${JSON.parse(customDeck)?.cards?.length ?? 0} cards)` : 'null'}`);
+            setSelectedDeck(deckId);
+          }}
           opponentSelected={null}
         />
       );

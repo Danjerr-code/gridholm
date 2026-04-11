@@ -48,6 +48,7 @@ function pickRandomAiDeck() {
 }
 
 function createStateWithAiLog(deckId, aiDeckId) {
+  console.log(`[createInitialState] Player 1 deckId="${deckId}" | AI (Player 2) deckId="${aiDeckId}"`);
   const s = createInitialState(deckId, aiDeckId);
   const aiName = FACTION_INFO[aiDeckId]?.name ?? aiDeckId;
   return { ...s, log: [...s.log, `AI is playing ${aiName}.`] };
@@ -56,6 +57,7 @@ function createStateWithAiLog(deckId, aiDeckId) {
 export function useGameState({ deckId = 'human' } = {}) {
   const [state, setState] = useState(() => {
     const aiDeckId = pickRandomAiDeck();
+    console.log(`[useGameState] Initializing game | Player 1 deckId="${deckId}" | AI deckId="${aiDeckId}"`);
     return autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId));
   });
 
