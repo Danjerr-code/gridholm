@@ -296,6 +296,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           border: `2px dashed ${omenGlowColor.ring}cc`,
           borderRadius: '50%',
           boxShadow: `inset 0 0 8px ${omenGlowColor.glow}, 0 0 0 2px ${ownerRingColor.ring}88, 0 0 12px ${omenGlowColor.glow}`,
+          overflow: 'hidden',
           ...ringStyle,
         }}
         onPointerDown={handlePointerDown}
@@ -305,8 +306,29 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         onClick={handleClick}
         title={`${unit.name} [Omen] | ${unit.turnsRemaining} turn(s) remaining — ${rulesTitle(unit.rules)}`}
       >
-        {/* Rune symbol */}
-        <span style={{
+        {/* Card art */}
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={unit.name}
+            draggable={false}
+            onError={(e) => { e.target.style.display = 'none'; }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              borderRadius: '50%',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              opacity: 0.75,
+              WebkitTouchCallout: 'none',
+              userSelect: 'none',
+            }}
+          />
+        )}
+        {/* Rune symbol (only shown when no card art) */}
+        {!imageUrl && <span style={{
           fontSize: '14px',
           lineHeight: 1,
           position: 'absolute',
@@ -315,7 +337,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           transform: 'translate(-50%, -60%)',
           zIndex: 1,
           opacity: 0.7,
-        }}>✦</span>
+        }}>✦</span>}
         {/* Turns remaining counter — prominent */}
         <div className={showOmenTick ? 'omen-number-tick-anim' : ''} style={{
           position: 'absolute',
