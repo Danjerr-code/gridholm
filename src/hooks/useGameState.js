@@ -369,7 +369,11 @@ export function useGameState({ deckId = 'human' } = {}) {
       return next;
     });
     clearSelection();
-    if (state.activePlayer !== AI_PLAYER) {
+    if (latestStateRef.current?.pendingHandSelect) {
+      // Clockwork Manimus (or similar) paused turn advance waiting for discard.
+      // Enter hand-select mode so the player can pick a card; do not schedule the AI.
+      setSelectMode('hand_select');
+    } else if (state.activePlayer !== AI_PLAYER) {
       scheduleAITurn();
     }
   }, [state.activePlayer, clearSelection, scheduleAITurn]);
