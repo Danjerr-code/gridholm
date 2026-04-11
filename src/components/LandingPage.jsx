@@ -1,39 +1,59 @@
 import { getCardImageUrl } from '../supabase.js';
 import { CHAMPIONS } from '../engine/champions.js';
 import { FACTION_INFO } from '../engine/cards.js';
+import { LightSymbol, PrimalSymbol, MysticSymbol, DarkSymbol } from '../assets/attributeSymbols.jsx';
+
+const ATTR_CRYSTALS = {
+  light:  LightSymbol,
+  primal: PrimalSymbol,
+  mystic: MysticSymbol,
+  dark:   DarkSymbol,
+};
 
 const STYLES = `
   html { scroll-behavior: smooth; }
 
-  .lp-hero-portraits {
+  .lp-hero-crystals {
     display: flex;
-    gap: 12px;
+    gap: 32px;
     justify-content: center;
     flex-wrap: wrap;
     margin-top: 32px;
   }
-  .lp-hero-portrait {
-    width: 80px;
-    height: 110px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 2px solid #C9A84C40;
-    background: #1f2937;
-  }
-  .lp-hero-portrait-placeholder {
-    width: 80px;
-    height: 110px;
-    border-radius: 6px;
-    border: 2px solid #C9A84C40;
-    background: #1f2937;
+  .lp-crystal-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: #4b5563;
-    text-align: center;
-    padding: 4px;
+    gap: 10px;
   }
+  .lp-crystal-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  @keyframes lp-pulse-gold {
+    0%, 100% { filter: drop-shadow(0 0 6px #C9A84C60); }
+    50%       { filter: drop-shadow(0 0 20px #C9A84CAA); }
+  }
+  @keyframes lp-pulse-green {
+    0%, 100% { filter: drop-shadow(0 0 6px #22C55E60); }
+    50%       { filter: drop-shadow(0 0 20px #22C55EAA); }
+  }
+  @keyframes lp-pulse-purple {
+    0%, 100% { filter: drop-shadow(0 0 6px #A855F760); }
+    50%       { filter: drop-shadow(0 0 20px #A855F7AA); }
+  }
+  @keyframes lp-pulse-red {
+    0%, 100% { filter: drop-shadow(0 0 6px #EF444460); }
+    50%       { filter: drop-shadow(0 0 20px #EF4444AA); }
+  }
+  .lp-crystal-glow-light  { animation: lp-pulse-gold   2.6s ease-in-out infinite; }
+  .lp-crystal-glow-primal { animation: lp-pulse-green  2.6s ease-in-out infinite; }
+  .lp-crystal-glow-mystic { animation: lp-pulse-purple 2.6s ease-in-out infinite; }
+  .lp-crystal-glow-dark   { animation: lp-pulse-red    2.6s ease-in-out infinite; }
 
   .lp-what-grid {
     display: grid;
@@ -250,10 +270,22 @@ function HeroSection() {
           </a>
         </div>
 
-        <div className="lp-hero-portraits">
-          {ATTRIBUTE_ORDER.map(({ champKey }) => (
-            <ChampionPortrait key={champKey} champion={CHAMPIONS[champKey]} size={80} height={110} />
-          ))}
+        <div className="lp-hero-crystals">
+          {ATTRIBUTE_ORDER.map(({ champKey, factionKey }) => {
+            const Sym = ATTR_CRYSTALS[champKey];
+            const faction = FACTION_INFO[factionKey];
+            const labelColor = champKey === 'light' ? '#C9A84C' : faction.color;
+            return (
+              <div key={champKey} className="lp-crystal-item">
+                <div className={`lp-crystal-glow-${champKey}`}>
+                  <Sym size={88} />
+                </div>
+                <span className="lp-crystal-label" style={{ color: labelColor }}>
+                  {faction.name}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -368,26 +400,34 @@ function FourAttributes() {
         {ATTRIBUTE_ORDER.map(({ champKey, factionKey }) => {
           const champion = CHAMPIONS[champKey];
           const faction = FACTION_INFO[factionKey];
+          const Sym = ATTR_CRYSTALS[champKey];
           return (
             <div key={champKey} style={{
               background: '#111827',
               borderRadius: 8,
               border: `2px solid ${faction.color}40`,
-              overflow: 'hidden',
+              position: 'relative',
               display: 'flex',
               flexDirection: 'column',
             }}>
+              {/* Attribute crystal — top-right corner overlapping border */}
+              <div style={{ position: 'absolute', top: -12, right: -12, zIndex: 2 }}>
+                <Sym size={28} />
+              </div>
+
               {/* Portrait */}
-              <div style={{
-                width: '100%',
-                height: 160,
-                background: '#1f2937',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderBottom: `1px solid ${faction.color}30`,
-              }}>
-                <ChampionPortrait champion={champion} size={90} height={130} />
+              <div style={{ overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
+                <div style={{
+                  width: '100%',
+                  height: 160,
+                  background: '#1f2937',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottom: `1px solid ${faction.color}30`,
+                }}>
+                  <ChampionPortrait champion={champion} size={90} height={130} />
+                </div>
               </div>
 
               <div style={{ padding: '20px 16px' }}>
