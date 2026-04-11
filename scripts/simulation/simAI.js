@@ -185,7 +185,19 @@ function scoreAction(action, state) {
     }
 
     case 'championAbility': {
-      return 20;
+      // Use ability with leftover mana AFTER board development, not instead of it.
+      const p = state.players[ap];
+      const abilityCost = 2; // all attuned abilities cost 2 mana
+      const manaAfterAbility = p.resources - abilityCost;
+      const hasFriendlyTarget = state.units.some(u => u.owner === ap);
+      // "Leftover mana": already acted offensively AND <=2 mana would remain after ability
+      // (meaning no significant unit can be summoned anyway)
+      const alreadyActed = state.units.some(u => u.owner === ap && u.moved);
+      if (alreadyActed && manaAfterAbility <= 2) return 18; // spend leftover mana
+      // Plentiful mana + units to target: just below advance, fine to use
+      if (manaAfterAbility >= 3 && hasFriendlyTarget) return 14;
+      // Default: filler below all board development
+      return 10;
     }
 
     case 'championMove': {
