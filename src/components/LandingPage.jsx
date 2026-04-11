@@ -3,6 +3,76 @@ import { CHAMPIONS } from '../engine/champions.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { LightSymbol, PrimalSymbol, MysticSymbol, DarkSymbol } from '../assets/attributeSymbols.jsx';
 
+function SteamLogoIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.606 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.497 1.009 2.455-.397.957-1.494 1.41-2.455 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.662 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.252 0-2.265-1.014-2.265-2.265z"/>
+    </svg>
+  );
+}
+
+function DeckIcon({ size = 32, color = '#C9A84C' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      {/* Back card */}
+      <rect x="14" y="10" width="22" height="30" rx="3" fill="#0a0a0f" stroke={color} strokeWidth="1.2" opacity="0.5"/>
+      {/* Middle card */}
+      <rect x="10" y="7" width="22" height="30" rx="3" fill="#111827" stroke={color} strokeWidth="1.2" opacity="0.75"/>
+      {/* Front card */}
+      <rect x="6" y="4" width="22" height="30" rx="3" fill="#111827" stroke={color} strokeWidth="1.5"/>
+      {/* Rune diamond */}
+      <path d="M17 14 L22 19 L17 24 L12 19 Z" stroke={color} strokeWidth="1.4" strokeLinejoin="round" fill="none"/>
+      <circle cx="17" cy="19" r="2" fill={color} opacity="0.7"/>
+      {/* Bottom dots (card pips) */}
+      <circle cx="12" cy="28" r="1.2" fill={color} opacity="0.5"/>
+      <circle cx="17" cy="28" r="1.2" fill={color} opacity="0.5"/>
+      <circle cx="22" cy="28" r="1.2" fill={color} opacity="0.5"/>
+    </svg>
+  );
+}
+
+function SwordsIcon({ size = 32, color = '#3b82f6' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      {/* Sword 1: top-left to bottom-right */}
+      <line x1="8" y1="8" x2="38" y2="38" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Guard 1 */}
+      <line x1="11" y1="20" x2="20" y2="11" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      {/* Pommel 1 */}
+      <circle cx="9" cy="9" r="2.5" fill={color} opacity="0.7"/>
+      {/* Sword 2: top-right to bottom-left */}
+      <line x1="40" y1="8" x2="10" y2="38" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Guard 2 */}
+      <line x1="28" y1="11" x2="37" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      {/* Pommel 2 */}
+      <circle cx="39" cy="9" r="2.5" fill={color} opacity="0.7"/>
+      {/* Center gem */}
+      <circle cx="24" cy="24" r="3" fill={color} opacity="0.5" stroke={color} strokeWidth="1"/>
+    </svg>
+  );
+}
+
+function SkullIcon({ size = 32, color = '#ef4444' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      {/* Skull dome */}
+      <path d="M24 7 C14 7 8 13.5 8 21 C8 27 11.5 31.5 17 33.5 L17 39 L31 39 L31 33.5 C36.5 31.5 40 27 40 21 C40 13.5 34 7 24 7 Z" stroke={color} strokeWidth="1.5" fill="#111827"/>
+      {/* Left eye socket */}
+      <ellipse cx="18" cy="21" rx="4.5" ry="4" fill={color} opacity="0.85"/>
+      {/* Right eye socket */}
+      <ellipse cx="30" cy="21" rx="4.5" ry="4" fill={color} opacity="0.85"/>
+      {/* Nose cavity */}
+      <path d="M22 27 L24 30.5 L26 27 Z" fill={color} opacity="0.5"/>
+      {/* Teeth */}
+      <line x1="19" y1="33.5" x2="19" y2="38" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+      <line x1="24" y1="34" x2="24" y2="38.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+      <line x1="29" y1="33.5" x2="29" y2="38" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+      {/* Crown */}
+      <path d="M14 12 L17 8 L20 12 L24 7 L28 12 L31 8 L34 12" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" fill="none" opacity="0.7"/>
+    </svg>
+  );
+}
+
 const ATTR_CRYSTALS = {
   light:  LightSymbol,
   primal: PrimalSymbol,
@@ -108,6 +178,24 @@ const STYLES = `
     margin-bottom: 12px;
   }
 
+  .lp-hero-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 480px) {
+    .lp-hero-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    .lp-hero-buttons > a {
+      width: 220px;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+
   .lp-btn-play:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
@@ -117,8 +205,34 @@ const STYLES = `
     border-color: #C9A84C;
     color: #C9A84C;
   }
-  .lp-btn-steam:hover {
-    filter: brightness(1.2);
+  .lp-btn-steam-hero:hover {
+    background: #2a3f55;
+    border-color: #6b9ab8;
+  }
+
+  .lp-what-card-gold {
+    border-color: #C9A84C40 !important;
+    box-shadow: 0 0 18px #C9A84C20, 0 0 2px #C9A84C10;
+    transition: box-shadow 300ms ease;
+  }
+  .lp-what-card-gold:hover {
+    box-shadow: 0 0 32px #C9A84C35, 0 0 8px #C9A84C20;
+  }
+  .lp-what-card-blue {
+    border-color: #3b82f640 !important;
+    box-shadow: 0 0 18px #3b82f620, 0 0 2px #3b82f610;
+    transition: box-shadow 300ms ease;
+  }
+  .lp-what-card-blue:hover {
+    box-shadow: 0 0 32px #3b82f635, 0 0 8px #3b82f620;
+  }
+  .lp-what-card-red {
+    border-color: #ef444440 !important;
+    box-shadow: 0 0 18px #ef444420, 0 0 2px #ef444410;
+    transition: box-shadow 300ms ease;
+  }
+  .lp-what-card-red:hover {
+    box-shadow: 0 0 32px #ef444435, 0 0 8px #ef444420;
   }
 
   .lp-hero-grid-bg {
@@ -218,12 +332,7 @@ function HeroSection() {
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-        }}>
+        <div className="lp-hero-buttons">
           <a
             href="#/lobby"
             className="lp-btn-play"
@@ -268,6 +377,32 @@ function HeroSection() {
           >
             How to Play
           </a>
+          <a
+            href="https://store.steampowered.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lp-btn-steam-hero"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#1b2838',
+              color: '#c6d4df',
+              fontFamily: "'Cinzel', serif",
+              fontSize: 14,
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textDecoration: 'none',
+              padding: '13px 24px',
+              borderRadius: 4,
+              border: '1px solid #4c6b82',
+              transition: 'all 150ms ease',
+              cursor: 'pointer',
+            }}
+          >
+            <SteamLogoIcon size={18} />
+            Wishlist on Steam
+          </a>
         </div>
 
         <div className="lp-hero-crystals">
@@ -297,17 +432,26 @@ function WhatIsGridholm() {
     {
       title: 'Build Your Deck',
       body: 'Choose your champion, select your attribute pairing, and build a 30-card deck tailored to your playstyle.',
-      icon: '♟',
+      Icon: DeckIcon,
+      iconColor: '#C9A84C',
+      cardClass: 'lp-what-card-gold',
+      iconBorder: '#C9A84C30',
     },
     {
       title: 'Command the Grid',
       body: 'Summon units, move them across the 5×5 board, and control the Throne at the center of the field.',
-      icon: '⚔',
+      Icon: SwordsIcon,
+      iconColor: '#3b82f6',
+      cardClass: 'lp-what-card-blue',
+      iconBorder: '#3b82f630',
     },
     {
       title: 'Destroy Their Champion',
       body: 'Reduce the enemy champion to 0 HP through superior positioning, timing, and tactical card play.',
-      icon: '💀',
+      Icon: SkullIcon,
+      iconColor: '#ef4444',
+      cardClass: 'lp-what-card-red',
+      iconBorder: '#ef444430',
     },
   ];
 
@@ -331,7 +475,7 @@ function WhatIsGridholm() {
 
       <div className="lp-what-grid">
         {cols.map(col => (
-          <div key={col.title} style={{
+          <div key={col.title} className={col.cardClass} style={{
             background: '#1f2937',
             borderRadius: 8,
             padding: '32px 24px',
@@ -346,11 +490,10 @@ function WhatIsGridholm() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
               margin: '0 auto 20px',
-              border: '1px solid #C9A84C30',
+              border: `1px solid ${col.iconBorder}`,
             }}>
-              {col.icon}
+              <col.Icon size={32} color={col.iconColor} />
             </div>
             <h3 style={{
               fontFamily: "'Cinzel', serif",
