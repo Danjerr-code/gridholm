@@ -1392,7 +1392,11 @@ export function getChampionMoveTiles(state) {
         if (isTileOccupied(state, r, c)) {
           // Allow enemy unit tiles only when champion has ATK > 0
           const enemyUnit = state.units.find(u => u.owner !== state.activePlayer && u.row === r && u.col === c);
-          return !!enemyUnit && champAtk > 0;
+          if (enemyUnit) return champAtk > 0;
+          // Allow opposing champion tile only when champion has ATK > 0
+          const enemyChamp = state.champions.find(ch => ch.owner !== state.activePlayer && ch.row === r && ch.col === c);
+          if (enemyChamp) return champAtk > 0;
+          return false;
         }
         return true;
       });
@@ -1419,7 +1423,7 @@ export function getChampionMoveTiles(state) {
         continue; // cannot pass through enemy units
       }
       if (enemyChamp) {
-        result.push([nr, nc]);
+        if (champAtk > 0) result.push([nr, nc]);
         continue; // cannot pass through enemy champion
       }
       result.push([nr, nc]);
@@ -1493,17 +1497,37 @@ export function moveChampion(state, row, col) {
     champ.moved = true;
     checkWinner(s);
   } else {
-    champ.row = row;
-    champ.col = col;
-    champ.moved = true;
-    addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
-    // Reveal hidden enemy units adjacent to champion's new position
-    for (const [nr, nc] of cardinalNeighbors(row, col)) {
-      const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
-      if (hiddenEnemy) {
-        revealUnit(s, hiddenEnemy);
-        if (hiddenEnemy.id === 'shadowtrap') {
-          // Shadow Trap Hole: destroy the unit that revealed it (champion can't be destroyed, skip)
+    // Check if moving into the opposing champion's tile (champion vs champion combat)
+    const opposingChamp = s.champions.find(ch => ch.owner !== s.activePlayer && ch.row === row && ch.col === col);
+    if (opposingChamp) {
+      const champAtk = getChampionAtkBuff(s, champ);
+      const opposingChampAtk = getChampionAtkBuff(s, opposingChamp);
+      addLog(s, `${getPlayer(s).name}'s champion attacks ${s.players[opposingChamp.owner].name}'s champion!`);
+      // Active champion deals its ATK to opposing champion
+      opposingChamp.hp -= champAtk;
+      if (champAtk > 0) playChampionDamageSound();
+      addLog(s, `${s.players[opposingChamp.owner].name}'s champion takes ${champAtk} damage.`);
+      // Retaliation: opposing champion deals its ATK back (only if ATK > 0)
+      if (opposingChampAtk > 0) {
+        champ.hp -= opposingChampAtk;
+        playChampionDamageSound();
+        addLog(s, `${s.players[opposingChamp.owner].name}'s champion retaliates for ${opposingChampAtk} damage.`);
+      }
+      champ.moved = true;
+      checkWinner(s);
+    } else {
+      champ.row = row;
+      champ.col = col;
+      champ.moved = true;
+      addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
+      // Reveal hidden enemy units adjacent to champion's new position
+      for (const [nr, nc] of cardinalNeighbors(row, col)) {
+        const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
+        if (hiddenEnemy) {
+          revealUnit(s, hiddenEnemy);
+          if (hiddenEnemy.id === 'shadowtrap') {
+            // Shadow Trap Hole: destroy the unit that revealed it (champion can't be destroyed, skip)
+          }
         }
       }
     }
