@@ -334,7 +334,10 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const s = resolveContractSelect(prev, contractId);
       // If Blood Pact selected, stay in action phase with pendingBloodPact set
-      // If Dark Bargain selected, pendingHandSelect is set — handled by existing hand select UI
+      // If Dark Bargain selected, pendingHandSelect is set — wire up selectMode so Hand shows discard UI
+      if (s.pendingHandSelect) {
+        setSelectMode('hand_select');
+      }
       return s;
     });
   }, []);

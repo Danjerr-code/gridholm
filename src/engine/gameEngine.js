@@ -1523,6 +1523,8 @@ export function playCard(state, cardUid) {
   let s = cloneState(state);
   // Block card play while awaiting a hand-card selection (discard prompt must resolve first)
   if (s.pendingHandSelect) return s;
+  // Block card play while Nezzar's contract selection is pending
+  if (s.pendingContractSelect) return s;
   const p = s.players[s.activePlayer];
 
   // Fate's Ledger grave access: if graveAccessActive, allow playing cards from the grave
@@ -2701,6 +2703,8 @@ function fireTerrainOnOccupy(state, unit, row, col) {
 
 export function endActionPhase(state) {
   const s = cloneState(state);
+  // Block end-of-action phase while Nezzar's contract selection is pending
+  if (s.pendingContractSelect) return s;
   if (s.pendingHandSelect && typeof window !== 'undefined') console.log('[PactOfRuin] endActionPhase: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
   s.pendingSpell = null;
   s.pendingSummon = null;
