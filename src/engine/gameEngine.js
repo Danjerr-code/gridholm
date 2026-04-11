@@ -1237,8 +1237,8 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
     state.terrainGrid[unit.row][unit.col] = {
       id: 'cursed',
       whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'dark', combatOnly: true },
-      ownerName: 'Curse Flayer',
-      cardId: 'curseflayer',
+      ownerName: 'Cursed Ground',
+      cardId: 'cursed_ground',
     };
     addLog(state, `Curse Flayer reveal: Cursed Ground placed at (${unit.row},${unit.col}).`);
   }
