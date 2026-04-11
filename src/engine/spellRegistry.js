@@ -609,6 +609,9 @@ export const SPELL_REGISTRY = {
     const target = targets[0];
     if (!target || target.hp > 4 || target.isRelic || target.isOmen) return state;
     addLog(state, `Petrify: ${target.name} is turned to stone!`);
+    // Unregister declarative triggers and modifiers before removing from board
+    unregisterUnit(target.uid, state);
+    unregisterModifiers(target.uid, state);
     // Remove unit from board
     state.units = state.units.filter(u => u.uid !== target.uid);
     // Add a relic owned by the caster in the same tile

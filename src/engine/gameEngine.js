@@ -413,6 +413,8 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
           uid: `${unit.id}_${Math.random().toString(36).slice(2)}`,
         };
         state.units.push(respawned);
+        registerUnit(respawned, state);
+        registerModifiers(respawned, state);
         addLog(state, `Soulstone: ${unit.name} respawns at (${respawnRow},${respawnCol})!`);
       } else {
         addLog(state, `Soulstone: ${unit.name} could not respawn — tile occupied.`);
@@ -1664,8 +1666,19 @@ export function summonUnit(state, cardUid, row, col) {
     const adj = cardinalNeighbors(champ.row, champ.col);
     if (!adj.some(([r, c]) => r === row && c === col)) return s;
     if (isTileOccupied(s, row, col)) return s;
-    const placed = { ...unit, owner: s.activePlayer, row, col };
+    // Restore triggers and modifier from CARD_DB — graveEntry omits them for serialisation safety.
+    const baseCard = CARD_DB[unit.id];
+    const placed = {
+      ...unit,
+      owner: s.activePlayer,
+      row,
+      col,
+      ...(baseCard?.triggers ? { triggers: baseCard.triggers } : {}),
+      ...(baseCard?.modifier ? { modifier: baseCard.modifier } : {}),
+    };
     s.units.push(placed);
+    registerUnit(placed, s);
+    registerModifiers(placed, s);
     s.pendingSummon = null;
     addLog(s, `Rebirth: ${placed.name} returns to the battlefield at full HP!`);
     checkWinner(s);
@@ -1784,18 +1797,13 @@ export function resolveHandSelect(state, selectedCardUid) {
 
   if (hs.reason === 'discardOrDie') {
     // Clockwork Manimus end-of-turn discard. After discard, advance the turn.
-    console.log('[ClockworkManimus] resolveHandSelect: discardOrDie — selectedCardUid:', selectedCardUid, 'activePlayer:', s.activePlayer, 'hand:', p.hand.map(c => c.uid));
     const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
     if (idx !== -1) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Clockwork Manimus: ${discarded.name} discarded.`);
-      console.log('[ClockworkManimus] resolveHandSelect: discarded', discarded.name, '— clearing pendingHandSelect and advancing turn.');
-    } else {
-      console.log('[ClockworkManimus] resolveHandSelect: selectedCardUid not found in hand — no discard. Hand uids:', p.hand.map(c => c.uid));
     }
     s.pendingHandSelect = null;
-    console.log('[ClockworkManimus] resolveHandSelect: pendingHandSelect cleared. Calling completeTurnAdvance.');
     return completeTurnAdvance(s);
   }
 
@@ -3185,16 +3193,12 @@ export function endTurn(state) {
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
 
-  console.log('[ClockworkManimus] endTurn called. activePlayer:', s.activePlayer, 'turn:', s.turn);
   // END TURN TRIGGERS
   fireEndTurnTriggers(s, s.activePlayer);
   if (s.winner) return s;
   // Clockwork Manimus (or any discardOrDie trigger) may set pendingHandSelect.
   // If so, pause turn advance and wait for the player to choose a card.
-  if (s.pendingHandSelect) {
-    console.log('[ClockworkManimus] endTurn: pendingHandSelect detected — pausing turn advance. reason:', s.pendingHandSelect.reason, 'cardUid:', s.pendingHandSelect.cardUid);
-    return s;
-  }
+  if (s.pendingHandSelect) return s;
 
   // Hand limit: 6
   if (p.hand.length > 6) {
