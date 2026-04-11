@@ -661,8 +661,11 @@ function Screenshots() {
               alt={shot.label}
               style={{
                 width: '100%',
+                height: 220,
+                objectFit: 'cover',
                 borderRadius: 8,
-                border: '1px solid #374151',
+                border: '1px solid #C9A84C60',
+                boxShadow: '0 0 12px #C9A84C25, 0 0 2px #C9A84C15',
                 display: 'block',
               }}
             />
@@ -706,6 +709,7 @@ function Footer() {
           { label: 'Play Now', href: '#/lobby' },
           { label: 'How to Play', href: '#/how-to-play' },
           { label: 'Card Gallery', href: '#/card-gallery' },
+          { label: 'Deck Builder', href: '#/deck-builder' },
         ].map(link => (
           <a
             key={link.href}
@@ -725,7 +729,7 @@ function Footer() {
       </nav>
 
       <p style={{ color: '#374151', fontSize: 13, margin: '0 0 4px' }}>
-        Built by Logos Nova LLC
+        Built by Logos Nova.
       </p>
       <p style={{ color: '#374151', fontSize: 12, margin: 0 }}>
         © 2026 Gridholm. All rights reserved.
