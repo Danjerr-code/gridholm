@@ -2808,6 +2808,15 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
+  // Fennwick: untargeted scry — reveals top card via pendingDeckPeek
+  if (unit.id === 'fennwickthequiet') {
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
+  }
+
   return s;
 }
 
