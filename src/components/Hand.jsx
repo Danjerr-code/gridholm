@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Card from './Card.jsx';
 import useLongPress from '../hooks/useLongPress.js';
-import { hasValidTargets } from '../engine/gameEngine.js';
+import { hasValidTargets, getEffectiveCost } from '../engine/gameEngine.js';
 
 function CardWithLongPress({ card, isMobile, onLongPressCard, onLongPressDismiss, onClick, onDragStart, onDragMove, onDragEnd, canDrag, children }) {
   const longPress = useLongPress(() => {
@@ -210,7 +210,8 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
 
         // Selected card gets a smooth lift via CSS transition on Card
         const isSelected = canPlay && selectedCard === card.uid;
-        const isPlayable = canPlay && resources >= card.cost && (!gameState || hasValidTargets(card, gameState, playerIndex));
+        const effectiveCost = getEffectiveCost(card, gameState, playerIndex);
+        const isPlayable = canPlay && resources >= effectiveCost && (!gameState || hasValidTargets(card, gameState, playerIndex));
 
         if (isGhost) {
           return (
@@ -256,6 +257,7 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
             >
               <Card
                 card={card}
+                effectiveCost={effectiveCost}
                 isSelected={isSelected}
                 isPlayable={isPlayable}
               />

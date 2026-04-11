@@ -15,7 +15,8 @@ function getFactionColor(unitType) {
   return FACTION_TEXT_COLORS[primary] || '#6a6a8a';
 }
 
-export default function Card({ card, isSelected, isPlayable, onClick }) {
+export default function Card({ card, effectiveCost, isSelected, isPlayable, onClick }) {
+  const displayCost = effectiveCost !== undefined ? effectiveCost : card.cost;
   const isSpell = card.type === 'spell';
   const selectedStyle = isSelected ? '-translate-y-2.5 scale-110' : '';
   const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer' : 'cursor-pointer';
@@ -70,7 +71,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
             lineHeight: 1.4,
             flexShrink: 0,
             marginLeft: '2px',
-          }}>{card.cost}</span>
+          }}>{displayCost}</span>
         </div>
         {/* Art area */}
         <div className="rounded overflow-hidden" style={{ flex: 1, minHeight: 0 }} data-art-slot="true">
@@ -131,7 +132,7 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
             lineHeight: 1.4,
             flexShrink: 0,
             marginLeft: '2px',
-          }}>{card.cost}</span>
+          }}>{displayCost}</span>
         </div>
 
         {/* Art area */}

@@ -61,6 +61,21 @@ export function getEffectiveSpellCost(state, card) {
   }
   return Math.max(1, card.cost - reduction);
 }
+
+// Returns the effective cost of any card for a given player, accounting for active
+// cost-reduction modifiers (e.g. Fennwick's spellCostReduction aura). Use this
+// for display and playability checks in the hand. The static card.cost is never mutated.
+export function getEffectiveCost(card, state, playerIndex) {
+  if (!state?.activeModifiers) return card.cost;
+  if (card.type !== 'spell') return card.cost;
+  let reduction = 0;
+  for (const mod of state.activeModifiers) {
+    if (mod.type !== 'spellCostReduction') continue;
+    if (mod.playerIndex !== playerIndex) continue;
+    reduction += (mod.amount || 0);
+  }
+  return Math.max(1, card.cost - reduction);
+}
 import { SPELL_REGISTRY } from './spellRegistry.js';
 import { ACTION_REGISTRY, dispatchAction as _actionDispatch } from './actionRegistry.js';
 import {
@@ -1738,8 +1753,9 @@ export function summonUnit(state, cardUid, row, col) {
   registerUnit(unit, s);
   registerModifiers(unit, s);
 
-  // Declarative trigger registry: fire onCardPlayed for the active player
-  fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+  // Declarative trigger registry: fire onCardPlayed for the active player.
+  // Pass triggeringUid so selfTrigger=false listeners skip their own summon event.
+  fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card, triggeringUid: unit.uid }, s);
 
   // Hand size decreased — check if any conditional HP buff units now have effective HP <= 0
   checkConditionalStatDeaths(s);
