@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CHAMPIONS } from '../engine/champions.js';
 import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CARD_DB } from '../engine/cards.js';
@@ -9,6 +9,38 @@ import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
 const SAVED_DECKS_KEY = 'gridholm_saved_decks';
+
+const DECK_PANEL_STYLES = `
+@keyframes db-bar-pulse {
+  0%   { box-shadow: 0 0 0 0 #C9A84C00; }
+  30%  { box-shadow: 0 0 12px 4px #C9A84CAA; }
+  100% { box-shadow: 0 0 0 0 #C9A84C00; }
+}
+@keyframes db-bar-sweep {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(110%); }
+}
+@keyframes db-particle {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--pdx, 0px), var(--pdy, -12px)) scale(0); opacity: 0; }
+}
+@keyframes db-header-flash {
+  0%   { }
+  35%  { text-shadow: 0 0 10px currentColor; letter-spacing: 0.14em; }
+  100% { }
+}
+`;
+
+const PARTICLE_DIRS = [
+  { dx: '-8px',  dy: '-14px' },
+  { dx: '8px',   dy: '-14px' },
+  { dx: '-14px', dy: '-6px'  },
+  { dx: '14px',  dy: '-6px'  },
+  { dx: '-4px',  dy: '-18px' },
+  { dx: '4px',   dy: '-18px' },
+  { dx: '-10px', dy: '-10px' },
+  { dx: '10px',  dy: '-10px' },
+];
 
 function loadSavedDecks() {
   try {
@@ -535,6 +567,25 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
   const primaryAttrObj = ATTRIBUTES[primaryAttr];
   const secondaryAttrObj = ATTRIBUTES[secondaryAttr];
 
+  // Compute tier for panel glow
+  const deckTier = useMemo(() => {
+    const deckCards = Object.entries(deck).flatMap(([id, count]) => {
+      const card = CARD_DB[id];
+      return card ? Array(count).fill(card) : [];
+    });
+    const res = calculateResonance(deckCards, primaryAttr);
+    if (res >= RESONANCE_THRESHOLDS.ascended) return 'ascended';
+    if (res >= RESONANCE_THRESHOLDS.attuned) return 'attuned';
+    return 'none';
+  }, [deck, primaryAttr]);
+
+  const panelGlow = useMemo(() => {
+    const color = primaryAttrObj?.color || '#ffffff';
+    if (deckTier === 'ascended') return `0 0 0 1px #C9A84C50, 0 0 20px #C9A84C35, inset 0 0 12px #C9A84C15`;
+    if (deckTier === 'attuned') return `0 0 0 1px ${color}40, 0 0 14px ${color}28`;
+    return undefined;
+  }, [deckTier, primaryAttrObj]);
+
   // Build legal card pool (no tokens)
   const legalCards = useMemo(() => {
     return Object.values(CARD_DB).filter(c => {
@@ -801,7 +852,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
             </span>
             <span style={{ color: '#C9A84C', fontSize: '10px' }}>{drawerOpen ? '▼' : '▲'}</span>
           </button>
-          <div style={{ flex: 1, overflowY: 'auto', background: '#0d0d1a', border: '1px solid #2a2a3a', borderTop: 'none' }}>
+          <div style={{ flex: 1, overflowY: 'auto', background: '#0d0d1a', border: '1px solid #2a2a3a', borderTop: 'none', boxShadow: panelGlow, transition: 'box-shadow 0.6s ease' }}>
             <DeckPanel
               primaryAttr={primaryAttr}
               secondaryAttr={secondaryAttr}
@@ -838,6 +889,8 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
         background: '#0d0d1a',
         border: '1px solid #2a2a3a',
         borderRadius: '8px',
+        boxShadow: panelGlow,
+        transition: 'box-shadow 0.6s ease',
       }}>
         <DeckPanel
           primaryAttr={primaryAttr}
@@ -1057,6 +1110,11 @@ function AttributeWheel({ primaryAttr, secondaryAttr }) {
 
 function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChange, onRemoveCard, onClearDeck, deckCount, isValid, onSave, onPlay, savedDeckExists, onLoadDeck, saveFlash }) {
   const [confirmClear, setConfirmClear] = useState(false);
+  const [attunedPulse, setAttunedPulse] = useState(false);
+  const [ascendedSweep, setAscendedSweep] = useState(false);
+  const [burstParticles, setBurstParticles] = useState(null);
+  const [headerFlash, setHeaderFlash] = useState(false);
+  const prevTierRef = useRef(null);
 
   const primary = ATTRIBUTES[primaryAttr];
   const secondary = ATTRIBUTES[secondaryAttr];
@@ -1079,6 +1137,36 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
     attuned:  { color: '#ffffff', label: 'Attuned' },
     none:     { color: '#4a4a6a', label: 'Unaligned' },
   };
+
+  // Detect threshold crossings for one-time animations
+  useEffect(() => {
+    const prev = prevTierRef.current;
+    prevTierRef.current = tier;
+    if (prev === null) return; // skip first render
+
+    if (tier === 'attuned' && prev === 'none') {
+      setAttunedPulse(true);
+      setHeaderFlash(true);
+      setBurstParticles('attuned');
+      const t = setTimeout(() => {
+        setAttunedPulse(false);
+        setHeaderFlash(false);
+        setBurstParticles(null);
+      }, 900);
+      return () => clearTimeout(t);
+    }
+    if (tier === 'ascended' && (prev === 'none' || prev === 'attuned')) {
+      setAscendedSweep(true);
+      setHeaderFlash(true);
+      setBurstParticles('ascended');
+      const t = setTimeout(() => {
+        setAscendedSweep(false);
+        setHeaderFlash(false);
+        setBurstParticles(null);
+      }, 900);
+      return () => clearTimeout(t);
+    }
+  }, [tier]);
 
   // Attribute breakdown
   const breakdown = useMemo(() => {
@@ -1112,6 +1200,8 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
   const maxResonance = 60; // 30 cards × max 2 pts
 
   return (
+    <>
+    <style>{DECK_PANEL_STYLES}</style>
     <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* Deck name */}
       <input
@@ -1134,7 +1224,7 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
         onBlur={e => { e.target.style.borderBottomColor = '#2a2a3a'; }}
       />
 
-      {/* Card count + resonance */}
+      {/* Card count */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: "'Cinzel', serif", fontSize: '12px', color: deckCount >= 30 ? '#C9A84C' : '#6a6a8a' }}>
           {deckCount}/30
@@ -1144,8 +1234,36 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
         </span>
       </div>
 
+      {/* Attunement section header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '-6px' }}>
+        <span
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '9px',
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
+            color: tier === 'ascended' ? '#FFD966' : '#c0b8d0',
+            opacity: Math.min(1, 0.25 + (resonance / RESONANCE_THRESHOLDS.attuned) * 0.75),
+            transition: 'opacity 0.5s ease, color 0.5s ease',
+            animation: headerFlash ? 'db-header-flash 0.8s ease-out' : undefined,
+          }}
+        >
+          {tier === 'ascended' ? 'Ascended' : 'Attunement'}
+        </span>
+        <span style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '9px',
+          color: tier === 'ascended' ? '#C9A84C80' : '#3a3a5a',
+          letterSpacing: '0.04em',
+          opacity: Math.min(1, 0.2 + (resonance / RESONANCE_THRESHOLDS.attuned) * 0.8),
+          transition: 'opacity 0.5s ease, color 0.5s ease',
+        }}>
+          {resonance}/{RESONANCE_THRESHOLDS.ascended}
+        </span>
+      </div>
+
       {/* Resonance bar */}
-      <div style={{ background: '#1a1a2a', borderRadius: '4px', height: '6px', position: 'relative' }}>
+      <div style={{ background: '#1a1a2a', borderRadius: '4px', height: '6px', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           borderRadius: '4px',
@@ -1154,7 +1272,20 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
             : tier === 'attuned' ? 'linear-gradient(90deg, #F0E6D2, #ffffff)'
             : '#F0E6D2',
           transition: 'width 0.3s ease',
-        }} />
+          animation: attunedPulse ? 'db-bar-pulse 0.8s ease-out' : undefined,
+          position: 'relative',
+        }}>
+          {/* Sweep shimmer overlay for ascended */}
+          {ascendedSweep && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.7) 50%, transparent 100%)',
+              animation: 'db-bar-sweep 0.7s ease-out forwards',
+              borderRadius: '4px',
+            }} />
+          )}
+        </div>
         {/* Attuned threshold marker */}
         <div style={{
           position: 'absolute',
@@ -1162,7 +1293,9 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
           left: `${(RESONANCE_THRESHOLDS.attuned / maxResonance) * 100}%`,
           width: '1px',
           height: '10px',
-          background: '#ffffff44',
+          background: tier === 'attuned' || tier === 'ascended' ? '#ffffff88' : '#ffffff44',
+          transition: 'background 0.3s ease',
+          zIndex: 1,
         }} />
         {/* Ascended threshold marker */}
         <div style={{
@@ -1171,8 +1304,33 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
           left: `${(RESONANCE_THRESHOLDS.ascended / maxResonance) * 100}%`,
           width: '1px',
           height: '10px',
-          background: '#C9A84C66',
+          background: tier === 'ascended' ? '#C9A84CAA' : '#C9A84C66',
+          transition: 'background 0.3s ease',
+          zIndex: 1,
         }} />
+        {/* Particle bursts */}
+        {burstParticles && PARTICLE_DIRS.map((dir, i) => {
+          const pct = burstParticles === 'attuned'
+            ? (RESONANCE_THRESHOLDS.attuned / maxResonance) * 100
+            : (RESONANCE_THRESHOLDS.ascended / maxResonance) * 100;
+          const color = burstParticles === 'attuned' ? '#ffffff' : '#C9A84C';
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: `${pct}%`,
+              top: '50%',
+              width: '3px',
+              height: '3px',
+              borderRadius: '50%',
+              background: color,
+              '--pdx': dir.dx,
+              '--pdy': dir.dy,
+              animation: `db-particle 0.7s ease-out forwards`,
+              animationDelay: `${i * 30}ms`,
+              zIndex: 2,
+            }} />
+          );
+        })}
       </div>
 
       {/* Attribute wheel */}
@@ -1385,6 +1543,7 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
         </button>
       )}
     </div>
+    </>
   );
 }
 
