@@ -623,7 +623,7 @@ export const SPELL_REGISTRY = {
       spd: 0,
       unitType: [],
       rules: '',
-      image: null,
+      image: 'petrify-relic.webp',
       owner: caster,
       row: target.row,
       col: target.col,
