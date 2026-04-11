@@ -100,14 +100,32 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
-      if (saved?.champion && Array.isArray(saved.cards) && saved.cards.length === 30) {
+      const decks = JSON.parse(localStorage.getItem('gridholm_saved_decks') || '[]');
+      if (Array.isArray(decks) && decks.length > 0) {
         setHasSavedDeck(true);
       }
     } catch {
       // ignore malformed data
     }
   }, []);
+
+  function loadMostRecentDeckForPlay() {
+    try {
+      const decks = JSON.parse(localStorage.getItem('gridholm_saved_decks') || '[]');
+      if (!Array.isArray(decks) || !decks.length) return;
+      const recent = [...decks].sort((a, b) => b.savedAt - a.savedAt)[0];
+      localStorage.setItem('gridholm_custom_deck', JSON.stringify({
+        champion: recent.champion,
+        primaryAttr: recent.primaryAttribute,
+        secondaryAttr: recent.secondaryAttribute,
+        cards: recent.cards,
+        deckName: recent.name,
+        resonanceScore: recent.resonance,
+      }));
+    } catch {
+      // ignore
+    }
+  }
 
   async function handleCreateGame() {
     if (!supabase) {
@@ -200,7 +218,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
               Build a Deck
             </button>
             {hasSavedDeck && (
-              <button className="lobby-btn-silver" style={btnSilver} onClick={() => onNavigate('/custom-play')}>
+              <button className="lobby-btn-silver" style={btnSilver} onClick={() => { loadMostRecentDeckForPlay(); onNavigate('/custom-play'); }}>
                 Play Saved Deck
               </button>
             )}

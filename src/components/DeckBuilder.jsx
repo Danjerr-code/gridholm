@@ -7,6 +7,27 @@ import Card from './Card.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
 
 const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
+const SAVED_DECKS_KEY = 'gridholm_saved_decks';
+
+function loadSavedDecks() {
+  try {
+    const data = JSON.parse(localStorage.getItem(SAVED_DECKS_KEY) || '[]');
+    return Array.isArray(data) ? data.slice(0, 3) : [];
+  } catch { return []; }
+}
+
+function syncCustomDeck(decks) {
+  if (!decks.length) { localStorage.removeItem(CUSTOM_DECK_KEY); return; }
+  const recent = [...decks].sort((a, b) => b.savedAt - a.savedAt)[0];
+  localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify({
+    champion: recent.champion,
+    primaryAttr: recent.primaryAttribute,
+    secondaryAttr: recent.secondaryAttribute,
+    cards: recent.cards,
+    deckName: recent.name,
+    resonanceScore: recent.resonance,
+  }));
+}
 
 const ATTRIBUTE_ORDER = ['light', 'primal', 'mystic', 'dark'];
 
@@ -38,14 +59,14 @@ export default function DeckBuilder({ onBack, onNext }) {
   // deck: { [cardId]: count }
   const [deck, setDeck] = useState({});
   const [deckName, setDeckName] = useState('My Deck');
-  const [savedDeckExists, setSavedDeckExists] = useState(false);
+  const [savedDecks, setSavedDecks] = useState(loadSavedDecks);
   const [saveFlash, setSaveFlash] = useState(false);
+  const [saveModal, setSaveModal] = useState(null); // null | { overwrite: bool }
+  const [saveNameInput, setSaveNameInput] = useState('');
   // Pending change that requires deck-clear confirmation
   const [pendingChange, setPendingChange] = useState(null); // { type: 'champion'|'secondary', key: string }
 
-  useEffect(() => {
-    setSavedDeckExists(!!localStorage.getItem(CUSTOM_DECK_KEY));
-  }, []);
+  const savedDeckExists = savedDecks.length > 0;
 
   const deckCardIds = useMemo(() => {
     return Object.entries(deck).flatMap(([id, count]) => Array(count).fill(id));
@@ -55,35 +76,61 @@ export default function DeckBuilder({ onBack, onNext }) {
   const isValid = deckCount === 30;
 
   const handleSaveDeck = useCallback(() => {
-    if (!selectedChampion || !secondaryAttr) return;
+    if (!selectedChampion || !secondaryAttr || !isValid) return;
+    const nextNum = savedDecks.length + 1;
+    setSaveNameInput((deckName || '').trim() || `My Deck ${nextNum}`);
+    setSaveModal({ overwrite: savedDecks.length >= 3 });
+  }, [selectedChampion, secondaryAttr, isValid, savedDecks.length, deckName]);
+
+  const handleSaveDeckConfirm = useCallback((name, overwriteIdx = null) => {
     const cardObjs = deckCardIds.map(id => CARD_DB[id]).filter(Boolean);
     const resonanceScore = calculateResonance(cardObjs, selectedChampion);
-    const payload = {
+    const defaultName = overwriteIdx !== null
+      ? (savedDecks[overwriteIdx]?.name || `My Deck ${overwriteIdx + 1}`)
+      : `My Deck ${savedDecks.length + 1}`;
+    const entry = {
+      name: (name || '').trim() || defaultName,
       champion: selectedChampion,
-      primaryAttr: selectedChampion,
-      secondaryAttr,
+      primaryAttribute: selectedChampion,
+      secondaryAttribute: secondaryAttr,
       cards: deckCardIds,
-      deckName,
-      resonanceScore,
+      resonance: resonanceScore,
+      savedAt: Date.now(),
     };
-    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify(payload));
-    setSavedDeckExists(true);
+    const next = overwriteIdx !== null
+      ? savedDecks.map((d, i) => i === overwriteIdx ? entry : d)
+      : [...savedDecks, entry].slice(0, 3);
+    localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
+    syncCustomDeck(next);
+    setSavedDecks(next);
+    setSaveModal(null);
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1500);
-  }, [selectedChampion, secondaryAttr, deckCardIds, deckName]);
+  }, [selectedChampion, secondaryAttr, deckCardIds, savedDecks]);
+
+  function handleLoadSavedDeck(deckObj) {
+    const deckMap = {};
+    for (const id of deckObj.cards) {
+      deckMap[id] = (deckMap[id] || 0) + 1;
+    }
+    setSelectedChampion(deckObj.primaryAttribute || deckObj.champion);
+    setSecondaryAttr(deckObj.secondaryAttribute);
+    setDeck(deckMap);
+    setDeckName(deckObj.name || 'My Deck');
+    setStep('browser');
+  }
 
   function handleLoadDeck() {
-    const saved = JSON.parse(localStorage.getItem(CUSTOM_DECK_KEY) || 'null');
-    if (!saved) return;
-    const deckObj = {};
-    for (const id of saved.cards) {
-      deckObj[id] = (deckObj[id] || 0) + 1;
-    }
-    setSelectedChampion(saved.primaryAttr || saved.champion);
-    setSecondaryAttr(saved.secondaryAttr);
-    setDeck(deckObj);
-    setDeckName(saved.deckName || 'My Deck');
-    setStep('browser');
+    if (!savedDecks.length) return;
+    const mostRecent = [...savedDecks].sort((a, b) => b.savedAt - a.savedAt)[0];
+    handleLoadSavedDeck(mostRecent);
+  }
+
+  function handleDeleteSavedDeck(index) {
+    const next = savedDecks.filter((_, i) => i !== index);
+    localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
+    syncCustomDeck(next);
+    setSavedDecks(next);
   }
 
   function handlePlay() {
@@ -228,6 +275,113 @@ export default function DeckBuilder({ onBack, onNext }) {
           </div>
         </div>
       )}
+      {/* Save deck modal */}
+      {saveModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#0d0d1a', border: '1px solid #2a2a3a',
+            borderRadius: '8px', padding: '24px',
+            maxWidth: '360px', width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+          }}>
+            <h3 style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#C9A84C', margin: 0, letterSpacing: '0.06em' }}>
+              {saveModal.overwrite ? 'Choose Slot to Overwrite' : 'Name Your Deck'}
+            </h3>
+            {!saveModal.overwrite ? (
+              <>
+                <input
+                  value={saveNameInput}
+                  onChange={e => setSaveNameInput(e.target.value)}
+                  placeholder={`My Deck ${savedDecks.length + 1}`}
+                  autoFocus
+                  style={{
+                    background: '#141428', border: '1px solid #2a2a3a', borderRadius: '4px',
+                    padding: '8px 12px', color: '#C9A84C',
+                    fontFamily: "'Cinzel', serif", fontSize: '13px',
+                    outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveDeckConfirm(saveNameInput); }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    style={{
+                      flex: 1, background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                      color: '#0a0a0f', fontFamily: "'Cinzel', serif",
+                      fontSize: '11px', fontWeight: 600, border: 'none',
+                      borderRadius: '4px', padding: '9px', cursor: 'pointer', letterSpacing: '0.04em',
+                    }}
+                    onClick={() => handleSaveDeckConfirm(saveNameInput)}
+                  >
+                    Save
+                  </button>
+                  <button
+                    style={{
+                      flex: 1, background: 'transparent', color: '#6a6a8a',
+                      fontFamily: "'Cinzel', serif", fontSize: '11px',
+                      border: '1px solid #2a2a3a', borderRadius: '4px',
+                      padding: '9px', cursor: 'pointer',
+                    }}
+                    onClick={() => setSaveModal(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#9ca3af', margin: 0 }}>
+                  All 3 slots are full. Choose a deck to overwrite:
+                </p>
+                {savedDecks.map((d, i) => {
+                  const attr = ATTRIBUTES[d.champion] || {};
+                  const tierLabel = d.resonance >= 42 ? 'Ascended' : d.resonance >= 20 ? 'Attuned' : 'Unaligned';
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      background: '#141428', borderRadius: '4px', padding: '8px 10px',
+                      border: '1px solid #2a2a3a',
+                    }}>
+                      <div>
+                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: attr.color || '#C9A84C', fontWeight: 600 }}>{d.name}</div>
+                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.06em', marginTop: '2px' }}>
+                          {attr.name || d.champion} · {tierLabel} · {d.cards.length} cards
+                        </div>
+                      </div>
+                      <button
+                        style={{
+                          background: '#EF4444', color: '#fff',
+                          fontFamily: "'Cinzel', serif", fontSize: '10px',
+                          border: 'none', borderRadius: '3px',
+                          padding: '5px 10px', cursor: 'pointer', letterSpacing: '0.03em',
+                        }}
+                        onClick={() => handleSaveDeckConfirm(null, i)}
+                      >
+                        Overwrite
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  style={{
+                    background: 'transparent', color: '#6a6a8a',
+                    fontFamily: "'Cinzel', serif", fontSize: '11px',
+                    border: '1px solid #2a2a3a', borderRadius: '4px',
+                    padding: '9px', cursor: 'pointer',
+                  }}
+                  onClick={() => setSaveModal(null)}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ textAlign: 'center' }}>
         <h1 style={{
           fontFamily: "'Cinzel', serif",
@@ -248,6 +402,66 @@ export default function DeckBuilder({ onBack, onNext }) {
            'Build your deck'}
         </p>
       </div>
+
+      {/* My Decks section — shown at champion step when saves exist */}
+      {step === 'champion' && savedDecks.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '860px' }}>
+          <h2 style={{
+            fontFamily: "'Cinzel', serif", fontSize: '11px',
+            color: '#4a4a6a', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: '10px',
+          }}>My Decks</h2>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {savedDecks.map((d, i) => {
+              const attr = ATTRIBUTES[d.champion] || {};
+              const tierLabel = d.resonance >= 42 ? 'Ascended' : d.resonance >= 20 ? 'Attuned' : 'Unaligned';
+              const tierColor = d.resonance >= 42 ? '#C9A84C' : d.resonance >= 20 ? '#ffffff' : '#4a4a6a';
+              return (
+                <div key={i} style={{
+                  background: '#0d0d1a', border: `1px solid ${attr.color || '#2a2a3a'}44`,
+                  borderLeft: `3px solid ${attr.color || '#2a2a3a'}`,
+                  borderRadius: '6px', padding: '12px 14px',
+                  display: 'flex', flexDirection: 'column', gap: '8px',
+                  minWidth: '180px', flex: '1 1 180px', maxWidth: '260px',
+                }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: attr.color || '#C9A84C' }}>{d.name}</div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#6a6a8a', marginTop: '3px', letterSpacing: '0.06em' }}>
+                      {attr.name || d.champion} · <span style={{ color: tierColor }}>{tierLabel}</span> · {d.cards.length} cards
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      style={{
+                        flex: 1, background: 'linear-gradient(135deg, #1a3a6a, #2a5aaa)',
+                        color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                        fontSize: '10px', fontWeight: 600,
+                        border: '1px solid #3a6aaa', borderRadius: '3px',
+                        padding: '5px', cursor: 'pointer', letterSpacing: '0.03em',
+                      }}
+                      onClick={() => handleLoadSavedDeck(d)}
+                    >
+                      Load
+                    </button>
+                    <button
+                      style={{
+                        background: 'transparent', color: '#4a4a6a',
+                        fontFamily: "'Cinzel', serif", fontSize: '10px',
+                        border: '1px solid #2a2a3a', borderRadius: '3px',
+                        padding: '5px 8px', cursor: 'pointer',
+                      }}
+                      onClick={() => handleDeleteSavedDeck(i)}
+                      title="Delete this deck"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {step === 'champion' && (
         <ChampionStep onSelect={handleChampionSelect} onBack={onBack} onLoadDeck={savedDeckExists ? handleLoadDeck : null} />
