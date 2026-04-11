@@ -22,7 +22,7 @@ export const LightSymbol = memo(LightSymbolInner);
 
 function PrimalSymbolInner({ size = 24 }) {
   return (
-    <img src="/gem-primal.png" alt="Primal" style={{ display: 'block', width: size, height: size, objectFit: 'contain' }} />
+    <img src="/gem-primal.png" width={size} height={size} alt="Primal" style={{ display: 'inline-block', objectFit: 'contain' }} />
   );
 }
 
@@ -30,7 +30,7 @@ export const PrimalSymbol = memo(PrimalSymbolInner);
 
 function MysticSymbolInner({ size = 24 }) {
   return (
-    <img src="/gem-mystic.png" alt="Mystic" style={{ display: 'block', width: size, height: size, objectFit: 'contain' }} />
+    <img src="/gem-mystic.png" width={size} height={size} alt="Mystic" style={{ display: 'inline-block', objectFit: 'contain' }} />
   );
 }
 
