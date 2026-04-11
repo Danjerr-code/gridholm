@@ -535,7 +535,8 @@ export const SPELL_REGISTRY = {
     if (!target || !omenUid) return state;
     if (!state.activeModifiers) state.activeModifiers = [];
     state.activeModifiers.push({ type: 'stunTarget', unitUid: omenUid, playerIndex: caster, targetUid: target.uid });
-    addLog(state, `Enemy unit stunned by Chains of Light.`);
+    target.skipNextAction = true;
+    addLog(state, `${target.name} is Stunned by Chains of Light.`);
     return state;
   },
 
