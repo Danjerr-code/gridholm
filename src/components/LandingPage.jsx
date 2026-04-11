@@ -254,8 +254,6 @@ const ATTRIBUTE_ORDER = [
   { champKey: 'dark',   factionKey: 'demon'  },
 ];
 
-const HERO_GEM_SIZE = { light: 88, primal: 96, mystic: 88, dark: 80 };
-
 function ChampionPortrait({ champion, size = 80, height = 110 }) {
   const url = getCardImageUrl(champion.image);
   if (url) {
@@ -390,7 +388,7 @@ function HeroSection() {
             return (
               <div key={champKey} className="lp-crystal-item">
                 <div className={`lp-crystal-glow-${champKey}`}>
-                  <Sym size={HERO_GEM_SIZE[champKey]} />
+                  <Sym size={88} />
                 </div>
                 <span className="lp-crystal-label" style={{ color: labelColor }}>
                   {faction.name}
