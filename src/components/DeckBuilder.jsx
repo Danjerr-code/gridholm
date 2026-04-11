@@ -852,7 +852,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
             </span>
             <span style={{ color: '#C9A84C', fontSize: '10px' }}>{drawerOpen ? '▼' : '▲'}</span>
           </button>
-          <div style={{ flex: 1, overflowY: 'auto', background: '#0d0d1a', border: '1px solid #2a2a3a', borderTop: 'none', boxShadow: panelGlow, transition: 'box-shadow 0.6s ease' }}>
+          <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', background: '#0d0d1a', border: '1px solid #2a2a3a', borderTop: 'none', boxShadow: panelGlow, transition: 'box-shadow 0.6s ease' }}>
             <DeckPanel
               primaryAttr={primaryAttr}
               secondaryAttr={secondaryAttr}
@@ -879,7 +879,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
     <div style={{ width: '100%', maxWidth: '1280px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
       {browserContent}
       {/* Desktop sidebar */}
-      <div style={{
+      <div className="no-scrollbar" style={{
         width: '280px',
         flexShrink: 0,
         position: 'sticky',
