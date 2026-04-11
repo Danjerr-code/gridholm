@@ -33,6 +33,7 @@ export default function Board({
   unitMoveTiles,
   approachTiles = [],
   terrainTargetTiles = [],
+  championSaplingTiles = [],
   spellTargetUids,
   archerShootTargets,
   sacrificeTargetUids = [],
@@ -61,6 +62,7 @@ export default function Board({
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
   const approachTileSet = new Set(approachTiles.map(([r, c]) => `${r},${c}`));
   const terrainTargetSet = new Set(terrainTargetTiles.map(([r, c]) => `${r},${c}`));
+  const saplingTileSet = new Set(championSaplingTiles.map(([r, c]) => `${r},${c}`));
 
   const boardRef = useRef(null);
   const [dragTargetKey, setDragTargetKey] = useState(null);
@@ -416,6 +418,8 @@ export default function Board({
       handlers.handleApproachTileChosen(row, col);
     } else if (selectMode === 'approach_select' && !approachTileSet.has(key)) {
       handlers.clearSelection();
+    } else if (selectMode === 'champion_sapling_place' && saplingTileSet.has(key)) {
+      handlers.handleChampionSaplingPlace(row, col);
     } else if (selectMode === 'terrain_cast' && terrainTargetSet.has(key)) {
       handlers.handleTerrainCast(row, col);
     } else if (phase === 'action' && selectMode === 'champion_move' && champMoveSet.has(key)) {
@@ -597,6 +601,7 @@ export default function Board({
                 isSpellTargetGlow={spellGlowTile ? spellGlowTile.row === row && spellGlowTile.col === col : false}
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
                 isTerrainTarget={terrainTargetSet.has(key)}
+                isChampionSaplingTile={saplingTileSet.has(key)}
                 terrain={terrain}
                 terrainAnimActive={!!terrainAnimStates[key]}
                 isThroneShockwave={row === 2 && col === 2 && throneAnimActive}

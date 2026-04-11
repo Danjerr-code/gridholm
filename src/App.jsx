@@ -32,6 +32,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     aiThinking,
     championMoveTiles,
     championAbilityTargetUids,
+    championSaplingTiles,
     summonTiles,
     unitMoveTiles,
     approachTiles,
@@ -693,6 +694,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             selectMode={selectMode}
             championMoveTiles={championMoveTiles}
             championAbilityTargetUids={championAbilityTargetUids}
+            championSaplingTiles={championSaplingTiles}
             summonTiles={summonTiles}
             unitMoveTiles={unitMoveTiles}
             approachTiles={approachTiles}

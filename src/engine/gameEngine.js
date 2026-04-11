@@ -532,27 +532,18 @@ function fireBeginTurnTriggers(state, playerIdx) {
     state.soulHarvestUsed = false;
   }
 
-  // Grove Tend (Mystic, Ascended passive): summon a Sapling adjacent to champion each turn (skip turn 1).
-  const grovePLayer = state.players[playerIdx];
-  if (FACTION_ATTRIBUTE[grovePLayer.deckId] === 'mystic' && grovePLayer.resonance?.tier === 'ascended') {
-    if (grovePLayer.turnCount !== 1) {
-      const champ = state.champions[playerIdx];
-      const openTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
-        !state.units.some(u => u.row === r && u.col === c) &&
-        !state.champions.some(ch => ch.row === r && ch.col === c)
-      );
-      if (openTiles.length > 0) {
-        const [r, c] = openTiles[Math.floor(Math.random() * openTiles.length)];
-        state.units.push({
-          ...TOKENS.sapling,
-          owner: playerIdx, row: r, col: c,
-          maxHp: TOKENS.sapling.hp,
-          summoned: true, moved: false,
-          atkBonus: 0, shield: 0, speedBonus: 0, hidden: false, turnAtkBonus: 0,
-          uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
-        });
-        addLog(state, `Grove Tend: ${grovePLayer.name}'s champion summons a Sapling at (${r},${c}).`);
-      }
+  // Nourish (Mystic, Ascended passive): at the start of your turn, the lowest HP friendly combat unit gains +1/+1.
+  const nourishPlayer = state.players[playerIdx];
+  if (FACTION_ATTRIBUTE[nourishPlayer.deckId] === 'mystic' && nourishPlayer.resonance?.tier === 'ascended') {
+    const combatUnits = state.units.filter(u => u.owner === playerIdx && !u.isRelic && !u.isOmen);
+    if (combatUnits.length > 0) {
+      const minHp = Math.min(...combatUnits.map(u => u.hp));
+      const tied = combatUnits.filter(u => u.hp === minHp);
+      const target = tied[Math.floor(Math.random() * tied.length)];
+      target.atk += 1;
+      target.hp += 1;
+      target.maxHp += 1;
+      addLog(state, `Sylara nourishes ${target.name}. +1/+1.`);
     }
   }
 
@@ -1170,6 +1161,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
     pendingContractSelect: null, // { contracts, nezzarUid } — Nezzar contract choice at turn start
     pendingBloodPact: null, // { step: 'selectFriendly'|'selectEnemy', nezzarUid, sacrificedUid? }
+    pendingChampionSaplingPlace: null, // { playerIdx, validTiles: [[r,c],...] } — Sapling Summon tile pick
     finalGambitActive: [false, false], // true when Final Gambit was chosen; player loses at end of their turn
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
     archerShot: [],
@@ -1320,8 +1312,7 @@ function doBeginTurnPhase(state) {
   p.hungerTempMana = 0;
 
   // Clear summoning sickness and per-turn bonuses for active player
-  // Must run before begin-turn triggers so that units summoned by triggers
-  // (e.g. Grove Tend Sapling) retain their summoning sickness this turn.
+  // Must run before begin-turn triggers so that units summoned by triggers retain their summoning sickness this turn.
   state.units.forEach(u => {
     if (u.owner === state.activePlayer) {
       u.summoned = false;
@@ -2476,6 +2467,7 @@ export function cancelSpell(state) {
   s.pendingLineBlast = null;
   s.pendingNegationCancel = null;
   s.pendingDeckPeek = null;
+  s.pendingChampionSaplingPlace = null;
   return s;
 }
 
@@ -2742,6 +2734,7 @@ export function endActionPhase(state) {
   s.pendingRelicPlace = null;
   s.pendingLineBlast = null;
   s.pendingDeckPeek = null;
+  s.pendingChampionSaplingPlace = null;
   s.phase = 'end-turn';
   return s;
 }
@@ -3846,14 +3839,31 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
       break;
     }
-    case 'nurture': {
-      const unit = s.units.find(u => u.uid === targetUid);
-      if (!unit) return s;
-      unit.atk += 1;
-      unit.hp += 1;
-      unit.maxHp += 1;
+    case 'sapling_summon': {
+      const champTile = s.champions[playerIdx];
+      const openTiles = cardinalNeighbors(champTile.row, champTile.col).filter(([r, c]) =>
+        !s.units.some(u => u.row === r && u.col === c) &&
+        !s.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (openTiles.length === 0) return s; // no valid placement — ability unusable
       p.resources -= 2;
-      addLog(s, `${p.name} invokes Nurture: ${unit.name} gains +1/+1 permanently.`);
+      if (openTiles.length === 1) {
+        const [r, c] = openTiles[0];
+        const sapling = {
+          ...TOKENS.sapling,
+          owner: playerIdx, row: r, col: c,
+          maxHp: TOKENS.sapling.hp,
+          summoned: true, moved: false,
+          atkBonus: 0, shield: 0, speedBonus: 0, hidden: false, turnAtkBonus: 0,
+          uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
+        };
+        s.units.push(sapling);
+        registerUnit(sapling, s);
+        addLog(s, `${p.name} invokes Sapling Summon: a Sapling appears at (${r},${c}).`);
+      } else {
+        s.pendingChampionSaplingPlace = { playerIdx, validTiles: openTiles };
+        addLog(s, `${p.name} invokes Sapling Summon: choose an adjacent tile to place a Sapling.`);
+      }
       break;
     }
     case 'corrupt': {
@@ -3887,5 +3897,28 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
   s.championAbilityUsed[playerIdx] = true;
   // Using the ability consumes the champion's action — prevents movement this turn
   champ.moved = true;
+  return s;
+}
+
+// ── Sapling Summon: resolve tile selection ────────────────────────────────
+// Called when the player picks a tile for the Sapling Summon champion ability.
+export function resolveChampionSaplingPlace(state, row, col) {
+  const s = cloneState(state);
+  if (!s.pendingChampionSaplingPlace) return s;
+  const { playerIdx, validTiles } = s.pendingChampionSaplingPlace;
+  if (!validTiles.some(([r, c]) => r === row && c === col)) return s; // invalid tile
+  const p = s.players[playerIdx];
+  const sapling = {
+    ...TOKENS.sapling,
+    owner: playerIdx, row, col,
+    maxHp: TOKENS.sapling.hp,
+    summoned: true, moved: false,
+    atkBonus: 0, shield: 0, speedBonus: 0, hidden: false, turnAtkBonus: 0,
+    uid: `token_sapling_${Math.random().toString(36).slice(2)}`,
+  };
+  s.units.push(sapling);
+  registerUnit(sapling, s);
+  addLog(s, `${p.name}'s Sapling appears at (${row},${col}).`);
+  s.pendingChampionSaplingPlace = null;
   return s;
 }

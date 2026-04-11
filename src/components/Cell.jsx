@@ -28,6 +28,7 @@ export default function Cell({
   isSacrificeTarget,
   isAbilityTarget,
   isTerrainTarget,
+  isChampionSaplingTile = false,
   isSpellTargetGlow,
   terrain,
   terrainAnimActive = false,
@@ -55,7 +56,15 @@ export default function Cell({
   let tileStyle;
   let tileClass = `relative w-full aspect-square transition-colors${isThroneShockwave ? ' throne-damage-pulse-anim' : ''}`;
 
-  if (isTerrainTarget) {
+  if (isChampionSaplingTile) {
+    tileStyle = {
+      background: '#0d2a15',
+      border: '2px solid #22c55e',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(34,197,94,0.5)',
+      cursor: 'pointer',
+    };
+  } else if (isTerrainTarget) {
     tileStyle = {
       background: '#0d2a1a',
       border: '2px solid #34d399',

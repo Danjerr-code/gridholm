@@ -36,6 +36,7 @@ import {
   resolveContractSelect,
   resolveBloodPactFriendly,
   resolveBloodPactEnemy,
+  resolveChampionSaplingPlace,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -411,6 +412,18 @@ export function useGameState({ deckId = 'human' } = {}) {
     setSelectMode(null);
   }, []);
 
+  // Enter tile-selection mode when sapling_summon has multiple valid tiles.
+  useEffect(() => {
+    if (state.pendingChampionSaplingPlace) {
+      setSelectMode('champion_sapling_place');
+    }
+  }, [state.pendingChampionSaplingPlace]);
+
+  const handleChampionSaplingPlace = useCallback((row, col) => {
+    setState(prev => resolveChampionSaplingPlace(prev, row, col));
+    setSelectMode(null);
+  }, []);
+
   const handleSelectUnit = useCallback((unitUid) => {
     setSelectedUnit(unitUid);
     setSelectMode('unit_move');
@@ -596,6 +609,10 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getTerrainCastTiles(state)
     : [];
 
+  const championSaplingTiles = selectMode === 'champion_sapling_place' && state.pendingChampionSaplingPlace
+    ? state.pendingChampionSaplingPlace.validTiles
+    : [];
+
   const approachTiles = selectMode === 'approach_select' && pendingApproach
     ? (() => {
         const unit = state.units.find(u => u.uid === pendingApproach.unitUid);
@@ -613,6 +630,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     pendingChampionAbility,
     championMoveTiles,
     championAbilityTargetUids,
+    championSaplingTiles,
     summonTiles,
     unitMoveTiles,
     approachTiles,
@@ -635,6 +653,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleChampionAbilityActivate,
       handleChampionAbilityTarget,
       handleChampionAbilityCancel,
+      handleChampionSaplingPlace,
       handleSelectUnit,
       handleMoveUnit,
       handleApproachTileChosen,

@@ -15,6 +15,7 @@ import {
   getChampionDef,
   getChampionAbilityTargets,
   applyChampionAbility,
+  resolveChampionSaplingPlace,
   getTerrainCastTiles,
   castTerrainCard,
   playCard,
@@ -281,17 +282,15 @@ function aiChampionAbility(state) {
     return applyChampionAbility(s, AI_PLAYER, 'howl', attackers[0].uid);
 
   } else if (attr === 'mystic') {
-    // Nurture: use on the friendly unit with the highest HP. Skip Saplings.
-    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_unit');
-    const eligible = targets
-      .map(uid => s.units.find(u => u.uid === uid))
-      .filter(Boolean)
-      .filter(unit => unit.id !== 'sapling' && unit.id !== 'token_sapling');
-
-    if (eligible.length === 0) return s;
-
-    eligible.sort((a, b) => b.hp - a.hp);
-    return applyChampionAbility(s, AI_PLAYER, 'nurture', eligible[0].uid);
+    // Sapling Summon: place a Sapling in a random adjacent empty tile.
+    let result = applyChampionAbility(s, AI_PLAYER, 'sapling_summon', null);
+    // If multiple tiles were available, a pending state was set — resolve it randomly.
+    if (result.pendingChampionSaplingPlace) {
+      const tiles = result.pendingChampionSaplingPlace.validTiles;
+      const [r, c] = tiles[Math.floor(Math.random() * tiles.length)];
+      result = resolveChampionSaplingPlace(result, r, c);
+    }
+    return result;
 
   } else if (attr === 'dark') {
     if (isAscended) {
