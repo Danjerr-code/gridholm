@@ -262,7 +262,8 @@ function aiChampionAbility(state) {
   } else if (attr === 'primal') {
     // Howl: use on a unit about to attack (adjacent to an enemy).
     // Prioritize the unit that can now kill an enemy it couldn't before.
-    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_unit_within_2');
+    // (champion target is included in the filter but excluded below since champions have no uid)
+    const targets = getChampionAbilityTargets(s, AI_PLAYER, 'friendly_champion_or_unit_within_2');
     const enemyUnits = s.units.filter(u => u.owner !== AI_PLAYER);
 
     const attackers = targets

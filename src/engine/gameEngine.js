@@ -18,10 +18,11 @@ export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.j
 
 // ── Champion modifier helpers ──────────────────────────────────────────────
 // Returns total ATK bonus granted to a champion from championAtkBuff modifiers
-// when the champion is within range of each modifier's source unit.
+// when the champion is within range of each modifier's source unit,
+// plus any temporary per-turn ATK bonus (e.g. from Howl).
 export function getChampionAtkBuff(state, champion) {
-  if (!state.activeModifiers) return 0;
-  let buff = 0;
+  let buff = champion.turnAtkBonus || 0;
+  if (!state.activeModifiers) return buff;
   for (const mod of state.activeModifiers) {
     if (mod.type !== 'championAtkBuff') continue;
     if (mod.playerIndex !== champion.owner) continue;
@@ -456,6 +457,24 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     state.soulHarvestUsed = true;
   }
 
+  // 11. Bloodlust (Primal, Ascended passive): whenever an enemy unit is destroyed during
+  //    the active player's turn, gain 1 temporary mana (max 3 per turn).
+  //    Fires on all sources: combat, spells, AOE, removal, sacrifice.
+  const apBL = state.activePlayer;
+  const primalPlayer = state.players[apBL];
+  if (
+    FACTION_ATTRIBUTE[primalPlayer.deckId] === 'primal' &&
+    primalPlayer.resonance?.tier === 'ascended' &&
+    unit.owner !== apBL
+  ) {
+    if (!state.bloodlustTriggered) state.bloodlustTriggered = [0, 0];
+    if (state.bloodlustTriggered[apBL] < 3) {
+      state.bloodlustTriggered[apBL]++;
+      primalPlayer.resources = Math.min(primalPlayer.resources + 1, 10);
+      addLog(state, `Kragor's Bloodlust. +1 mana.`);
+    }
+  }
+
   // Lucern, Unbroken Vow: if destroyed on the Throne tile (2,2), schedule resummon
   if (unit.id === 'lucernunbrokenvow') {
     const [lr, lc] = combatTile || [unit.row, unit.col];
@@ -839,19 +858,7 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
     addLog(state, `Razorfang, Alpha: action reset!`);
   }
 
-  // 5. Hunger (Primal, Ascended passive): gain 1 temporary mana on kill, cap 3 per turn
-  if (killedDefender && !defenderIsChampion) {
-    const ownerIdx = attacker.owner;
-    const p = state.players[ownerIdx];
-    if (FACTION_ATTRIBUTE[p.deckId] === 'primal' && p.resonance?.tier === 'ascended') {
-      const currentTemp = p.hungerTempMana || 0;
-      if (currentTemp < 3) {
-        p.hungerTempMana = currentTemp + 1;
-        p.resources = Math.min(p.resources + 1, 10);
-        addLog(state, `Hunger: ${p.name} gains 1 temporary mana (${p.resources} total).`);
-      }
-    }
-  }
+  // 5. (Hunger removed — replaced by Bloodlust passive in fireDeathTriggers)
 
   // Declarative trigger registry: fire onChampionDamageDealt when a unit attacks the enemy champion
   if (defenderIsChampion) {
@@ -1308,8 +1315,9 @@ function doBeginTurnPhase(state) {
   // Reset commands for new turn
   p.commandsUsed = 0;
 
-  // Reset Hunger temp mana tracking (temp mana already wiped by the resources reset above)
-  p.hungerTempMana = 0;
+  // Reset Bloodlust trigger counter (temp mana already wiped by the resources reset above)
+  if (!state.bloodlustTriggered) state.bloodlustTriggered = [0, 0];
+  state.bloodlustTriggered[state.activePlayer] = 0;
 
   // Clear summoning sickness and per-turn bonuses for active player
   // Must run before begin-turn triggers so that units summoned by triggers retain their summoning sickness this turn.
@@ -3802,6 +3810,12 @@ export function getChampionAbilityTargets(state, playerIdx, targetFilter) {
       return state.units
         .filter(u => u.owner === playerIdx && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
+    case 'friendly_champion_or_unit_within_2': {
+      const units = state.units
+        .filter(u => u.owner === playerIdx && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .map(u => u.uid);
+      return ['champion' + playerIdx, ...units];
+    }
     case 'friendly_unit':
       return state.units.filter(u => u.owner === playerIdx && !u.hidden).map(u => u.uid);
     case 'enemy_unit':
@@ -3832,11 +3846,17 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       break;
     }
     case 'howl': {
-      const unit = s.units.find(u => u.uid === targetUid);
-      if (!unit) return s;
-      unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
-      p.resources -= 2;
-      addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
+      if (targetUid === 'champion' + playerIdx) {
+        champ.turnAtkBonus = (champ.turnAtkBonus || 0) + 2;
+        p.resources -= 2;
+        addLog(s, `${p.name} invokes Howl: champion gains +2 ATK until end of turn.`);
+      } else {
+        const unit = s.units.find(u => u.uid === targetUid);
+        if (!unit) return s;
+        unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
+        p.resources -= 2;
+        addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
+      }
       break;
     }
     case 'sapling_summon': {

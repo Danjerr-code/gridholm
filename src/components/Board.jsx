@@ -526,8 +526,13 @@ export default function Board({
       handlers.handleSpellTarget('champion' + champion.owner);
       return;
     }
-    // Champion ability mode: do nothing on tap
-    if (selectMode === 'champion_ability') return;
+    // Champion ability mode: allow clicking own champion if it's a valid target
+    if (selectMode === 'champion_ability') {
+      if (champion.owner === myPlayerIndex && championAbilityTargetUids.includes('champion' + champion.owner)) {
+        handlers.handleChampionAbilityTarget('champion' + champion.owner);
+      }
+      return;
+    }
     // Unit move: enemy champion on a valid move tile = move-to (combat)
     if (selectMode === 'unit_move' && champion.owner !== activePlayer) {
       if (unitMoveSet.has(cellKey)) {
@@ -580,6 +585,7 @@ export default function Board({
             const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
             const isAbilityTarget = championAbilityTargetUids.includes(unit?.uid);
             const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
+            const isChampionAbilityTarget = champion ? championAbilityTargetUids.includes('champion' + champion.owner) : false;
             const cellDyingUnits = dyingUnits.filter(d => d.unit.row === row && d.unit.col === col);
             const champAnimState = champion ? champAnimStates[champion.owner] : null;
 
@@ -608,6 +614,7 @@ export default function Board({
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}
+                isChampionAbilityTarget={isChampionAbilityTarget}
                 isArcherTarget={isArcherTarget}
                 isSacrificeTarget={isSacrificeTarget}
                 isAbilityTarget={isAbilityTarget}

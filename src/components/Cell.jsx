@@ -24,6 +24,7 @@ export default function Cell({
   isSelected,
   isSpellTarget,
   isChampionSpellTarget,
+  isChampionAbilityTarget = false,
   isArcherTarget,
   isSacrificeTarget,
   isAbilityTarget,
@@ -253,8 +254,8 @@ export default function Cell({
           className={`absolute inset-1 flex flex-col items-center justify-center rounded-full cursor-pointer select-none${champAnimCls}`}
           style={{
             background: `radial-gradient(circle, ${champColor}66 0%, transparent 100%)`,
-            border: `2px solid ${isChampionSpellTarget ? '#f97316' : champColor}`,
-            boxShadow: `0 0 12px ${isChampionSpellTarget ? '#f9731660' : champColor + '60'}`,
+            border: `2px solid ${(isChampionSpellTarget || isChampionAbilityTarget) ? '#f97316' : champColor}`,
+            boxShadow: `0 0 12px ${(isChampionSpellTarget || isChampionAbilityTarget) ? '#f9731660' : champColor + '60'}`,
             ...(champIsAbility ? { '--ability-glow-color': ATTR_GLOW_RGBA[champAnimState.attribute] ?? 'rgba(255,255,255,0.8)' } : {}),
           }}
           onPointerDown={hasChampLongPress ? (e) => { e.stopPropagation(); champLongPress.onPointerDown(); } : undefined}
