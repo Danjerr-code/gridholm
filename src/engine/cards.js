@@ -275,7 +275,6 @@ const HUMAN_DECK = [
   'paladin',
   'captain',
   'aendor',
-  'shimmerguardian',
   'smite', 'smite',
   'ironshield', 'ironshield',
   'ironthorns',
@@ -314,10 +313,8 @@ const BEAST_DECK = [
   'siegemound', 'siegemound',
   'feralsurge', 'feralsurge',
   'bloodmoon',
-  'spiritbolt',
   'vornthundercaller',
   'korraksecondang',
-  'kragorsbehemoth',
 ];
 
 const ELF_DECK = [
