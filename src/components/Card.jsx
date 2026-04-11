@@ -1,7 +1,6 @@
 import { getCardImageUrl } from '../supabase.js';
 import { ATTRIBUTES } from '../engine/attributes.js';
 import { renderRules, rulesTitle } from '../utils/rulesText.jsx';
-import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const FACTION_TEXT_COLORS = {
   Human: '#4a8abf',
@@ -24,7 +23,6 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
   const isLegendary = !!card.legendary;
   const factionColor = getFactionColor(card.unitType);
   const attrColor = card.attribute ? (ATTRIBUTES[card.attribute]?.color ?? null) : null;
-  const AttrCrystal = card.attribute ? ATTR_SYMBOLS[card.attribute] : null;
 
   const imageUrl = getCardImageUrl(card.image);
 
@@ -111,13 +109,6 @@ export default function Card({ card, isSelected, isPlayable, onClick }) {
           )}
         </div>
       </div>
-
-      {/* Attribute crystal — bottom-right corner, both layouts */}
-      {AttrCrystal && (
-        <div style={{ position: 'absolute', bottom: '3px', right: '3px', zIndex: 3, pointerEvents: 'none', opacity: 0.85 }}>
-          <AttrCrystal size={14} />
-        </div>
-      )}
 
       {/* === DESKTOP LAYOUT (hidden on mobile, shown on md+) === */}
       <div className="hidden md:flex md:flex-col md:h-full">
