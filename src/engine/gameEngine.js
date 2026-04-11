@@ -3648,6 +3648,12 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
 // even attempts to cast them. Does NOT change state.
 
 export function hasValidTargets(card, state, playerIndex) {
+  if (card.type === 'unit') {
+    const champ = state.champions[playerIndex];
+    return cardinalNeighbors(champ.row, champ.col)
+      .some(([r, c]) => !isTileOccupied(state, r, c));
+  }
+
   if (card.type !== 'spell') return true;
 
   const effect = card.effect;
