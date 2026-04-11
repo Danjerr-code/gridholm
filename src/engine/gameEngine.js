@@ -1657,15 +1657,14 @@ export function playCard(state, cardUid) {
       return s;
     }
 
-    // Toll of Shadows: consume resources/card upfront and immediately enter multi-step resolution
+    // Toll of Shadows: consume resources/card upfront and start sequential sacrifice chain
     if (card.effect === 'tollofshadows') {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
       addLog(s, `${p.name} casts Toll of Shadows.`);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
-      s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: s.activePlayer } };
-      return s;
+      return _tollAdvance(s, cardUid, s.activePlayer, 0, {});
     }
 
     // Needs a target — set pendingSpell
@@ -1774,6 +1773,76 @@ export function summonUnit(state, cardUid, row, col) {
   return s;
 }
 
+// ── Toll of Shadows helpers ───────────────────────────────────────────────
+
+// Auto-resolve opponent consequences for each category the caster sacrificed.
+function _tollOpponentResolve(s, oppIdx, sacrificed) {
+  if (sacrificed.unit) {
+    const units = s.units.filter(u => u.owner === oppIdx && !u.isRelic && !u.isOmen);
+    if (units.length > 0) {
+      const t = units[Math.floor(Math.random() * units.length)];
+      addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
+      destroyUnit(t, s, 'sacrifice');
+      checkWinner(s);
+    }
+  }
+  if (sacrificed.omen) {
+    const omens = s.units.filter(u => u.owner === oppIdx && u.isOmen);
+    if (omens.length > 0) {
+      const t = omens[Math.floor(Math.random() * omens.length)];
+      addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
+      destroyUnit(t, s, 'sacrifice');
+    }
+  }
+  if (sacrificed.relic) {
+    const relics = s.units.filter(u => u.owner === oppIdx && u.isRelic);
+    if (relics.length > 0) {
+      const t = relics[Math.floor(Math.random() * relics.length)];
+      addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
+      destroyUnit(t, s, 'sacrifice');
+      checkWinner(s);
+    }
+  }
+  if (sacrificed.card) {
+    const hand = s.players[oppIdx].hand;
+    if (hand.length > 0) {
+      const [discarded] = hand.splice(Math.floor(Math.random() * hand.length), 1);
+      s.players[oppIdx].discard.push(discarded);
+      addLog(s, `Toll of Shadows: ${s.players[oppIdx].name} discards ${discarded.name}.`);
+    }
+  }
+  return s;
+}
+
+// Advance Toll of Shadows to the next pending step starting from fromStep.
+// Sets pendingSpell (for board unit/omen/relic selection) or pendingHandSelect
+// (for discard), or runs opponent auto-resolution if all steps are complete.
+function _tollAdvance(s, cardUid, castIdx, fromStep, sacrificed) {
+  const oppIdx = 1 - castIdx;
+  for (let st = fromStep; st <= 3; st++) {
+    if (st === 0 && s.units.some(u => u.owner === castIdx && !u.isRelic && !u.isOmen)) {
+      s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: castIdx, sacrificed } };
+      return s;
+    }
+    if (st === 1 && s.units.some(u => u.owner === castIdx && u.isOmen)) {
+      s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 1, data: { paid: true, casterIdx: castIdx, sacrificed } };
+      return s;
+    }
+    if (st === 2 && s.units.some(u => u.owner === castIdx && u.isRelic)) {
+      s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 2, data: { paid: true, casterIdx: castIdx, sacrificed } };
+      return s;
+    }
+    if (st === 3 && s.players[castIdx].hand.length > 0) {
+      s.pendingSpell = null;
+      s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { casterIdx, sacrificed } };
+      return s;
+    }
+  }
+  // All steps done or skipped — auto-resolve opponent
+  s.pendingSpell = null;
+  return _tollOpponentResolve(s, oppIdx, sacrificed);
+}
+
 // ── hand card selection ───────────────────────────────────────────────────
 // Called when player selects a card from hand during pendingHandSelect.
 
@@ -1828,20 +1897,19 @@ export function resolveHandSelect(state, selectedCardUid) {
   }
 
   if (hs.reason === 'tollofshadows_discard') {
-    const { currentStep, casterIdx } = hs.data;
-    const isOppStep = currentStep >= 4;
-    const actorIdx = isOppStep ? (1 - casterIdx) : casterIdx;
-    const actorHand = s.players[actorIdx].hand;
-    const idx = actorHand.findIndex(c => c.uid === selectedCardUid);
+    const { casterIdx, sacrificed } = hs.data;
+    const casterHand = s.players[casterIdx].hand;
+    const idx = casterHand.findIndex(c => c.uid === selectedCardUid);
+    const newSacrificed = { ...sacrificed };
     if (idx !== -1) {
-      const [discarded] = actorHand.splice(idx, 1);
-      s.players[actorIdx].discard.push(discarded);
-      addLog(s, `${s.players[actorIdx].name} discards ${discarded.name}.`);
+      const [discarded] = casterHand.splice(idx, 1);
+      s.players[casterIdx].discard.push(discarded);
+      addLog(s, `${s.players[casterIdx].name} discards ${discarded.name}.`);
+      newSacrificed.card = true;
     }
     s.pendingHandSelect = null;
-    // Continue with next Toll of Shadows step via pendingSpell
-    s.pendingSpell = { cardUid: null, effect: 'tollofshadows', playerIdx: s.activePlayer, step: currentStep + 1, data: { paid: true, casterIdx } };
-    return s;
+    // All caster steps done — auto-resolve opponent consequences
+    return _tollOpponentResolve(s, 1 - casterIdx, newSacrificed);
   }
 
   if (hs.reason === 'darkBargain') {
@@ -2328,87 +2396,23 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
     }
   }
-  // ── Toll of Shadows (multi-step: each player sacrifices unit/omen/relic, discards card) ──
-  // steps 0-3: casting player; steps 4-7: opponent
-  // substep 0=unit, 1=omen, 2=relic, 3=discard
+  // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
+  // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
     const castIdx = data.casterIdx ?? s.activePlayer;
-    const oppIdx = 1 - castIdx;
-
-    // Helper: check if a step has valid targets for a given actor
-    function tollHasTargets(st, actorIdx) {
-      const sub = st % 4;
-      if (sub === 0) return s.units.some(u => u.owner === actorIdx && !u.isRelic && !u.isOmen);
-      if (sub === 1) return s.units.some(u => u.owner === actorIdx && u.isOmen);
-      if (sub === 2) return s.units.some(u => u.owner === actorIdx && u.isRelic);
-      if (sub === 3) return s.players[actorIdx].hand.length > 0;
-      return false;
-    }
-
-    // Current step: determine if it's a casting-player or opponent step
-    const curActorIdx = step >= 4 ? oppIdx : castIdx;
-    const curSubstep = step % 4;
+    const sacrificed = { ...(data.sacrificed ?? {}) };
 
     if (target) {
-      // Player confirmed a target — execute and advance
+      // Caster selected a target for the current step — execute sacrifice
       s = _dispatchSpell(s, castIdx, 'tollofshadows', [target], { step, casterIdx: castIdx });
       checkWinner(s);
-    } else if (curActorIdx !== 1 && tollHasTargets(step, curActorIdx)) {
-      // Human player has targets but provided none — pause and re-prompt the same step
-      if (curSubstep === 3) {
-        s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { currentStep: step, casterIdx: castIdx } };
-      } else {
-        s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step, data: { paid: true, casterIdx: castIdx } };
-      }
-      return s;
+      if (step === 0) sacrificed.unit = true;
+      else if (step === 1) sacrificed.omen = true;
+      else if (step === 2) sacrificed.relic = true;
     }
-    // If target was null and either AI actor or no targets: fall through to advance
 
-    // Advance through remaining steps, auto-resolving AI steps and skipping empty steps
-    let nextStep = step + 1;
-    while (nextStep < 8 && !s.winner) {
-      const isOppStep = nextStep >= 4;
-      const actorIdx = isOppStep ? oppIdx : castIdx;
-      const substep = nextStep % 4;
-      const isAI = actorIdx === 1;
-
-      if (!tollHasTargets(nextStep, actorIdx)) { nextStep++; continue; }
-
-      if (isAI) {
-        // Auto-resolve for AI: pick lowest-value target
-        if (substep === 0) {
-          const units = s.units.filter(u => u.owner === actorIdx && !u.isRelic && !u.isOmen);
-          const autoUnit = units.sort((a, b) => (a.cost || 0) - (b.cost || 0))[0];
-          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoUnit], { step: nextStep, casterIdx: castIdx });
-          checkWinner(s);
-        } else if (substep === 1) {
-          const omens = s.units.filter(u => u.owner === actorIdx && u.isOmen);
-          const autoOmen = omens.sort((a, b) => (a.turnsRemaining || 0) - (b.turnsRemaining || 0))[0];
-          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoOmen], { step: nextStep, casterIdx: castIdx });
-        } else if (substep === 2) {
-          const relics = s.units.filter(u => u.owner === actorIdx && u.isRelic);
-          const autoRelic = relics.sort((a, b) => (a.hp || 0) - (b.hp || 0))[0];
-          s = _dispatchSpell(s, castIdx, 'tollofshadows', [autoRelic], { step: nextStep, casterIdx: castIdx });
-          checkWinner(s);
-        } else if (substep === 3) {
-          const hand = s.players[actorIdx].hand;
-          const lowestCard = [...hand].sort((a, b) => (a.cost || 0) - (b.cost || 0))[0];
-          const idx = hand.findIndex(c => c.uid === lowestCard.uid);
-          const [discarded] = s.players[actorIdx].hand.splice(idx, 1);
-          s.players[actorIdx].discard.push(discarded);
-          addLog(s, `${s.players[actorIdx].name} discards ${discarded.name}.`);
-        }
-        nextStep++;
-      } else {
-        // Human player — pause and wait for selection
-        if (substep === 3) {
-          s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { currentStep: nextStep, casterIdx: castIdx } };
-        } else {
-          s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: nextStep, data: { paid: true, casterIdx: castIdx } };
-        }
-        return s;
-      }
-    }
+    // Advance to next pending step (or run opponent auto-resolution when all done)
+    return _tollAdvance(s, cardUid, castIdx, target ? step + 1 : step + 1, sacrificed);
   }
 
   // Fire onCardPlayed for targeted spells (the card was consumed in the !isPaid block above).
