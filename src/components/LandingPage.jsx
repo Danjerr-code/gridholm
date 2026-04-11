@@ -245,27 +245,6 @@ const STYLES = `
     pointer-events: none;
   }
 
-  .lp-hero-silhouette {
-    position: absolute;
-    top: 0;
-    height: 35%;
-    opacity: 0.25;
-    pointer-events: none;
-    filter: sepia(1) hue-rotate(5deg) saturate(3);
-    user-select: none;
-  }
-  .lp-hero-silhouette-warrior {
-    right: 0;
-  }
-  .lp-hero-silhouette-dragon {
-    left: 0;
-    transform: scaleX(-1);
-  }
-  @media (max-width: 768px) {
-    .lp-hero-silhouette {
-      display: none;
-    }
-  }
 `;
 
 const ATTRIBUTE_ORDER = [
@@ -312,19 +291,6 @@ function HeroSection() {
       overflow: 'hidden',
     }}>
       <div className="lp-hero-grid-bg" />
-
-      <img
-        src="/silhouette-dragon.png"
-        alt=""
-        aria-hidden="true"
-        className="lp-hero-silhouette lp-hero-silhouette-dragon"
-      />
-      <img
-        src="/silhouette-warrior.png"
-        alt=""
-        aria-hidden="true"
-        className="lp-hero-silhouette lp-hero-silhouette-warrior"
-      />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, width: '100%' }}>
         <h1 style={{
@@ -412,32 +378,6 @@ function HeroSection() {
           >
             How to Play
           </a>
-          <a
-            href="https://store.steampowered.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="lp-btn-steam-hero"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#1b2838',
-              color: '#c6d4df',
-              fontFamily: "'Cinzel', serif",
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textDecoration: 'none',
-              padding: '13px 24px',
-              borderRadius: 4,
-              border: '1px solid #4c6b82',
-              transition: 'all 150ms ease',
-              cursor: 'pointer',
-            }}
-          >
-            <SteamLogoIcon size={18} />
-            Wishlist on Steam
-          </a>
         </div>
 
         <div className="lp-hero-crystals">
@@ -456,6 +396,35 @@ function HeroSection() {
               </div>
             );
           })}
+        </div>
+
+        <div style={{ marginTop: 20, textAlign: 'center' }}>
+          <a
+            href="https://store.steampowered.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lp-btn-steam-hero"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#1b2838',
+              color: '#c6d4df',
+              fontFamily: "'Cinzel', serif",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              textDecoration: 'none',
+              padding: '8px 16px',
+              borderRadius: 4,
+              border: '1px solid #4c6b82',
+              transition: 'all 150ms ease',
+              cursor: 'pointer',
+            }}
+          >
+            <SteamLogoIcon size={14} />
+            Wishlist on Steam
+          </a>
         </div>
       </div>
     </section>
