@@ -163,7 +163,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const NO_TARGET_SPELL_EFFECTS = new Set([
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
-    'ancientspring', 'shadowveil',
+    'ancientspring', 'shadowveil', 'verdantsurge',
     'crushingblow', 'agonizingsymphony', 'pestilence',
   ]);
 

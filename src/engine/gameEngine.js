@@ -2822,7 +2822,7 @@ export function getUnitMoveTiles(state, unitUid) {
   if (unit.summoned || unit.moved) {
     return [];
   }
-  const speed = getEffectiveSpd(unit);
+  const speed = getEffectiveSpd(unit, state);
   return reachableTiles(state, unit, speed);
 }
 
