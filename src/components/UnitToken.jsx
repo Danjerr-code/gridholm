@@ -3,6 +3,7 @@ import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, ge
 import { getCardImageUrl } from '../supabase.js';
 import useLongPress from '../hooks/useLongPress.js';
 import { rulesTitle } from '../utils/rulesText.jsx';
+import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const FACTION_COLORS = {
   Human:  { border: '#2a4a7a', text: '#4a8abf' },
@@ -526,6 +527,15 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
+      {/* Attribute crystal indicator — top-right corner */}
+      {unit.attribute && ATTR_SYMBOLS[unit.attribute] && (() => {
+        const TokenCrystal = ATTR_SYMBOLS[unit.attribute];
+        return (
+          <div style={{ position: 'absolute', top: '1px', right: '1px', zIndex: 3, pointerEvents: 'none', opacity: 0.80 }}>
+            <TokenCrystal size={10} />
+          </div>
+        );
+      })()}
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
       {/* Buff shimmer overlay */}

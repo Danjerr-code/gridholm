@@ -2,6 +2,7 @@ import { FACTION_INFO, buildDeck } from '../engine/cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CHAMPIONS } from '../engine/champions.js';
 import { getCardImageUrl } from '../supabase.js';
+import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const FACTION_ATTRIBUTE = {
   human: 'light',
@@ -191,6 +192,7 @@ function FactionCard({ faction, resonance, onSelect }) {
   const champAttribute = FACTION_ATTRIBUTE[faction.id];
   const champImage = champAttribute ? CHAMPIONS[champAttribute]?.image : null;
   const champImageUrl = getCardImageUrl(champImage);
+  const AttrCrystal = champAttribute ? ATTR_SYMBOLS[champAttribute] : null;
   return (
     <div
       style={{
@@ -221,17 +223,20 @@ function FactionCard({ faction, resonance, onSelect }) {
         </div>
       )}
       <div>
-        <h2
-          style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: '16px',
-            fontWeight: 600,
-            color: faction.color,
-            marginBottom: '4px',
-          }}
-        >
-          {faction.name}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          {AttrCrystal && <AttrCrystal size={20} />}
+          <h2
+            style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '16px',
+              fontWeight: 600,
+              color: faction.color,
+              margin: 0,
+            }}
+          >
+            {faction.name}
+          </h2>
+        </div>
         {resonance && <ResonanceBadge tier={resonance.tier} score={resonance.score} />}
         <span style={{
           fontFamily: "'Cinzel', serif",

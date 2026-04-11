@@ -5,6 +5,7 @@ import { CARD_DB } from '../engine/cards.js';
 import { getCardImageUrl } from '../supabase.js';
 import Card from './Card.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
+import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
 const SAVED_DECKS_KEY = 'gridholm_saved_decks';
@@ -696,21 +697,31 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
             No cards match the current filters.
           </p>
         )}
-        {filteredGroups.map(group => (
+        {filteredGroups.map(group => {
+          const GroupCrystal = ATTR_SYMBOLS[group.attr];
+          return (
           <div key={group.key}>
-            <h3 style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              color: group.color,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               marginBottom: '10px',
               paddingBottom: '6px',
               borderBottom: `1px solid ${group.color}33`,
             }}>
-              {group.label}
-            </h3>
+              {GroupCrystal && <GroupCrystal size={16} />}
+              <h3 style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: '13px',
+                fontWeight: 600,
+                color: group.color,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                margin: 0,
+              }}>
+                {group.label}
+              </h3>
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {group.cards.map(card => {
                 const copies = deck[card.id] || 0;
@@ -728,7 +739,8 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Bottom nav */}
@@ -1475,6 +1487,7 @@ function ChampionStep({ onSelect, onBack, onLoadDeck }) {
 }
 
 function ChampionCard({ champion, attribute, attributeKey, imageUrl, description, onSelect }) {
+  const AttrCrystal = ATTR_SYMBOLS[attributeKey];
   return (
     <div
       style={{
@@ -1511,15 +1524,18 @@ function ChampionCard({ champion, attribute, attributeKey, imageUrl, description
       )}
 
       <div>
-        <h2 style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: '16px',
-          fontWeight: 600,
-          color: attribute.color,
-          marginBottom: '2px',
-        }}>
-          {champion.name}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+          {AttrCrystal && <AttrCrystal size={20} />}
+          <h2 style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '16px',
+            fontWeight: 600,
+            color: attribute.color,
+            margin: 0,
+          }}>
+            {champion.name}
+          </h2>
+        </div>
         <span style={{
           fontFamily: "'Cinzel', serif",
           fontSize: '10px',
@@ -1632,6 +1648,7 @@ function SecondaryStep({ primaryAttribute, onSelect, onBack }) {
 
 function SecondaryAttrCard({ attributeKey, attribute, isPrimary, isFriendly, isEnemy, onSelect }) {
   const isSelectable = !isPrimary;
+  const AttrCrystal = ATTR_SYMBOLS[attributeKey];
 
   let relationLabel = null;
   let relationColor = null;
@@ -1679,15 +1696,18 @@ function SecondaryAttrCard({ attributeKey, attribute, isPrimary, isFriendly, isE
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2 style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: '16px',
-            fontWeight: 600,
-            color: attribute.color,
-            marginBottom: '2px',
-          }}>
-            {attribute.name}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+            {AttrCrystal && <AttrCrystal size={20} />}
+            <h2 style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '16px',
+              fontWeight: 600,
+              color: attribute.color,
+              margin: 0,
+            }}>
+              {attribute.name}
+            </h2>
+          </div>
           <span style={{
             fontFamily: "'Cinzel', serif",
             fontSize: '10px',
