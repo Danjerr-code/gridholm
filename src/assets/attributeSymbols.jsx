@@ -6,9 +6,14 @@
  * PrimalSymbol — rectangular emerald,  deep green #22C55E, claw marks
  * MysticSymbol — tall pointed shard,   purple     #A855F7, crescent moon
  * DarkSymbol   — narrow double-point,  deep red   #EF4444, single eye
+ *
+ * All components are wrapped in React.memo to prevent unnecessary SVG
+ * regeneration on every parent state update.
  */
 
-export function LightSymbol({ size = 24 }) {
+import { memo } from 'react';
+
+function LightSymbolInner({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -52,7 +57,9 @@ export function LightSymbol({ size = 24 }) {
   );
 }
 
-export function PrimalSymbol({ size = 24 }) {
+export const LightSymbol = memo(LightSymbolInner);
+
+function PrimalSymbolInner({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -90,7 +97,9 @@ export function PrimalSymbol({ size = 24 }) {
   );
 }
 
-export function MysticSymbol({ size = 24 }) {
+export const PrimalSymbol = memo(PrimalSymbolInner);
+
+function MysticSymbolInner({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -134,7 +143,9 @@ export function MysticSymbol({ size = 24 }) {
   );
 }
 
-export function DarkSymbol({ size = 24 }) {
+export const MysticSymbol = memo(MysticSymbolInner);
+
+function DarkSymbolInner({ size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -179,6 +190,8 @@ export function DarkSymbol({ size = 24 }) {
     </svg>
   );
 }
+
+export const DarkSymbol = memo(DarkSymbolInner);
 
 /**
  * Convenience map: attribute key → crystal component.

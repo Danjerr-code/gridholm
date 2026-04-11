@@ -497,6 +497,9 @@ function canAffordCombatAfter(hand, currentResources, cardUid, cardCost) {
 //     no units/spells in hand are affordable anyway.
 //   - Skip a card if no tile scores above 0.
 function aiPlayNonCombatCards(state) {
+  // Guard: only run during the AI's turn — prevents accidental execution on state changes
+  // or re-renders triggered outside the AI turn driver.
+  if (state.activePlayer !== AI_PLAYER) return state;
   let s = cloneState(state);
 
   // Skip on turns 1-2

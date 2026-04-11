@@ -281,9 +281,12 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   unregisterUnit(unit.uid, state);
   unregisterModifiers(unit.uid, state);
 
-  // Push non-token units to the owner's grave before removal
+  // Push non-token units to the owner's grave before removal.
+  // graveEntry is an explicit plain object with only serialisable primitives —
+  // no circular references, no live board state, no triggerListeners.
   if (!unit.isToken && state.players[unit.owner]) {
     const graveEntry = {
+      type: 'unit',
       id: unit.id,
       uid: unit.uid,
       name: unit.name,

@@ -82,6 +82,9 @@ export default function Board({
     prevStateRef.current = state;
     if (!prev) return;
 
+    // Collect all timeout IDs so they can be cancelled on cleanup (unmount or next effect).
+    const timeoutIds = [];
+
     const nextAnimStates = {};
     const nextChampAnims = {};
     const dying = [];
@@ -168,16 +171,16 @@ export default function Board({
           const heavy = (prevTarget.hp - targetUnit.hp) >= ANIM_HEAVY_DAMAGE_THRESHOLD;
           lungeTargetUids.add(targetUnit.uid);
           // Delay damage animation to lunge midpoint
-          setTimeout(() => {
+          timeoutIds.push(setTimeout(() => {
             setUnitAnimStates(cur => ({ ...cur, [targetUnit.uid]: { type: 'damage', heavy } }));
-            setTimeout(() => {
+            timeoutIds.push(setTimeout(() => {
               setUnitAnimStates(cur => {
                 const next = { ...cur };
                 delete next[targetUnit.uid];
                 return next;
               });
-            }, ANIM_DAMAGE_DURATION + 50);
-          }, ANIM_LUNGE_MIDPOINT);
+            }, ANIM_DAMAGE_DURATION + 50));
+          }, ANIM_LUNGE_MIDPOINT));
         }
       }
     }
@@ -261,7 +264,7 @@ export default function Board({
     // Apply and auto-clear unit anims
     if (Object.keys(nextAnimStates).length > 0) {
       setUnitAnimStates(cur => ({ ...cur, ...nextAnimStates }));
-      setTimeout(() => {
+      timeoutIds.push(setTimeout(() => {
         setUnitAnimStates(cur => {
           const updated = { ...cur };
           for (const uid of Object.keys(nextAnimStates)) {
@@ -269,13 +272,13 @@ export default function Board({
           }
           return updated;
         });
-      }, MAX_DUR + 50);
+      }, MAX_DUR + 50));
     }
 
     // Apply and auto-clear champ anims
     if (Object.keys(nextChampAnims).length > 0) {
       setChampAnimStates(cur => ({ ...cur, ...nextChampAnims }));
-      setTimeout(() => {
+      timeoutIds.push(setTimeout(() => {
         setChampAnimStates(cur => {
           const updated = { ...cur };
           for (const ownerId of Object.keys(nextChampAnims)) {
@@ -283,7 +286,7 @@ export default function Board({
           }
           return updated;
         });
-      }, ANIM_DAMAGE_DURATION + 50);
+      }, ANIM_DAMAGE_DURATION + 50));
     }
 
     // Add dying units and auto-remove after death animation
@@ -295,15 +298,15 @@ export default function Board({
       const omenDying = dying.filter(d => d.unit.isOmen);
       if (regularDying.length > 0) {
         const ids = new Set(regularDying.map(d => d.id));
-        setTimeout(() => {
+        timeoutIds.push(setTimeout(() => {
           setDyingUnits(cur => cur.filter(d => !ids.has(d.id)));
-        }, ANIM_DEATH_DURATION + 50);
+        }, ANIM_DEATH_DURATION + 50));
       }
       if (omenDying.length > 0) {
         const ids = new Set(omenDying.map(d => d.id));
-        setTimeout(() => {
+        timeoutIds.push(setTimeout(() => {
           setDyingUnits(cur => cur.filter(d => !ids.has(d.id)));
-        }, ANIM_OMEN_DEATH_DURATION + 50);
+        }, ANIM_OMEN_DEATH_DURATION + 50));
       }
     }
 
@@ -319,13 +322,13 @@ export default function Board({
       }
       if (Object.keys(nextTerrainAnims).length > 0) {
         setTerrainAnimStates(cur => ({ ...cur, ...nextTerrainAnims }));
-        setTimeout(() => {
+        timeoutIds.push(setTimeout(() => {
           setTerrainAnimStates(cur => {
             const updated = { ...cur };
             for (const key of Object.keys(nextTerrainAnims)) delete updated[key];
             return updated;
           });
-        }, ANIM_TERRAIN_DURATION + 50);
+        }, ANIM_TERRAIN_DURATION + 50));
       }
     }
 
@@ -337,10 +340,12 @@ export default function Board({
       const attacker = prev.champions.find(c => c.owner !== pc.owner);
       if (attacker && attacker.row === 2 && attacker.col === 2) {
         setThroneAnimActive(true);
-        setTimeout(() => setThroneAnimActive(false), ANIM_THRONE_DURATION + 50);
+        timeoutIds.push(setTimeout(() => setThroneAnimActive(false), ANIM_THRONE_DURATION + 50));
         break;
       }
     }
+
+    return () => timeoutIds.forEach(clearTimeout);
   }, [state]);
 
   function handleUnitDragStart(unit) {
