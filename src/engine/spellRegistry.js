@@ -63,8 +63,8 @@ export const SPELL_REGISTRY = {
   forgeweapon: (state, caster, targets) => {
     const target = targets[0];
     if (!target) return state;
-    target.atkBonus = (target.atkBonus || 0) + 3;
-    addLog(state, `${state.players[caster].name} forges weapon on ${target.name}. +3 ATK.`);
+    target.atkBonus = (target.atkBonus || 0) + 2;
+    addLog(state, `${state.players[caster].name} forges weapon on ${target.name}. +2 ATK.`);
     return state;
   },
 
@@ -410,11 +410,11 @@ export const SPELL_REGISTRY = {
     champ.hp -= 3;
     addLog(state, `${state.players[caster].name} casts Infernal Pact. Champion takes 3 damage.`);
     state.units.forEach(u => {
-      if (u.owner === caster && unitTypes(u).includes('Demon')) {
+      if (u.owner === caster) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
       }
     });
-    addLog(state, `All friendly Demons gain +2 ATK this turn.`);
+    addLog(state, `All friendly combat units gain +2 ATK this turn.`);
     return state;
   },
 
