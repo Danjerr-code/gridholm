@@ -1665,7 +1665,7 @@ export function summonUnit(state, cardUid, row, col) {
     owner: s.activePlayer,
     row, col,
     maxHp: card.isOmen ? undefined : card.hp,
-    summoned: card.rush ? false : true,
+    summoned: (card.rush || card.type === 'relic') ? false : true,
     moved: false,
     atkBonus: 0,
     shield: 0,
