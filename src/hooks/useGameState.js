@@ -23,6 +23,7 @@ import {
   triggerUnitAction,
   getChampionAbilityTargets,
   applyChampionAbility,
+  getChampionDef,
   getTerrainCastTiles,
   castTerrainCard,
   getApproachTiles,
@@ -51,7 +52,8 @@ function createStateWithAiLog(deckId, aiDeckId) {
   console.log(`[createInitialState] Player 1 deckId="${deckId}" | AI (Player 2) deckId="${aiDeckId}"`);
   const s = createInitialState(deckId, aiDeckId);
   const aiName = FACTION_INFO[aiDeckId]?.name ?? aiDeckId;
-  return { ...s, log: [...s.log, `AI is playing ${aiName}.`] };
+  const aiChampDef = getChampionDef(s.players[1]);
+  return { ...s, log: [...s.log, `AI is playing ${aiName} with ${aiChampDef.name}.`] };
 }
 
 export function useGameState({ deckId = 'human' } = {}) {

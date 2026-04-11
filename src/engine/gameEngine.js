@@ -1135,8 +1135,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
       { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
     ],
     champions: [
-      { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false },
-      { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false },
+      { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: FACTION_ATTRIBUTE[p1DeckId] ?? 'light' },
+      { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false, attribute: FACTION_ATTRIBUTE[p2DeckId] ?? 'light' },
     ],
     units: [],
     log: [openingLog],
