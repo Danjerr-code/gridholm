@@ -2785,6 +2785,14 @@ export function triggerUnitAction(state, unitUid) {
     return result;
   }
 
+  // Tangleroot Yew: untargeted — roots all adjacent enemy combat units
+  if (unit.id === 'tanglerootypew') {
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
+  }
+
   // Clockwork Manimus: targeted 2-damage action
   if (unit.id === 'clockworkmanimus') {
     s.pendingSpell = { cardUid: unit.uid, effect: 'clockworkmanimus_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
