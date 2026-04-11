@@ -1032,12 +1032,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               phase={phase}
               phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
             />
-            <CommandDisplay commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
             <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
           </div>
         )}
 
-        {/* Center: board */}
+        {/* Center: command strip flush against board left edge + board */}
+        <div className="flex flex-1 min-w-0 min-h-0">
+          {!isMobile && (
+            <div className="flex flex-col items-center justify-center flex-shrink-0">
+              <CommandDisplay commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
+            </div>
+          )}
         <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={myPlayerIndex} />
           <Board
@@ -1063,6 +1068,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onLongPressUnit={isMobile ? handleInspectUnit : undefined}
             onLongPressDismiss={isMobile ? handleClearInspect : undefined}
           />
+        </div>
         </div>
 
         {/* Right sidebar: game log + action buttons */}
