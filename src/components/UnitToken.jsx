@@ -180,7 +180,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   // to hide stats from opponents, but the controller should always see their own unit's real stats.
   const effectiveHp = isOwnHidden ? unit.hp : (state ? getEffectiveHp(state, unit) : unit.hp);
   const effectiveMaxHp = isOwnHidden ? unit.maxHp : (state ? getEffectiveMaxHp(state, unit) : unit.maxHp);
-  const effectiveSpd = getEffectiveSpd(unit);
+  const effectiveSpd = getEffectiveSpd(unit, state);
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
