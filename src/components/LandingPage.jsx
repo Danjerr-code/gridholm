@@ -244,6 +244,28 @@ const STYLES = `
     background-size: 60px 60px;
     pointer-events: none;
   }
+
+  .lp-hero-silhouette {
+    position: absolute;
+    top: 0;
+    height: 35%;
+    opacity: 0.25;
+    pointer-events: none;
+    filter: sepia(1) hue-rotate(5deg) saturate(3);
+    user-select: none;
+  }
+  .lp-hero-silhouette-warrior {
+    right: 0;
+  }
+  .lp-hero-silhouette-dragon {
+    left: 0;
+    transform: scaleX(-1);
+  }
+  @media (max-width: 768px) {
+    .lp-hero-silhouette {
+      display: none;
+    }
+  }
 `;
 
 const ATTRIBUTE_ORDER = [
@@ -290,6 +312,19 @@ function HeroSection() {
       overflow: 'hidden',
     }}>
       <div className="lp-hero-grid-bg" />
+
+      <img
+        src="/silhouette-dragon.png"
+        alt=""
+        aria-hidden="true"
+        className="lp-hero-silhouette lp-hero-silhouette-dragon"
+      />
+      <img
+        src="/silhouette-warrior.png"
+        alt=""
+        aria-hidden="true"
+        className="lp-hero-silhouette lp-hero-silhouette-warrior"
+      />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, width: '100%' }}>
         <h1 style={{
