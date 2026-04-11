@@ -273,6 +273,25 @@ export default function Cell({
           {champIsHeal && (
             <div className="champ-heal-flash-overlay" />
           )}
+          {/* Faction gem — top-center overlay */}
+          {champion.attribute && (
+            <img
+              src={`/gem-${champion.attribute}.png`}
+              alt={champion.attribute}
+              draggable={false}
+              style={{
+                position: 'absolute',
+                top: '3px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '12px',
+                height: '12px',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                zIndex: 2,
+              }}
+            />
+          )}
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
             <path d="M2,18 L2,6 L8,14 L12,2 L16,14 L22,6 L22,18 Z"/>
           </svg>
