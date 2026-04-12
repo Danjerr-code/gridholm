@@ -1,6 +1,12 @@
 import { buildDeck, shuffle, TOKENS, CARD_DB } from './cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
 import { CHAMPIONS } from './champions.js';
+import {
+  getAuraAtkBonus,
+  getEffectiveAtk,
+  getEffectiveSpd,
+} from './statUtils.js';
+export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 
 const FACTION_ATTRIBUTE = {
   human: 'light',
@@ -8,12 +14,10 @@ const FACTION_ATTRIBUTE = {
   elf:   'mystic',
   demon: 'dark',
 };
-import {
-  getAuraAtkBonus,
-  getEffectiveAtk,
-  getEffectiveSpd,
-} from './statUtils.js';
-export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
+
+// Bright orange used to highlight ability targeting tiles (e.g. Vorn direction select).
+// Defined as a constant so other ability targeting features can reuse it.
+export const ABILITY_TILE_HIGHLIGHT_COLOR = '#f97316';
 
 // ── Champion modifier helpers ──────────────────────────────────────────────
 // Returns total ATK bonus granted to a champion from championAtkBuff modifiers
@@ -1160,6 +1164,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingGraveSelect: null, // { reason, playerIdx, data } — when spell prompts player to select from grave
     pendingFleshtitheSacrifice: null, // { unitUid } — Flesh Tithe confirm
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
+    pendingDirectionSelect: null, // { unitUid } — Vorn: waiting for player to click a cardinal adjacent tile
     pendingRelicPlace: null,  // { effect, playerIdx } — waiting for tile to place a relic (e.g. Amethyst Cache)
     pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
@@ -2525,6 +2530,7 @@ export function cancelSpell(state) {
   s.pendingHandSelect = null;
   s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingDirectionSelect = null;
   s.pendingRelicPlace = null;
   s.pendingLineBlast = null;
   s.pendingNegationCancel = null;
@@ -2550,6 +2556,24 @@ export function resolveLineBlast(state, unitUid, direction) {
   const actorAfter = result.units.find(u => u.uid === unitUid);
   fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
   fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unitUid }, result);
+  return result;
+}
+
+// ── Vorn: resolve direction tile selection ────────────────────────────────
+// Called when the player clicks one of Vorn's 4 highlighted adjacent tiles.
+// Derives the blast direction from Vorn's position to the chosen tile.
+export function resolveDirectionTile(state, unitUid, targetRow, targetCol) {
+  const unit = state.units.find(u => u.uid === unitUid);
+  if (!unit) return state;
+  const dr = targetRow - unit.row;
+  const dc = targetCol - unit.col;
+  let direction;
+  if (dr < 0)      direction = 'up';
+  else if (dr > 0) direction = 'down';
+  else if (dc < 0) direction = 'left';
+  else             direction = 'right';
+  const result = resolveLineBlast(state, unitUid, direction);
+  result.pendingDirectionSelect = null;
   return result;
 }
 
@@ -2794,6 +2818,7 @@ export function endActionPhase(state) {
   s.pendingHandSelect = null;
   s.pendingGraveSelect = null;
   s.pendingTerrainCast = null;
+  s.pendingDirectionSelect = null;
   s.pendingRelicPlace = null;
   s.pendingLineBlast = null;
   s.pendingDeckPeek = null;
@@ -2881,9 +2906,9 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
-  // Vorn: direction selection — sets pendingLineBlast for UI to enter direction_select mode
+  // Vorn: board tile selection — highlights adjacent tiles for player to click
   if (unit.id === 'vornthundercaller') {
-    s.pendingLineBlast = { unitUid: unit.uid };
+    s.pendingDirectionSelect = { unitUid: unit.uid };
     return s;
   }
 
@@ -3420,6 +3445,7 @@ export function completeTurnAdvance(state) {
   if (s.graveAccessActive) s.graveAccessActive[s.activePlayer] = false;
   if (s.championStunned) s.championStunned[s.activePlayer] = false;
   s.pendingLineBlast = null;
+  s.pendingDirectionSelect = null;
 
   champ.moved = false;
 

@@ -272,7 +272,12 @@ export function applyAction(state, action) {
 
     case 'unitAction': {
       let s = triggerUnitAction(state, action.unitId);
-      if (s.pendingLineBlast) {
+      if (s.pendingDirectionSelect) {
+        const pendingUnit = s.units.find(u => u.uid === s.pendingDirectionSelect.unitUid);
+        const bestDir = pendingUnit ? _pickBestDirection(s, pendingUnit) : 'up';
+        s = resolveLineBlast(s, s.pendingDirectionSelect.unitUid, bestDir);
+        s.pendingDirectionSelect = null;
+      } else if (s.pendingLineBlast) {
         const pendingUnit = s.units.find(u => u.uid === s.pendingLineBlast.unitUid);
         const bestDir = pendingUnit ? _pickBestDirection(s, pendingUnit) : 'up';
         s = resolveLineBlast(s, s.pendingLineBlast.unitUid, bestDir);

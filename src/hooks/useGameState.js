@@ -30,6 +30,7 @@ import {
   executeApproachAndAttack,
   manhattan,
   resolveLineBlast,
+  resolveDirectionTile,
   resolveDeckPeek,
   resolveGlimpse,
   resolveScry,
@@ -562,11 +563,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const unit = prev.units.find(u => u.uid === unitUid);
       if (!unit) return prev;
-      // Vorn: direction selection mode
+      // Vorn: board tile direction selection
       if (unit.id === 'vornthundercaller') {
         const s = triggerUnitAction(prev, unitUid);
-        if (s.pendingLineBlast) {
-          setSelectMode('direction_select');
+        if (s.pendingDirectionSelect) {
+          setSelectMode('direction_tile_select');
         }
         return s;
       }
@@ -593,6 +594,15 @@ export function useGameState({ deckId = 'human' } = {}) {
     });
     clearSelection();
   }, [selectedUnit, clearSelection]);
+
+  const handleDirectionTileSelect = useCallback((row, col) => {
+    setState(prev => {
+      const ds = prev.pendingDirectionSelect;
+      if (!ds) return prev;
+      return resolveDirectionTile(prev, ds.unitUid, row, col);
+    });
+    clearSelection();
+  }, [clearSelection]);
 
   const handleDeckPeekSelect = useCallback((cardUid) => {
     setState(prev => resolveDeckPeek(prev, cardUid));
@@ -669,6 +679,17 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getTerrainCastTiles(state)
     : [];
 
+  // Vorn direction selection: the 4 cardinal adjacent tiles on the board
+  const directionTargetTiles = selectMode === 'direction_tile_select' && state.pendingDirectionSelect
+    ? (() => {
+        const unit = state.units.find(u => u.uid === state.pendingDirectionSelect.unitUid);
+        if (!unit) return [];
+        return [[-1, 0], [1, 0], [0, -1], [0, 1]]
+          .map(([dr, dc]) => [unit.row + dr, unit.col + dc])
+          .filter(([r, c]) => r >= 0 && r < 5 && c >= 0 && c < 5);
+      })()
+    : [];
+
   const championSaplingTiles = selectMode === 'champion_sapling_place' && state.pendingChampionSaplingPlace
     ? state.pendingChampionSaplingPlace.validTiles
     : [];
@@ -695,6 +716,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     unitMoveTiles,
     approachTiles,
     terrainTargetTiles,
+    directionTargetTiles,
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
@@ -725,6 +747,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleActionButtonClick,
       handleConfirmAction,
       handleLineBlastDirection,
+      handleDirectionTileSelect,
       handleDeckPeekSelect,
       handleGlimpseDecision,
       handleScryDismiss,

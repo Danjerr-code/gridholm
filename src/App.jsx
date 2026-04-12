@@ -37,6 +37,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     unitMoveTiles,
     approachTiles,
     terrainTargetTiles,
+    directionTargetTiles,
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
@@ -702,6 +703,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             unitMoveTiles={unitMoveTiles}
             approachTiles={approachTiles}
             terrainTargetTiles={terrainTargetTiles}
+            directionTargetTiles={directionTargetTiles}
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
             sacrificeTargetUids={sacrificeTargetUids}

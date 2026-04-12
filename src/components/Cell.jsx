@@ -29,6 +29,7 @@ export default function Cell({
   isSacrificeTarget,
   isAbilityTarget,
   isTerrainTarget,
+  isDirectionTarget = false,
   isChampionSaplingTile = false,
   isSpellTargetGlow,
   terrain,
@@ -63,6 +64,14 @@ export default function Cell({
       border: '2px solid #22c55e',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(34,197,94,0.5)',
+      cursor: 'pointer',
+    };
+  } else if (isDirectionTarget) {
+    tileStyle = {
+      background: '#2a1200',
+      border: '2px solid #f97316',
+      borderRadius: '4px',
+      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 10px rgba(249,115,22,0.7)',
       cursor: 'pointer',
     };
   } else if (isTerrainTarget) {
