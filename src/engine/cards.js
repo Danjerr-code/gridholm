@@ -435,7 +435,33 @@ export const FACTION_INFO = {
 
 // ── Deck builder ──────────────────────────────────────────────────────────
 
+/**
+ * Parse a deck spec from a JSON-encoded string (used in multiplayer to transmit
+ * custom deck data through Supabase without a schema change).
+ * Returns the spec object if deckId is a JSON custom deck spec, otherwise null.
+ */
+export function parseDeckSpec(deckId) {
+  if (typeof deckId === 'string' && deckId.startsWith('{')) {
+    try {
+      const spec = JSON.parse(deckId);
+      if (spec.type === 'custom' && Array.isArray(spec.cards)) return spec;
+    } catch {}
+  }
+  return null;
+}
+
 export function buildDeck(deckId = 'human') {
+  // Handle JSON-encoded custom deck spec (multiplayer cross-device deck passing)
+  const spec = parseDeckSpec(deckId);
+  if (spec) {
+    const cards = spec.cards.map(id => ({
+      ...CARD_DB[id],
+      uid: `${id}_${Math.random().toString(36).slice(2)}`,
+    })).filter(c => c.id);
+    console.log('[buildDeck] deck spec (multiplayer custom):', spec.deckName, `${cards.length} cards`);
+    return cards;
+  }
+
   if (deckId === 'custom') {
     const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
     console.log('[buildDeck] deckId=custom | localStorage gridholm_custom_deck:', saved ? `found (${saved.cards?.length ?? 0} cards)` : 'null');

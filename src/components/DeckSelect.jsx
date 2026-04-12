@@ -1,4 +1,5 @@
-import { FACTION_INFO, buildDeck } from '../engine/cards.js';
+import { useState } from 'react';
+import { FACTION_INFO, buildDeck, parseDeckSpec } from '../engine/cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CHAMPIONS } from '../engine/champions.js';
 import { getCardImageUrl } from '../supabase.js';
@@ -20,6 +21,40 @@ function getResonanceInfo(factionId) {
   return { score, tier };
 }
 
+function loadSavedDecks() {
+  try {
+    const decks = JSON.parse(localStorage.getItem('gridholm_saved_decks') || '[]');
+    return Array.isArray(decks) ? decks : [];
+  } catch {
+    return [];
+  }
+}
+
+function savedDeckToSpec(deck) {
+  return JSON.stringify({
+    type: 'custom',
+    champion: deck.primaryAttribute,
+    primaryAttr: deck.primaryAttribute,
+    secondaryAttr: deck.secondaryAttribute,
+    cards: deck.cards,
+    deckName: deck.name,
+  });
+}
+
+function getSelectedDeckLabel(selectedDeck) {
+  if (!selectedDeck) return null;
+  const spec = parseDeckSpec(selectedDeck);
+  if (spec) return { name: spec.deckName ?? 'Custom Deck', color: '#C9A84C' };
+  return { name: FACTION_INFO[selectedDeck]?.name ?? 'Unknown', color: FACTION_INFO[selectedDeck]?.color ?? '#C9A84C' };
+}
+
+const ATTR_COLORS = {
+  light: '#F0E6D2',
+  primal: '#22C55E',
+  mystic: '#A855F7',
+  dark: '#EF4444',
+};
+
 const FACTIONS = Object.values(FACTION_INFO);
 
 const FACTION_GRADIENTS = {
@@ -30,7 +65,10 @@ const FACTION_GRADIENTS = {
 };
 
 export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false, isRematch = false }) {
+  const [savedDecks] = useState(loadSavedDecks);
+
   if (waitingForOpponent) {
+    const label = getSelectedDeckLabel(selectedDeck);
     return (
       <div style={{
         minHeight: '100vh',
@@ -51,7 +89,7 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
             marginBottom: '16px',
           }}>GRIDHOLM</h1>
           {isRematch && (
-            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', marginBottom: '12px' }}>Rematch! Select your attribute.</p>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', marginBottom: '12px' }}>Rematch! Select your deck.</p>
           )}
           <div style={{
             background: '#0d0d1a',
@@ -68,10 +106,10 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
                 fontFamily: "'Cinzel', serif",
                 fontSize: '16px',
                 fontWeight: 600,
-                color: FACTION_INFO[selectedDeck]?.color || '#C9A84C',
+                color: label?.color || '#C9A84C',
               }}
             >
-              {FACTION_INFO[selectedDeck]?.name ?? 'Unknown'} selected
+              {label?.name ?? 'Unknown'} selected
             </div>
             <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#4a4a6a', fontSize: '14px' }}>Waiting for opponent to choose their deck…</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -112,8 +150,8 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
           marginBottom: '4px',
         }}>GRIDHOLM</h1>
         {isRematch
-          ? <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', fontSize: '15px' }}>Rematch! Select your attribute.</p>
-          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>Choose your attribute</p>
+          ? <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#C9A84C', fontSize: '15px' }}>Rematch! Select your deck.</p>
+          : <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#e2e8f0', fontSize: '15px' }}>Choose your deck</p>
         }
       </div>
 
@@ -121,16 +159,118 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
         <PlayerStatusRow youSelected={false} opponentSelected={opponentSelected} />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
-        {FACTIONS.map(faction => (
-          <FactionCard
-            key={faction.id}
-            faction={faction}
-            resonance={getResonanceInfo(faction.id)}
-            onSelect={() => onSelect(faction.id)}
-          />
-        ))}
+      {savedDecks.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '56rem' }}>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '12px',
+          }}>Your Saved Decks</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            {savedDecks.map((deck, i) => (
+              <SavedDeckCard
+                key={i}
+                deck={deck}
+                onSelect={() => onSelect(savedDeckToSpec(deck))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ width: '100%', maxWidth: '56rem' }}>
+        {savedDecks.length > 0 && (
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '12px',
+          }}>Starter Decks</div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          {FACTIONS.map(faction => (
+            <FactionCard
+              key={faction.id}
+              faction={faction}
+              resonance={getResonanceInfo(faction.id)}
+              onSelect={() => onSelect(faction.id)}
+            />
+          ))}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function SavedDeckCard({ deck, onSelect }) {
+  const attr = deck.primaryAttribute;
+  const color = ATTR_COLORS[attr] ?? '#C9A84C';
+  const AttrCrystal = ATTR_SYMBOLS[attr] ?? null;
+  const champImage = CHAMPIONS[attr]?.image;
+  const champImageUrl = getCardImageUrl(champImage);
+
+  return (
+    <div
+      style={{
+        background: '#0d0d1a',
+        border: `1px solid ${color}55`,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: '8px',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        cursor: 'pointer',
+        transition: 'transform 0.15s, box-shadow 0.15s',
+        minWidth: '160px',
+        maxWidth: '220px',
+        flex: '1 1 160px',
+      }}
+      onClick={onSelect}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(1.02)';
+        e.currentTarget.style.boxShadow = `inset 0 0 16px ${color}33`;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '';
+      }}
+    >
+      {champImageUrl && (
+        <div style={{ height: '80px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
+          <img src={champImageUrl} alt="" onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {AttrCrystal && <AttrCrystal size={16} />}
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color }}>{deck.name}</span>
+      </div>
+      <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '12px', color: '#6a6a8a' }}>
+        {deck.cards?.length ?? 0} cards · {attr}
+      </span>
+      <button
+        style={{
+          marginTop: 'auto',
+          padding: '6px 8px',
+          borderRadius: '4px',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#0a0a0f',
+          background: `linear-gradient(135deg, ${color}cc, ${color})`,
+          border: 'none',
+          cursor: 'pointer',
+          letterSpacing: '0.04em',
+        }}
+        onClick={e => { e.stopPropagation(); onSelect(); }}
+      >
+        Select
+      </button>
     </div>
   );
 }

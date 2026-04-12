@@ -1,4 +1,4 @@
-import { buildDeck, shuffle, TOKENS, CARD_DB } from './cards.js';
+import { buildDeck, shuffle, TOKENS, CARD_DB, parseDeckSpec } from './cards.js';
 import { calculateResonance, RESONANCE_THRESHOLDS } from './attributes.js';
 import { CHAMPIONS } from './champions.js';
 import {
@@ -1151,12 +1151,19 @@ export function fireOnSummonTriggers(unit, state) {
 
 // ── initializer ────────────────────────────────────────────────────────────
 
-function computeResonance(deckId, cards) {
-  let attr = FACTION_ATTRIBUTE[deckId] ?? 'light';
+function getDeckChampionAttr(deckId) {
+  const spec = parseDeckSpec(deckId);
+  if (spec) return spec.primaryAttr ?? spec.champion ?? 'light';
   if (deckId === 'custom') {
     const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
-    if (saved?.primaryAttr) attr = saved.primaryAttr;
+    if (saved?.primaryAttr) return saved.primaryAttr;
   }
+  return FACTION_ATTRIBUTE[deckId] ?? 'light';
+}
+
+
+function computeResonance(deckId, cards) {
+  const attr = getDeckChampionAttr(deckId);
   const score = calculateResonance(cards, attr);
   const tier = score >= RESONANCE_THRESHOLDS.ascended ? 'ascended'
     : score >= RESONANCE_THRESHOLDS.attuned ? 'attuned'
@@ -1207,8 +1214,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
       { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
     ],
     champions: [
-      { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: FACTION_ATTRIBUTE[p1DeckId] ?? 'light' },
-      { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false, attribute: FACTION_ATTRIBUTE[p2DeckId] ?? 'light' },
+      { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: getDeckChampionAttr(p1DeckId) },
+      { owner: 1, row: 4, col: 4, hp: 20, maxHp: 20, moved: false, attribute: getDeckChampionAttr(p2DeckId) },
     ],
     units: [],
     log: [openingLog],
@@ -4143,7 +4150,7 @@ export function getArcherShootTargets(state, archerUid) {
 // ── champion ability helpers ───────────────────────────────────────────────
 
 export function getChampionDef(player) {
-  const attr = FACTION_ATTRIBUTE[player.deckId] ?? 'light';
+  const attr = getDeckChampionAttr(player.deckId);
   return CHAMPIONS[attr] ?? CHAMPIONS.light;
 }
 

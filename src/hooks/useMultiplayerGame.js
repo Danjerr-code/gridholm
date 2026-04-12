@@ -2,7 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
 import { playTurnStartSound, playSfxDraw } from '../audio.js';
 import { createInitialState, autoAdvancePhase, getChampionDef } from '../engine/gameEngine.js';
-import { FACTION_INFO } from '../engine/cards.js';
+import { FACTION_INFO, parseDeckSpec } from '../engine/cards.js';
+
+function getDeckDisplayName(deckId) {
+  const spec = parseDeckSpec(deckId);
+  if (spec) return spec.deckName ?? 'Custom Deck';
+  return FACTION_INFO[deckId]?.name ?? deckId;
+}
 
 const TURN_TIMER_ENABLED = false; // set to true to re-enable the idle forfeit timer
 const IDLE_WARN_SECONDS = 30;  // show countdown when this many seconds remain
@@ -210,8 +216,8 @@ export function useMultiplayerGame(gameId) {
       s.firstPlayer = 0;
       const p1ChampName = getChampionDef(s.players[0]).name;
       const p2ChampName = getChampionDef(s.players[1]).name;
-      const p1FactionName = FACTION_INFO[p1DeckId]?.name ?? p1DeckId;
-      const p2FactionName = FACTION_INFO[p2DeckId]?.name ?? p2DeckId;
+      const p1FactionName = getDeckDisplayName(p1DeckId);
+      const p2FactionName = getDeckDisplayName(p2DeckId);
       s.log[0] = `Game started. Player 1 goes first. Both players start with 5 cards. Player 1 skips draw on turn 1. Player 1 plays ${p1FactionName} with ${p1ChampName}. Player 2 plays ${p2FactionName} with ${p2ChampName}.`;
       s.players[0].name = 'Player 1';
       s.players[1].name = 'Player 2';

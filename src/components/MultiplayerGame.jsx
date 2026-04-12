@@ -102,6 +102,22 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       const pending = localStorage.getItem('gridholm_pending_custom_deck');
       if (pending) {
         localStorage.removeItem('gridholm_pending_custom_deck');
+        // Pass the full deck spec so it can be transmitted to the opponent via Supabase
+        try {
+          const saved = JSON.parse(localStorage.getItem('gridholm_custom_deck') || 'null');
+          if (saved && Array.isArray(saved.cards) && saved.cards.length > 0) {
+            selectDeck(JSON.stringify({
+              type: 'custom',
+              champion: saved.champion ?? saved.primaryAttr,
+              primaryAttr: saved.primaryAttr ?? saved.champion,
+              secondaryAttr: saved.secondaryAttr,
+              cards: saved.cards,
+              deckName: saved.deckName ?? 'Custom Deck',
+            }));
+            return;
+          }
+        } catch {}
+        // Fallback: use 'custom' (reads from localStorage on same device)
         selectDeck('custom');
       }
     }
