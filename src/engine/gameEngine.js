@@ -2308,7 +2308,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   else if (effect === 'bloodoffering') {
     if (step === 0) {
       if (target) {
-        const sacrificeAtk = target.atk;
+        const sacrificeAtk = getEffectiveAtk(s, target);
         s = _dispatchSpell(s, s.activePlayer, 'bloodoffering', [target], { step: 0 });
         s.pendingSpell = { cardUid, effect: 'bloodoffering', playerIdx: s.activePlayer, step: 1, data: { sacrificeAtk, paid: true } };
       }

@@ -361,7 +361,7 @@ export const SPELL_REGISTRY = {
     if (step === 0) {
       const sacrifice = targets[0];
       if (!sacrifice) return state;
-      addLog(state, `Blood Offering: ${sacrifice.name} (${sacrifice.atk} ATK) sacrificed.`);
+      addLog(state, `Blood Offering: ${sacrifice.name} sacrificed.`);
       fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...sacrifice }, sacrificingPlayerIndex: sacrifice.owner }, state);
       destroyUnit(sacrifice, state, 'sacrifice');
     } else {
