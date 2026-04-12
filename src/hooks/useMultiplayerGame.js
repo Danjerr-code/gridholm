@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { playTurnStartSound, playSfxDraw } from '../audio.js';
 import { createInitialState, autoAdvancePhase, getChampionDef } from '../engine/gameEngine.js';
 import { FACTION_INFO, parseDeckSpec } from '../engine/cards.js';
@@ -16,12 +17,14 @@ const IDLE_FORFEIT_SECONDS = 60; // forfeit after this many idle seconds
 
 export function useMultiplayerGame(gameId) {
   const guestId = getGuestId();
+  const { currentUser } = useAuth();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [idleElapsed, setIdleElapsed] = useState(0);
   const retryTimerRef = useRef(null);
   const forfeitCalledRef = useRef(false);
+  const winLossUpdatedRef = useRef(false); // guard against double win/loss update
 
   useEffect(() => {
     if (!supabase) {
@@ -77,6 +80,7 @@ export function useMultiplayerGame(gameId) {
           .from('game_sessions')
           .update({
             player2_id: guestId,
+            player2_auth_id: currentUser?.id ?? null,
             status: 'deck_select',
             active_player: firstPlayer,
             updated_at: new Date().toISOString(),
@@ -166,6 +170,39 @@ export function useMultiplayerGame(gameId) {
         if (err) console.error('[IdleTimeout] Forfeit failed:', err);
       });
   }, [idleElapsed, session, gameId, guestId]);
+
+  // Win/loss tracking: when a multiplayer game ends, increment the authenticated
+  // player's record in the profiles table. Only runs when both players are authenticated
+  // (both player1_auth_id and player2_auth_id are set on the session).
+  useEffect(() => {
+    if (!session || session.status !== 'complete' || !supabase) return;
+    if (!currentUser) return;
+    if (!session.player1_auth_id || !session.player2_auth_id) return; // both must be signed in
+    if (winLossUpdatedRef.current) return; // only once per game session render
+    winLossUpdatedRef.current = true;
+
+    const myAuthId = currentUser.id;
+    // Confirm I'm one of the authenticated players in this game
+    if (myAuthId !== session.player1_auth_id && myAuthId !== session.player2_auth_id) return;
+
+    const wonGame = session.winner === guestId;
+
+    async function updateRecord() {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('wins, losses')
+        .eq('id', myAuthId)
+        .single();
+      if (!profile) return;
+
+      if (wonGame) {
+        await supabase.from('profiles').update({ wins: profile.wins + 1 }).eq('id', myAuthId);
+      } else {
+        await supabase.from('profiles').update({ losses: profile.losses + 1 }).eq('id', myAuthId);
+      }
+    }
+    updateRecord().catch(err => console.error('[WinLoss] Update failed:', err));
+  }, [session?.status, session?.winner, currentUser, guestId]);
 
   // Play a chime when active_player transitions to the local player.
   const prevActivePlayerRef = useRef(null);
@@ -428,6 +465,7 @@ export function useMultiplayerGame(gameId) {
       : session.player1_id;
 
     const freshGameState = createInitialState();
+    winLossUpdatedRef.current = false; // allow win/loss tracking for the new game
     const updateBody = {
       game_state: freshGameState,
       status: 'deck_select',

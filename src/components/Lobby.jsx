@@ -106,6 +106,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const { currentUser, signOut } = useAuth();
 
   const [profileUsername, setProfileUsername] = useState(null);
+  const [profileStats, setProfileStats] = useState(null); // { wins, losses }
 
   useEffect(() => {
     try {
@@ -118,15 +119,17 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     }
   }, []);
 
-  // Fetch username when user logs in
+  // Fetch username and win/loss stats when user logs in
   useEffect(() => {
     if (!currentUser || !supabase) {
       setProfileUsername(null);
+      setProfileStats(null);
       return;
     }
-    supabase.from('profiles').select('username').eq('id', currentUser.id).single()
+    supabase.from('profiles').select('username, wins, losses').eq('id', currentUser.id).single()
       .then(({ data }) => {
         setProfileUsername(data?.username ?? null);
+        if (data) setProfileStats({ wins: data.wins ?? 0, losses: data.losses ?? 0 });
       });
   }, [currentUser]);
 
@@ -184,6 +187,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     const { error } = await supabase.from('game_sessions').insert({
       id: gameId,
       player1_id: guestId,
+      player1_auth_id: currentUser?.id ?? null,
       game_state: placeholderState,
       active_player: guestId,
       status: 'waiting',
@@ -257,9 +261,24 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                 background: '#0d0d1a',
                 border: '1px solid #2a2a3a',
                 borderRadius: '4px',
-                minWidth: '120px',
+                minWidth: '140px',
                 zIndex: 100,
               }}>
+                {profileStats && (
+                  <div style={{
+                    padding: '10px 14px 6px',
+                    borderBottom: '1px solid #1a1a2a',
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '10px',
+                    letterSpacing: '0.06em',
+                    color: '#6a6a8a',
+                    display: 'flex',
+                    gap: '12px',
+                  }}>
+                    <span style={{ color: '#4ade80' }}>W: {profileStats.wins}</span>
+                    <span style={{ color: '#f87171' }}>L: {profileStats.losses}</span>
+                  </div>
+                )}
                 <button
                   onClick={async () => { setProfileDropdownOpen(false); await signOut(); }}
                   style={{

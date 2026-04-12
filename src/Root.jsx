@@ -37,6 +37,24 @@ export default function Root() {
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [playMode, setPlayMode] = useState(null); // 'quickplay' | 'custom'
 
+  // Handle Supabase auth callback (password reset / email confirmation).
+  // When the user clicks a Supabase link they land on /auth/callback?code=xxx.
+  // Exchange the code for a session then redirect to the lobby.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code || !supabase) return;
+
+    supabase.auth.exchangeCodeForSession(window.location.href).then(({ error }) => {
+      if (!error) {
+        // Clear the code from the URL and go to lobby
+        window.history.replaceState({}, '', '/');
+        setRoute({ view: 'lobby' });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     function handleHashChange() {
       setRoute(parseHash());
