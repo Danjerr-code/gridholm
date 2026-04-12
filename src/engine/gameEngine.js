@@ -618,6 +618,7 @@ function fireBeginTurnTriggers(state, playerIdx) {
   console.log("[Nezzar] nezzars found on board for playerIdx=" + playerIdx + ": " + nezzars.length);
   for (const nezzar of nezzars) {
     console.log("[Nezzar] found Nezzar on board, unit uid: " + nezzar.uid);
+    console.log("[Nezzar] activePlayer:", state.activePlayer, "nezzar owner:", nezzar.owner);
     const available = filterAvailableContracts(state, playerIdx, nezzar.uid);
     console.log("[Nezzar] filterAvailableContracts result: " + available.map(c => c.id).join(", ") + " (count=" + available.length + ")");
     const contracts = pickRandomContracts(available);
