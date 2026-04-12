@@ -613,6 +613,7 @@ function fireBeginTurnTriggers(state, playerIdx) {
   }
 
   // Nezzar, Terms and Conditions: at beginning of owner's turn, offer 3 random contracts
+  state.units.filter(u => u.owner === playerIdx).forEach(u => console.log("[Nezzar] unit on board:", u.id, u.owner));
   const nezzars = state.units.filter(u => u.owner === playerIdx && u.id === 'nezzartermsandconditions');
   console.log("[Nezzar] nezzars found on board for playerIdx=" + playerIdx + ": " + nezzars.length);
   for (const nezzar of nezzars) {
