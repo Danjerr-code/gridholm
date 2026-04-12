@@ -223,9 +223,12 @@ function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 function getPlayer(state) { return state.players[state.activePlayer]; }
 
 
-// Deep-clone state
+// Deep-clone state.
+// stateHistory is intentionally excluded from clones: it is managed at the endTurn
+// boundary and must not be nested inside each snapshot.
 export function cloneState(state) {
-  return JSON.parse(JSON.stringify(state));
+  const { stateHistory: _h, ...rest } = state;
+  return JSON.parse(JSON.stringify(rest));
 }
 
 // ── HP restore ─────────────────────────────────────────────────────────────
@@ -3583,15 +3586,28 @@ export function endActionAndTurn(state) {
 }
 
 export function endTurn(state) {
-  const s = cloneState(state);
+  // PRESERVE: do not clear on game over. Required for future match review feature.
+  const prevHistory = state.stateHistory || [];
+
+  const s = cloneState(state); // cloneState strips stateHistory; prevHistory carries it
   const p = s.players[s.activePlayer];
 
   // END TURN TRIGGERS
   fireEndTurnTriggers(s, s.activePlayer);
-  if (s.winner) return s;
+  if (s.winner) {
+    // Game ended mid-turn — preserve history but don't add a new snapshot yet;
+    // completeTurnAdvance won't run, so capture the final state here.
+    const snapshot = cloneState(s);
+    // PRESERVE: do not clear on game over. Required for future match review feature.
+    s.stateHistory = [...prevHistory, snapshot];
+    return s;
+  }
   // Clockwork Manimus (or any discardOrDie trigger) may set pendingHandSelect.
   // If so, pause turn advance and wait for the player to choose a card.
-  if (s.pendingHandSelect) return s;
+  if (s.pendingHandSelect) {
+    s.stateHistory = prevHistory; // hold history until turn fully advances
+    return s;
+  }
 
   // Hand limit: 6
   if (p.hand.length > 6) {
@@ -3604,15 +3620,16 @@ export function endTurn(state) {
       }
     } else {
       s.pendingDiscard = true;
+      s.stateHistory = prevHistory; // hold history until discard resolves
       addLog(s, `${p.name} has too many cards. Click a card to discard.`);
       return s;
     }
   }
 
-  return completeTurnAdvance(s);
+  return completeTurnAdvance(s, prevHistory);
 }
 
-export function completeTurnAdvance(state) {
+export function completeTurnAdvance(state, prevHistory = null) {
   const s = state;
   const champ = s.champions[s.activePlayer];
 
@@ -3686,10 +3703,19 @@ export function completeTurnAdvance(state) {
   s.phase = 'begin-turn';
   addLog(s, `--- Turn ${s.turn}: ${s.players[nextPlayer].name}'s turn ---`);
 
-  return autoAdvancePhase(s);
+  const advanced = autoAdvancePhase(s);
+
+  // Append a snapshot of the completed turn to stateHistory.
+  // PRESERVE: do not clear on game over. Required for future match review feature.
+  const history = prevHistory ?? advanced.stateHistory ?? [];
+  const snapshot = cloneState(advanced); // cloneState excludes stateHistory — no nesting
+  advanced.stateHistory = [...history, snapshot];
+
+  return advanced;
 }
 
 export function discardCard(state, cardUid) {
+  const prevHistory = state.stateHistory || []; // carry history before clone strips it
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
@@ -3703,9 +3729,10 @@ export function discardCard(state, cardUid) {
   checkConditionalStatDeaths(s);
 
   if (p.hand.length <= 6) {
-    return completeTurnAdvance(s);
+    return completeTurnAdvance(s, prevHistory);
   }
 
+  s.stateHistory = prevHistory; // still discarding — hold history
   return s;
 }
 

@@ -397,10 +397,14 @@ export function useMultiplayerGame(gameId) {
       }
     }
 
+    // Strip stateHistory before syncing to Supabase — it is in-memory only and
+    // grows with every turn, which would bloat the game_state JSONB column.
+    const { stateHistory: _h, ...stateForSync } = newGameState;
+
     const { data: updated } = await supabase
       .from('game_sessions')
       .update({
-        game_state: newGameState,
+        game_state: stateForSync,
         active_player: nextActiveGuestId,
         status: isComplete ? 'complete' : 'active',
         winner: winnerGuestId,
