@@ -3278,14 +3278,15 @@ export function moveUnit(state, unitUid, row, col) {
         updateStandardBearerAura(s);
         return s;
       }
-      if (unit.id === 'veilfiend' || unit.id === 'dreadshade') {
-        // Reveal effects already fired in revealUnit; stay on original tile, no combat
+      if (unit.id === 'veilfiend') {
+        // Veil Fiend: reveal effects already fired (splash damage); stays on original tile, no combat
         const liveUnit = s.units.find(u => u.uid === unitUid);
         if (liveUnit) liveUnit.moved = true;
         updateWildbornAura(s);
         updateStandardBearerAura(s);
         return s;
       }
+      // Dread Shade: reveal fires +2 ATK bonus, then falls through to normal combat below
     }
     // Reveal hidden enemy unit before resolving combat
     const wasHidden = enemyUnit.hidden;
