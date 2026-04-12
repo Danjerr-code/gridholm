@@ -113,6 +113,29 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [extraLogEntries, setExtraLogEntries] = useState([]);
   const [handExpanded, setHandExpanded] = useState(true);
   const touchStartYRef = useRef(null);
+  const [gameStartNotice, setGameStartNotice] = useState(null); // null | string
+  const gameStartShownRef = useRef(false);
+  const gameStartTimerRef = useRef(null);
+
+  // Show "You Go First!" / "Opponent Goes First!" once when game state first arrives
+  useEffect(() => {
+    if (!gameState || myPlayerIndex === null) return;
+    if (gameStartShownRef.current) return;
+    // Only show on fresh game start (turn 1, no winner)
+    if (gameState.turn !== 1 || gameState.winner) return;
+    gameStartShownRef.current = true;
+    const goFirst = gameState.firstPlayer === myPlayerIndex;
+    setGameStartNotice(goFirst ? 'You Go First!' : 'Opponent Goes First!');
+    gameStartTimerRef.current = setTimeout(() => setGameStartNotice(null), 2500);
+    return () => clearTimeout(gameStartTimerRef.current);
+  }, [gameState, myPlayerIndex]);
+
+  // Reset the shown flag on rematch so the notice fires again
+  useEffect(() => {
+    if (isRematch) {
+      gameStartShownRef.current = false;
+    }
+  }, [isRematch]);
 
   // Detect status transitions: rematch and opponent-left
   useEffect(() => {
@@ -754,6 +777,30 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <p className="text-gray-300 font-bold mb-2">Opponent left the game</p>
             <p className="text-gray-500 text-sm">Returning to lobby in {opponentLeftCountdown}…</p>
           </div>
+        </div>
+      )}
+
+      {/* Game start notice: "You Go First!" / "Opponent Goes First!" */}
+      {gameStartNotice && (
+        <div className="game-start-notice-anim" style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          zIndex: 50,
+          pointerEvents: 'none',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '22px',
+          fontWeight: 700,
+          color: '#C9A84C',
+          letterSpacing: '0.1em',
+          textShadow: '0 0 24px #C9A84C88',
+          whiteSpace: 'nowrap',
+          background: 'rgba(0,0,0,0.82)',
+          padding: '14px 32px',
+          borderRadius: '6px',
+          border: '1px solid #C9A84C44',
+        }}>
+          {gameStartNotice}
         </div>
       )}
 

@@ -477,6 +477,18 @@ button, input, .card-name, .card-stats, .card-rules,
   animation: turn-banner-slide 600ms ease-out forwards;
 }
 
+@keyframes game-start-notice {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  25%  { transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+.game-start-notice-anim {
+  animation: game-start-notice 2500ms ease-out forwards;
+}
+
 /* 7. Game over title entrance */
 @keyframes game-over-title-in {
   0%   { opacity: 0; transform: scale(0.3); }
