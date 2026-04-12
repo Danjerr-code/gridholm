@@ -2527,11 +2527,12 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       else if (step === 2) sacrificed.relic = true;
       if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: after sacrifice — sacrificed now:', JSON.stringify(sacrificed), 'advancing to step:', step + 1);
     } else {
-      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: no target provided at step', step, '— advancing anyway (both branches of ternary are step+1)');
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: no target provided at step', step, '— re-prompting same step');
     }
 
-    // Advance to next pending step (or run opponent auto-resolution when all done)
-    return _tollAdvance(s, cardUid, castIdx, target ? step + 1 : step + 1, sacrificed);
+    // Advance to next pending step (or run opponent auto-resolution when all done).
+    // If no target was selected, re-prompt the same step so the player must pick a valid target.
+    return _tollAdvance(s, cardUid, castIdx, target ? step + 1 : step, sacrificed);
   }
 
   // Fire onCardPlayed for targeted spells (the card was consumed in the !isPaid block above).
