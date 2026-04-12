@@ -551,6 +551,13 @@ export default function Board({
         return;
       }
     }
+    // Champion move: clicking opposing champion on a valid champion move tile = champion attacks opposing champion
+    if (selectMode === 'champion_move' && champion.owner !== activePlayer) {
+      if (champMoveSet.has(cellKey)) {
+        handlers.handleChampionMoveTile(row, col);
+        return;
+      }
+    }
 
     const isOwnChampion = champion.owner === myPlayerIndex;
 
