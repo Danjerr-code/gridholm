@@ -208,8 +208,11 @@ export function useMultiplayerGame(gameId) {
       console.log('[DeckSelect] Retry: generating initial game state (Player 1)');
       const firstPlayerGuestId = latest.active_player || latest.player1_id;
       const isSwapped = firstPlayerGuestId === latest.player2_id;
-      const p1DeckId = isSwapped ? latest.player2_deck : latest.player1_deck;
-      const p2DeckId = isSwapped ? latest.player1_deck : latest.player2_deck;
+      // Prefer JSONB spec columns (host_deck/guest_deck) for correct round-trip; fall back to text.
+      const hostSpec = deckSpecToId(latest.host_deck) ?? latest.player1_deck;
+      const guestSpec = deckSpecToId(latest.guest_deck) ?? latest.player2_deck;
+      const p1DeckId = isSwapped ? guestSpec : hostSpec;
+      const p2DeckId = isSwapped ? hostSpec : guestSpec;
 
       const s = createInitialState(p1DeckId, p2DeckId);
       s.activePlayer = 0;
@@ -246,16 +249,35 @@ export function useMultiplayerGame(gameId) {
     };
   }, [session?.status, session?.player1_deck, session?.player2_deck, gameId, guestId]);
 
+  // Convert a JSONB deck spec (stored in host_deck/guest_deck) back to an engine deck-ID string.
+  // JSONB objects are re-serialised; plain strings (faction IDs) are returned as-is.
+  function deckSpecToId(spec) {
+    if (!spec) return null;
+    if (typeof spec === 'object') return JSON.stringify(spec);
+    return spec;
+  }
+
   // Deck selection: called when this player picks their faction
   const selectDeck = useCallback(async (deckId) => {
     if (!session || !supabase) return;
 
     const isP1 = session.player1_id === guestId;
     const deckField = isP1 ? 'player1_deck' : 'player2_deck';
+    const deckJsonField = isP1 ? 'host_deck' : 'guest_deck';
 
-    // Write our deck choice
+    // Store deck spec as JSONB: parse custom JSON spec strings into objects so Supabase
+    // stores them as proper JSONB; keep faction IDs as plain strings.
+    let deckSpecJson;
+    if (typeof deckId === 'string' && deckId.startsWith('{')) {
+      try { deckSpecJson = JSON.parse(deckId); } catch { deckSpecJson = deckId; }
+    } else {
+      deckSpecJson = deckId;
+    }
+
+    // Write our deck choice (both text ID field and JSONB spec field)
     const updatePayload = {
       [deckField]: deckId,
+      [deckJsonField]: deckSpecJson,
       updated_at: new Date().toISOString(),
     };
 
@@ -263,7 +285,8 @@ export function useMultiplayerGame(gameId) {
     // game state. Player 2 just writes their deck and waits for the Realtime update.
     // This prevents both clients from racing to write game_state simultaneously.
     if (isP1) {
-      const p2Deck = session.player2_deck;
+      // Prefer the JSONB spec (host_deck/guest_deck) for accurate round-trip; fall back to text field.
+      const p2Deck = deckSpecToId(session.guest_deck) ?? session.player2_deck;
       if (p2Deck) {
         console.log('[DeckSelect] Both decks selected — Player 1 generating initial game state');
         // session.active_player during deck_select holds the intended first player
@@ -412,6 +435,8 @@ export function useMultiplayerGame(gameId) {
       active_player: nextFirstPlayer,
       player1_deck: null,
       player2_deck: null,
+      host_deck: null,
+      guest_deck: null,
       updated_at: new Date().toISOString(),
     };
 

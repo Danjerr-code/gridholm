@@ -41,6 +41,21 @@ function savedDeckToSpec(deck) {
   });
 }
 
+// Convert a raw Supabase decks-table row into a deck spec string for the game engine.
+function profileDeckToSpec(row) {
+  const stored = row.cards;
+  const cardIds = Array.isArray(stored) ? stored : (stored?.cards ?? []);
+  const secondaryAttr = stored?.secondaryAttribute;
+  return JSON.stringify({
+    type: 'custom',
+    champion: row.faction,
+    primaryAttr: row.faction,
+    secondaryAttr,
+    cards: cardIds,
+    deckName: row.name,
+  });
+}
+
 function getSelectedDeckLabel(selectedDeck) {
   if (!selectedDeck) return null;
   const spec = parseDeckSpec(selectedDeck);
@@ -64,7 +79,8 @@ const FACTION_GRADIENTS = {
   demon: 'linear-gradient(135deg, #f47a7a, #EF4444, #8b1a1a)',
 };
 
-export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false, isRematch = false }) {
+// profileDecks: array of raw Supabase decks-table rows (null/undefined = not authenticated)
+export default function DeckSelect({ onSelect, waitingForOpponent = false, selectedDeck = null, opponentSelected = false, isRematch = false, profileDecks = null }) {
   const [savedDecks] = useState(loadSavedDecks);
 
   if (waitingForOpponent) {
@@ -159,7 +175,33 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
         <PlayerStatusRow youSelected={false} opponentSelected={opponentSelected} />
       )}
 
-      {savedDecks.length > 0 && (
+      {profileDecks && profileDecks.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '56rem' }}>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '12px',
+          }}>Profile Decks</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            {profileDecks.map((row) => (
+              <SavedDeckCard
+                key={row.id}
+                deck={{
+                  name: row.name,
+                  primaryAttribute: row.faction,
+                  cards: Array.isArray(row.cards) ? row.cards : (row.cards?.cards ?? []),
+                }}
+                onSelect={() => onSelect(profileDeckToSpec(row))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!profileDecks && savedDecks.length > 0 && (
         <div style={{ width: '100%', maxWidth: '56rem' }}>
           <div style={{
             fontFamily: "'Cinzel', serif",
@@ -182,7 +224,7 @@ export default function DeckSelect({ onSelect, waitingForOpponent = false, selec
       )}
 
       <div style={{ width: '100%', maxWidth: '56rem' }}>
-        {savedDecks.length > 0 && (
+        {(profileDecks ? profileDecks.length > 0 : savedDecks.length > 0) && (
           <div style={{
             fontFamily: "'Cinzel', serif",
             fontSize: '11px',

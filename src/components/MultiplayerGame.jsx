@@ -51,7 +51,8 @@ import {
   handleBloodPactEnemy as execBloodPactEnemy,
   handleChampionAbility as execChampionAbility,
 } from '../engine/actionHandler.js';
-import { getGuestId, getCardImageUrl } from '../supabase.js';
+import { getGuestId, getCardImageUrl, supabase } from '../supabase.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
 import Hand from './Hand.jsx';
@@ -94,8 +95,25 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     cancelWaiting,
   } = useMultiplayerGame(gameId);
 
+  const { currentUser } = useAuth();
   const isMobile = useIsMobile();
   const [muted, setMutedState] = useState(() => isMuted());
+
+  // Load profile decks from Supabase when the player is authenticated
+  const [profileDecks, setProfileDecks] = useState(null);
+  useEffect(() => {
+    if (!currentUser || !supabase) {
+      setProfileDecks(null);
+      return;
+    }
+    supabase
+      .from('decks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setProfileDecks(data ?? []);
+      });
+  }, [currentUser]);
 
   // Auto-select custom deck when player arrives from deck builder
   useEffect(() => {
@@ -738,6 +756,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           waitingForOpponent={false}
           opponentSelected={!!opponentDeck}
           isRematch={isRematch}
+          profileDecks={profileDecks}
         />
       );
     }
@@ -749,6 +768,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         selectedDeck={myDeck}
         opponentSelected={!!opponentDeck}
         isRematch={isRematch}
+        profileDecks={profileDecks}
       />
     );
   }
