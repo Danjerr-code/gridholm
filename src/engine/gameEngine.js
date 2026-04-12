@@ -92,6 +92,7 @@ import {
   resetTurnTriggers,
   getConditionalStatBonus,
   registerDynamicTrigger,
+  isAuraSpellImmune,
 } from './triggerRegistry.js';
 import { filterAvailableContracts, pickRandomContracts } from './contracts.js';
 
@@ -1096,7 +1097,25 @@ export function fireOnSummonTriggers(unit, state) {
     }
   }
 
-  // 14. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
+  // 14. Wardlight Colossus: log aura shield activation on summon.
+  if (unit.id === 'wardlightcolossus') {
+    addLog(state, `Wardlight Colossus shields nearby allies from spells.`);
+  }
+
+  // 15. Peacekeeper: stun adjacent enemy combat units for their next turn.
+  if (unit.id === 'peacekeeper') {
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    const targets = state.units.filter(u =>
+      u.owner !== unit.owner && !u.isRelic && !u.isOmen && !u.hidden &&
+      adj.some(([r, c]) => u.row === r && u.col === c)
+    );
+    for (const t of targets) {
+      t.skipNextAction = true;
+      addLog(state, `Peacekeeper stuns ${t.name}.`);
+    }
+  }
+
+  // 16. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
   if (unit.id === 'chainsoflight') {
     const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && !u.isOmen && !u.isRelic);
     if (hasEnemies) {
@@ -3663,6 +3682,15 @@ export function checkWinner(state) {
 // ── valid spell targets ─────────────────────────────────────────────────────
 
 export function getSpellTargets(state, effect, step = 0, data = {}) {
+  const raw = _rawSpellTargets(state, effect, step, data);
+  return raw.filter(uid => {
+    if (!uid || uid.startsWith('champion')) return true;
+    const u = state.units.find(u => u.uid === uid);
+    return !u || !isAuraSpellImmune(state, u);
+  });
+}
+
+function _rawSpellTargets(state, effect, step = 0, data = {}) {
   const champ = state.champions[state.activePlayer];
   const p = state.players[state.activePlayer];
 
@@ -3932,8 +3960,8 @@ export function hasValidTargets(card, state, playerIndex) {
 
   const effect = card.effect;
   const champ = state.champions[playerIndex];
-  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune);
-  const friendlyUnits = state.units.filter(u => u.owner === playerIndex && !u.spellImmune);
+  const enemyUnits = state.units.filter(u => u.owner !== playerIndex && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && !isAuraSpellImmune(state, u));
+  const friendlyUnits = state.units.filter(u => u.owner === playerIndex && !u.spellImmune && !isAuraSpellImmune(state, u));
 
   switch (effect) {
     case 'smite':

@@ -24,7 +24,7 @@
 //   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
-import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner, drawCard } from './gameEngine.js';
+import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner, drawCard, manhattan } from './gameEngine.js';
 import { CARD_DB } from './cards.js';
 
 export const TRIGGER_EVENTS = [
@@ -191,6 +191,23 @@ export function getConditionalStatBonus(state, unit) {
     if (mod.stat === 'both' || mod.stat === 'atkAndHp') { atk += (mod.amount || 0); hp += (mod.amount || 0); }
   }
   return { atk, hp };
+}
+
+// Returns true if the unit is shielded from spell targeting by an auraSpellImmunity modifier.
+// Source unit (Wardlight Colossus) is NOT protected by its own aura.
+export function isAuraSpellImmune(state, unit) {
+  if (!state.activeModifiers) return false;
+  if (unit.hidden || unit.isRelic || unit.isOmen) return false;
+  const rangeBonus = getFriendlyAuraRangeBonus(state, unit.owner);
+  for (const mod of state.activeModifiers) {
+    if (mod.type !== 'auraSpellImmunity') continue;
+    if (mod.playerIndex !== unit.owner) continue;
+    if (mod.unitUid === unit.uid) continue; // source doesn't protect itself
+    const src = state.units.find(u => u.uid === mod.unitUid);
+    if (!src || src.hidden) continue;
+    if (manhattan([src.row, src.col], [unit.row, unit.col]) <= (mod.range || 0) + rangeBonus) return true;
+  }
+  return false;
 }
 
 // ── Condition checker ──────────────────────────────────────────────────────
