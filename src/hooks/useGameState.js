@@ -243,7 +243,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       // Cancel any leftover pending state from a previous selection
       const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? execCancelSpell(preFT) : preFT;
       const p = base.players[base.activePlayer];
-      const card = p.hand.find(c => c.uid === cardUid);
+      const graveAccessActive = base.graveAccessActive?.[base.activePlayer];
+      const card = p.hand.find(c => c.uid === cardUid)
+        || (graveAccessActive && (p.grave || []).find(c => c.uid === cardUid));
       const effectiveCost = card ? getEffectiveCost(card, base, base.activePlayer) : 0;
       if (!card || p.resources < effectiveCost) {
         if (card && p.resources < effectiveCost) playSfxNoMana();

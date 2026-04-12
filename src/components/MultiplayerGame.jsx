@@ -289,7 +289,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     // Cancel any leftover pending state from a previous selection
     const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast || preFT.pendingRelicPlace) ? execCancelSpell(preFT) : preFT;
     const p = base.players[base.activePlayer];
-    const card = p.hand.find(c => c.uid === cardUid);
+    const graveAccessActive = base.graveAccessActive?.[base.activePlayer];
+    const card = p.hand.find(c => c.uid === cardUid)
+      || (graveAccessActive && (p.grave || []).find(c => c.uid === cardUid));
     if (!card) return;
     if (p.resources < getEffectiveCost(card, base, base.activePlayer)) { playSfxNoMana(); return; }
 
