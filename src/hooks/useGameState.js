@@ -42,6 +42,7 @@ import {
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
+import { handleChampionMove } from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
   playSfxAttack, playSfxMove, playSfxDraw, playSfxSpell,
@@ -213,7 +214,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleChampionMoveTile = useCallback((row, col) => {
     playSfxMove();
-    setState(prev => moveChampion(prev, row, col));
+    setState(prev => handleChampionMove(prev, row, col));
     clearSelection();
   }, [clearSelection]);
 

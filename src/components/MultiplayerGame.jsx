@@ -33,6 +33,7 @@ import {
   executeApproachAndAttack,
   manhattan,
 } from '../engine/gameEngine.js';
+import { handleChampionMove } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
@@ -241,7 +242,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleChampionMoveTile = useCallback(async (row, col) => {
     if (!gameState) return;
     if (isMobile && !selectedCard) setHandExpanded(false);
-    await dispatch(moveChampion(gameState, row, col));
+    await dispatch(handleChampionMove(gameState, row, col));
   }, [gameState, dispatch, isMobile, selectedCard]);
 
   const handlePlayCard = useCallback(async (cardUid) => {
