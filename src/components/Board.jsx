@@ -555,7 +555,8 @@ export default function Board({
         lastChampTapRef.current[ownerKey] = 0;
         if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
       } else if (isOwnChampion) {
-        // Single tap on own champion: select for movement only
+        // Single tap on own champion: open detail panel and select for movement
+        if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
         if (canInteract && phase === 'action' && handlers.handleSelectChampion) {
           handlers.handleSelectChampion();
         }
