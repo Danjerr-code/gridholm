@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import UnitToken from './UnitToken.jsx';
 import useLongPress from '../hooks/useLongPress.js';
-import { getChampionAtkBuff } from '../engine/gameEngine.js';
+import { getChampionAtkBuff, getChampionDef, manhattan } from '../engine/gameEngine.js';
 
 const TERRAIN_TINTS = {
   hallowed:  { bg: 'rgba(255,245,210,0.13)', border: 'rgba(255,235,150,0.35)' },
@@ -353,6 +353,55 @@ export default function Cell({
               zIndex: 3,
             }}>YOU</span>
           )}
+          {(() => {
+            if (!state) return null;
+            const champOwner = champion.owner;
+            const player = state.players[champOwner];
+            if (!player) return null;
+            const champDef = getChampionDef(player);
+            const tier = player.resonance?.tier ?? 'none';
+            if (tier === 'none' || !champDef?.abilities) return null;
+            const ascended = champDef.abilities.ascended;
+            const attuned = champDef.abilities.attuned;
+            let activatedAbility = attuned;
+            if (tier === 'ascended' && ascended?.type === 'activated' && ascended?.replacesAbility) {
+              activatedAbility = ascended;
+            }
+            if (!activatedAbility) return null;
+            const abilityUsed = champion.moved;
+            const canAfford = activatedAbility.cost
+              ? (activatedAbility.cost.type === 'mana'
+                  ? player.resources >= activatedAbility.cost.amount
+                  : champion.hp > activatedAbility.cost.amount)
+              : true;
+            const units = state.units ?? [];
+            const hasValidTargets = (() => {
+              const f = activatedAbility.targetFilter;
+              if (f === 'friendly_unit_within_2') return units.some(u => u.owner === champOwner && !u.hidden && manhattan([champion.row, champion.col], [u.row, u.col]) <= 2);
+              if (f === 'friendly_combat_unit_within_2') return units.some(u => u.owner === champOwner && !u.isRelic && !u.isOmen && !u.hidden && manhattan([champion.row, champion.col], [u.row, u.col]) <= 2);
+              if (f === 'friendly_champion_or_unit_within_2') return units.some(u => u.owner === champOwner && !u.hidden && manhattan([champion.row, champion.col], [u.row, u.col]) <= 2);
+              if (f === 'friendly_unit') return units.some(u => u.owner === champOwner && !u.hidden);
+              return true;
+            })();
+            const canInvoke = !abilityUsed && canAfford && hasValidTargets;
+            return (
+              <span style={{
+                position: 'absolute',
+                bottom: isMyChampion ? '-24px' : '-12px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: canInvoke ? '#b45309' : '#374151',
+                color: canInvoke ? '#fcd34d' : '#9ca3af',
+                fontSize: '7px',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                padding: '1px 3px',
+                borderRadius: '99px',
+                whiteSpace: 'nowrap',
+                zIndex: 3,
+              }} title={canInvoke ? 'Invoke available' : 'Invoke unavailable'}>Invoke</span>
+            );
+          })()}
         </div>
       )}
 
