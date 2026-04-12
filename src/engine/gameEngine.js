@@ -549,6 +549,7 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
 // ADD NEW BEGIN TURN TRIGGERS HERE
 // ============================================
 function fireBeginTurnTriggers(state, playerIdx) {
+  console.log("[Nezzar] fireBeginTurnTriggers: checking for Nezzar");
   // Reset oncePerTurn flags for the declarative trigger registry
   resetTurnTriggers(state);
 
@@ -613,12 +614,19 @@ function fireBeginTurnTriggers(state, playerIdx) {
 
   // Nezzar, Terms and Conditions: at beginning of owner's turn, offer 3 random contracts
   const nezzars = state.units.filter(u => u.owner === playerIdx && u.id === 'nezzartermsandconditions');
+  console.log("[Nezzar] nezzars found on board for playerIdx=" + playerIdx + ": " + nezzars.length);
   for (const nezzar of nezzars) {
+    console.log("[Nezzar] found Nezzar on board, unit uid: " + nezzar.uid);
     const available = filterAvailableContracts(state, playerIdx, nezzar.uid);
+    console.log("[Nezzar] filterAvailableContracts result: " + available.map(c => c.id).join(", ") + " (count=" + available.length + ")");
     const contracts = pickRandomContracts(available);
+    console.log("[Nezzar] pickRandomContracts result: " + contracts.map(c => c.id).join(", ") + " (count=" + contracts.length + ")");
     if (contracts.length > 0) {
       state.pendingContractSelect = { contracts, nezzarUid: nezzar.uid };
+      console.log("[Nezzar] pendingContractSelect set:", JSON.stringify(state.pendingContractSelect));
       addLog(state, `Nezzar offers contracts.`);
+    } else {
+      console.log("[Nezzar] no contracts available — pendingContractSelect NOT set");
     }
     break; // Only one Nezzar fires per turn
   }
@@ -2172,9 +2180,13 @@ export function resolveGraveSelect(state, selectedUid) {
 // Called when the player chooses a contract (or passes with contractId = null).
 
 export function resolveContractSelect(state, contractId) {
+  console.log("[Nezzar] resolveContractSelect called with contractId=" + contractId);
   const s = cloneState(state);
   const pending = s.pendingContractSelect;
-  if (!pending) return s;
+  if (!pending) {
+    console.log("[Nezzar] resolveContractSelect: no pendingContractSelect — returning early");
+    return s;
+  }
   s.pendingContractSelect = null;
 
   const playerIdx = s.activePlayer;
@@ -2182,18 +2194,24 @@ export function resolveContractSelect(state, contractId) {
   const champ = s.champions[playerIdx];
   const enemyChamp = s.champions[1 - playerIdx];
 
+  console.log("[Nezzar] resolveContractSelect: pending=" + JSON.stringify(pending) + ", activePlayer=" + playerIdx);
+
   if (!contractId) {
     addLog(s, `Contracts declined.`);
+    console.log("[Nezzar] resolveContractSelect: contract declined");
     return s;
   }
 
+  console.log("[Nezzar] resolveContractSelect: resolving contract=" + contractId);
   switch (contractId) {
     case 'soulPrice': {
       // Pay 2 life, deal 4 damage to enemy champion
+      console.log("[Nezzar] soulPrice: champ.hp before=" + champ.hp + ", enemyChamp.hp before=" + enemyChamp.hp);
       champ.hp -= 2;
       addLog(s, `Soul Price accepted. ${p.name}'s champion pays 2 life (${champ.hp} HP remaining).`);
       enemyChamp.hp -= 4;
       addLog(s, `Soul Price: enemy champion takes 4 damage (${enemyChamp.hp} HP remaining).`);
+      console.log("[Nezzar] soulPrice: champ.hp after=" + champ.hp + ", enemyChamp.hp after=" + enemyChamp.hp);
       checkWinnerLocal(s);
       break;
     }
@@ -2201,9 +2219,11 @@ export function resolveContractSelect(state, contractId) {
       // Deal 2 damage to all other combat units (not Nezzar)
       const nezzarUid = pending.nezzarUid;
       const targets = [...s.units].filter(u => !u.isRelic && !u.isOmen && u.uid !== nezzarUid);
+      console.log("[Nezzar] cataclysm: targeting " + targets.length + " units");
       addLog(s, `Cataclysm accepted. All other combat units take 2 damage.`);
       for (const t of targets) {
         if (s.units.find(u => u.uid === t.uid)) {
+          console.log("[Nezzar] cataclysm: applying 2 damage to " + t.name + " (uid=" + t.uid + ")");
           applyDamageToUnit(s, t, 2, 'Cataclysm');
         }
       }
@@ -2211,32 +2231,39 @@ export function resolveContractSelect(state, contractId) {
     }
     case 'darkTithe': {
       // Skip champion action, gain 2 temporary mana
+      console.log("[Nezzar] darkTithe: resources before=" + p.resources);
       champ.moved = true;
       p.resources = Math.min((p.resources || 0) + 2, 10);
       addLog(s, `Dark Tithe accepted. Champion's action skipped. Gained 2 temporary mana (${p.resources} total).`);
+      console.log("[Nezzar] darkTithe: resources after=" + p.resources);
       break;
     }
     case 'finalGambit': {
       // Gain an extra command, lose at end of turn
+      console.log("[Nezzar] finalGambit: commandsUsed before=" + p.commandsUsed);
       p.commandsUsed = Math.max(0, (p.commandsUsed || 0) - 1);
       if (!s.finalGambitActive) s.finalGambitActive = [false, false];
       s.finalGambitActive[playerIdx] = true;
       addLog(s, `Final Gambit accepted. ${p.name} gains an extra command — but will lose at end of turn.`);
+      console.log("[Nezzar] finalGambit: commandsUsed after=" + p.commandsUsed + ", finalGambitActive=" + JSON.stringify(s.finalGambitActive));
       break;
     }
     case 'bloodPact': {
       // Two-step: select friendly unit to sacrifice, then enemy unit to destroy
+      console.log("[Nezzar] bloodPact: setting pendingBloodPact selectFriendly, nezzarUid=" + pending.nezzarUid);
       s.pendingBloodPact = { step: 'selectFriendly', nezzarUid: pending.nezzarUid };
       addLog(s, `Blood Pact accepted.`);
       break;
     }
     case 'darkBargain': {
       // Discard a card from hand, then draw 2
+      console.log("[Nezzar] darkBargain: setting pendingHandSelect, hand size=" + p.hand?.length);
       s.pendingHandSelect = { reason: 'darkBargain', data: {} };
       addLog(s, `Dark Bargain accepted.`);
       break;
     }
     default:
+      console.log("[Nezzar] resolveContractSelect: unknown contractId=" + contractId);
       break;
   }
 
