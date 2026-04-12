@@ -31,6 +31,7 @@ export default function Cell({
   isAbilityTarget,
   isTerrainTarget,
   isDirectionTarget = false,
+  directionArrow = null,
   isChampionSaplingTile = false,
   isSpellTargetGlow,
   terrain,
@@ -65,14 +66,6 @@ export default function Cell({
       border: '2px solid #22c55e',
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(34,197,94,0.5)',
-      cursor: 'pointer',
-    };
-  } else if (isDirectionTarget) {
-    tileStyle = {
-      background: '#2a1200',
-      border: '2px solid #f97316',
-      borderRadius: '4px',
-      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 10px rgba(249,115,22,0.7)',
       cursor: 'pointer',
     };
   } else if (isTerrainTarget) {
@@ -396,6 +389,42 @@ export default function Cell({
           />
         </div>
       ))}
+
+      {/* Direction arrow overlay — renders above unit tokens for direction selection */}
+      {isDirectionTarget && directionArrow && (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 20, pointerEvents: 'auto' }}
+        >
+          <div
+            style={{
+              width: '78%',
+              height: '78%',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.6)',
+              border: '2px solid #f97316',
+              boxShadow: '0 0 10px rgba(249,115,22,0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <svg
+              width="54%"
+              height="54%"
+              viewBox="0 0 24 24"
+              fill="#f97316"
+              style={{ filter: 'drop-shadow(0 0 3px rgba(249,115,22,0.9))' }}
+            >
+              {directionArrow === 'up'    && <polygon points="12,2 22,20 2,20" />}
+              {directionArrow === 'down'  && <polygon points="12,22 22,4 2,4" />}
+              {directionArrow === 'left'  && <polygon points="2,12 20,2 20,22" />}
+              {directionArrow === 'right' && <polygon points="22,12 4,2 4,22" />}
+            </svg>
+          </div>
+        </div>
+      )}
 
       {/* Row/Col label (debug, hidden) */}
       {false && (

@@ -60,6 +60,10 @@ export default function Board({
   const canInteract = isMyTurn !== undefined ? isMyTurn : activePlayer === 0;
   const commandsUsed = state.players[myPlayerIndex]?.commandsUsed ?? 0;
 
+  const directionUnit = selectMode === 'direction_tile_select' && state.pendingDirectionSelect
+    ? state.units.find(u => u.uid === state.pendingDirectionSelect.unitUid) ?? null
+    : null;
+
   const champMoveSet = new Set(championMoveTiles.map(([r, c]) => `${r},${c}`));
   const summonSet = new Set(summonTiles.map(([r, c]) => `${r},${c}`));
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
@@ -610,6 +614,15 @@ export default function Board({
             const champAnimState = champion ? champAnimStates[champion.owner] : null;
 
             const terrain = state.terrainGrid?.[row]?.[col] ?? null;
+            let directionArrow = null;
+            if (directionUnit && directionTargetSet.has(key)) {
+              const dr = row - directionUnit.row;
+              const dc = col - directionUnit.col;
+              if (dr === -1) directionArrow = 'up';
+              else if (dr === 1) directionArrow = 'down';
+              else if (dc === -1) directionArrow = 'left';
+              else if (dc === 1) directionArrow = 'right';
+            }
             return (
               <Cell
                 key={key}
@@ -628,6 +641,7 @@ export default function Board({
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
                 isTerrainTarget={terrainTargetSet.has(key) || relicPlaceSet.has(key)}
                 isDirectionTarget={directionTargetSet.has(key)}
+                directionArrow={directionArrow}
                 isChampionSaplingTile={saplingTileSet.has(key)}
                 terrain={terrain}
                 terrainAnimActive={!!terrainAnimStates[key]}
