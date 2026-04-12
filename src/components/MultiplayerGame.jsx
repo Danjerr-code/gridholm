@@ -43,6 +43,9 @@ import {
   handleFleshtitheSacrifice as execFleshtitheSacrifice,
   handleTerrainCast as execTerrainCast,
   handleRelicPlace as execRelicPlace,
+  handleDeckPeekSelect as execDeckPeekSelect,
+  handleGlimpseDecision as execGlimpseDecision,
+  handleScryDismiss as execScryDismiss,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -484,6 +487,21 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleRevealUnit = useCallback(async (unitUid) => {
     if (!gameState) return;
     await dispatch(execRevealUnit(gameState, unitUid));
+  }, [gameState, dispatch]);
+
+  const handleDeckPeekSelect = useCallback(async (cardUid) => {
+    if (!gameState) return;
+    await dispatch(execDeckPeekSelect(gameState, cardUid));
+  }, [gameState, dispatch]);
+
+  const handleGlimpseDecision = useCallback(async (keepTop) => {
+    if (!gameState) return;
+    await dispatch(execGlimpseDecision(gameState, keepTop));
+  }, [gameState, dispatch]);
+
+  const handleScryDismiss = useCallback(async () => {
+    if (!gameState) return;
+    await dispatch(execScryDismiss(gameState));
   }, [gameState, dispatch]);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
@@ -1433,6 +1451,100 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               </div>
             ) : (
               <div style={{ textAlign: 'center', color: '#6a6a8a', fontSize: '12px' }}>Your grave is empty.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Deck peek modal — Arcane Lens (click-to-select), Glimpse (keep/shuffle), or Scry (dismiss) */}
+      {gameState?.pendingDeckPeek && isActiveTurn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '480px',
+            width: '90vw',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            {gameState.pendingDeckPeek.reason === 'scry' ? (
+              <>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+                  Fennwick — Top card of your deck
+                </div>
+                {gameState.pendingDeckPeek.cards.map(card => (
+                  <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
+                    <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                    {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => handleScryDismiss()}
+                    style={{ background: '#1a1a2a', border: '1px solid #4a4a7a', borderRadius: '4px', color: '#a0a0d0', fontSize: '11px', padding: '6px 20px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  >Dismiss</button>
+                </div>
+              </>
+            ) : gameState.pendingDeckPeek.reason === 'glimpse' ? (
+              <>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+                  Glimpse — Top card of your deck
+                </div>
+                {gameState.pendingDeckPeek.cards.map(card => (
+                  <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
+                    <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                    {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => handleGlimpseDecision(true)}
+                    style={{ background: '#1a2a1a', border: '1px solid #2a7a2a', borderRadius: '4px', color: '#6cf06c', fontSize: '11px', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  >Keep on top</button>
+                  <button
+                    onClick={() => handleGlimpseDecision(false)}
+                    style={{ background: '#2a1a1a', border: '1px solid #7a2a2a', borderRadius: '4px', color: '#f06c6c', fontSize: '11px', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  >Shuffle back</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+                  Arcane Lens — Choose a card to keep on top
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {gameState.pendingDeckPeek.cards.map(card => (
+                    <div
+                      key={card.uid}
+                      onClick={() => handleDeckPeekSelect(card.uid)}
+                      style={{
+                        background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                        border: '1px solid #3a3a60',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        minWidth: '100px',
+                        textAlign: 'center',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#C9A84C'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = '#3a3a60'}
+                    >
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{card.name}</div>
+                      <div style={{ fontSize: '10px', color: '#C9A84C', marginBottom: '2px' }}>Cost {card.cost}</div>
+                      {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
