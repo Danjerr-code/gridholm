@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import SignInModal from './SignInModal.jsx';
+import SignUpModal from './SignUpModal.jsx';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -97,6 +100,12 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [createError, setCreateError] = useState(null);
   const [joinError, setJoinError] = useState(null);
   const [hasSavedDeck, setHasSavedDeck] = useState(false);
+  const [authModal, setAuthModal] = useState(null); // 'signin' | 'signup' | null
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const { currentUser, signOut } = useAuth();
+
+  const [profileUsername, setProfileUsername] = useState(null);
 
   useEffect(() => {
     try {
@@ -108,6 +117,30 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
       // ignore malformed data
     }
   }, []);
+
+  // Fetch username when user logs in
+  useEffect(() => {
+    if (!currentUser || !supabase) {
+      setProfileUsername(null);
+      return;
+    }
+    supabase.from('profiles').select('username').eq('id', currentUser.id).single()
+      .then(({ data }) => {
+        setProfileUsername(data?.username ?? null);
+      });
+  }, [currentUser]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!profileDropdownOpen) return;
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [profileDropdownOpen]);
 
   function loadMostRecentDeckForPlay() {
     try {
@@ -188,8 +221,100 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '16px',
+      position: 'relative',
     }}>
       <style>{lobbyHoverStyles}</style>
+
+      {/* Profile button — top-right corner */}
+      <div style={{ position: 'absolute', top: '16px', right: '20px' }} ref={dropdownRef}>
+        {currentUser ? (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setProfileDropdownOpen(v => !v)}
+              style={{
+                background: 'transparent',
+                border: '1px solid #2a2a3a',
+                borderRadius: '4px',
+                color: '#C9A84C',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '11px',
+                letterSpacing: '0.06em',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {profileUsername ?? currentUser.email}
+              <span style={{ fontSize: '9px', opacity: 0.6 }}>▼</span>
+            </button>
+            {profileDropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                right: 0,
+                background: '#0d0d1a',
+                border: '1px solid #2a2a3a',
+                borderRadius: '4px',
+                minWidth: '120px',
+                zIndex: 100,
+              }}>
+                <button
+                  onClick={async () => { setProfileDropdownOpen(false); await signOut(); }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    color: '#a0a0c0',
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '11px',
+                    letterSpacing: '0.05em',
+                    padding: '10px 14px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setAuthModal('signin')}
+            style={{
+              background: 'transparent',
+              border: '1px solid #C9A84C60',
+              borderRadius: '4px',
+              color: '#C9A84C',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '11px',
+              letterSpacing: '0.06em',
+              padding: '6px 14px',
+              cursor: 'pointer',
+            }}
+          >
+            Sign In
+          </button>
+        )}
+      </div>
+
+      {/* Auth modals */}
+      {authModal === 'signin' && (
+        <SignInModal
+          onClose={() => setAuthModal(null)}
+          onSwitchToSignUp={() => setAuthModal('signup')}
+        />
+      )}
+      {authModal === 'signup' && (
+        <SignUpModal
+          onClose={() => setAuthModal(null)}
+          onSwitchToSignIn={() => setAuthModal('signin')}
+        />
+      )}
+
       <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{
