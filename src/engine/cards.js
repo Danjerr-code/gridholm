@@ -175,7 +175,7 @@ export const CARD_DB = {
   gavrielholystride: { id: 'gavrielholystride', name: 'Gavriel, Holy Stride',  type: 'unit', cost: 4, atk: 3, hp: 4, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',  rules: 'Cannot be targeted by spells. When this unit moves into a tile, that tile becomes Hallowed Ground.', legendary: true, spellImmune: true, image: 'gavriel.webp' },
 
   // Demon omens and dark spells (Batch 17)
-  dreadmirror:     { id: 'dreadmirror',     name: 'Dread Mirror',        type: 'omen',  cost: 4, atk: 0, spd: 1, turnsRemaining: 2, isOmen: true, hidden: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Hidden. On reveal: Deal damage to the revealing unit equal to its ATK. Whenever an enemy combat unit dies, restore 1 HP to your champion.', image: 'dreadmirror.webp' },
+  dreadmirror:     { id: 'dreadmirror',     name: 'Dread Mirror',        type: 'omen',  cost: 4, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, hidden: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Hidden. On reveal: Deal damage to the revealing unit equal to its ATK. Whenever an enemy combat unit dies, restore 1 HP to your champion.', image: 'dreadmirror.webp' },
   fatesledger:     { id: 'fatesledger',     name: "Fate's Ledger",       type: 'spell', cost: 5, effect: 'fatesledger',     unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'You may play cards from your grave this turn.', image: 'fatesledger.webp' },
   tollofshadows:   { id: 'tollofshadows',   name: 'Toll of Shadows',     type: 'spell', cost: 6, effect: 'tollofshadows',   unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Each player sacrifices a combat unit, an omen, a relic, and discards a card.', image: 'tollofshadows.webp' },
 
