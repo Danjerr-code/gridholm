@@ -66,7 +66,8 @@ function actionPriority(action, state, enemyIdx, enemyChamp) {
     // Closing condition (opp HP ≤ 15 AND 2+ combat units): minimum regardless of phase.
     const turn = state.turn ?? 0;
     const oppChampHP = enemyChamp.hp;
-    const myCombatUnits = state.units.filter(u => u.owner === ap && !u.isRelic && !u.isOmen).length;
+    const myIdx = 1 - enemyIdx; // ap is not in scope here; derive from enemyIdx
+    const myCombatUnits = state.units.filter(u => u.owner === myIdx && !u.isRelic && !u.isOmen).length;
     if (oppChampHP <= 15 && myCombatUnits >= 2) return 1; // closing — don't cycle abilities
     if (turn >= 16) return 1;                              // late game — minimum
     if (turn >= 9)  return 15;                             // mid game — below summon (20)
