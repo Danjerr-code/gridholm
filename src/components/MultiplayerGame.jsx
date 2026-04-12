@@ -1530,6 +1530,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 }
               }}
               onInspectCard={handleInspectCard}
+              graveAccessActive={isActiveTurn && !!(gameState?.graveAccessActive?.[myPlayerIndex])}
+              grave={myPlayer.grave || []}
             />
           </div>
         </div>
@@ -1583,6 +1585,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onMobileTap={handleMobileHandCardTap}
             onLongPressCard={handleInspectCard}
             onLongPressDismiss={handleClearInspect}
+            graveAccessActive={isActiveTurn && !!(gameState?.graveAccessActive?.[myPlayerIndex])}
+            grave={myPlayer.grave || []}
           />
         </div>
       </div>

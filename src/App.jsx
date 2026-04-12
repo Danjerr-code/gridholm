@@ -935,6 +935,8 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               onCardDragStart={handleCardDragStart}
               onCardDragMove={handleCardDragMove}
               onCardDragEnd={handleCardDragEnd}
+              graveAccessActive={isP1Turn && !!(state.graveAccessActive?.[0])}
+              grave={p1.grave || []}
             />
           </div>
         </div>
@@ -975,6 +977,8 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             onCardDragStart={handleCardDragStart}
             onCardDragMove={handleCardDragMove}
             onCardDragEnd={handleCardDragEnd}
+            graveAccessActive={isP1Turn && !!(state.graveAccessActive?.[0])}
+            grave={p1.grave || []}
           />
         </div>
       </div>
