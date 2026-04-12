@@ -539,6 +539,11 @@ function resolveEffect(effectId, listener, context, state) {
 
 // ── Fire trigger ───────────────────────────────────────────────────────────
 
+// Recursion guard: tracks nested fireTrigger call depth across the call stack.
+// JavaScript is single-threaded so a module-level counter is safe.
+let _triggerDepth = 0;
+const _TRIGGER_DEPTH_MAX = 10;
+
 // Main entry point called by existing trigger hooks.
 // event: one of TRIGGER_EVENTS
 // context: event-specific data object (see below per event)
@@ -558,6 +563,21 @@ function resolveEffect(effectId, listener, context, state) {
 export function fireTrigger(event, context, state) {
   const listeners = state.triggerListeners?.[event];
   if (!listeners || listeners.length === 0) return;
+
+  if (_triggerDepth >= _TRIGGER_DEPTH_MAX) {
+    console.warn(`[fireTrigger] Recursion depth ${_triggerDepth} exceeded for event "${event}" — aborting to prevent stack overflow.`);
+    return;
+  }
+
+  _triggerDepth++;
+  try {
+    _fireTriggerInner(event, context, state, listeners);
+  } finally {
+    _triggerDepth--;
+  }
+}
+
+function _fireTriggerInner(event, context, state, listeners) {
 
   // Iterate over a snapshot; listeners may be modified by effects (e.g. unit dies)
   for (const listener of [...listeners]) {
