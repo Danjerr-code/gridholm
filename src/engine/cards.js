@@ -361,9 +361,9 @@ const ELF_DECK = [
   'fennwickthequiet',
   'canopysentinel',
   'cascadesage',
-  'stormcrestdrake',
-  'lifebinder',
-  'rootsongcommander',
+  // stormcrestdrake, lifebinder, rootsongcommander removed to restore 30-card count
+  // (they were added in feat: add Stormcrest Drake, Lifebinder, Rootsong Commander
+  //  without removing 3 existing cards — game designers should decide replacements)
 ];
 
 const DEMON_DECK = [
