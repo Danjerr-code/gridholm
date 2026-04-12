@@ -3503,9 +3503,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     case 'predatorsmark':
       return ['champion' + (1 - state.activePlayer)];
 
-    // Pounce: friendly Beast unit (resets its action)
+    // Pounce: any friendly Primal combat unit (resets its action)
     case 'pounce':
-      return state.units.filter(u => u.owner === state.activePlayer && unitTypes(u).includes('Beast')).map(u => u.uid);
+      return state.units.filter(u => u.owner === state.activePlayer && u.attribute === 'primal' && !u.isOmen && !u.isRelic).map(u => u.uid);
 
     // Ambush step 0: any friendly combat unit; step 1: enemy adjacent to selected unit (not omen)
     case 'ambush':
@@ -3781,7 +3781,7 @@ export function hasValidTargets(card, state, playerIndex) {
       return enemyUnits.some(u => manhattan([champ.row, champ.col], [u.row, u.col]) <= 2);
 
     case 'pounce':
-      return friendlyUnits.some(u => unitTypes(u).includes('Beast'));
+      return friendlyUnits.some(u => u.attribute === 'primal' && !u.isOmen && !u.isRelic);
 
     case 'ironshield':
     case 'savagegrowth':

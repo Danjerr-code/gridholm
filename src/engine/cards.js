@@ -72,7 +72,7 @@ export const CARD_DB = {
   // Beast spells
   ambush:          { id: 'ambush',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'A friendly combat unit battles an adjacent enemy unit.', image: 'ambush.webp' },
   packhowl:        { id: 'packhowl',        name: 'Pack Howl',           type: 'spell', cost: 3, effect: 'packhowl',        unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'All friendly Primal combat units gain +1 ATK and +1 SPD this turn.', image: 'packhowl.webp' },
-  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Reset the action of a friendly Primal unit.', image: 'pounce.webp' },
+  pounce:          { id: 'pounce',          name: 'Pounce',              type: 'spell', cost: 2, effect: 'pounce',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Reset the action of a friendly Primal combat unit.', image: 'pounce.webp' },
   predatorsmark:   { id: 'predatorsmark',   name: "Predator's Mark",     type: 'spell', cost: 3, effect: 'predatorsmark',   unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'The enemy champion skips their action next turn.', image: 'predatorsmark.webp' },
   savagegrowth:    { id: 'savagegrowth',    name: 'Savage Growth',       type: 'spell', cost: 3, effect: 'savagegrowth',    unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Give a friendly unit +2/+2 permanently.', image: 'savagegrowth.webp' },
   callofthesnakes: { id: 'callofthesnakes', name: 'Call of the Snakes',  type: 'spell', cost: 5, effect: 'callofthesnakes', unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'Summon a 1/1 Snake in each open tile adjacent to your champion.', image: 'callofthesnakes.webp' },
@@ -288,6 +288,7 @@ const HUMAN_DECK = [
   'battlestandard',
   'soulstone',
   // 'clockworkmanimus', // TEMP: removed pending trigger resolution system fix (LOG-1152)
+  'shieldwall',         // replacement card to restore 30-card count
   'lucernunbrokenvow',
   'gavrielholystride',
 ];
