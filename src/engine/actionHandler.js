@@ -18,6 +18,7 @@ import {
   moveUnit,
   getApproachTiles,
   manhattan,
+  triggerUnitAction,
 } from './gameEngine.js';
 
 // ── Champion movement ──────────────────────────────────────────────────────
@@ -65,4 +66,23 @@ export function handleUnitMove(state, unitUid, row, col) {
   }
 
   return { needsApproach: false, state: moveUnit(state, unitUid, row, col) };
+}
+
+// ── Unit actions ───────────────────────────────────────────────────────────
+
+/**
+ * Trigger the special action for a unit.
+ *
+ * The caller inspects the returned state's pending fields to determine
+ * which UI mode to enter next:
+ *   newState.pendingDirectionSelect  → enter 'direction_tile_select' mode
+ *   newState.pendingSpell            → enter 'spell' mode
+ *   (neither)                        → action is complete, commit state
+ *
+ * @param {object} state - current game state
+ * @param {string} unitUid
+ * @returns {object} new game state
+ */
+export function handleTriggerUnitAction(state, unitUid) {
+  return triggerUnitAction(state, unitUid);
 }

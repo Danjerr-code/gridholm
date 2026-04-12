@@ -33,7 +33,11 @@ import {
   executeApproachAndAttack,
   manhattan,
 } from '../engine/gameEngine.js';
-import { handleChampionMove, handleUnitMove } from '../engine/actionHandler.js';
+import {
+  handleChampionMove,
+  handleUnitMove,
+  handleTriggerUnitAction as execTriggerUnitAction,
+} from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
@@ -425,7 +429,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleTriggerUnitAction = useCallback(async (unitUid) => {
     if (!gameState) return;
-    const newState = triggerUnitAction(gameState, unitUid);
+    const newState = execTriggerUnitAction(gameState, unitUid);
     if (newState.pendingSpell) {
       setSelectedCard(newState.pendingSpell.cardUid);
       setSelectMode('spell');

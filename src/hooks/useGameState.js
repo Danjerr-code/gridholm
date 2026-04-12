@@ -42,7 +42,11 @@ import {
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
-import { handleChampionMove, handleUnitMove } from '../engine/actionHandler.js';
+import {
+  handleChampionMove,
+  handleUnitMove,
+  handleTriggerUnitAction as execTriggerUnitAction,
+} from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
   playSfxAttack, playSfxMove, playSfxDraw, playSfxSpell,
@@ -559,7 +563,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleTriggerUnitAction = useCallback((unitUid) => {
     setState(prev => {
-      const s = triggerUnitAction(prev, unitUid);
+      const s = execTriggerUnitAction(prev, unitUid);
       if (s.pendingSpell) {
         setSelectedCard(s.pendingSpell.cardUid);
         setSelectMode('spell');
@@ -575,14 +579,14 @@ export function useGameState({ deckId = 'human' } = {}) {
       if (!unit) return prev;
       // Vorn / Mana Cannon / Iron Queen: board tile direction selection
       if (unit.id === 'vornthundercaller' || unit.id === 'manacannon' || unit.id === 'ironqueen') {
-        const s = triggerUnitAction(prev, unitUid);
+        const s = execTriggerUnitAction(prev, unitUid);
         if (s.pendingDirectionSelect) {
           setSelectMode('direction_tile_select');
         }
         return s;
       }
       if (TARGETED_ACTION_UNITS.has(unit.id)) {
-        const s = triggerUnitAction(prev, unitUid);
+        const s = execTriggerUnitAction(prev, unitUid);
         if (s.pendingSpell) {
           setSelectedCard(s.pendingSpell.cardUid);
           setSelectMode('spell');
@@ -631,10 +635,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
-    setState(prev => {
-      const s = triggerUnitAction(prev, selectedUnit);
-      return s;
-    });
+    setState(prev => execTriggerUnitAction(prev, selectedUnit));
     clearSelection();
   }, [selectedUnit, clearSelection]);
 
