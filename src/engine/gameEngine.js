@@ -708,6 +708,7 @@ function fireEndTurnTriggers(state, playerIdx) {
       const allUnits = [...state.units];
       for (const t of allUnits) {
         if (t.uid === u.uid) continue; // Zmore does not damage itself
+        if (t.isRelic || t.isOmen || t.hidden) continue; // Zmore only targets revealed combat units
         if (state.units.find(x => x.uid === t.uid)) {
           t.hp -= 1;
           if (t.hp <= 0) {
@@ -715,7 +716,8 @@ function fireEndTurnTriggers(state, playerIdx) {
           }
         }
       }
-      state.units = state.units.filter(u => u.hp > 0);
+      // Omens have no HP field; preserve them regardless of hp value
+      state.units = state.units.filter(u => u.isOmen || u.hp > 0);
     }
   });
 

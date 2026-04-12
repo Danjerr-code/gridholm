@@ -1875,7 +1875,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
           </div>
           <div>
             <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{unit.hp}/{unit.maxHp}</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#50c050' }}>{unit.isOmen ? '—' : `${unit.hp ?? '?'}/${unit.maxHp ?? '?'}`}</div>
           </div>
           <div>
             <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SPD</div>
