@@ -33,7 +33,7 @@ import {
   executeApproachAndAttack,
   manhattan,
 } from '../engine/gameEngine.js';
-import { handleChampionMove } from '../engine/actionHandler.js';
+import { handleChampionMove, handleUnitMove } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
@@ -385,18 +385,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleMoveUnit = useCallback(async (row, col) => {
     if (!gameState || !selectedUnit) return;
-    const unit = gameState.units.find(u => u.uid === selectedUnit);
-    const targetHasEnemy = gameState.units.some(u => u.owner !== gameState.activePlayer && u.row === row && u.col === col)
-      || gameState.champions.some(ch => ch.owner !== gameState.activePlayer && ch.row === row && ch.col === col);
-    if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
-      const tiles = getApproachTiles(gameState, unit, row, col);
-      if (tiles.length > 1) {
-        setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
-        setSelectMode('approach_select');
-        return;
-      }
+    const result = handleUnitMove(gameState, selectedUnit, row, col);
+    if (result.needsApproach) {
+      setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
+      setSelectMode('approach_select');
+      return;
     }
-    await dispatch(moveUnit(gameState, selectedUnit, row, col));
+    await dispatch(result.state);
   }, [gameState, selectedUnit, dispatch]);
 
   const handleApproachTileChosen = useCallback(async (approachRow, approachCol) => {

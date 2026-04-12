@@ -42,7 +42,7 @@ import {
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
-import { handleChampionMove } from '../engine/actionHandler.js';
+import { handleChampionMove, handleUnitMove } from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
   playSfxAttack, playSfxMove, playSfxDraw, playSfxSpell,
@@ -484,36 +484,32 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleMoveUnit = useCallback((row, col) => {
     if (!selectedUnit) return;
-    let enteringApproach = false;
     const unitUidSnap = selectedUnit;
+    let enteringApproach = false;
+    let attackInfo = null;
     setState(prev => {
-      const unit = prev.units.find(u => u.uid === unitUidSnap);
+      const result = handleUnitMove(prev, unitUidSnap, row, col);
+      if (result.needsApproach) {
+        enteringApproach = true;
+        return prev;
+      }
+      // Determine sound effects: check if this was an attack vs plain move
       const targetHasEnemy = prev.units.some(u => u.owner !== prev.activePlayer && u.row === row && u.col === col)
         || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col);
-      if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
-        const tiles = getApproachTiles(prev, unit, row, col);
-        if (tiles.length > 1) {
-          enteringApproach = true;
-          return prev;
-        }
-      }
-      const next = moveUnit(prev, unitUidSnap, row, col);
       if (targetHasEnemy) {
-        const attackerSurvived = next.units.find(u => u.uid === unitUidSnap);
-        if (!attackerSurvived) {
-          playSfxAttackBlock();
-        } else {
-          playSfxAttack();
-        }
-      } else {
-        playSfxMove();
+        attackInfo = { survived: !!result.state.units.find(u => u.uid === unitUidSnap) };
       }
-      return next;
+      return result.state;
     });
     if (enteringApproach) {
       setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
       setSelectMode('approach_select');
     } else {
+      if (attackInfo) {
+        if (!attackInfo.survived) playSfxAttackBlock(); else playSfxAttack();
+      } else {
+        playSfxMove();
+      }
       clearSelection();
     }
   }, [selectedUnit, clearSelection]);
