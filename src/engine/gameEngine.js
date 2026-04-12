@@ -3893,6 +3893,10 @@ export function getChampionAbilityTargets(state, playerIdx, targetFilter) {
       return state.units
         .filter(u => u.owner === playerIdx && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
+    case 'friendly_combat_unit_within_2':
+      return state.units
+        .filter(u => u.owner === playerIdx && !u.isRelic && !u.isOmen && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        .map(u => u.uid);
     case 'friendly_champion_or_unit_within_2': {
       const units = state.units
         .filter(u => u.owner === playerIdx && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
@@ -3929,17 +3933,11 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       break;
     }
     case 'howl': {
-      if (targetUid === 'champion' + playerIdx) {
-        champ.turnAtkBonus = (champ.turnAtkBonus || 0) + 2;
-        p.resources -= 2;
-        addLog(s, `${p.name} invokes Howl: champion gains +2 ATK until end of turn.`);
-      } else {
-        const unit = s.units.find(u => u.uid === targetUid);
-        if (!unit) return s;
-        unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
-        p.resources -= 2;
-        addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
-      }
+      const unit = s.units.find(u => u.uid === targetUid);
+      if (!unit) return s;
+      unit.turnAtkBonus = (unit.turnAtkBonus || 0) + 2;
+      p.resources -= 2;
+      addLog(s, `${p.name} invokes Howl: ${unit.name} gains +2 ATK until end of turn.`);
       break;
     }
     case 'sapling_summon': {

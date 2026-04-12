@@ -35,9 +35,9 @@ export const CHAMPIONS = {
         name: 'Howl',
         type: 'activated',
         cost: { type: 'mana', amount: 2 },
-        description: 'Give your champion or a friendly unit within 2 tiles +2 ATK until end of turn.',
+        description: 'Give a friendly combat unit within 2 tiles +2 ATK until end of turn.',
         targetRequired: true,
-        targetFilter: 'friendly_champion_or_unit_within_2',
+        targetFilter: 'friendly_combat_unit_within_2',
       },
       ascended: {
         id: 'bloodlust',
