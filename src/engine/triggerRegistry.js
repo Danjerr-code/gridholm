@@ -23,7 +23,7 @@
 //   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
-import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner } from './gameEngine.js';
+import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner, drawCard } from './gameEngine.js';
 import { CARD_DB } from './cards.js';
 
 export const TRIGGER_EVENTS = [
@@ -331,7 +331,7 @@ function resolveEffect(effectId, listener, context, state) {
 
     case 'drawOneCard': {
       const p = state.players[playerIndex];
-      const drawn = p.deck.shift();
+      const drawn = drawCard(state, playerIndex);
       if (drawn) {
         p.hand.push(drawn);
         addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: drew ${drawn.name}.`);
@@ -343,18 +343,18 @@ function resolveEffect(effectId, listener, context, state) {
 
     case 'drawThreeCards': {
       const p = state.players[playerIndex];
-      let drawn = 0;
+      let drawnCount = 0;
       for (let i = 0; i < 3; i++) {
-        const card = p.deck.shift();
+        const card = drawCard(state, playerIndex);
         if (card) {
           p.hand.push(card);
-          drawn++;
+          drawnCount++;
         }
       }
       if (listenerUnit && listenerUnit.id === 'amethystcrystal') {
         addLog(state, `Amethyst Crystal shattered. Draw 3 cards.`);
       } else {
-        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: drew ${drawn} card(s).`);
+        addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: drew ${drawnCount} card(s).`);
       }
       break;
     }
@@ -513,7 +513,7 @@ function resolveEffect(effectId, listener, context, state) {
       const card = context?.card;
       if (!card || card.type !== 'spell') return false;
       const p = state.players[playerIndex];
-      const drawn = p.deck.shift();
+      const drawn = drawCard(state, playerIndex);
       if (drawn) {
         p.hand.push(drawn);
         addLog(state, `Cascade Sage channels the spell. Draw 1 card.`);

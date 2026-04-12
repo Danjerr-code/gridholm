@@ -830,7 +830,7 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
   // 2. Crossbowman: draw 1 card on kill
   if (attacker.id === 'crossbowman' && killedDefender && !defenderIsChampion) {
     const unitPlayer = state.players[attacker.owner];
-    const drawn = unitPlayer.deck.shift();
+    const drawn = drawCard(state, attacker.owner);
     if (drawn) {
       unitPlayer.hand.push(drawn);
       addLog(state, `Crossbowman: drew ${drawn.name}.`);
@@ -888,7 +888,7 @@ export function fireOnSummonTriggers(unit, state) {
   // 2. Chaos Spawn: draw first, then prompt discard
   if (unit.id === 'chaospawn') {
     // Draw first
-    const drawn = p.deck.shift();
+    const drawn = drawCard(state, unit.owner);
     if (drawn) {
       p.hand.push(drawn);
       addLog(state, `Chaos Spawn: drew ${drawn.name}.`);
@@ -1035,7 +1035,7 @@ export function fireOnSummonTriggers(unit, state) {
 
   // 11. Sylvan Courier: draw 1 card when summoned
   if (unit.id === 'sylvancourier') {
-    const drawn = p.deck.shift();
+    const drawn = drawCard(state, unit.owner);
     if (drawn) {
       p.hand.push(drawn);
       addLog(state, `Sylvan Courier delivers a message. Draw 1 card.`);
@@ -1178,6 +1178,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     championStartTile: [null, null],    // { r, c } snapshot at turn start, per player
     lucernPendingResummon: [null, null], // { atk, atkBonus, maxHp } when Lucern dies on Throne
     championStunned: [false, false],    // true when champion is stunned next turn (Kragor's Behemoth)
+    deckEmpty: [false, false],          // true when a player's deck has reached 0 cards (fatigue active)
   };
 }
 
@@ -1185,6 +1186,41 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
 
 export function addLog(state, msg) {
   state.log = [...state.log, msg];
+}
+
+// ── fatigue / draw helper ───────────────────────────────────────────────────
+// Central draw function. Draws one card for playerIndex.
+// If the deck empties after a successful draw, sets the deckEmpty flag and logs it.
+// If the deck is already empty (failed draw), applies champion weakening: -1 max HP.
+// Returns the drawn card, or null on a failed draw.
+export function drawCard(state, playerIndex) {
+  const p = state.players[playerIndex];
+  const drawn = p.deck.shift() || null;
+
+  if (!state.deckEmpty) state.deckEmpty = [false, false];
+
+  if (drawn) {
+    // Successful draw — check if deck just ran out
+    if (p.deck.length === 0 && !state.deckEmpty[playerIndex]) {
+      state.deckEmpty[playerIndex] = true;
+      addLog(state, `Deck empty. Opponent units gain +1 SPD.`);
+    }
+  } else {
+    // Failed draw — deck was already empty; ensure flag is set
+    if (!state.deckEmpty[playerIndex]) {
+      state.deckEmpty[playerIndex] = true;
+      addLog(state, `Deck empty. Opponent units gain +1 SPD.`);
+    }
+    // Weaken the champion: permanent max HP reduction
+    const champ = state.champions[playerIndex];
+    champ.maxHp = Math.max(0, champ.maxHp - 1);
+    if (champ.hp > champ.maxHp) champ.hp = champ.maxHp;
+    const champName = CHAMPIONS[champ.attribute]?.name ?? 'Champion';
+    addLog(state, `${champName} weakens. Max HP reduced to ${champ.maxHp}.`);
+    checkWinner(state);
+  }
+
+  return drawn;
 }
 
 // ── spell dispatch ─────────────────────────────────────────────────────────
@@ -1288,7 +1324,7 @@ function doBeginTurnPhase(state) {
   let drawnCard = null;
   const skipDraw = state.turn === 1 && state.activePlayer === state.firstPlayer;
   if (!skipDraw) {
-    drawnCard = p.deck.shift() || null;
+    drawnCard = drawCard(state, state.activePlayer);
     if (drawnCard) p.hand.push(drawnCard);
   }
 
@@ -1932,7 +1968,7 @@ export function resolveHandSelect(state, selectedCardUid) {
     }
     // Draw 2 cards
     for (let i = 0; i < 2; i++) {
-      const drawn = p.deck.shift();
+      const drawn = drawCard(s, s.activePlayer);
       if (drawn) {
         p.hand.push(drawn);
         addLog(s, `Dark Bargain: drew ${drawn.name}.`);
@@ -2574,7 +2610,7 @@ export function resolveGlimpse(state, keepTop) {
     addLog(s, `Glimpse: card shuffled back into the deck.`);
   }
   // Draw 1 card
-  const drawn = p.deck.shift();
+  const drawn = drawCard(s, s.activePlayer);
   if (drawn) {
     p.hand.push(drawn);
     addLog(s, `Glimpse: drew ${drawn.name}.`);
@@ -3884,7 +3920,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
     }
     case 'dark_pact': {
       champ.hp -= 2;
-      const drawn = p.deck.shift();
+      const drawn = drawCard(s, playerIdx);
       if (drawn) {
         p.hand.push(drawn);
         addLog(s, `${p.name} invokes Dark Pact: pays 2 HP and draws ${drawn.name}.`);

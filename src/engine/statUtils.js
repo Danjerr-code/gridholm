@@ -131,11 +131,14 @@ export function getEffectiveMaxHp(state, unit) {
   return unit.maxHp;
 }
 
-// Returns effective SPD including speed bonuses, zone SPD buffs, and hidden override.
+// Returns effective SPD including speed bonuses, zone SPD buffs, hidden override,
+// and the fatigue +1 SPD bonus (when the owning player's opponent has an empty deck).
 export function getEffectiveSpd(unit, state = null) {
   if (unit.hidden) return 1;
   const zoneBonus = state ? getZoneSpdBonus(state, unit) : 0;
-  return unit.spd + (unit.speedBonus || 0) + zoneBonus;
+  // Fatigue: if the enemy player's deck is empty, friendly combat units gain +1 SPD
+  const fatigueBonus = (state && !unit.isRelic && !unit.isOmen && state.deckEmpty?.[1 - unit.owner]) ? 1 : 0;
+  return unit.spd + (unit.speedBonus || 0) + zoneBonus + fatigueBonus;
 }
 
 // Returns all active friendly aura bonuses affecting a unit as { atk, hp }.

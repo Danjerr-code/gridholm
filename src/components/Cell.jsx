@@ -305,8 +305,8 @@ export default function Cell({
           <svg width="18" height="15" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
             <path d="M2,18 L2,6 L8,14 L12,2 L16,14 L22,6 L22,18 Z"/>
           </svg>
-          <span className={champAnimState?.type === 'damage' ? 'champ-hp-flash-anim' : ''} style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
-            {champion.hp}
+          <span className={champAnimState?.type === 'damage' ? 'champ-hp-flash-anim' : ''} style={{ fontFamily: 'var(--font-sans)', fontSize: champion.maxHp < 20 ? '11px' : '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
+            {champion.maxHp < 20 ? `${champion.hp}/${champion.maxHp}` : champion.hp}
           </span>
           {state && (() => { const atkBuff = getChampionAtkBuff(state, champion); return atkBuff > 0 ? (
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 700, color: '#f97316', lineHeight: 1 }}>

@@ -7,6 +7,7 @@ import {
   manhattan,
   cardinalNeighbors,
   fireOnSummonTriggers,
+  drawCard,
 } from './gameEngine.js';
 import { getEffectiveAtk } from './statUtils.js';
 import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger } from './triggerRegistry.js';
@@ -288,7 +289,7 @@ export const SPELL_REGISTRY = {
   ancientspring: (state, caster) => {
     const p = state.players[caster];
     for (let i = 0; i < 2; i++) {
-      const drawn = p.deck.shift();
+      const drawn = drawCard(state, caster);
       if (drawn) {
         p.hand.push(drawn);
         addLog(state, `Ancient Spring: drew ${drawn.name}.`);

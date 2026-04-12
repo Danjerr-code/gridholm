@@ -1,4 +1,4 @@
-import { destroyUnit, restoreHP, addLog, applyDamageToUnit, manhattan } from './gameEngine.js';
+import { destroyUnit, restoreHP, addLog, applyDamageToUnit, manhattan, drawCard } from './gameEngine.js';
 import { fireTrigger } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
@@ -41,7 +41,7 @@ export const ACTION_REGISTRY = {
     const p = state.players[unit.owner];
     champ.hp -= 2;
     addLog(state, `Dark Dealer: champion takes 2 damage.`);
-    const drawn = p.deck.shift();
+    const drawn = drawCard(state, unit.owner);
     if (drawn && p.hand.length < 6) {
       p.hand.push(drawn);
       addLog(state, `Dark Dealer: drew ${drawn.name}.`);
@@ -117,7 +117,7 @@ export const ACTION_REGISTRY = {
     addLog(state, `Blood Altar: ${target.name} sacrificed.`);
     fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...target }, sacrificingPlayerIndex: target.owner }, state);
     destroyUnit(target, state, 'sacrifice');
-    const drawn = p.deck.shift();
+    const drawn = drawCard(state, unit.owner);
     if (drawn && p.hand.length < 6) {
       p.hand.push(drawn);
       addLog(state, `Blood Altar: drew ${drawn.name}.`);
