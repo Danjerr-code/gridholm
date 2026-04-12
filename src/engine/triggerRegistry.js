@@ -485,13 +485,11 @@ function resolveEffect(effectId, listener, context, state) {
     // }
 
     case 'negationcrystal_cancel': {
-      // Negation Crystal: prompt the owner to destroy it and cancel the enemy action.
+      // Negation Crystal: automatically destroy it and cancel the enemy action.
       if (!listenerUnit) break;
-      addLog(state, `Negation Crystal: ${state.players[listenerUnit.owner].name} may destroy it to cancel the action.`);
-      state.pendingNegationCancel = {
-        crystalUid: listenerUnit.uid,
-        playerIndex: listenerUnit.owner,
-      };
+      destroyUnit(listenerUnit, state, 'negationcrystal_cancel');
+      addLog(state, `Negation Crystal destroyed — enemy action cancelled!`);
+      state.pendingNegationCancel = true;
       break;
     }
 

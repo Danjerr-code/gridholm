@@ -323,16 +323,15 @@ export const ACTION_REGISTRY = {
 // ==========================================
 // ACTION DISPATCH WITH onEnemyAction TRIGGER
 // Single entry point called by _dispatchAction in gameEngine.js.
-// Fires onEnemyAction for the opposing player's triggers (e.g. Negation Crystal)
-// before resolving the action. If state.pendingNegationCancel is set after the
-// trigger fires, the action is paused and stored for later resolution.
+// Fires onEnemyAction for the opposing player's triggers (e.g. Negation Crystal).
+// If state.pendingNegationCancel is set after the trigger fires, the action is
+// cancelled automatically — the unit's action is consumed but the effect does not fire.
 // ==========================================
 export function dispatchAction(unit, state, targets) {
   fireTrigger('onEnemyAction', { actingUnit: unit, actingPlayerIndex: unit.owner }, state);
   if (state.pendingNegationCancel) {
-    // Action paused — store context so it can be replayed or cancelled.
-    state.pendingNegationCancel.pendingUnitUid = unit.uid;
-    state.pendingNegationCancel.pendingTargets = targets;
+    // Action cancelled by Negation Crystal — clear flag and return without resolving.
+    state.pendingNegationCancel = null;
     return state;
   }
   const resolver = ACTION_REGISTRY[unit.id];

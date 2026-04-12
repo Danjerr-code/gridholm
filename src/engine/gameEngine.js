@@ -1215,7 +1215,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingTerrainCast: null, // { cardUid, card } — waiting for terrain tile target
     pendingDirectionSelect: null, // { unitUid } — Vorn: waiting for player to click a cardinal adjacent tile
     pendingRelicPlace: null,  // { effect, playerIdx } — waiting for tile to place a relic (e.g. Amethyst Cache)
-    pendingNegationCancel: null, // { crystalUid, playerIndex, pendingUnitUid, pendingTargets } — Negation Crystal prompt
+    pendingNegationCancel: null, // boolean flag — set to true when Negation Crystal auto-cancels an action
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
     pendingContractSelect: null, // { contracts, nezzarUid } — Nezzar contract choice at turn start
     pendingBloodPact: null, // { step: 'selectFriendly'|'selectEnemy', nezzarUid, sacrificedUid? }
@@ -2744,43 +2744,6 @@ export function resolveDirectionTile(state, unitUid, targetRow, targetCol) {
   const result = resolveLineBlast(state, unitUid, direction);
   result.pendingDirectionSelect = null;
   return result;
-}
-
-// ── Negation Crystal: resolve confirm/decline ─────────────────────────────
-// Called when the Negation Crystal owner responds to the prompt.
-// confirmed=true: destroy the crystal and cancel the stored action.
-// confirmed=false: clear pending state and execute the stored action.
-export function resolveNegationCancel(state, confirmed) {
-  const s = cloneState(state);
-  const pending = s.pendingNegationCancel;
-  if (!pending) return s;
-  s.pendingNegationCancel = null;
-
-  if (confirmed) {
-    const crystal = s.units.find(u => u.uid === pending.crystalUid);
-    if (crystal) {
-      addLog(s, `Negation Crystal destroyed — enemy action cancelled!`);
-      destroyUnit(crystal, s, 'negationcrystal_cancel');
-    }
-    checkWinner(s);
-    return s;
-  }
-
-  // Declined: execute the stored action now
-  addLog(s, `Negation Crystal: declined. Action resolves.`);
-  const unit = s.units.find(u => u.uid === pending.pendingUnitUid);
-  if (unit) {
-    const resolver = ACTION_REGISTRY[unit.id];
-    if (resolver) {
-      const result = resolver(unit, s, pending.pendingTargets || []);
-      checkWinner(result);
-      const actorAfter = result.units.find(u => u.uid === pending.pendingUnitUid);
-      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
-      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
-      return result;
-    }
-  }
-  return s;
 }
 
 // ── Arcane Lens: deck peek resolution ────────────────────────────────────
