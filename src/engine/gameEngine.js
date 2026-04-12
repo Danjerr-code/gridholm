@@ -3144,9 +3144,11 @@ export function triggerUnitAction(state, unitUid) {
 export function getUnitMoveTiles(state, unitUid) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit || unit.owner !== state.activePlayer) return [];
-  // Relics, revealed omens, SPD 0, and rooted units cannot move.
-  // Hidden omens with spd > 0 can move while hidden (Dread Mirror now has spd 0 and is excluded).
-  if (unit.isRelic || (unit.isOmen && !unit.hidden) || unit.spd === 0 || unit.rooted) return [];
+  // Relics, revealed omens, effective SPD 0, and rooted units cannot move.
+  // Hidden units use getEffectiveSpd which returns 1 regardless of base SPD,
+  // so Shadow Trap Hole, Dread Mirror, and any future hidden units with spd 0
+  // can move 1 tile while hidden and revert to their base SPD on reveal.
+  if (unit.isRelic || (unit.isOmen && !unit.hidden) || getEffectiveSpd(unit, state) === 0 || unit.rooted) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }
