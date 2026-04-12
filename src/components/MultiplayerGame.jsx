@@ -28,6 +28,7 @@ import {
   getArcherShootTargets,
   playerRevealUnit,
   triggerUnitAction,
+  resolveDirectionTile,
   getApproachTiles,
   executeApproachAndAttack,
   manhattan,
@@ -433,6 +434,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       setSelectedCard(newState.pendingSpell.cardUid);
       setSelectMode('spell');
       await dispatchAction(newState);
+    } else if (newState.pendingDirectionSelect) {
+      setSelectMode('direction_tile_select');
+      await dispatchAction(newState);
     } else {
       await dispatch(newState);
     }
@@ -442,7 +446,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!gameState) return;
     const unit = gameState.units.find(u => u.uid === unitUid);
     if (!unit) return;
-    if (TARGETED_ACTION_UNITS.has(unit.id)) {
+    // Direction-select units: trigger action and enter tile selection mode
+    if (unit.id === 'vornthundercaller' || unit.id === 'manacannon' || unit.id === 'ironqueen') {
+      handleTriggerUnitAction(unitUid);
+    } else if (TARGETED_ACTION_UNITS.has(unit.id)) {
       handleTriggerUnitAction(unitUid);
     } else {
       setSelectMode('action_confirm');
@@ -453,6 +460,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!selectedUnit) return;
     await handleTriggerUnitAction(selectedUnit);
   }, [selectedUnit, handleTriggerUnitAction]);
+
+  const handleDirectionTileSelect = useCallback(async (row, col) => {
+    if (!gameState) return;
+    const newState = resolveDirectionTile(gameState, gameState.pendingDirectionSelect?.unitUid, row, col);
+    clearSelection();
+    await dispatch(newState);
+  }, [gameState, dispatch, clearSelection]);
 
   const handleInspectUnit = useCallback((unit) => {
     setInspectedItem({ type: 'unit', uid: unit.uid });
@@ -706,6 +720,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
+  if (selectMode === 'direction_tile_select') guidance = 'Click a highlighted tile to choose a direction.';
   if (selectMode === 'grave_select') guidance = 'Select a unit from your grave.';
 
   const showAction = selectedUnitObj?.action === true
@@ -739,6 +754,16 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     ? (() => {
         const unit = state.units.find(u => u.uid === pendingApproach.unitUid);
         return unit ? getApproachTiles(state, unit, pendingApproach.targetRow, pendingApproach.targetCol) : [];
+      })()
+    : [];
+
+  const directionTargetTiles = selectMode === 'direction_tile_select' && state.pendingDirectionSelect
+    ? (() => {
+        const unit = state.units.find(u => u.uid === state.pendingDirectionSelect.unitUid);
+        if (!unit) return [];
+        return [[-1, 0], [1, 0], [0, -1], [0, 1]]
+          .map(([dr, dc]) => [unit.row + dr, unit.col + dc])
+          .filter(([r, c]) => r >= 0 && r < 5 && c >= 0 && c < 5);
       })()
     : [];
 
@@ -776,6 +801,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleTriggerUnitAction,
     handleActionButtonClick,
     handleConfirmAction,
+    handleDirectionTileSelect,
     handleRevealUnit,
     handleFleshtitheSacrificeSelect,
     handleFleshtitheSacrifice,
@@ -1126,6 +1152,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             summonTiles={isActiveTurn ? summonTiles : []}
             unitMoveTiles={isActiveTurn ? unitMoveTiles : []}
             approachTiles={isActiveTurn ? approachTiles : []}
+            directionTargetTiles={isActiveTurn ? directionTargetTiles : []}
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
