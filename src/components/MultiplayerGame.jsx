@@ -305,7 +305,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       setSelectMode('fleshtithe_sacrifice');
       await dispatchAction(s);
     } else {
-      if (!s.pendingSummon) playCardPlaySound();
+      if (!s.pendingSummon) playUnitSummonSound();
       await dispatch(s);
     }
   }, [gameState, selectedCard, dispatch, dispatchAction]);
