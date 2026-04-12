@@ -279,8 +279,6 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ringStyle = { outline: '2px solid #f97316' };
   } else if (isArcherTarget) {
     ringStyle = { outline: '2px solid #ec4899' };
-  } else if (isLegendary) {
-    ringStyle = { outline: '2px solid #C9A84C80' };
   } else if (isOwnHidden) {
     ringStyle = { outline: '2px solid #a855f7', boxShadow: `0 0 6px rgba(168,85,247,0.4), ${teamRingShadow}` };
   }
@@ -531,6 +529,23 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
+      {/* Legendary wreath overlay */}
+      {isLegendary && (
+        <img
+          src="/legendary.svg"
+          alt=""
+          draggable={false}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 3,
+          }}
+        />
+      )}
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
       {/* Buff shimmer overlay */}
