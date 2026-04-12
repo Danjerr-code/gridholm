@@ -1104,13 +1104,13 @@ export function fireOnSummonTriggers(unit, state) {
     }
   }
 
-  // 13. Lifebinder: prompt player to select a friendly combat unit to restore to full health
+  // 13. Lifebinder: prompt player to select a wounded friendly combat unit to restore to full health
   if (unit.id === 'lifebinder') {
-    const friendlyCombatUnits = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.isRelic && !u.isOmen);
-    if (friendlyCombatUnits.length > 0) {
+    const woundedFriendlies = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.isRelic && !u.isOmen && u.hp < u.maxHp);
+    if (woundedFriendlies.length > 0) {
       state.pendingSpell = { cardUid: unit.uid, effect: 'lifebinder_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid, paid: true } };
     } else {
-      addLog(state, `Lifebinder: no friendly combat units to restore.`);
+      addLog(state, `Lifebinder: no wounded friendly combat units to restore.`);
     }
   }
 
@@ -3912,14 +3912,15 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         manhattan([champ.row, champ.col], [u.row, u.col]) === 1
       ).map(u => u.uid);
 
-    // Lifebinder summon: any friendly combat unit (not lifebinder itself, not relic, not omen)
+    // Lifebinder summon: wounded friendly combat unit (not lifebinder itself, not relic, not omen, must have hp < maxHp)
     case 'lifebinder_summon': {
       const lifebinder = data.sourceUid ? state.units.find(u => u.uid === data.sourceUid) : null;
       return state.units.filter(u =>
         u.owner === state.activePlayer &&
         (!lifebinder || u.uid !== lifebinder.uid) &&
         !u.isRelic &&
-        !u.isOmen
+        !u.isOmen &&
+        u.hp < u.maxHp
       ).map(u => u.uid);
     }
 
