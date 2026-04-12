@@ -302,7 +302,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }
 
     const s = playCard(base, cardUid);
-    if (s.pendingSummon) {
+    if (s.pendingHandSelect) {
+      setSelectedCard(cardUid);
+      setSelectMode('hand_select');
+      await dispatchAction(s);
+    } else if (s.pendingSummon) {
       setSelectedCard(cardUid);
       setSelectMode('summon');
       await dispatchAction(s);
