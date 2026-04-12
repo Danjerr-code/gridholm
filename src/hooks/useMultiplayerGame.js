@@ -64,11 +64,15 @@ export function useMultiplayerGame(gameId) {
 
       // Join as player 2 if slot is open (waiting status)
       if ((sessionData.status === 'deck_select' || sessionData.status === 'waiting') && !sessionData.player2_id) {
+        // Randomly select who goes first and write it to Supabase now,
+        // so both clients read it from active_player during deck_select.
+        const firstPlayer = Math.random() < 0.5 ? sessionData.player1_id : guestId;
         const { data: joined, error: joinError } = await supabase
           .from('game_sessions')
           .update({
             player2_id: guestId,
             status: 'deck_select',
+            active_player: firstPlayer,
             updated_at: new Date().toISOString(),
           })
           .eq('id', gameId)
