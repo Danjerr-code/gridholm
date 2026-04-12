@@ -30,6 +30,11 @@
   to   { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
+@keyframes legendary-ring-rotate-ccw {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(-360deg); }
+}
+
 .legendary-token-ring {
   position: absolute;
   top: 50%;
@@ -38,7 +43,6 @@
   height: 100%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px #FFD700, 0 0 8px 2px rgba(255, 215, 0, 0.6);
   pointer-events: none;
   z-index: 3;
 }
@@ -53,7 +57,22 @@
   pointer-events: none;
   z-index: 4;
   background: conic-gradient(from 0deg, transparent 0%, rgba(255, 255, 200, 0.9) 10%, transparent 20%, transparent 100%);
-  animation: legendary-ring-rotate 3s linear infinite;
+  animation: legendary-ring-rotate 6s linear infinite;
+  mask: radial-gradient(circle at center, transparent 40%, black 43%, black 50%, transparent 53%);
+  -webkit-mask: radial-gradient(circle at center, transparent 40%, black 43%, black 50%, transparent 53%);
+}
+
+.legendary-token-shimmer-2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  background: conic-gradient(from 180deg, transparent 0%, rgba(255, 255, 200, 0.6) 10%, transparent 20%, transparent 100%);
+  animation: legendary-ring-rotate-ccw 6s linear infinite;
   mask: radial-gradient(circle at center, transparent 40%, black 43%, black 50%, transparent 53%);
   -webkit-mask: radial-gradient(circle at center, transparent 40%, black 43%, black 50%, transparent 53%);
 }

@@ -539,6 +539,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       <>
         <div className="legendary-token-ring" />
         <div className="legendary-token-shimmer" />
+        <div className="legendary-token-shimmer-2" />
       </>
     )}
     {healOverlay}
