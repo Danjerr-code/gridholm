@@ -192,7 +192,7 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
 
   return (
     <div
-      className={`flex flex-nowrap overflow-x-auto gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''} md:justify-center`}
+      className={`flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''} md:justify-center`}
       style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
     >
       {displayList.map((item, idx) => {
