@@ -534,24 +534,12 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       {/* Buff shimmer overlay */}
       {showBuff && <div className="unit-buff-shimmer-overlay" />}
     </div>
-    {/* Legendary wreath overlay — outside inner token to escape overflow:hidden */}
-    {isLegendary && (
-      <img
-        src="/legendary.svg"
-        alt=""
-        draggable={false}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '117%',
-          height: '117%',
-          pointerEvents: 'none',
-          zIndex: 3,
-          mixBlendMode: 'screen',
-        }}
-      />
+    {/* Legendary CSS ring — outside inner token to escape overflow:hidden */}
+    {isLegendary && !isRelic && (
+      <>
+        <div className="legendary-token-ring" />
+        <div className="legendary-token-shimmer" />
+      </>
     )}
     {healOverlay}
     </div>
