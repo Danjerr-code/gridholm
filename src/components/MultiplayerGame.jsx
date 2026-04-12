@@ -317,8 +317,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!card) return;
     if (p.resources < getEffectiveCost(card, base, base.activePlayer)) { playSfxNoMana(); return; }
 
-    // Targetless spell: preview mode — don't execute yet
-    if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
+    // Targetless spell (and Pact of Ruin): preview mode — don't execute yet
+    if (card.type === 'spell' && (NO_TARGET_SPELL_EFFECTS.has(card.effect) || card.effect === 'pactofruin')) {
       setSelectedCard(cardUid);
       setSelectMode('targetless_spell');
       if (base !== gameState) await dispatchAction(base);
@@ -355,8 +355,16 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!gameState || !selectedCard || selectMode !== 'targetless_spell') return;
     playSfxSpell();
     const s = playCard(gameState, selectedCard);
-    await dispatch(s);
-  }, [gameState, selectedCard, selectMode, dispatch]);
+    // Pact of Ruin sets pendingHandSelect after cast; all other targetless spells complete immediately.
+    if (s.pendingHandSelect) {
+      setSelectedCard(null);
+      setSelectedUnit(null);
+      setSelectMode('hand_select');
+      await dispatchAction(s);
+    } else {
+      await dispatch(s);
+    }
+  }, [gameState, selectedCard, selectMode, dispatch, dispatchAction]);
 
   const handleSummonOnTile = useCallback(async (row, col) => {
     if (!gameState || !selectedCard) return;
@@ -875,6 +883,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       : 'Click a blue tile to move the unit. Or select another unit.';
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
+  if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'relic_place') guidance = 'Click an adjacent tile to place the Amethyst Crystal.';

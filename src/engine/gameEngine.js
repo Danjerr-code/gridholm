@@ -4016,7 +4016,8 @@ export function hasValidTargets(card, state, playerIndex) {
       return friendlyUnits.length > 0 && enemyUnits.length > 0;
 
     case 'pactofruin':
-      return state.players[playerIndex].hand.length > 1 && enemyUnits.length > 0;
+      // Opposing champion always exists; only need a card in hand to discard.
+      return state.players[playerIndex].hand.length > 1;
 
     case 'entangle': {
       const elfFriendly = friendlyUnits.filter(u => unitTypes(u).includes('Elf') && !u.hidden);

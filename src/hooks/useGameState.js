@@ -252,20 +252,14 @@ export function useGameState({ deckId = 'human' } = {}) {
         return base;
       }
 
-      // Targetless spell: preview mode — don't execute yet
-      if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
+      // Targetless spell (and Pact of Ruin): preview mode — don't execute yet
+      if (card.type === 'spell' && (NO_TARGET_SPELL_EFFECTS.has(card.effect) || card.effect === 'pactofruin')) {
         setSelectedCard(cardUid);
         setSelectMode('targetless_spell');
         return base;
       }
 
-      if (card.effect === 'pactofruin') {
-        console.log('[PactOfRuin] useGameState handlePlayCard: calling playCard for pactofruin. cardUid:', cardUid, 'hand size:', p.hand.length, 'resources:', p.resources);
-      }
       const s = playCard(base, cardUid);
-      if (card.effect === 'pactofruin') {
-        console.log('[PactOfRuin] useGameState handlePlayCard: playCard returned. pendingHandSelect:', JSON.stringify(s.pendingHandSelect), 'pendingSpell:', JSON.stringify(s.pendingSpell));
-      }
       if (s.pendingHandSelect) {
         setSelectedCard(cardUid);
         setSelectMode('hand_select');
@@ -287,9 +281,17 @@ export function useGameState({ deckId = 'human' } = {}) {
     if (!selectedCard || selectMode !== 'targetless_spell') return;
     const cardUid = selectedCard;
     playSfxSpell();
+    // Pact of Ruin sets pendingHandSelect after cast; all other targetless spells complete immediately.
+    const card = state.players[state.activePlayer].hand.find(c => c.uid === cardUid);
     setState(prev => playCard(prev, cardUid));
-    clearSelection();
-  }, [selectedCard, selectMode, clearSelection]);
+    if (card?.effect === 'pactofruin') {
+      setSelectedCard(null);
+      setSelectedUnit(null);
+      setSelectMode('hand_select');
+    } else {
+      clearSelection();
+    }
+  }, [selectedCard, selectMode, state, clearSelection]);
 
   const handleSummonOnTile = useCallback((row, col) => {
     if (!selectedCard) return;
