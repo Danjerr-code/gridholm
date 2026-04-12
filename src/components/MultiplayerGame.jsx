@@ -197,7 +197,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const NO_TARGET_SPELL_EFFECTS = new Set([
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
-    'ancientspring', 'shadowveil',
+    'ancientspring', 'shadowveil', 'verdantsurge', 'predatorsmark',
+    'crushingblow', 'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
   ]);
 
   // Dispatch helper: compute new state then write to Supabase
