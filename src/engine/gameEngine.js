@@ -1964,7 +1964,7 @@ function _tollAdvance(s, cardUid, castIdx, fromStep, sacrificed) {
     if (st === 3 && s.players[castIdx].hand.length > 0) {
       if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 3 (discard card) — setting pendingHandSelect');
       s.pendingSpell = null;
-      s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { casterIdx, sacrificed } };
+      s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { casterIdx: castIdx, sacrificed } };
       return s;
     }
     if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: step', st, 'skipped (no eligible targets)');
