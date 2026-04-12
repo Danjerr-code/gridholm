@@ -67,11 +67,33 @@ function actionPriority(action, state, enemyIdx, enemyChamp) {
     const turn = state.turn ?? 0;
     const oppChampHP = enemyChamp.hp;
     const myIdx = 1 - enemyIdx; // ap is not in scope here; derive from enemyIdx
+    const myFaction = state.champions[myIdx]?.attribute ?? null;
     const myCombatUnits = state.units.filter(u => u.owner === myIdx && !u.isRelic && !u.isOmen).length;
+    // Mystic closing: no champion ability at all after turn 15 — must close the game
+    if (myFaction === 'mystic' && turn >= 15) return 0;
     if (oppChampHP <= 15 && myCombatUnits >= 2) return 1; // closing — don't cycle abilities
     if (turn >= 16) return 1;                              // late game — minimum
     if (turn >= 9)  return 15;                             // mid game — below summon (20)
     return 35;                                             // early game — normal
+  }
+
+  // Mystic closing: boost advancing move priority after turn 13
+  if (action.type === 'move') {
+    const myIdx = 1 - enemyIdx;
+    const myFaction = state.champions[myIdx]?.attribute ?? null;
+    const turn = state.turn ?? 0;
+    if (myFaction === 'mystic' && turn >= 13) {
+      const unit = state.units.find(u => u.uid === action.unitId);
+      if (unit) {
+        const [tr, tc] = action.targetTile;
+        const hitsChamp = enemyChamp.row === tr && enemyChamp.col === tc;
+        if (hitsChamp && unit.atk >= enemyChamp.hp) return 100; // lethal
+        if (hitsChamp) return 85;                               // champion attack — highest priority
+        const curDist = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
+        const newDist  = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
+        if (newDist < curDist) return 45 + (unit.atk ?? 0);    // advance: high-ATK unit first
+      }
+    }
   }
 
   return 5;
@@ -139,12 +161,20 @@ function filterActions(actions, state, commandsUsed) {
 
   // Deduplicate summons: one tile per card — the tile closest to the enemy champion
   const seenCardUids = new Set();
-  const deduped = candidate.filter(action => {
+  let deduped = candidate.filter(action => {
     if (action.type !== 'summon') return true;
     if (seenCardUids.has(action.cardUid)) return false;
     seenCardUids.add(action.cardUid);
     return true;
   });
+
+  // Mystic closing: completely exclude champion ability after turn 15
+  // (actionPriority returns 0, but this ensures it never even enters candidate pools)
+  const myFaction = state.champions[ap]?.attribute ?? null;
+  const curTurn   = state.turn ?? 0;
+  if (myFaction === 'mystic' && curTurn >= 15) {
+    deduped = deduped.filter(a => a.type !== 'championAbility');
+  }
 
   // Partition hold-list cards: they can only fill slots if nothing better exists.
   // This prevents the AI from playing Apex Rampage / Second Dawn / etc. before

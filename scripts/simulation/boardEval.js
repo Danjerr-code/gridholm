@@ -261,6 +261,55 @@ function computeGameLengthPenalty(faction, turnNumber) {
 }
 
 /**
+ * Apply opponent-faction-aware adjustments to a weight profile.
+ * Called after faction and phase modifiers are applied.
+ *
+ * vs Primal  — expect early Rush pressure; protect own champion, cluster defensively.
+ * vs Mystic  — attack urgency +30%; don't let the sustain engine stabilize.
+ * vs Light   — break formation; removing units is worth more when they have Aura synergy.
+ * vs Dark    — deny card advantage; value hand size more to stay ahead.
+ *
+ * @param {object} w          - weight profile after faction/phase modifiers
+ * @param {object} state      - current game state
+ * @param {number} playerIdx  - active player index (0 or 1)
+ * @returns {object}            adjusted weight profile
+ */
+function applyOpponentModifiers(w, state, playerIdx) {
+  const pw = { ...w };
+  const enemyIdx   = 1 - playerIdx;
+  const oppFaction = state.champions[enemyIdx]?.attribute ?? null;
+
+  switch (oppFaction) {
+    case 'primal':
+      // Expect Rush — protect own champion and cluster defensively
+      pw.championHP          = Math.round(pw.championHP          * 1.5);
+      pw.unitsAdjacentToAlly = Math.round(pw.unitsAdjacentToAlly * 1.5);
+      break;
+
+    case 'mystic':
+      // Don't let the sustain engine stabilize — push for damage before healing lands
+      pw.unitsThreateningChampion = Math.round(pw.unitsThreateningChampion * 1.3);
+      pw.championProximity        = Math.round(pw.championProximity        * 1.3);
+      pw.totalATKOnBoard          = Math.round(pw.totalATKOnBoard          * 1.3);
+      break;
+
+    case 'light':
+      // Break the formation — removing units interrupts Aura cascades
+      pw.unitCountDiff            = Math.round(pw.unitCountDiff            * 1.2);
+      pw.unitsThreateningChampion = Math.round(pw.unitsThreateningChampion * 1.2);
+      break;
+
+    case 'dark':
+      // Deny card advantage; stay ahead in hand and resource economy
+      pw.cardsInHand              = Math.round(pw.cardsInHand              * 1.3);
+      pw.unitsThreateningChampion = Math.round(pw.unitsThreateningChampion * 1.1);
+      break;
+  }
+
+  return pw;
+}
+
+/**
  * Resolve faction-specific weights for a given player, applying faction profile
  * and phase-based modifiers for the current turn.
  *
@@ -306,7 +355,7 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     faction = myChamp?.attribute ?? 'light';
   } else {
     faction = myChamp?.attribute ?? 'light';
-    w = resolveFactionWeights(faction, turnNumber);
+    w = applyOpponentModifiers(resolveFactionWeights(faction, turnNumber), gameState, ap);
   }
 
   // ── Individual factors ──────────────────────────────────────────────────────

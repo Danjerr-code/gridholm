@@ -71,6 +71,14 @@ function scoreAction(action, state) {
   const enemyIdx = 1 - ap;
   const enemyChamp = state.champions[enemyIdx];
 
+  // ── Faction + phase context ────────────────────────────────────────────────
+  const myFaction  = state.champions[ap]?.attribute ?? null;
+  const oppFaction = enemyChamp?.attribute ?? null;
+  const turn = state.turn ?? 0;
+  // Mystic closing heuristic: turn 13+ = late game, turn 15+ = very late
+  const mysticLate     = myFaction === 'mystic' && turn >= 13;
+  const mysticVeryLate = myFaction === 'mystic' && turn >= 15;
+
   switch (action.type) {
 
     case 'move': {
@@ -84,6 +92,8 @@ function scoreAction(action, state) {
       if (hitsChamp) {
         const dmgToChamp = attackerAtk;
         if (dmgToChamp >= enemyChamp.hp) return 1000; // lethal
+        // Mystic closing: adjacent attack on champion = maximum non-lethal priority
+        if (mysticLate) return 990 - Math.max(0, enemyChamp.hp - dmgToChamp);
         // Scale attack urgency: much higher priority when champion is low HP
         const atkUrgency = enemyChamp.hp <= 8 ? 20 : (enemyChamp.hp <= 15 ? 15 : 10);
         return dmgToChamp * atkUrgency;
@@ -92,16 +102,22 @@ function scoreAction(action, state) {
       // Check if moving to an enemy unit's tile (combat)
       const enemyUnit = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
       if (enemyUnit) {
+        // vs Dark: penalize moving onto a hidden unit (potential Shadow Trap)
+        if (oppFaction === 'dark' && enemyUnit.hidden) return -15;
+
         const defenderAtk = getEffectiveAtk(state, enemyUnit, [tr, tc]);
         const attackerDies = unit.hp <= defenderAtk;
         const defenderDies = enemyUnit.hp <= attackerAtk;
 
+        // vs Light: bonus for killing an Aura unit (breaks formation synergy)
+        const auraBonus = (oppFaction === 'light' && enemyUnit.aura && defenderDies) ? 20 : 0;
+
         if (defenderDies && !attackerDies) {
-          return 50 + unitCost(enemyUnit);
+          return 50 + unitCost(enemyUnit) + auraBonus;
         }
         if (defenderDies && attackerDies) {
           // Even trade
-          return unitCost(enemyUnit) >= unitCost(unit) ? 20 : 5;
+          return (unitCost(enemyUnit) >= unitCost(unit) ? 20 : 5) + auraBonus;
         }
         // Attacker dies without killing defender — bad
         if (attackerDies && !defenderDies) {
@@ -114,6 +130,10 @@ function scoreAction(action, state) {
       // Urgency scales with enemy champion's HP — converge harder on a wounded champion.
       const curDistToEnemyChamp = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
       const newDistToEnemyChamp = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
+      // Mystic closing: advance with highest ATK unit — ATK bonus ensures correct unit priority
+      if (mysticLate && newDistToEnemyChamp < curDistToEnemyChamp) {
+        return 40 + (unit.atk ?? 0);
+      }
       const chaseUrgency = enemyChamp.hp <= 8 ? 35 : (enemyChamp.hp <= 15 ? 22 : 15);
       if (newDistToEnemyChamp < curDistToEnemyChamp) return chaseUrgency;
 
@@ -164,18 +184,38 @@ function scoreAction(action, state) {
       const card = p.hand.find(c => c.uid === action.cardUid);
       if (!card) return -1;
 
-      // Hold logic: if card is on hold list and conditions not met, score 2
-      if (shouldHoldCard(card, state, ap)) return 2;
-
       const effect = card.effect;
 
       // Healing spells: urgency scales with champion HP deficit.
-      // Only beats advancing (score 15) when champion is at 50% HP or below.
+      // Mystic closing: healing forbidden after turn 13 unless HP < 5.
       if (effect === 'overgrowth' || effect === 'bloom') {
         const myChamp = state.champions[ap];
+        if (mysticLate) {
+          return myChamp.hp < 5 ? 60 : 1; // Mystic closing — attack, don't heal
+        }
         if (myChamp.hp <= 5)  return 60; // emergency (<=25% health)
         if (myChamp.hp <= 10) return 30; // urgent (<=50% health)
         return 8; // not urgent — below advance (15), avoid defensive stalling
+      }
+
+      // Hold logic: if card is on hold list and conditions not met, score 2
+      // Exception: Mystic closing — verdantsurge is always castable late game
+      if (shouldHoldCard(card, state, ap)) {
+        if (mysticLate && effect === 'verdantsurge') {
+          // Override hold — verdantsurge is the primary closing enabler for Mystic
+        } else {
+          return 2;
+        }
+      }
+
+      // Mystic closing: boost offensive/enabling spells in late game
+      if (mysticLate) {
+        if (effect === 'verdantsurge') return 55; // primary closing enabler — above summon
+        if (effect === 'petrify')      return 50; // removes enemy blocker — enables attack
+        if (effect === 'mindseize')    return 45; // steal blocker adjacent to champion
+        if (effect === 'entangle')     return 35; // immobilize enemies, then advance
+        // Draw spells lose value when closing
+        if (effect === 'glimpse' || effect === 'ancientspring') return 3;
       }
 
       if (BUFF_SPELL_EFFECTS.has(effect)) return 15;
@@ -205,6 +245,9 @@ function scoreAction(action, state) {
     }
 
     case 'championAbility': {
+      // Mystic closing: stop using champion ability entirely after turn 15
+      if (mysticVeryLate) return 0;
+
       // Azulon (Mystic) hold: only use ability when a spell costing 4+ is in hand.
       if (shouldHoldChampionAbility(state, ap)) return 2;
 
@@ -213,7 +256,6 @@ function scoreAction(action, state) {
       // Mid (turns 9–15): below summon scoring — board development comes first.
       // Late (turns 16+): minimum — AI should be attacking/advancing to close.
       // Closing condition (opp HP ≤ 15 AND 2+ combat units): minimum regardless of phase.
-      const turn = state.turn ?? 0;
       const oppHP = enemyChamp.hp;
       const myCombatUnits = state.units.filter(u => u.owner === ap && !u.isRelic && !u.isOmen).length;
 
