@@ -11,6 +11,7 @@
 
 import { getLegalActions } from './headlessEngine.js';
 import { getEffectiveAtk, manhattan } from '../../src/engine/gameEngine.js';
+import { shouldHoldCard, shouldHoldChampionAbility } from './cardHoldLogic.js';
 
 // Throne tile: the center square of the 5×5 board.
 const THRONE = [2, 2];
@@ -143,6 +144,9 @@ function scoreAction(action, state) {
       const card = p.hand.find(c => c.uid === action.cardUid);
       if (!card) return -1;
 
+      // Hold logic: if card is on hold list and conditions not met, score 2
+      if (shouldHoldCard(card, state, ap)) return 2;
+
       let score = (card.cost ?? 0) * 3;
 
       // Bonus if summoning adjacent to a friendly Aura unit
@@ -159,6 +163,10 @@ function scoreAction(action, state) {
       const p = state.players[ap];
       const card = p.hand.find(c => c.uid === action.cardUid);
       if (!card) return -1;
+
+      // Hold logic: if card is on hold list and conditions not met, score 2
+      if (shouldHoldCard(card, state, ap)) return 2;
+
       const effect = card.effect;
 
       // Healing spells: urgency scales with champion HP deficit.
@@ -197,6 +205,9 @@ function scoreAction(action, state) {
     }
 
     case 'championAbility': {
+      // Azulon (Mystic) hold: only use ability when a spell costing 4+ is in hand.
+      if (shouldHoldChampionAbility(state, ap)) return 2;
+
       // Use ability with leftover mana AFTER board development, not instead of it.
       const p = state.players[ap];
       const abilityCost = 2; // all attuned abilities cost 2 mana

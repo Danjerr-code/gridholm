@@ -12,6 +12,7 @@ import { getLegalActions, applyAction, isGameOver } from './headlessEngine.js';
 import { evaluateBoard } from './boardEval.js';
 import { chooseAction } from './simAI.js';
 import { manhattan } from '../../src/engine/gameEngine.js';
+import { shouldHoldCard, shouldHoldChampionAbility } from './cardHoldLogic.js';
 
 // Throne tile: center of the 5×5 board.
 const THRONE_ROW = 2;
@@ -129,14 +130,36 @@ function filterActions(actions, state, commandsUsed) {
     return true;
   });
 
-  // Sort by descending priority so alpha-beta pruning is most effective
-  deduped.sort((a, b) =>
-    actionPriority(b, state, enemyIdx, enemyChamp) -
-    actionPriority(a, state, enemyIdx, enemyChamp)
-  );
+  // Partition hold-list cards: they can only fill slots if nothing better exists.
+  // This prevents the AI from playing Apex Rampage / Second Dawn / etc. before
+  // their optimal conditions are met — but still allows it as a last resort.
+  const isHeldAction = a => {
+    if (a.type === 'championAbility') {
+      return shouldHoldChampionAbility(state, ap);
+    }
+    if (a.type === 'cast' || a.type === 'summon') {
+      const card = state.players[ap].hand.find(c => c.uid === a.cardUid);
+      return card ? shouldHoldCard(card, state, ap) : false;
+    }
+    return false;
+  };
 
-  // Hard cap — keep at most MAX_CANDIDATES non-endTurn actions + endTurn
-  return [...deduped.slice(0, MAX_CANDIDATES), { type: 'endTurn' }];
+  const primary = deduped.filter(a => !isHeldAction(a));
+  const held    = deduped.filter(a => isHeldAction(a));
+
+  // Sort both pools by descending priority
+  const byPriority = (a, b) =>
+    actionPriority(b, state, enemyIdx, enemyChamp) -
+    actionPriority(a, state, enemyIdx, enemyChamp);
+
+  primary.sort(byPriority);
+  held.sort(byPriority);
+
+  // Fill up to MAX_CANDIDATES: prefer primary, then held only if slots remain
+  const primarySlice = primary.slice(0, MAX_CANDIDATES);
+  const heldSlice    = held.slice(0, Math.max(0, MAX_CANDIDATES - primarySlice.length));
+
+  return [...primarySlice, ...heldSlice, { type: 'endTurn' }];
 }
 
 // ── Minimax ───────────────────────────────────────────────────────────────────
