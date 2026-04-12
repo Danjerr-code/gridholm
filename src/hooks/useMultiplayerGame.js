@@ -404,8 +404,9 @@ export function useMultiplayerGame(gameId) {
       ? (session.player2_id ?? session.player1_id)
       : session.player1_id;
 
+    const freshGameState = createInitialState();
     const updateBody = {
-      game_state: null,
+      game_state: freshGameState,
       status: 'deck_select',
       winner: null,
       active_player: nextFirstPlayer,
