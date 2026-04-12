@@ -254,6 +254,25 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // targets[0]: friendly combat unit to receive the elf tribal buff
+  rootsongcommander: (unit, state, targets) => {
+    const target = targets[0];
+    if (!target) {
+      addLog(state, `Rootsong Commander: no valid target selected.`);
+      return state;
+    }
+    const elfCount = state.units.filter(u =>
+      u.owner === unit.owner &&
+      unitTypes(u).includes('Elf') &&
+      !u.hidden
+    ).length;
+    target.turnAtkBonus = (target.turnAtkBonus || 0) + elfCount;
+    target.hp += elfCount;
+    target.elfTribalHpBonus = (target.elfTribalHpBonus || 0) + elfCount;
+    addLog(state, `Rootsong Commander empowers ${target.name}. +${elfCount}/+${elfCount} this turn.`);
+    return state;
+  },
+
   ironqueen: (unit, state, targets) => {
     const dir = targets[0];
     if (!dir) {

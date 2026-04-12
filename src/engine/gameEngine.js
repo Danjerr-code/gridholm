@@ -1079,7 +1079,17 @@ export function fireOnSummonTriggers(unit, state) {
     }
   }
 
-  // 13. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
+  // 13. Lifebinder: prompt player to select a friendly combat unit to restore to full health
+  if (unit.id === 'lifebinder') {
+    const friendlyCombatUnits = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.isRelic && !u.isOmen);
+    if (friendlyCombatUnits.length > 0) {
+      state.pendingSpell = { cardUid: unit.uid, effect: 'lifebinder_summon', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    } else {
+      addLog(state, `Lifebinder: no friendly combat units to restore.`);
+    }
+  }
+
+  // 14. Chains of Light omen: prompt the player to select an enemy combat unit to stun.
   if (unit.id === 'chainsoflight') {
     const hasEnemies = state.units.some(u => u.owner !== unit.owner && !u.hidden && !u.isOmen && !u.isRelic);
     if (hasEnemies) {
@@ -2532,6 +2542,23 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
     }
   }
+  // ── Lifebinder summon trigger (restore target friendly combat unit to full health) ──
+  else if (effect === 'lifebinder_summon') {
+    if (target) {
+      restoreHP(target, target.maxHp, s, 'lifebinder');
+      addLog(s, `Lifebinder restores ${target.name} to full health.`);
+    }
+  }
+  // ── Rootsong Commander action (elf tribal buff until end of turn) ──
+  else if (effect === 'elfTribalBuff') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) {
+      s = _dispatchAction(unit, s, [target]);
+      const actorAfter = s.units.find(u => u.uid === unit.uid);
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    }
+  }
   // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
   // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
@@ -2963,6 +2990,11 @@ export function triggerUnitAction(state, unitUid) {
   }
   if (unit.id === 'elfarcher') {
     s.pendingSpell = { cardUid: unit.uid, effect: 'elfarcher_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    return s;
+  }
+
+  if (unit.id === 'rootsongcommander') {
+    s.pendingSpell = { cardUid: unit.uid, effect: 'elfTribalBuff', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
 
@@ -3516,6 +3548,11 @@ export function completeTurnAdvance(state) {
         u.hp = Math.max(1, u.hp - u.verdantSurgeBonus);
         u.verdantSurgeBonus = 0;
       }
+      // Clear elf tribal buff HP bonus (Rootsong Commander action)
+      if (u.elfTribalHpBonus) {
+        u.hp = Math.max(1, u.hp - u.elfTribalHpBonus);
+        u.elfTribalHpBonus = 0;
+      }
       // Clear Shield ability HP bonus
       if (u.shieldHpBonus) {
         u.hp = Math.max(1, u.hp - u.shieldHpBonus);
@@ -3814,6 +3851,25 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         !u.cannotBeTargetedBySpells &&
         !u.spellImmune &&
         manhattan([champ.row, champ.col], [u.row, u.col]) === 1
+      ).map(u => u.uid);
+
+    // Lifebinder summon: any friendly combat unit (not lifebinder itself, not relic, not omen)
+    case 'lifebinder_summon': {
+      const lifebinder = data.sourceUid ? state.units.find(u => u.uid === data.sourceUid) : null;
+      return state.units.filter(u =>
+        u.owner === state.activePlayer &&
+        (!lifebinder || u.uid !== lifebinder.uid) &&
+        !u.isRelic &&
+        !u.isOmen
+      ).map(u => u.uid);
+    }
+
+    // Rootsong Commander action: any friendly combat unit (not relic, not omen)
+    case 'elfTribalBuff':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer &&
+        !u.isRelic &&
+        !u.isOmen
       ).map(u => u.uid);
 
     // Toll of Shadows: multi-step caster sacrifice
