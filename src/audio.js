@@ -12,7 +12,16 @@ function playSfx(path) {
   }
 }
 
-export function playSfxAttack() { playSfx('/sfx-attack.mp3'); }
+export function playSfxAttack() {
+  if (isMuted()) return;
+  try {
+    const audio = new Audio('/sfx-attack.mp3');
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
+  } catch {
+    // Audio API not available — silent fail
+  }
+}
 export function playSfxMove() { playSfx('/sfx-move.mp3'); }
 export function playSfxDraw() { playSfx('/sfx-draw.mp3'); }
 export function playSfxSpell() { playSfx('/sfx-spell.mp3'); }
@@ -253,6 +262,51 @@ export function playTurnStartSound() {
         // Two-note ascending chime: C5 then E5
         note(523.25, t, 0.6);
         note(659.25, t + 0.12, 0.7);
+      } catch {
+        // Audio scheduling failed — silent fail
+      }
+    }).catch(() => {
+      // AudioContext resume failed — silent fail
+    });
+  } catch {
+    // Web Audio API not available — silent fail
+  }
+}
+
+// Unit summon: warm sine sweep 220→440hz over 0.3s with soft attack and gentle decay, ~0.5s total.
+export function playUnitSummonSound() {
+  if (isMuted()) return;
+  try {
+    const ctx = getAudioContext();
+    resumeAudioContext(ctx).then(() => {
+      try {
+        const t = ctx.currentTime;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.18, t + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, t);
+        osc.frequency.exponentialRampToValueAtTime(440, t + 0.3);
+
+        // Delay feedback for a light reverb feel
+        const delay = ctx.createDelay(0.1);
+        delay.delayTime.value = 0.06;
+        const delayGain = ctx.createGain();
+        delayGain.gain.value = 0.15;
+        delay.connect(delayGain);
+        delayGain.connect(delay);
+
+        osc.connect(gain);
+        gain.connect(delay);
+        gain.connect(ctx.destination);
+        delayGain.connect(ctx.destination);
+
+        osc.start(t);
+        osc.stop(t + 0.5);
       } catch {
         // Audio scheduling failed — silent fail
       }

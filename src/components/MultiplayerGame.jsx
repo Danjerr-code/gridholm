@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { isMuted, setMuted, playCardPlaySound } from '../audio.js';
+import { isMuted, setMuted, playCardPlaySound, playUnitSummonSound } from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus, getEffectiveCost, checkWinner } from '../engine/gameEngine.js';
@@ -258,8 +258,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectedUnit(null);
     setSelectMode(null);
 
+    // Auto-decline any pending Flesh Tithe sacrifice before processing new card
+    const preFT = gameState.pendingFleshtitheSacrifice ? resolveFleshtitheSacrifice(gameState, 'no', null) : gameState;
     // Cancel any leftover pending state from a previous selection
-    const base = (gameState.pendingSpell || gameState.pendingSummon) ? cancelSpell(gameState) : gameState;
+    const base = (preFT.pendingSpell || preFT.pendingSummon) ? cancelSpell(preFT) : preFT;
     const p = base.players[base.activePlayer];
     const card = p.hand.find(c => c.uid === cardUid);
     if (!card || p.resources < getEffectiveCost(card, base, base.activePlayer)) return;

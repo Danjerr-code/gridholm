@@ -27,6 +27,7 @@ export default function Cell({
   isChampionAbilityTarget = false,
   isArcherTarget,
   isSacrificeTarget,
+  isSacrificeSelected = false,
   isAbilityTarget,
   isTerrainTarget,
   isDirectionTarget = false,
@@ -369,6 +370,7 @@ export default function Cell({
             isSpellTarget={isSpellTarget}
             isArcherTarget={isArcherTarget}
             isSacrificeTarget={isSacrificeTarget}
+            isSacrificeSelected={isSacrificeSelected}
             isAbilityTarget={isAbilityTarget}
             myPlayerIndex={myPlayerIndex}
             onClick={e => { if (e.stopPropagation) e.stopPropagation(); onUnitClick && onUnitClick(); }}

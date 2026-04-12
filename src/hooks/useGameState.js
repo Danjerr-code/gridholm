@@ -46,6 +46,7 @@ import {
   playTurnStartSound,
   playSfxAttack, playSfxMove, playSfxDraw, playSfxSpell,
   playSfxNoMana, playSfxWin, playSfxUheal, playSfxCheal, playSfxAttackBlock,
+  playUnitSummonSound,
 } from '../audio.js';
 
 const AI_PLAYER = 1;
@@ -232,8 +233,10 @@ export function useGameState({ deckId = 'human' } = {}) {
       // cannot corrupt the selectMode and break the discard UI.
       if (prev.pendingHandSelect) return prev;
       setSelectMode(null);
+      // Auto-decline any pending Flesh Tithe sacrifice before processing new card
+      const preFT = prev.pendingFleshtitheSacrifice ? resolveFleshtitheSacrifice(prev, 'no', null) : prev;
       // Cancel any leftover pending state from a previous selection
-      const base = (prev.pendingSpell || prev.pendingSummon || prev.pendingTerrainCast) ? cancelSpell(prev) : prev;
+      const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? cancelSpell(preFT) : preFT;
       const p = base.players[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid);
       const effectiveCost = card ? getEffectiveCost(card, base, base.activePlayer) : 0;
@@ -285,6 +288,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     if (!selectedCard) return;
     setState(prev => {
       const s = summonUnit(prev, selectedCard, row, col);
+      playUnitSummonSound();
       if (s.pendingHandSelect) {
         setSelectMode('hand_select');
       } else if (s.pendingFleshtitheSacrifice) {

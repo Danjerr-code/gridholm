@@ -908,10 +908,10 @@ export function fireOnSummonTriggers(unit, state) {
     // If hand is empty after drawing, skip discard
   }
 
-  // 3. Flesh Tithe: prompt optional sacrifice
+  // 3. Flesh Tithe: prompt optional sacrifice (combat units only)
   if (unit.id === 'fleshtithe') {
-    const friendlyUnits = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid);
-    if (friendlyUnits.length > 0) {
+    const friendlyCombatUnits = state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.isRelic && !u.isOmen);
+    if (friendlyCombatUnits.length > 0) {
       state.pendingFleshtitheSacrifice = { unitUid: unit.uid };
     } else {
       addLog(state, `Flesh Tithe: enters as 3/3 (no units to sacrifice).`);
@@ -2186,7 +2186,7 @@ export function resolveFleshtitheSacrifice(state, choice, sacrificeUid) {
   s.pendingFleshtitheSacrifice = null;
 
   if (choice === 'yes' && sacrificeUid && fleshtithe) {
-    const sacrifice = s.units.find(u => u.uid === sacrificeUid);
+    const sacrifice = s.units.find(u => u.uid === sacrificeUid && !u.isRelic && !u.isOmen);
     if (sacrifice) {
       addLog(s, `Flesh Tithe: ${sacrifice.name} sacrificed.`);
       fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...sacrifice }, sacrificingPlayerIndex: sacrifice.owner }, s);
@@ -2536,6 +2536,7 @@ export function cancelSpell(state) {
   s.pendingNegationCancel = null;
   s.pendingDeckPeek = null;
   s.pendingChampionSaplingPlace = null;
+  s.pendingFleshtitheSacrifice = null;
   return s;
 }
 

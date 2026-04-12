@@ -41,6 +41,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
+    selectedSacrificeUid,
     handlers,
   } = useGameState({ deckId });
 
@@ -166,7 +167,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
-  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
+  if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to Invoke, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
@@ -707,6 +708,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
             sacrificeTargetUids={sacrificeTargetUids}
+            selectedSacrificeUid={selectedSacrificeUid}
             myPlayerIndex={0}
             handlers={handlers}
             onInspectUnit={handlers.handleInspectUnit}
@@ -750,6 +752,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 )}
                 {phase === 'action' && selectMode === 'spell' && (
                   <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Spell" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && selectedSacrificeUid && (
+                  <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('yes', selectedSacrificeUid)} label="Confirm Sacrifice" variant="action" fullWidth />
                 )}
                 {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
                   <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel (3/3)" variant="cancel" fullWidth />
@@ -833,6 +838,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
           )}
           {phase === 'action' && selectMode === 'spell' && (
             <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && selectedSacrificeUid && (
+            <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('yes', selectedSacrificeUid)} label="Confirm" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
           {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
             <ActionBtn onClick={() => handlers.handleFleshtitheSacrifice('no', null)} label="Cancel" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
