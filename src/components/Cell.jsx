@@ -311,6 +311,9 @@ export default function Cell({
           <span className={champAnimState?.type === 'damage' ? 'champ-hp-flash-anim' : ''} style={{ fontFamily: 'var(--font-sans)', fontSize: champion.maxHp < 20 ? '11px' : '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>
             {champion.maxHp < 20 ? `${champion.hp}/${champion.maxHp}` : champion.hp}
           </span>
+          {champion.thornShield && (
+            <span style={{ color: '#67e8f9', fontSize: '8px', lineHeight: 1 }}>🛡</span>
+          )}
           {state && (() => { const atkBuff = getChampionAtkBuff(state, champion); return atkBuff > 0 ? (
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 700, color: '#f97316', lineHeight: 1 }}>
               ⚔{atkBuff}

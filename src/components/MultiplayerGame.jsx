@@ -2175,6 +2175,9 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex,
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#C9A84C' }}>{player.resonance?.score ?? 0}</div>
           </div>
         </div>
+        {champ.thornShield && (
+          <div style={{ fontSize: '11px', color: '#67e8f9', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>🛡 Iron Thorns Shield (absorb {champ.thornShield.absorb}, thorn {champ.thornShield.thornDamage})</div>
+        )}
         {abilitySection}
       </div>
     );
