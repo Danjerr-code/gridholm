@@ -17,6 +17,7 @@ export const UNIT_TYPES = {
 
   // Mystic types
   ELF: 'Elf',
+  GIANT: 'Giant',
   SPIRIT: 'Spirit',
   PLANT: 'Plant',
   WIZARD: 'Wizard',

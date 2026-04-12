@@ -218,7 +218,7 @@ export const SPELL_REGISTRY = {
     for (const [r, c] of adj) {
       state.units.push({
         id: 'snake', name: 'Snake', type: 'unit', atk: 1, hp: 1, maxHp: 1, spd: 1,
-        unitType: ['Snake'], rules: '', image: 'snake-token.webp', owner: caster, row: r, col: c,
+        unitType: ['Beast'], rules: '', image: 'snake-token.webp', owner: caster, row: r, col: c,
         summoned: true, moved: false, atkBonus: 0, shield: 0, speedBonus: 0, hidden: false,
         uid: `snake_${Math.random().toString(36).slice(2)}`,
       });
