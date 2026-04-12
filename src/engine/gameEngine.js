@@ -533,6 +533,12 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     fireTrigger('onEnemyUnitDeath', deathCtx, state);
     fireTrigger('onFriendlyUnitDeath', deathCtx, state);
   }
+
+  // A unit dying reduces friendly unit count — check if any friendlyUnitCount-scaled units
+  // (e.g. Oathkeep Paragon) now have effective HP <= 0 and must die.
+  if (!unit.isRelic && !unit.isOmen) {
+    checkConditionalStatDeaths(state);
+  }
 }
 
 // ============================================

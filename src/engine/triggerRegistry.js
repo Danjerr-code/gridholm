@@ -163,6 +163,7 @@ export function getZoneSpdBonus(state, unit) {
 
 // Returns the conditional stat bonus for a unit from conditionalStatBuff modifiers.
 // Condition type 'minHandSize' / 'minCardsInHand': applies when hand size >= condition.count.
+// Scaling type 'friendlyUnitCount': bonus equals the count of other friendly combat units.
 export function getConditionalStatBonus(state, unit) {
   if (!state.activeModifiers) return { atk: 0, hp: 0 };
   if (unit.hidden) return { atk: 0, hp: 0 };
@@ -171,6 +172,15 @@ export function getConditionalStatBonus(state, unit) {
   for (const mod of state.activeModifiers) {
     if (mod.type !== 'conditionalStatBuff') continue;
     if (mod.unitUid !== unit.uid) continue;
+    if (mod.scaling === 'friendlyUnitCount') {
+      const count = state.units.filter(
+        u => u.owner === unit.owner && u.uid !== unit.uid && !u.isRelic && !u.isOmen && !u.hidden
+      ).length;
+      if (mod.stat === 'atk') atk += count;
+      if (mod.stat === 'hp') hp += count;
+      if (mod.stat === 'both' || mod.stat === 'atkAndHp') { atk += count; hp += count; }
+      continue;
+    }
     let condMet = false;
     if (mod.condition?.type === 'minHandSize' || mod.condition?.type === 'minCardsInHand') {
       condMet = hand.length >= (mod.condition.count || 0);
