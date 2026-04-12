@@ -3149,8 +3149,31 @@ export function moveUnit(state, unitUid, row, col) {
   if (enemyUnit) {
     // Reveal hidden attacking unit before combat (e.g. Veil Fiend moving into enemy tile).
     // Reveal tile is the destination; the defender is the excluded combat unit.
+    const wasHiddenAttacker = unit.hidden;
     if (unit.hidden) {
       revealUnit(s, unit, enemyUnit, [row, col]);
+    }
+    // Special reveal effects for hidden attackers targeting enemy units.
+    // These units stay on original tile after revealing — no normal combat.
+    if (wasHiddenAttacker) {
+      if (unit.id === 'shadowtrap') {
+        // Shadow Trap: destroy the enemy unit, stay on original tile revealed as 1/1 SPD 0
+        addLog(s, `Shadow Trap revealed. ${enemyUnit.name} destroyed.`);
+        destroyUnit(enemyUnit, s, 'shadowtrap');
+        const liveTrap = s.units.find(u => u.uid === unitUid);
+        if (liveTrap) liveTrap.moved = true;
+        updateWildbornAura(s);
+        updateStandardBearerAura(s);
+        return s;
+      }
+      if (unit.id === 'veilfiend' || unit.id === 'dreadshade') {
+        // Reveal effects already fired in revealUnit; stay on original tile, no combat
+        const liveUnit = s.units.find(u => u.uid === unitUid);
+        if (liveUnit) liveUnit.moved = true;
+        updateWildbornAura(s);
+        updateStandardBearerAura(s);
+        return s;
+      }
     }
     // Reveal hidden enemy unit before resolving combat
     const wasHidden = enemyUnit.hidden;
@@ -3249,8 +3272,33 @@ export function moveUnit(state, unitUid, row, col) {
     }
   } else if (enemyChamp) {
     // Reveal hidden attacking unit before champion combat
+    const wasHiddenChampAttacker = unit.hidden;
     if (unit.hidden) {
       revealUnit(s, unit, null, [row, col]);
+    }
+    // Special reveal effects for hidden attackers targeting the champion.
+    // These units stay on original tile after revealing — no normal champion combat,
+    // except Shadow Trap which deals 1 damage to make hidden uniform across the pool.
+    if (wasHiddenChampAttacker) {
+      if (unit.id === 'shadowtrap') {
+        // Shadow Trap vs champion: deal 1 damage, stay on original tile
+        enemyChamp.hp -= 1;
+        addLog(s, `Shadow Trap revealed. ${s.players[enemyChamp.owner].name}'s champion takes 1 damage.`);
+        const liveTrap = s.units.find(u => u.uid === unitUid);
+        if (liveTrap) liveTrap.moved = true;
+        checkWinner(s);
+        updateWildbornAura(s);
+        updateStandardBearerAura(s);
+        return s;
+      }
+      if (unit.id === 'veilfiend' || unit.id === 'dreadshade') {
+        // Reveal effects already fired in revealUnit; stay on original tile, no champion combat
+        const liveUnit = s.units.find(u => u.uid === unitUid);
+        if (liveUnit) liveUnit.moved = true;
+        updateWildbornAura(s);
+        updateStandardBearerAura(s);
+        return s;
+      }
     }
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);
     const dist = manhattan([unit.row, unit.col], [row, col]);
