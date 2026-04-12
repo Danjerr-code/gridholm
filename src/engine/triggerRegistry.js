@@ -16,6 +16,7 @@
 //   onNonCombatChampionDamage — the owner deals non-combat damage to the enemy champion
 //   onFriendlySacrifice    — the owner destroys a friendly unit via sacrifice mechanic
 //   onDamageTaken          — a unit owned by the listener's player takes damage
+//   onCardDiscarded        — the owner discards a card from hand (does NOT fire for opponent forced discards)
 //
 // Static modifiers (not event-driven):
 //   conditionalStatBuff    — stat buff when a condition is met (e.g. minHandSize)
@@ -40,6 +41,7 @@ export const TRIGGER_EVENTS = [
   'onFriendlySacrifice',
   'onEnemyAction',
   'onDamageTaken',
+  'onCardDiscarded',
 ];
 
 // Returns the initial triggerListeners object for state.
@@ -649,6 +651,10 @@ function _fireTriggerInner(event, context, state, listeners) {
       case 'onDamageTaken':
         // Fires for the owner of the damaged unit
         if (context?.damagedPlayerIndex == null || listener.playerIndex !== context.damagedPlayerIndex) continue;
+        break;
+      case 'onCardDiscarded':
+        // Fires for the player who discarded — does not fire for opponent forced discards
+        if (context?.playerIndex == null || listener.playerIndex !== context.playerIndex) continue;
         break;
       default:
         break;

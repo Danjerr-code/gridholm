@@ -904,6 +904,7 @@ export function fireOnSummonTriggers(unit, state) {
       const [discarded] = p.hand.splice(0, 1);
       p.discard.push(discarded);
       addLog(state, `Chaos Spawn: ${discarded.name} discarded.`);
+      fireTrigger('onCardDiscarded', { playerIndex: unit.owner, discardedCard: discarded }, state);
     }
     // If hand is empty after drawing, skip discard
   }
@@ -1314,6 +1315,23 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
       const chosen = combatGrave[Math.floor(Math.random() * combatGrave.length)];
       state.players[owner].hand.push(chosen);
       addLog(state, `Gravecaller reveal: ${chosen.name} returned to hand.`);
+    }
+  }
+  if (unit.id === 'gravefedhorror') {
+    // On reveal: gain +1/+1 for each combat unit in owner's grave
+    const owner = unit.owner;
+    const combatGrave = state.players[owner].grave.filter(g => {
+      const db = CARD_DB[g.id];
+      return db && db.type === 'unit' && !db.isRelic && !db.isOmen;
+    });
+    const count = combatGrave.length;
+    if (count > 0) {
+      unit.atk += count;
+      unit.hp += count;
+      unit.maxHp += count;
+      addLog(state, `Gravefed Horror reveals. Feeds on ${count} fallen unit${count !== 1 ? 's' : ''}. +${count}/+${count}.`);
+    } else {
+      addLog(state, `Gravefed Horror reveals. No fallen units to feed on.`);
     }
   }
 }
@@ -2003,6 +2021,7 @@ export function resolveHandSelect(state, selectedCardUid) {
       p.discard.push(discarded);
       addLog(s, `Pact of Ruin: ${discarded.name} discarded.`);
       if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: discarded', discarded.name);
+      fireTrigger('onCardDiscarded', { playerIndex: s.activePlayer, discardedCard: discarded }, s);
     } else {
       if (typeof window !== 'undefined') console.log('[PactOfRuin] resolveHandSelect: selectedCardUid not found in hand — no discard');
     }
@@ -2021,6 +2040,7 @@ export function resolveHandSelect(state, selectedCardUid) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Chaos Spawn: ${discarded.name} discarded.`);
+      fireTrigger('onCardDiscarded', { playerIndex: s.activePlayer, discardedCard: discarded }, s);
     }
     s.pendingHandSelect = null;
     return s;
@@ -2050,6 +2070,7 @@ export function resolveHandSelect(state, selectedCardUid) {
       addLog(s, `${s.players[casterIdx].name} discards ${discarded.name}.`);
       newSacrificed.card = true;
       if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: discarded', discarded.name, '— newSacrificed:', JSON.stringify(newSacrificed));
+      fireTrigger('onCardDiscarded', { playerIndex: casterIdx, discardedCard: discarded }, s);
     } else {
       if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: selectedCardUid not found in hand — no discard');
     }
@@ -2066,6 +2087,7 @@ export function resolveHandSelect(state, selectedCardUid) {
       const [discarded] = p.hand.splice(idx, 1);
       p.discard.push(discarded);
       addLog(s, `Dark Bargain: ${discarded.name} discarded.`);
+      fireTrigger('onCardDiscarded', { playerIndex: s.activePlayer, discardedCard: discarded }, s);
     }
     // Draw 2 cards
     for (let i = 0; i < 2; i++) {
