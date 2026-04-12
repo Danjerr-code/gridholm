@@ -800,7 +800,7 @@ export const SPELL_REGISTRY = {
     if (!crystalBase) return state;
     const crystal = {
       ...crystalBase,
-      owner: caster,
+      owner: 1 - caster,
       row,
       col,
       maxHp: crystalBase.hp,

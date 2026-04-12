@@ -7,7 +7,7 @@ import {
 } from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
-import { getAuraAtkBonus, getEffectiveCost, checkWinner } from '../engine/gameEngine.js';
+import { getAuraAtkBonus, getEffectiveCost, checkWinner, getChampionDef, getChampionAbilityTargets } from '../engine/gameEngine.js';
 import { KEYWORD_REMINDERS } from '../engine/keywords.js';
 import { CARD_DB } from '../engine/cards.js';
 import { ATTRIBUTES } from '../engine/attributes.js';
@@ -49,6 +49,7 @@ import {
   handleContractSelect as execContractSelect,
   handleBloodPactFriendly as execBloodPactFriendly,
   handleBloodPactEnemy as execBloodPactEnemy,
+  handleChampionAbility as execChampionAbility,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -129,6 +130,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [selectMode, setSelectMode] = useState(null);
   const [selectedSacrificeUid, setSelectedSacrificeUid] = useState(null);
   const [pendingApproach, setPendingApproach] = useState(null);
+  const [pendingChampionAbility, setPendingChampionAbility] = useState(null);
   const [inspectedItem, setInspectedItem] = useState(null);
   const [mobileModalItem, setMobileModalItem] = useState(null);
   const [mobilePrimedCard, setMobilePrimedCard] = useState(null);
@@ -260,6 +262,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectedUnit(null);
     setSelectMode(null);
     setPendingApproach(null);
+    setPendingChampionAbility(null);
   }, []);
 
   const NO_TARGET_SPELL_EFFECTS = new Set([
@@ -636,6 +639,31 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (window.innerWidth < 768) setMobileModalItem(item);
   }, []);
 
+  const handleInspectChampion = useCallback((playerIdx) => {
+    setInspectedItem({ type: 'champion', playerIdx });
+    if (window.innerWidth < 768) setMobileModalItem({ type: 'champion', playerIdx });
+  }, []);
+
+  const handleChampionAbilityActivate = useCallback((abilityId, targetFilter) => {
+    if (!targetFilter) {
+      // Targetless ability: apply immediately and sync
+      if (!gameState) return;
+      const next = execChampionAbility(gameState, myPlayerIndex, abilityId, null);
+      dispatch(next);
+      return;
+    }
+    setPendingChampionAbility({ abilityId, targetFilter });
+    setSelectMode('champion_ability');
+  }, [gameState, myPlayerIndex, dispatch]);
+
+  const handleChampionAbilityTarget = useCallback(async (targetUid) => {
+    if (!pendingChampionAbility || !gameState) return;
+    const next = execChampionAbility(gameState, myPlayerIndex, pendingChampionAbility.abilityId, targetUid);
+    setPendingChampionAbility(null);
+    setSelectMode(null);
+    await dispatch(next);
+  }, [gameState, myPlayerIndex, pendingChampionAbility, dispatch]);
+
   const handleMobileModalDismiss = useCallback(() => {
     if (mobileModalItem?.type === 'card') {
       setMobilePrimedCard(mobileModalItem.card.uid);
@@ -923,6 +951,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     ? getAmethystCacheTiles(state)
     : [];
 
+  const championAbilityTargetUids = selectMode === 'champion_ability' && pendingChampionAbility
+    ? getChampionAbilityTargets(state, myPlayerIndex, pendingChampionAbility.targetFilter)
+    : [];
+
   const handlers = {
     handleChampionMoveTile,
     handlePlayCard,
@@ -953,9 +985,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleInspectCard,
     handleClearInspect,
     handleInspectTerrain,
+    handleInspectChampion,
+    handleChampionAbilityTarget,
   };
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'terrain_cast' || selectMode === 'relic_place';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'terrain_cast' || selectMode === 'relic_place' || selectMode === 'champion_ability';
 
   return (
     <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
@@ -1272,7 +1306,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               phase={phase}
               phaseChangeId={`${state.turn}-${state.activePlayer}-${phase}`}
             />
-            <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
+            <CardDetailPanel inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} phase={phase} isActiveTurn={isActiveTurn} onChampionAbilityActivate={handleChampionAbilityActivate} />
           </div>
         )}
 
@@ -1300,6 +1334,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
             selectedSacrificeUid={isActiveTurn ? selectedSacrificeUid : null}
+            championAbilityTargetUids={isActiveTurn ? championAbilityTargetUids : []}
             opponentMoveTiles={opponentMoveTiles}
             spellGlowTile={spellGlowTile}
             handlers={handlers}
@@ -1763,6 +1798,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           state={state}
           onClose={handleMobileModalDismiss}
           myPlayerIndex={myPlayerIndex}
+          phase={phase}
+          isActiveTurn={isActiveTurn}
+          onChampionAbilityActivate={(abilityId, targetFilter) => {
+            handleMobileModalDismiss();
+            handleChampionAbilityActivate(abilityId, targetFilter);
+          }}
         />
       )}
 
@@ -2010,7 +2051,7 @@ function KeywordBubbles({ keywords }) {
   );
 }
 
-function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex }) {
+function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex, phase, isActiveTurn, onChampionAbilityActivate }) {
   const nameStyle = { fontFamily: 'var(--font-sans)', fontSize: large ? '15px' : '15px', fontWeight: 700, color: '#ffffff', lineHeight: 1.2 };
   const typeStyle = { fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 500, color: '#9090b8' };
   const rulesStyle = {
@@ -2024,6 +2065,111 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
     borderTop: '0.5px solid #252538',
     paddingTop: '4px',
   };
+
+  if (inspectedItem?.type === 'champion') {
+    const playerIdx = inspectedItem.playerIdx ?? 0;
+    const champ = state.champions[playerIdx];
+    const player = state.players[playerIdx];
+    if (!champ || !player) return null;
+    const champDef = getChampionDef(player);
+    const tier = player.resonance?.tier ?? 'none';
+    const abilityUsed = champ.moved;
+    const isOwn = playerIdx === myPlayerIndex;
+    const ownerLabel = isOwn ? 'Friendly' : 'Enemy';
+    const ownerColor = isOwn ? '#4a8abf' : '#bf4a4a';
+    const champImageUrl = getCardImageUrl(champDef.image);
+
+    // Ability section for own champion
+    let abilitySection = null;
+    if (isOwn && onChampionAbilityActivate && tier !== 'none' && phase === 'action' && isActiveTurn) {
+      const ascended = champDef.abilities.ascended;
+      const attuned = champDef.abilities.attuned;
+      const attunedPassive = champDef.abilities.attunedPassive;
+      let activatedAbility = attuned;
+      if (tier === 'ascended' && ascended?.type === 'activated' && ascended?.replacesAbility) {
+        activatedAbility = ascended;
+      }
+      let passiveAbility = null;
+      if (tier === 'ascended' && ascended?.type === 'passive') passiveAbility = ascended;
+      const costLabel = activatedAbility?.cost ? `${activatedAbility.cost.amount} ${activatedAbility.cost.type}` : null;
+      const canAfford = activatedAbility?.cost
+        ? (activatedAbility.cost.type === 'mana'
+            ? player.resources >= activatedAbility.cost.amount
+            : champ.hp > activatedAbility.cost.amount)
+        : true;
+      const hasValidTargets = activatedAbility?.targetFilter === 'friendly_unit_within_2'
+        ? (state?.units ?? []).some(u => u.owner === champ.owner && !u.hidden && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
+        : activatedAbility?.targetFilter === 'friendly_unit'
+          ? (state?.units ?? []).some(u => u.owner === champ.owner && !u.hidden)
+          : true;
+      const btnDisabled = !canAfford || abilityUsed || !hasValidTargets;
+      abilitySection = (
+        <div style={{ borderTop: '0.5px solid #252538', paddingTop: '6px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#9090b8', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>Invoke:</div>
+          {activatedAbility && (
+            <button
+              disabled={btnDisabled}
+              onClick={() => !btnDisabled && onChampionAbilityActivate(activatedAbility.id, activatedAbility.targetRequired ? activatedAbility.targetFilter : null)}
+              style={{
+                background: btnDisabled ? 'transparent' : 'linear-gradient(135deg, #5a3a00, #8a6a00)',
+                color: btnDisabled ? '#4a4a6a' : '#C9A84C',
+                fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600,
+                border: `1px solid ${btnDisabled ? '#2a2a3a' : '#C9A84C60'}`,
+                borderRadius: '4px', padding: '5px 8px',
+                cursor: btnDisabled ? 'not-allowed' : 'pointer',
+                textAlign: 'left', width: '100%',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <span>{activatedAbility.name}</span>
+                {costLabel && <span style={{ fontSize: '10px', opacity: 0.8 }}>{costLabel}</span>}
+              </div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 400, lineHeight: 1.4, opacity: 0.85 }}>{activatedAbility.description}</div>
+              {abilityUsed && <div style={{ fontSize: '9px', color: '#6a6a8a', marginTop: '2px' }}>Invoke used — cannot move this turn</div>}
+            </button>
+          )}
+          {passiveAbility && (
+            <div style={{ fontSize: '11px', color: '#9090b8', fontFamily: 'var(--font-sans)', fontStyle: 'italic', lineHeight: 1.4, paddingLeft: '2px' }}>
+              <span style={{ fontWeight: 600, fontStyle: 'normal', color: '#b0a0c0' }}>{passiveAbility.name}:</span> {passiveAbility.description}
+            </div>
+          )}
+          {attunedPassive && (
+            <div style={{ fontSize: '11px', color: '#9090b8', fontFamily: 'var(--font-sans)', fontStyle: 'italic', lineHeight: 1.4, paddingLeft: '2px' }}>
+              <span style={{ fontWeight: 600, fontStyle: 'normal', color: '#b0a0c0' }}>{attunedPassive.name}:</span> {attunedPassive.description}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-1">
+        <div style={{ height: '120px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          {champImageUrl ? (
+            <img src={champImageUrl} alt={champDef.name} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', WebkitTouchCallout: 'none', userSelect: 'none' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', color: 'rgba(156,163,175,1)', fontSize: '11px', fontFamily: "'Cinzel', serif", fontWeight: 500 }}>Champion</div>
+          )}
+        </div>
+        <div className="flex justify-between items-start">
+          <span style={{ ...nameStyle, color: '#C9A84C' }}>{champDef.name}</span>
+          <span style={{ fontSize: '10px', color: ownerColor, fontFamily: 'var(--font-sans)' }}>{ownerLabel}</span>
+        </div>
+        <div style={typeStyle}>Champion · {tier !== 'none' ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unbound'}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '4px', marginTop: '4px', fontFamily: 'var(--font-sans)' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HP</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: champ.hp <= 5 ? '#f87171' : '#ffffff' }}>{champ.hp}/{champ.maxHp}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 500, color: '#6a6a88', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resonance</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#C9A84C' }}>{player.resonance?.score ?? 0}</div>
+          </div>
+        </div>
+        {abilitySection}
+      </div>
+    );
+  }
 
   if (inspectedItem?.type === 'unit') {
     const unit = state.units.find(u => u.uid === inspectedItem.uid);
@@ -2193,7 +2339,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
   return null;
 }
 
-function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
+function CardDetailPanel({ inspectedItem, state, myPlayerIndex, phase, isActiveTurn, onChampionAbilityActivate }) {
   const scrollRef = useRef(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
@@ -2247,7 +2393,7 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
           onScroll={checkScroll}
         >
           {inspectedItem ? (
-            <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} />
+            <CardDetailContent inspectedItem={inspectedItem} state={state} myPlayerIndex={myPlayerIndex} phase={phase} isActiveTurn={isActiveTurn} onChampionAbilityActivate={onChampionAbilityActivate} />
           ) : (
             <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
               Click a card or unit to inspect
@@ -2265,7 +2411,7 @@ function CardDetailPanel({ inspectedItem, state, myPlayerIndex }) {
   );
 }
 
-function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
+function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex, phase, isActiveTurn, onChampionAbilityActivate }) {
   return createPortal(
     <div
       className="fixed inset-0 flex items-start justify-center"
@@ -2286,7 +2432,7 @@ function CardDetailModal({ inspectedItem, state, onClose, myPlayerIndex }) {
           ✕
         </button>
         <div className="pr-6">
-          <CardDetailContent inspectedItem={inspectedItem} state={state} large myPlayerIndex={myPlayerIndex} />
+          <CardDetailContent inspectedItem={inspectedItem} state={state} large myPlayerIndex={myPlayerIndex} phase={phase} isActiveTurn={isActiveTurn} onChampionAbilityActivate={onChampionAbilityActivate} />
         </div>
       </div>
     </div>,
