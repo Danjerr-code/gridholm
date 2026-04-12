@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
-import { playTurnStartSound } from '../audio.js';
+import { playTurnStartSound, playSfxDraw } from '../audio.js';
 import { createInitialState, autoAdvancePhase, getChampionDef } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 
@@ -166,6 +166,7 @@ export function useMultiplayerGame(gameId) {
     if (prev === null) return; // skip initial load
     if (prev !== session.active_player && session.active_player === guestId) {
       playTurnStartSound();
+      playSfxDraw();
     }
   }, [session?.active_player, session?.status, guestId]);
 

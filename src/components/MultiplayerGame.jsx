@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { isMuted, setMuted, playCardPlaySound, playUnitSummonSound } from '../audio.js';
+import {
+  isMuted, setMuted, playCardPlaySound, playUnitSummonSound,
+  playSfxAttack, playSfxMove, playSfxSpell, playSfxNoMana,
+  playSfxWin, playSfxUheal, playSfxCheal, playSfxAttackBlock,
+} from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
 import { getAuraAtkBonus, getEffectiveCost, checkWinner } from '../engine/gameEngine.js';
@@ -167,6 +171,16 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     return () => clearTimeout(countdownRef.current);
   }, [opponentLeftCountdown, onBackToLobby]);
 
+  // Play win sound when local player wins
+  const prevSessionWinnerRef = useRef(null);
+  useEffect(() => {
+    const prev = prevSessionWinnerRef.current;
+    prevSessionWinnerRef.current = session?.winner;
+    if (!prev && session?.winner && session.winner === guestId) {
+      playSfxWin();
+    }
+  }, [session?.winner, guestId]);
+
   // Detect opponent moves for tile highlights and missing log entries
   useEffect(() => {
     const prev = prevGameStateRef.current;
@@ -244,6 +258,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleChampionMoveTile = useCallback(async (row, col) => {
     if (!gameState) return;
     if (isMobile && !selectedCard) setHandExpanded(false);
+    playSfxMove();
     await dispatch(handleChampionMove(gameState, row, col));
   }, [gameState, dispatch, isMobile, selectedCard]);
 
@@ -268,7 +283,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     const base = (preFT.pendingSpell || preFT.pendingSummon) ? execCancelSpell(preFT) : preFT;
     const p = base.players[base.activePlayer];
     const card = p.hand.find(c => c.uid === cardUid);
-    if (!card || p.resources < getEffectiveCost(card, base, base.activePlayer)) return;
+    if (!card) return;
+    if (p.resources < getEffectiveCost(card, base, base.activePlayer)) { playSfxNoMana(); return; }
 
     // Targetless spell: preview mode — don't execute yet
     if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
@@ -294,7 +310,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleCastTargetlessSpell = useCallback(async () => {
     if (!gameState || !selectedCard || selectMode !== 'targetless_spell') return;
-    playCardPlaySound();
+    playSfxSpell();
     const s = playCard(gameState, selectedCard);
     await dispatch(s);
   }, [gameState, selectedCard, selectMode, dispatch]);
@@ -337,14 +353,23 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }
     const cardUid = gameState.pendingSpell?.cardUid ?? selectedCard;
     if (!cardUid && !gameState.pendingSpell) return;
+    const prevChampHp = gameState.champions[myPlayerIndex]?.hp ?? 0;
+    const prevUnitHps = gameState.units.filter(u => u.owner === myPlayerIndex).map(u => ({ uid: u.uid, hp: u.hp }));
     const newState = execSpellTarget(gameState, cardUid, targetUid);
     if (newState.pendingSpell) {
       // Multi-step spell or action: stay in spell mode, don't clear selection
       await dispatchAction(newState);
     } else {
+      playSfxSpell();
+      if ((newState.champions[myPlayerIndex]?.hp ?? 0) > prevChampHp) playSfxCheal();
+      const healed = prevUnitHps.find(({ uid, hp }) => {
+        const after = newState.units.find(u => u.uid === uid);
+        return after && after.hp > hp;
+      });
+      if (healed) playSfxUheal();
       await dispatch(newState);
     }
-  }, [gameState, selectedCard, dispatch, dispatchAction]);
+  }, [gameState, selectedCard, myPlayerIndex, dispatch, dispatchAction]);
 
   const handleGraveSelect = useCallback(async (graveUid) => {
     if (!gameState) return;
@@ -393,13 +418,24 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       setSelectMode('approach_select');
       return;
     }
+    const targetHasEnemy = gameState.units.some(u => u.owner !== gameState.activePlayer && u.row === row && u.col === col)
+      || gameState.champions.some(ch => ch.owner !== gameState.activePlayer && ch.row === row && ch.col === col);
+    if (targetHasEnemy) {
+      const attackerSurvived = !!result.state.units.find(u => u.uid === selectedUnit);
+      if (!attackerSurvived) playSfxAttackBlock(); else playSfxAttack();
+    } else {
+      playSfxMove();
+    }
     await dispatch(result.state);
   }, [gameState, selectedUnit, dispatch]);
 
   const handleApproachTileChosen = useCallback(async (approachRow, approachCol) => {
     if (!gameState || !pendingApproach) return;
     const { unitUid, targetRow, targetCol } = pendingApproach;
-    await dispatch(handleApproachAttack(gameState, unitUid, approachRow, approachCol, targetRow, targetCol));
+    const next = handleApproachAttack(gameState, unitUid, approachRow, approachCol, targetRow, targetCol);
+    const attackerSurvived = !!next.units.find(u => u.uid === unitUid);
+    if (!attackerSurvived) playSfxAttackBlock(); else playSfxAttack();
+    await dispatch(next);
   }, [gameState, pendingApproach, dispatch]);
 
   const handleArcherSelectTarget = useCallback((archerUid) => {
@@ -409,6 +445,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleArcherShoot = useCallback(async (targetUid) => {
     if (!gameState || !selectedUnit) return;
+    playSfxAttack();
     await dispatch(execArcherShoot(gameState, selectedUnit, targetUid));
   }, [gameState, selectedUnit, dispatch]);
 
