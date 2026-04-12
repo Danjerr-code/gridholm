@@ -2919,7 +2919,7 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
-  // Mana Cannon: direction selection — uses same pendingLineBlast / direction_select flow as Vorn
+  // Mana Cannon: direction selection — uses same pendingDirectionSelect / direction_tile_select flow as Vorn
   if (unit.id === 'manacannon') {
     if ((s.players[s.activePlayer].resources || 0) < 1) {
       // Insufficient mana — abort (unit.moved already set to true; undo it)
@@ -2927,7 +2927,7 @@ export function triggerUnitAction(state, unitUid) {
       s.players[s.activePlayer].commandsUsed = Math.max(0, (s.players[s.activePlayer].commandsUsed ?? 1) - 1);
       return s;
     }
-    s.pendingLineBlast = { unitUid: unit.uid };
+    s.pendingDirectionSelect = { unitUid: unit.uid };
     return s;
   }
 

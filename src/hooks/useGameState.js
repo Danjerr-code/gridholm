@@ -576,8 +576,8 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const unit = prev.units.find(u => u.uid === unitUid);
       if (!unit) return prev;
-      // Vorn: board tile direction selection
-      if (unit.id === 'vornthundercaller') {
+      // Vorn / Mana Cannon: board tile direction selection
+      if (unit.id === 'vornthundercaller' || unit.id === 'manacannon') {
         const s = triggerUnitAction(prev, unitUid);
         if (s.pendingDirectionSelect) {
           setSelectMode('direction_tile_select');
