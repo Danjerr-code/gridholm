@@ -3479,8 +3479,9 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
     // Forge Weapon, Iron Shield, Savage Growth: friendly units (not hidden, not spell-immune)
     case 'forgeweapon':
     case 'ironshield':
-    case 'savagegrowth':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid);
+    case 'savagegrowth':
+      return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
     // Recall: any combat unit (friendly or enemy), not a relic/omen, not spell-immune
     case 'recall':
       return state.units.filter(u => !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
@@ -3784,9 +3785,11 @@ export function hasValidTargets(card, state, playerIndex) {
       return friendlyUnits.some(u => u.attribute === 'primal' && !u.isOmen && !u.isRelic);
 
     case 'ironshield':
-    case 'savagegrowth':
     case 'forgeweapon':
       return friendlyUnits.some(u => !u.hidden);
+
+    case 'savagegrowth':
+      return friendlyUnits.some(u => !u.isRelic && !u.isOmen && !u.hidden);
 
     case 'moonleaf':
       return friendlyUnits.some(u => !u.hidden && u.type === 'unit');
