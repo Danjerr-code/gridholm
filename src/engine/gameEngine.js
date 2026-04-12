@@ -1922,6 +1922,11 @@ function _tollOpponentResolve(s, oppIdx, sacrificed) {
 function _tollAdvance(s, cardUid, castIdx, fromStep, sacrificed) {
   const oppIdx = 1 - castIdx;
   if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: fromStep:', fromStep, 'casterIdx:', castIdx, 'sacrificed:', JSON.stringify(sacrificed), 'units:', s.units.filter(u => u.owner === castIdx && !u.isRelic && !u.isOmen).length, 'omens:', s.units.filter(u => u.owner === castIdx && u.isOmen).length, 'relics:', s.units.filter(u => u.owner === castIdx && u.isRelic).length, 'handSize:', s.players[castIdx].hand.length);
+  // Recursion guard: fromStep > 3 means all caster steps are exhausted — skip to opponent resolution.
+  if (fromStep > 3) {
+    s.pendingSpell = null;
+    return _tollOpponentResolve(s, oppIdx, sacrificed);
+  }
   for (let st = fromStep; st <= 3; st++) {
     if (st === 0 && s.units.some(u => u.owner === castIdx && !u.isRelic && !u.isOmen)) {
       if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 0 (sacrifice unit) — setting pendingSpell');
@@ -3751,6 +3756,17 @@ export function getSpellTargets(state, effect, step = 0, data = {}) {
         !u.spellImmune &&
         manhattan([champ.row, champ.col], [u.row, u.col]) === 1
       ).map(u => u.uid);
+
+    // Toll of Shadows: multi-step caster sacrifice
+    // step 0 = sacrifice a friendly combat unit; step 1 = sacrifice omen; step 2 = sacrifice relic
+    // step 3 (discard) is handled via pendingHandSelect, not pendingSpell targets
+    case 'tollofshadows': {
+      const casterIdx = data.casterIdx ?? state.activePlayer;
+      if (step === 0) return state.units.filter(u => u.owner === casterIdx && !u.isRelic && !u.isOmen).map(u => u.uid);
+      if (step === 1) return state.units.filter(u => u.owner === casterIdx && u.isOmen).map(u => u.uid);
+      if (step === 2) return state.units.filter(u => u.owner === casterIdx && u.isRelic).map(u => u.uid);
+      return [];
+    }
 
     default:
       return [];

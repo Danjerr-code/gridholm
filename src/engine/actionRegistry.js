@@ -261,7 +261,12 @@ export const ACTION_REGISTRY = {
       return state;
     }
     const deltas = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
-    const [dr, dc] = deltas[dir] || [0, 0];
+    const delta = deltas[dir];
+    if (!delta) {
+      addLog(state, `The Iron Queen: invalid direction — stays in place.`);
+      return state;
+    }
+    const [dr, dc] = delta;
     const adjR = unit.row + dr;
     const adjC = unit.col + dc;
     // If the adjacent tile in the chosen direction is occupied, she does not move
