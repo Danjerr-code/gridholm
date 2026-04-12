@@ -92,7 +92,7 @@ function getTerrainAtkModifier(state, unit) {
 }
 
 // Returns the terrain whileOccupied HP bonus for a unit at its current tile.
-function getTerrainHpModifier(state, unit) {
+export function getTerrainHpModifier(state, unit) {
   if (!state.terrainGrid) return 0;
   const terrain = state.terrainGrid[unit.row]?.[unit.col];
   if (!terrain?.whileOccupied) return 0;

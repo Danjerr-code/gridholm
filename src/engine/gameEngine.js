@@ -5,6 +5,7 @@ import {
   getAuraAtkBonus,
   getEffectiveAtk,
   getEffectiveSpd,
+  getTerrainHpModifier,
 } from './statUtils.js';
 export { getAuraAtkBonus, getEffectiveAtk, getEffectiveSpd } from './statUtils.js';
 
@@ -3549,7 +3550,8 @@ export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = nul
     // If the unit was removed from the board (e.g. returned to hand), skip death processing.
     if (!state.units.find(u => u.uid === unit.uid)) return;
   }
-  if (unit.hp <= 0) {
+  // Include terrain HP modifier: a unit on matching terrain has extra effective HP.
+  if (unit.hp + getTerrainHpModifier(state, unit) <= 0) {
     destroyUnit(unit, state, 'combat', undefined, combatTile);
   }
 }

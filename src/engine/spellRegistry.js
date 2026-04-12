@@ -9,7 +9,7 @@ import {
   fireOnSummonTriggers,
   drawCard,
 } from './gameEngine.js';
-import { getEffectiveAtk } from './statUtils.js';
+import { getEffectiveAtk, getTerrainHpModifier } from './statUtils.js';
 import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
@@ -723,7 +723,8 @@ export const SPELL_REGISTRY = {
       u.hp -= 2;
       u.pestilenceBonus = (u.pestilenceBonus || 0) + 2;
       addLog(state, `Pestilence: ${u.name} takes -2/-2 (${u.hp}/${u.maxHp} HP).`);
-      if (u.hp <= 0) {
+      // Include terrain HP modifier so units on matching terrain survive if effective HP > 0.
+      if (u.hp + getTerrainHpModifier(state, u) <= 0) {
         destroyUnit(u, state, 'pestilence');
       }
     }
