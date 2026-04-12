@@ -22,6 +22,7 @@ import {
   getArcherShootTargets,
   triggerUnitAction,
   getApproachTiles,
+  getTerrainCastTiles,
   manhattan,
 } from '../engine/gameEngine.js';
 import {
@@ -39,6 +40,7 @@ import {
   handleDirectionTileSelect as execDirectionTileSelect,
   handleApproachAttack,
   handleFleshtitheSacrifice as execFleshtitheSacrifice,
+  handleTerrainCast as execTerrainCast,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -280,7 +282,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     // Auto-decline any pending Flesh Tithe sacrifice before processing new card
     const preFT = gameState.pendingFleshtitheSacrifice ? execFleshtitheSacrifice(gameState, 'no', null) : gameState;
     // Cancel any leftover pending state from a previous selection
-    const base = (preFT.pendingSpell || preFT.pendingSummon) ? execCancelSpell(preFT) : preFT;
+    const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? execCancelSpell(preFT) : preFT;
     const p = base.players[base.activePlayer];
     const card = p.hand.find(c => c.uid === cardUid);
     if (!card) return;
@@ -298,6 +300,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (s.pendingSummon) {
       setSelectedCard(cardUid);
       setSelectMode('summon');
+      await dispatchAction(s);
+    } else if (s.pendingTerrainCast) {
+      setSelectedCard(cardUid);
+      setSelectMode('terrain_cast');
       await dispatchAction(s);
     } else if (s.pendingSpell) {
       setSelectedCard(cardUid);
@@ -339,6 +345,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectedSacrificeUid(null);
     await dispatch(execFleshtitheSacrifice(gameState, choice, sacrificeUid));
   }, [gameState, dispatch]);
+
+  const handleTerrainCast = useCallback(async (row, col) => {
+    if (!gameState || !selectedCard) return;
+    await dispatch(execTerrainCast(gameState, selectedCard, row, col));
+  }, [gameState, selectedCard, dispatch]);
 
   const handleSpellTarget = useCallback(async (targetUid) => {
     if (!gameState) return;
@@ -754,6 +765,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
+  if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
   if (selectMode === 'direction_tile_select') guidance = 'Click a highlighted tile to choose a direction.';
   if (selectMode === 'grave_select') guidance = 'Select a unit from your grave.';
@@ -819,6 +831,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         .map(u => u.uid)
     : [];
 
+  const terrainTargetTiles = selectMode === 'terrain_cast'
+    ? getTerrainCastTiles(state)
+    : [];
+
   const handlers = {
     handleChampionMoveTile,
     handlePlayCard,
@@ -840,6 +856,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleRevealUnit,
     handleFleshtitheSacrificeSelect,
     handleFleshtitheSacrifice,
+    handleTerrainCast,
     handleDiscardCard,
     handleNewGame: onBackToLobby,
     clearSelection,
@@ -849,7 +866,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleInspectTerrain,
   };
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'terrain_cast';
 
   return (
     <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
@@ -1187,6 +1204,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             summonTiles={isActiveTurn ? summonTiles : []}
             unitMoveTiles={isActiveTurn ? unitMoveTiles : []}
             approachTiles={isActiveTurn ? approachTiles : []}
+            terrainTargetTiles={isActiveTurn ? terrainTargetTiles : []}
             directionTargetTiles={isActiveTurn ? directionTargetTiles : []}
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
