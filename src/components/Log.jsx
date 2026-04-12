@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { CARD_DB } from '../engine/cards.js';
 
 // Build a sorted (longest first) list of card names and a lowercase->card lookup.
@@ -12,6 +12,11 @@ const CARD_NAME_REGEX = new RegExp(
   `(${CARD_NAMES_SORTED.map(escapeRegex).join('|')})`,
   'gi'
 );
+
+// Normalize a log entry (string or {text, privateFor} object) to its display text.
+export function entryText(entry) {
+  return typeof entry === 'string' ? entry : (entry?.text ?? '');
+}
 
 export function renderLogText(text, onCardNameClick) {
   if (!onCardNameClick) return text;
@@ -38,7 +43,7 @@ export function renderLogText(text, onCardNameClick) {
 }
 
 function getEntryStyle(entry) {
-  const lower = entry.toLowerCase();
+  const lower = entryText(entry).toLowerCase();
   if (/damage|hits|destroyed|takes/.test(lower)) {
     return { color: '#c06060' };
   }
@@ -54,10 +59,19 @@ function getEntryStyle(entry) {
   return { color: '#9090b8' };
 }
 
-export default function Log({ entries, onCardNameClick }) {
+// myPlayerIndex: null = show all (single-player); 0 or 1 = filter private entries
+export default function Log({ entries, onCardNameClick, myPlayerIndex = null }) {
   const scrollRef = useRef(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const visibleEntries = useMemo(() => {
+    if (myPlayerIndex === null) return entries;
+    return entries.filter(entry => {
+      if (typeof entry === 'string') return true;
+      return entry.privateFor === null || entry.privateFor === undefined || entry.privateFor === myPlayerIndex;
+    });
+  }, [entries, myPlayerIndex]);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -73,7 +87,7 @@ export default function Log({ entries, onCardNameClick }) {
     }
     const t = setTimeout(checkScroll, 0);
     return () => clearTimeout(t);
-  }, [entries, checkScroll]);
+  }, [visibleEntries, checkScroll]);
 
   const arrowStyle = {
     position: 'absolute', left: '50%', transform: 'translateX(-50%)',
@@ -118,7 +132,7 @@ export default function Log({ entries, onCardNameClick }) {
           style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}
           onScroll={checkScroll}
         >
-          {entries.map((entry, i) => (
+          {visibleEntries.map((entry, i) => (
             <div
               key={i}
               className="log-entry"
@@ -133,7 +147,7 @@ export default function Log({ entries, onCardNameClick }) {
                 ...getEntryStyle(entry),
               }}
             >
-              {renderLogText(entry, onCardNameClick)}
+              {renderLogText(entryText(entry), onCardNameClick)}
             </div>
           ))}
         </div>

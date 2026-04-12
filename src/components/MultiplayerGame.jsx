@@ -158,10 +158,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       if (!prevUnit) continue;
       if (prevUnit.row === newUnit.row && prevUnit.col === newUnit.col) continue;
       movedTiles.add(`${newUnit.row},${newUnit.col}`);
+      // Hidden units do not reveal their position via the log
+      if (newUnit.hidden) continue;
       // Plain move (no combat) — not logged by engine; add locally
-      const alreadyLogged = newLogSlice.some(e =>
-        e.includes(newUnit.name) && (e.includes('attacks') || e.includes('moves') || e.includes('revealed') || e.includes('pounce'))
-      );
+      const alreadyLogged = newLogSlice.some(e => {
+        const text = typeof e === 'string' ? e : (e?.text ?? '');
+        return text.includes(newUnit.name) && (text.includes('attacks') || text.includes('moves') || text.includes('revealed') || text.includes('pounce'));
+      });
       if (!alreadyLogged) {
         newEntries.push(`Opponent moves ${newUnit.name} to (${newUnit.row},${newUnit.col}).`);
       }
@@ -1074,7 +1077,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         {/* Right sidebar: game log + action buttons */}
         {!isMobile && (
           <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
-            <Log entries={[...state.log, ...extraLogEntries]} onCardNameClick={handleLogCardNameClick} />
+            <Log entries={[...state.log, ...extraLogEntries]} onCardNameClick={handleLogCardNameClick} myPlayerIndex={myPlayerIndex} />
 
             {/* Action buttons panel */}
             <div

@@ -8,7 +8,7 @@ import StatusBar, { ResourceDisplay } from './components/StatusBar.jsx';
 import Board from './components/Board.jsx';
 import Hand from './components/Hand.jsx';
 import Card from './components/Card.jsx';
-import Log, { renderLogText } from './components/Log.jsx';
+import Log, { renderLogText, entryText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
@@ -579,28 +579,31 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               >✕ Close</button>
             </div>
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} className="no-scrollbar">
-              {state.log.map((entry, i) => (
-                <div
-                  key={i}
-                  style={{
-                    fontSize: '13px',
-                    fontFamily: 'var(--font-sans)',
-                    lineHeight: 1.6,
-                    padding: '3px 4px',
-                    borderRadius: '2px',
-                    background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                    borderBottom: '0.5px solid #0f0f1a',
-                    ...((() => {
-                      const lower = entry.toLowerCase();
-                      if (/damage|hits|destroyed|takes/.test(lower)) return { color: '#c06060' };
-                      if (/restores|heals|gains hp/.test(lower)) return { color: '#60a060' };
-                      if (/turn|begins|starts/.test(lower)) return { color: '#C9A84C', fontSize: '14px', fontWeight: 600 };
-                      if (/summons|plays|draws/.test(lower)) return { color: '#6080c0' };
-                      return { color: '#9090b8' };
-                    })()),
-                  }}
-                >{renderLogText(entry, handlers.handleInspectCard)}</div>
-              ))}
+              {state.log.map((entry, i) => {
+                const text = entryText(entry);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: '13px',
+                      fontFamily: 'var(--font-sans)',
+                      lineHeight: 1.6,
+                      padding: '3px 4px',
+                      borderRadius: '2px',
+                      background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
+                      borderBottom: '0.5px solid #0f0f1a',
+                      ...((() => {
+                        const lower = text.toLowerCase();
+                        if (/damage|hits|destroyed|takes/.test(lower)) return { color: '#c06060' };
+                        if (/restores|heals|gains hp/.test(lower)) return { color: '#60a060' };
+                        if (/turn|begins|starts/.test(lower)) return { color: '#C9A84C', fontSize: '14px', fontWeight: 600 };
+                        if (/summons|plays|draws/.test(lower)) return { color: '#6080c0' };
+                        return { color: '#9090b8' };
+                      })()),
+                    }}
+                  >{renderLogText(text, handlers.handleInspectCard)}</div>
+                );
+              })}
             </div>
           </div>
         </div>

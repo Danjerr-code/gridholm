@@ -833,7 +833,7 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
     const drawn = drawCard(state, attacker.owner);
     if (drawn) {
       unitPlayer.hand.push(drawn);
-      addLog(state, `Crossbowman: drew ${drawn.name}.`);
+      addLog(state, `Crossbowman: drew ${drawn.name}.`, attacker.owner);
     }
   }
 
@@ -891,7 +891,7 @@ export function fireOnSummonTriggers(unit, state) {
     const drawn = drawCard(state, unit.owner);
     if (drawn) {
       p.hand.push(drawn);
-      addLog(state, `Chaos Spawn: drew ${drawn.name}.`);
+      addLog(state, `Chaos Spawn: drew ${drawn.name}.`, unit.owner);
     }
     // Then handle discard
     if (p.hand.length > 1) {
@@ -1184,8 +1184,11 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
 
 // ── log helper ─────────────────────────────────────────────────────────────
 
-export function addLog(state, msg) {
-  state.log = [...state.log, msg];
+export function addLog(state, msg, privateFor = null) {
+  const entry = (typeof msg === 'object' && msg !== null && 'text' in msg)
+    ? msg
+    : { text: msg, privateFor };
+  state.log = [...state.log, entry];
 }
 
 // ── fatigue / draw helper ───────────────────────────────────────────────────
@@ -1334,12 +1337,15 @@ function doBeginTurnPhase(state) {
   p.resources = Math.min(p.turnCount + bonus, 10);
   p.maxResourcesThisTurn = p.resources;
 
-  const drawnPart = skipDraw
+  const publicDrawPart = skipDraw
     ? 'Skipped draw (turn 1 rule).'
     : drawnCard
-      ? `Drew ${drawnCard.name}.`
+      ? 'Draws a card.'
       : 'No cards left to draw.';
-  addLog(state, `${p.name} begins turn ${p.turnCount}. ${drawnPart} Mana: ${p.resources}/10.`);
+  addLog(state, `${p.name} begins turn ${p.turnCount}. ${publicDrawPart} Mana: ${p.resources}/10.`);
+  if (!skipDraw && drawnCard) {
+    addLog(state, `Drew ${drawnCard.name}.`, state.activePlayer);
+  }
 
   // Reset hpRestoredThisTurn
   p.hpRestoredThisTurn = 0;
@@ -1816,7 +1822,11 @@ export function summonUnit(state, cardUid, row, col) {
   }
 
   s.units.push(unit);
-  addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}${unit.shadowVeiled ? ' (Hidden)' : ''}`);
+  if (unit.hidden) {
+    addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''} (Hidden)`, s.activePlayer);
+  } else {
+    addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
+  }
 
   // Register declarative triggers and static modifiers for this unit
   registerUnit(unit, s);
@@ -1993,7 +2003,7 @@ export function resolveHandSelect(state, selectedCardUid) {
       const drawn = drawCard(s, s.activePlayer);
       if (drawn) {
         p.hand.push(drawn);
-        addLog(s, `Dark Bargain: drew ${drawn.name}.`);
+        addLog(s, `Dark Bargain: drew ${drawn.name}.`, s.activePlayer);
       }
     }
     s.pendingHandSelect = null;
@@ -2635,7 +2645,7 @@ export function resolveGlimpse(state, keepTop) {
   const drawn = drawCard(s, s.activePlayer);
   if (drawn) {
     p.hand.push(drawn);
-    addLog(s, `Glimpse: drew ${drawn.name}.`);
+    addLog(s, `Glimpse: drew ${drawn.name}.`, s.activePlayer);
   } else {
     addLog(s, `Glimpse: deck is empty, no card drawn.`);
   }
@@ -3946,7 +3956,7 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
       const drawn = drawCard(s, playerIdx);
       if (drawn) {
         p.hand.push(drawn);
-        addLog(s, `${p.name} invokes Dark Pact: pays 2 HP and draws ${drawn.name}.`);
+        addLog(s, `${p.name} invokes Dark Pact: pays 2 HP and draws ${drawn.name}.`, playerIdx);
       } else {
         addLog(s, `${p.name} invokes Dark Pact: pays 2 HP but deck is empty.`);
       }
