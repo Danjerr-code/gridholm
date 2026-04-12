@@ -529,28 +529,30 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
-      {/* Legendary wreath overlay */}
-      {isLegendary && (
-        <img
-          src="/legendary.svg"
-          alt=""
-          draggable={false}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 3,
-          }}
-        />
-      )}
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
       {/* Buff shimmer overlay */}
       {showBuff && <div className="unit-buff-shimmer-overlay" />}
     </div>
+    {/* Legendary wreath overlay — outside inner token to escape overflow:hidden */}
+    {isLegendary && (
+      <img
+        src="/legendary.svg"
+        alt=""
+        draggable={false}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '117%',
+          height: '117%',
+          pointerEvents: 'none',
+          zIndex: 3,
+          mixBlendMode: 'screen',
+        }}
+      />
+    )}
     {healOverlay}
     </div>
   );
