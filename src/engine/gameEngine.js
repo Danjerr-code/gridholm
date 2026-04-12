@@ -314,6 +314,7 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
       atk: unit.atk,
       maxHp: unit.maxHp,
       hp: unit.maxHp, // restored to full health
+      spd: CARD_DB[unit.id]?.spd ?? unit.spd, // always restore base SPD from card def to prevent NaN on rebirth
       unitType: unit.unitType,
       image: unit.image,
       rules: unit.rules,
@@ -1835,7 +1836,7 @@ export function summonUnit(state, cardUid, row, col) {
     const adj = cardinalNeighbors(champ.row, champ.col);
     if (!adj.some(([r, c]) => r === row && c === col)) return s;
     if (isTileOccupied(s, row, col)) return s;
-    // Restore triggers and modifier from CARD_DB — graveEntry omits them for serialisation safety.
+    // Restore triggers, modifier, and spd from CARD_DB — graveEntry omits them for serialisation safety.
     const baseCard = CARD_DB[unit.id];
     const placed = {
       ...unit,
@@ -1844,6 +1845,7 @@ export function summonUnit(state, cardUid, row, col) {
       col,
       ...(baseCard?.triggers ? { triggers: baseCard.triggers } : {}),
       ...(baseCard?.modifier ? { modifier: baseCard.modifier } : {}),
+      ...(baseCard?.spd != null ? { spd: baseCard.spd } : {}),
     };
     s.units.push(placed);
     registerUnit(placed, s);
