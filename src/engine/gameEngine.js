@@ -288,12 +288,16 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   if (destroyingUids.has(unit.uid)) return state;
   destroyingUids.add(unit.uid);
 
-  // Chains of Light: log stun release before modifier is unregistered
+  // Chains of Light: release stun on target before modifier is unregistered
   if (unit.id === 'chainsoflight' && state.activeModifiers) {
     const mod = state.activeModifiers.find(m => m.type === 'stunTarget' && m.unitUid === unit.uid);
     if (mod) {
       const stunnedUnit = state.units.find(u => u.uid === mod.targetUid);
-      if (stunnedUnit) addLog(state, `Chains of Light fades. ${stunnedUnit.name} is no longer stunned.`);
+      if (stunnedUnit) {
+        addLog(state, `Chains of Light fades. ${stunnedUnit.name} is no longer stunned.`);
+        // Clear moved so the unit can act this turn if it's their owner's turn
+        stunnedUnit.moved = false;
+      }
     }
   }
 
