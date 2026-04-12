@@ -159,11 +159,13 @@ export function useGameState({ deckId = 'human' } = {}) {
   // Play win sound when player 0 wins.
   const prevWinnerRef = useRef(null);
   useEffect(() => {
-    if (state.winner === 0 && prevWinnerRef.current !== 0) {
+    const p0Name = state.players[0].name;
+    if (state.winner === p0Name && !prevWinnerRef.current) {
+      console.log('[audio] sfx-win triggered for winning player:', state.winner);
       playSfxWin();
     }
     prevWinnerRef.current = state.winner;
-  }, [state.winner]);
+  }, [state.winner]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyAndMaybeAI = useCallback((newState) => {
     latestStateRef.current = newState;
