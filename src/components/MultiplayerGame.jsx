@@ -381,6 +381,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (newState.pendingSpell) {
       // Multi-step spell or action: stay in spell mode, don't clear selection
       await dispatchAction(newState);
+    } else if (newState.pendingHandSelect) {
+      // Spell step completed but a hand-select is now required (e.g. Toll of Shadows discard)
+      playSfxSpell();
+      setSelectMode('hand_select');
+      await dispatchAction(newState);
     } else {
       playSfxSpell();
       if ((newState.champions[myPlayerIndex]?.hp ?? 0) > prevChampHp) playSfxCheal();

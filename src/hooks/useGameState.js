@@ -315,6 +315,10 @@ export function useGameState({ deckId = 'human' } = {}) {
       if (s.pendingSpell) {
         // multi-step spell continues
         setSelectMode('spell');
+      } else if (s.pendingHandSelect) {
+        // Spell step completed but a hand-select is now required (e.g. Toll of Shadows discard)
+        playSfxSpell();
+        setSelectMode('hand_select');
       } else {
         playSfxSpell();
         clearSelection();
