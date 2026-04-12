@@ -39,6 +39,7 @@ import {
   resolveBloodPactEnemy,
   cancelSpell,
   castTerrainCard,
+  resolveRelicPlace,
 } from './gameEngine.js';
 
 // ── Champion movement ──────────────────────────────────────────────────────
@@ -343,4 +344,18 @@ export function handleFleshtitheSacrifice(state, choice, sacrificeUid) {
  */
 export function handleTerrainCast(state, cardUid, row, col) {
   return castTerrainCard(state, cardUid, row, col);
+}
+
+// ── Relic placement (Amethyst Cache) ──────────────────────────────────────
+
+/**
+ * Place the Amethyst Crystal relic on a player-chosen tile adjacent to champion.
+ * Called after pendingRelicPlace is set by playCard (Amethyst Cache effect).
+ * @param {object} state
+ * @param {number} row
+ * @param {number} col
+ * @returns {object} new game state
+ */
+export function handleRelicPlace(state, row, col) {
+  return resolveRelicPlace(state, row, col);
 }

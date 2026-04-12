@@ -33,6 +33,7 @@ export default function Board({
   unitMoveTiles,
   approachTiles = [],
   terrainTargetTiles = [],
+  relicPlaceTiles = [],
   directionTargetTiles = [],
   championSaplingTiles = [],
   spellTargetUids,
@@ -64,6 +65,7 @@ export default function Board({
   const unitMoveSet = new Set(unitMoveTiles.map(([r, c]) => `${r},${c}`));
   const approachTileSet = new Set(approachTiles.map(([r, c]) => `${r},${c}`));
   const terrainTargetSet = new Set(terrainTargetTiles.map(([r, c]) => `${r},${c}`));
+  const relicPlaceSet = new Set(relicPlaceTiles.map(([r, c]) => `${r},${c}`));
   const directionTargetSet = new Set(directionTargetTiles.map(([r, c]) => `${r},${c}`));
   const saplingTileSet = new Set(championSaplingTiles.map(([r, c]) => `${r},${c}`));
 
@@ -429,6 +431,8 @@ export default function Board({
       handlers.clearSelection();
     } else if (selectMode === 'terrain_cast' && terrainTargetSet.has(key)) {
       handlers.handleTerrainCast(row, col);
+    } else if (selectMode === 'relic_place' && relicPlaceSet.has(key)) {
+      handlers.handleRelicPlace(row, col);
     } else if (phase === 'action' && selectMode === 'champion_move' && champMoveSet.has(key)) {
       handlers.handleChampionMoveTile(row, col);
     } else if (selectMode === 'summon' && summonSet.has(key)) {
@@ -615,7 +619,7 @@ export default function Board({
                 isOpponentMoveTile={opponentMoveTiles.has(key)}
                 isSpellTargetGlow={spellGlowTile ? spellGlowTile.row === row && spellGlowTile.col === col : false}
                 isDragTarget={dragTargetKey === key && unitMoveSet.has(key)}
-                isTerrainTarget={terrainTargetSet.has(key)}
+                isTerrainTarget={terrainTargetSet.has(key) || relicPlaceSet.has(key)}
                 isDirectionTarget={directionTargetSet.has(key)}
                 isChampionSaplingTile={saplingTileSet.has(key)}
                 terrain={terrain}
