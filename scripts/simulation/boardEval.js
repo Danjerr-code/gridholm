@@ -3,22 +3,15 @@
  *
  * Board evaluation function for strategic AI.
  *
- * Weights are tunable — adjusting them changes AI behavior:
- *   - championHP:              higher → more defensive (values own survivability)
- *   - championHPDiff:          higher → more aggressive about maintaining life lead
- *   - unitCountDiff:           higher → prioritizes raw board presence
- *   - totalATKOnBoard:         higher → favors fielding high-attack units
- *   - totalHPOnBoard:          higher → prefers durable boards over burst damage
- *   - throneControl:           higher → strongly contests the center tile
- *   - unitsThreateningChampion: higher → more aggressive, pushes lethal threat
- *   - unitsAdjacentToAlly:     higher → values formation / Aura synergy
- *   - cardsInHand:             higher → values card advantage / options
- *   - hiddenUnits:             higher → values information asymmetry
- *   - manaEfficiency:          higher → penalizes wasting mana each turn
+ * Supports four faction-specific weight profiles (Primal, Mystic, Light, Dark).
+ * When no explicit weights are passed, evaluateBoard auto-detects the active
+ * player's faction from gameState.champions[ap].attribute and applies the
+ * matching profile. Pass a custom weights object to override.
  *
  * Usage:
- *   import { evaluateBoard, WEIGHTS } from './boardEval.js';
- *   const score = evaluateBoard(gameState, 'p1');
+ *   import { evaluateBoard, WEIGHTS, FACTION_WEIGHTS } from './boardEval.js';
+ *   const score = evaluateBoard(gameState, 'p1');           // auto-detects faction
+ *   const score = evaluateBoard(gameState, 'p1', myWeights); // explicit override
  */
 
 import { manhattan } from '../../src/engine/gameEngine.js';
@@ -28,9 +21,8 @@ const THRONE_ROW = 2;
 const THRONE_COL = 2;
 
 /**
- * Weight constants for each evaluation factor.
- * Override per-faction in the simulation runner by spreading a partial object
- * over a copy: { ...WEIGHTS, throneControl: 30 }
+ * Universal weight constants — used as the base for all faction profiles.
+ * These are the original balanced weights; faction profiles override specific keys.
  */
 export const WEIGHTS = {
   championHP:               5,
@@ -51,17 +43,141 @@ export const WEIGHTS = {
   omensOnBoard:              3,
   terrainBenefit:            3,  // friendly units on beneficial terrain
   terrainHarm:               3,  // enemy units on harmful terrain
+  healingValue:              0,  // bonus per own-champion HP point (Mystic)
 };
+
+/**
+ * Faction-specific weight profiles.
+ * Each profile overrides select keys from WEIGHTS to reflect that faction's
+ * win condition. The gameLength penalty start turn is stored separately.
+ */
+export const FACTION_WEIGHTS = {
+  /**
+   * Primal — aggressive rush, converge on the champion, play wide fast.
+   * Low survivability concern, high attack pressure, short game preferred.
+   */
+  primal: {
+    ...WEIGHTS,
+    championHPDiff:           12,   // very aggressive about life lead
+    unitsThreateningChampion: 25,   // converge on enemy champion
+    championHP:                3,   // willing to take damage
+    cardsInHand:               2,   // play everything, low hand value
+    unitCountDiff:             5,
+    totalATKOnBoard:           6,
+    healingValue:              0,
+    // gameLengthPenaltyStart: 8 (handled in computeGameLengthPenalty)
+  },
+
+  /**
+   * Mystic — sustain/control, stay alive, value hand size and board presence.
+   * Long game is good; no closing urgency until very late.
+   * championHPDiff increases dynamically after turn 12 (late-game closing).
+   */
+  mystic: {
+    ...WEIGHTS,
+    championHP:               10,   // very high — staying alive is the strategy
+    unitCountDiff:            10,   // maintain board presence
+    cardsInHand:               8,   // high — card advantage matters
+    championHPDiff:            3,   // low early (increases after turn 12)
+    unitsThreateningChampion:  8,   // moderate, not primary early objective
+    healingValue:              8,   // new: score board states where champion HP is high
+    // gameLengthPenaltyStart: 20 (handled in computeGameLengthPenalty)
+  },
+
+  /**
+   * Light — formation play, Aura synergies, durable board.
+   * Rewards clustering, durability, and formation pressure.
+   */
+  light: {
+    ...WEIGHTS,
+    unitsAdjacentToAlly:      10,   // very high — formation matters
+    championHP:                7,   // durable champion
+    unitCountDiff:             8,   // maintain board
+    totalHPOnBoard:            5,   // durability of units matters
+    unitsThreateningChampion: 10,   // apply formation pressure
+    cardsInHand:               4,
+    healingValue:              0,
+    // gameLengthPenaltyStart: 10 (default)
+  },
+
+  /**
+   * Dark — card advantage, information asymmetry, HP as a resource.
+   * Hidden units, hand size, and converting advantage into kills.
+   */
+  dark: {
+    ...WEIGHTS,
+    cardsInHand:               7,   // card advantage matters
+    hiddenUnits:               8,   // information asymmetry
+    championHPDiff:            6,   // willing to trade HP for advantage
+    championHP:                4,   // HP is a resource, not precious
+    unitCountDiff:             5,
+    unitsThreateningChampion: 12,   // convert advantage into kills
+    healingValue:              0,
+    // gameLengthPenaltyStart: 10 (default)
+  },
+};
+
+/**
+ * Compute the game-length urgency penalty for a given faction.
+ * Earlier start = more aggressive faction wants to close fast.
+ *
+ * @param {string} faction    - 'primal'|'mystic'|'light'|'dark'
+ * @param {number} turnNumber - current turn
+ * @returns {number}           negative penalty (0 if not yet reached start)
+ */
+function computeGameLengthPenalty(faction, turnNumber) {
+  switch (faction) {
+    case 'primal':
+      // Aggressive: penalty starts at turn 8
+      if (turnNumber <= 8)  return 0;
+      if (turnNumber <= 18) return (turnNumber - 8) * -2;
+      return -20 + (turnNumber - 18) * -5;
+
+    case 'mystic':
+      // Patient: no penalty until turn 20 (long game is fine)
+      if (turnNumber <= 20) return 0;
+      return (turnNumber - 20) * -5;
+
+    default:
+      // Light, Dark: default onset at turn 10
+      if (turnNumber <= 10) return 0;
+      if (turnNumber <= 20) return (turnNumber - 10) * -2;
+      return -20 + (turnNumber - 20) * -5;
+  }
+}
+
+/**
+ * Resolve faction-specific weights for a given player, applying any dynamic
+ * adjustments (e.g. Mystic's championHPDiff scaling after turn 12).
+ *
+ * @param {string} faction    - 'primal'|'mystic'|'light'|'dark'
+ * @param {number} turnNumber - current game turn
+ * @returns {object}           weight profile to use in evaluateBoard
+ */
+function resolveFactionWeights(faction, turnNumber) {
+  const base = FACTION_WEIGHTS[faction] ?? WEIGHTS;
+
+  // Mystic: championHPDiff increases after turn 12 (late-game closing instinct)
+  if (faction === 'mystic' && turnNumber > 12) {
+    return { ...base, championHPDiff: 8 };
+  }
+
+  return base;
+}
 
 /**
  * Evaluates the board position for a given player.
  *
- * @param {object} gameState  - current game state
- * @param {string} playerId   - 'p1' or 'p2'
- * @param {object} [weights]  - optional weight overrides (merged with WEIGHTS)
- * @returns {number}           score (higher is better for playerId)
+ * When weights is null/undefined, the function auto-detects the player's
+ * faction from gameState.champions[ap].attribute and applies the matching
+ * FACTION_WEIGHTS profile (with dynamic adjustments for the current turn).
+ *
+ * @param {object}      gameState  - current game state
+ * @param {string}      playerId   - 'p1' or 'p2'
+ * @param {object|null} [weights]  - explicit weight overrides (null = auto-detect faction)
+ * @returns {number}                score (higher is better for playerId)
  */
-export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
+export function evaluateBoard(gameState, playerId, weights = null) {
   const ap = playerId === 'p1' ? 0 : 1;
   const op = 1 - ap;
 
@@ -71,23 +187,37 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const oppUnits = gameState.units.filter(u => u.owner === op);
   const myPlayer = gameState.players[ap];
 
+  const turnNumber = gameState.turn ?? 0;
+
+  // Resolve weights: auto-detect faction if not explicitly provided
+  let w;
+  let faction;
+  if (weights != null) {
+    w = weights;
+    faction = myChamp?.attribute ?? 'light';
+  } else {
+    faction = myChamp?.attribute ?? 'light';
+    w = resolveFactionWeights(faction, turnNumber);
+  }
+
   // ── Individual factors ──────────────────────────────────────────────────────
 
   // championHP: evaluating player's champion HP
   const championHP = myChamp.hp;
 
+  // healingValue: additional scoring for high own-champion HP (Mystic sustain reward)
+  const healingValue = myChamp.hp;
+
   // championHPDiff: my champion HP minus opponent's champion HP.
   // Amplify when the opponent is close to death — creates urgency to close the game.
   const rawChampionHPDiff = myChamp.hp - oppChamp.hp;
-  const hpDiffMultiplier = oppChamp.hp <= 5 ? 3 : 1;
-  const championHPDiff = rawChampionHPDiff * hpDiffMultiplier;
+  const hpDiffMultiplier  = oppChamp.hp <= 5 ? 3 : 1;
+  const championHPDiff    = rawChampionHPDiff * hpDiffMultiplier;
 
   // unitCountDiff: my unit count minus opponent's unit count
   const unitCountDiff = myUnits.length - oppUnits.length;
 
   // totalATKOnBoard: sum of effective ATK of all my units
-  // Use the raw atk field (same as headlessEngine context; getEffectiveAtk needs
-  // position context we skip here to keep evaluation stateless and fast).
   const totalATKOnBoard = myUnits.reduce((sum, u) => sum + (u.atk ?? 0), 0);
 
   // totalHPOnBoard: sum of HP of all my units
@@ -123,46 +253,35 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const hiddenUnits = myUnits.filter(u => u.hidden).length;
 
   // manaEfficiency: (totalMana - remainingMana) / max(totalMana, 1)
-  // Ranges 0–1; 1 means all mana spent (most efficient).
   const totalMana     = myPlayer.maxMana ?? myPlayer.mana ?? 0;
   const remainingMana = myPlayer.mana ?? 0;
   const manaEfficiency = (totalMana - remainingMana) / Math.max(totalMana, 1);
 
   // lethalThreat: sum of ATK of friendly units that can reach the enemy champion next turn.
-  // A unit with SPD >= Manhattan distance to enemy champion can attack it next turn.
   const lethalThreat = myUnits.reduce((sum, u) => {
     const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
     return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
   }, 0);
 
-  // gameLength: escalating penalty per turn — no urgency early, extreme urgency late.
-  // Turn 1-10: 0, Turn 11-20: (turn-10)*-2, Turn >20: -20 + (turn-20)*-5
-  const turnNumber = gameState.turn ?? 0;
-  const gameLength = turnNumber <= 10 ? 0
-    : turnNumber <= 20 ? (turnNumber - 10) * -2
-    : -20 + (turnNumber - 20) * -5;
+  // gameLength: faction-aware escalating penalty (Primal starts early, Mystic starts late)
+  const gameLength = computeGameLengthPenalty(faction, turnNumber);
 
   // opponentChampionLowHP: massive incentive to close out games when opponent is nearly dead.
-  // Factor 1 (×30) when HP ≤ 5, factor 2 (×30=60) when HP ≤ 3.
   const opponentChampionLowHP = oppChamp.hp <= 3 ? 2 : (oppChamp.hp <= 5 ? 1 : 0);
 
   // championProximity: sum of (5 - Manhattan distance to enemy champion) for each friendly unit.
-  // Rewards advancing toward the enemy champion.
   const championProximity = myUnits.reduce((sum, u) => {
     const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
     return sum + Math.max(0, 5 - dist);
   }, 0);
 
   // relicsOnBoard: count of friendly relics alive on the board.
-  // Relics provide persistent value so keeping them alive is a bonus.
   const relicsOnBoard = myUnits.filter(u => u.isRelic).length;
 
   // omensOnBoard: count of friendly omens alive on the board.
-  // Omens provide temporary passive value; their presence is worth tracking.
   const omensOnBoard = myUnits.filter(u => u.isOmen).length;
 
-  // terrainBenefit: friendly units standing on terrain with whileOccupied hpBuff (beneficial).
-  // terrainHarm: enemy units standing on terrain with whileOccupied atkDebuff or onOccupy damage (harmful to them).
+  // terrainBenefit / terrainHarm
   let terrainBenefit = 0;
   let terrainHarm = 0;
   if (gameState.terrainGrid) {
@@ -180,25 +299,26 @@ export function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   const score =
-    championHP               * weights.championHP               +
-    championHPDiff           * weights.championHPDiff           +
-    unitCountDiff            * weights.unitCountDiff            +
-    totalATKOnBoard          * weights.totalATKOnBoard          +
-    totalHPOnBoard           * weights.totalHPOnBoard           +
-    throneControl            * weights.throneControl            +
-    unitsThreateningChampion * weights.unitsThreateningChampion +
-    unitsAdjacentToAlly      * weights.unitsAdjacentToAlly      +
-    cardsInHand              * weights.cardsInHand              +
-    hiddenUnits              * weights.hiddenUnits              +
-    manaEfficiency           * weights.manaEfficiency           +
-    lethalThreat             * weights.lethalThreat             +
-    gameLength                                                  +
-    championProximity        * weights.championProximity        +
-    opponentChampionLowHP    * weights.opponentChampionLowHP    +
-    relicsOnBoard            * weights.relicsOnBoard            +
-    omensOnBoard             * weights.omensOnBoard             +
-    terrainBenefit           * weights.terrainBenefit           +
-    terrainHarm              * weights.terrainHarm;
+    championHP               * w.championHP               +
+    healingValue             * w.healingValue              +
+    championHPDiff           * w.championHPDiff           +
+    unitCountDiff            * w.unitCountDiff            +
+    totalATKOnBoard          * w.totalATKOnBoard          +
+    totalHPOnBoard           * w.totalHPOnBoard           +
+    throneControl            * w.throneControl            +
+    unitsThreateningChampion * w.unitsThreateningChampion +
+    unitsAdjacentToAlly      * w.unitsAdjacentToAlly      +
+    cardsInHand              * w.cardsInHand              +
+    hiddenUnits              * w.hiddenUnits              +
+    manaEfficiency           * w.manaEfficiency           +
+    lethalThreat             * w.lethalThreat             +
+    gameLength                                            +
+    championProximity        * w.championProximity        +
+    opponentChampionLowHP    * w.opponentChampionLowHP    +
+    relicsOnBoard            * w.relicsOnBoard            +
+    omensOnBoard             * w.omensOnBoard             +
+    terrainBenefit           * w.terrainBenefit           +
+    terrainHarm              * w.terrainHarm;
 
   return score;
 }
