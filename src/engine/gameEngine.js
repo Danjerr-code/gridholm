@@ -1184,7 +1184,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
 // ── log helper ─────────────────────────────────────────────────────────────
 
 export function addLog(state, msg) {
-  state.log = [...state.log, msg].slice(-50);
+  state.log = [...state.log, msg];
 }
 
 // ── spell dispatch ─────────────────────────────────────────────────────────
@@ -1348,9 +1348,6 @@ function doBeginTurnPhase(state) {
     if (u.owner === state.activePlayer && u.skipNextAction) {
       u.moved = true;
       u.skipNextAction = false;
-    }
-    if (u.owner === state.activePlayer && u.rooted) {
-      u.rooted = false;
     }
     if (u.owner === state.activePlayer && state.activeModifiers?.some(m => m.type === 'stunTarget' && m.targetUid === u.uid)) {
       u.moved = true;
@@ -1596,10 +1593,8 @@ export function playCard(state, cardUid) {
       return s;
     }
 
-    // Glimpse: consume card, mark champion action, open deck peek
+    // Glimpse: free action — does not consume the champion action, open deck peek
     if (card.effect === 'glimpse') {
-      if (s.champions[s.activePlayer].moved) return s;
-      s.champions[s.activePlayer].moved = true;
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
@@ -3310,6 +3305,7 @@ export function completeTurnAdvance(state) {
       u.speedBonus = 0;
       u.turnAtkBonus = 0;
       u.extraActionsRemaining = 0;
+      u.rooted = false;
       // Clear fortify bonus (revert temporary HP increase)
       if (u.fortifyBonus) {
         u.hp = Math.max(1, u.hp - u.fortifyBonus);

@@ -26,7 +26,7 @@ export const KEYWORD_REMINDERS = {
   },
   terrain: {
     label: 'Terrain',
-    reminder: 'End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.',
+    reminder: 'A modifier to a tile that affects units on that tile.',
     color: '#92400E', // amber brown
   },
   stunned: {
