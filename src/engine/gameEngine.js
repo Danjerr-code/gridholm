@@ -1464,6 +1464,28 @@ export function getChampionMoveTiles(state) {
 export function moveChampion(state, row, col) {
   const s = cloneState(state);
   const champ = s.champions[s.activePlayer];
+
+  // Check for enemy omen on destination tile — champion destroys it and advances, same as moveUnit.
+  const enemyOmen = s.units.find(u => u.owner !== s.activePlayer && u.isOmen && u.row === row && u.col === col);
+  if (enemyOmen) {
+    if (enemyOmen.id === 'dreadmirror' && enemyOmen.hidden) {
+      const champAtkDmg = getChampionAtkBuff(s, champ);
+      revealUnit(s, enemyOmen);
+      addLog(s, `Dread Mirror revealed. Champion takes ${champAtkDmg} damage.`);
+      if (champAtkDmg > 0) champ.hp -= champAtkDmg;
+      const liveOmen = s.units.find(u => u.uid === enemyOmen.uid);
+      if (liveOmen) destroyUnit(liveOmen, s, 'omen_removed');
+    } else {
+      addLog(s, `${s.players[s.activePlayer].name}'s champion moves through ${enemyOmen.name}! The omen is destroyed.`);
+      destroyUnit(enemyOmen, s, 'omen_removed');
+    }
+    champ.row = row;
+    champ.col = col;
+    champ.moved = true;
+    checkWinner(s);
+    return s;
+  }
+
   const enemyUnit = s.units.find(u => u.owner !== s.activePlayer && u.row === row && u.col === col);
 
   if (enemyUnit) {
@@ -2662,18 +2684,19 @@ export function resolveRelicPlace(state, row, col) {
 
 // ── terrain helpers ────────────────────────────────────────────────────────
 
-// Tiles where terrain cannot be placed (throne only).
-const TERRAIN_RESTRICTED = new Set(['2,2']);
+// Tiles where terrain cannot be placed: throne + champion start corners.
+const TERRAIN_RESTRICTED = new Set(['2,2', '0,0', '4,4']);
 
 // Returns all valid tiles for casting a terrain card.
-// Valid tiles must be within Manhattan distance 1 of the casting player's champion (adjacent only).
+// Valid tiles must be within Manhattan distance 2 of the casting player's champion,
+// excluding champion start tiles (0,0) and (4,4) and the Throne tile (2,2).
 export function getTerrainCastTiles(state) {
   const champ = state.champions[state.activePlayer];
   const tiles = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
       if (TERRAIN_RESTRICTED.has(`${r},${c}`)) continue;
-      if (manhattan([champ.row, champ.col], [r, c]) > 1) continue;
+      if (manhattan([champ.row, champ.col], [r, c]) > 2) continue;
       tiles.push([r, c]);
     }
   }
