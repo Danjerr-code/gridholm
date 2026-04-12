@@ -3138,6 +3138,27 @@ function reachableTiles(state, unit, speed) {
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       if (unit.canAttack === false && (enemyUnit || enemyChamp)) continue;
+      // For tiles at distance 2, check that at least one cardinal 2-step path has a
+      // clear intermediate tile. Flying units bypass this check.
+      if (dist === 2 && !unit.flying) {
+        const dr = nr - unit.row;
+        const dc = nc - unit.col;
+        // Enumerate all intermediate tiles for all possible 2-step cardinal paths.
+        // Straight line (|dr|=2 or |dc|=2): one intermediate.
+        // L-shape (|dr|=1 and |dc|=1): two intermediates, one per axis-first path.
+        const intermediates = [];
+        if (Math.abs(dr) === 2) {
+          intermediates.push([unit.row + Math.sign(dr), unit.col]);
+        } else if (Math.abs(dc) === 2) {
+          intermediates.push([unit.row, unit.col + Math.sign(dc)]);
+        } else {
+          // L-shape: step dr-axis first, then dc-axis; or dc-axis first, then dr-axis
+          intermediates.push([unit.row + dr, unit.col]);
+          intermediates.push([unit.row, unit.col + dc]);
+        }
+        const anyPathClear = intermediates.some(([ir, ic]) => !isTileOccupied(state, ir, ic));
+        if (!anyPathClear) continue;
+      }
       result.push([nr, nc]);
     }
   }
