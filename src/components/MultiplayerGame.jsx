@@ -1916,7 +1916,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 }
 
 function getActiveKeywords(source) {
-  const keys = ['rush', 'hidden', 'action', 'legendary'];
+  const keys = ['rush', 'flying', 'hidden', 'action', 'legendary'];
   const result = [];
   for (const key of keys) {
     if (source[key]) result.push({ key, ...KEYWORD_REMINDERS[key] });

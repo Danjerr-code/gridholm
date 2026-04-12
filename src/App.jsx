@@ -1239,6 +1239,7 @@ function KeywordPills({ item }) {
   const [openPill, setOpenPill] = useState(null);
   const activeKeywords = [];
   if (item.rush) activeKeywords.push('rush');
+  if (item.flying) activeKeywords.push('flying');
   if (item.hidden) activeKeywords.push('hidden');
   if (item.action) activeKeywords.push('action');
   if (item.aura) activeKeywords.push('aura');

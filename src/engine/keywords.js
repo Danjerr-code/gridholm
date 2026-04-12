@@ -4,6 +4,11 @@ export const KEYWORD_REMINDERS = {
     reminder: 'This unit may move the turn it is summoned.',
     color: '#22C55E', // green
   },
+  flying: {
+    label: 'Flying',
+    reminder: 'This unit can move to any tile within its SPD range, ignoring units in the path.',
+    color: '#38BDF8', // sky blue
+  },
   hidden: {
     label: 'Hidden',
     reminder: 'Moves unseen. Revealed when an enemy enters its tile, or by player choice.',

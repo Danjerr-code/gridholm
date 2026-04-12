@@ -3175,10 +3175,12 @@ function findIntermediateTile(state, unit, champRow, champCol) {
 }
 
 // Returns valid approach tiles for a SPD 2 attacker targeting an enemy 2 tiles away.
-// An approach tile is adjacent to the target, unoccupied, and exactly 1 step from the attacker.
+// For non-flying units: approach tile must be adjacent to both the target and the attacker.
+// For flying units: approach tile need only be adjacent to the target (attacker flies over anything).
 export function getApproachTiles(state, unit, targetRow, targetCol) {
   return cardinalNeighbors(targetRow, targetCol).filter(([r, c]) =>
-    !isTileOccupied(state, r, c) && manhattan([unit.row, unit.col], [r, c]) === 1
+    !isTileOccupied(state, r, c) &&
+    (unit.flying || manhattan([unit.row, unit.col], [r, c]) === 1)
   );
 }
 
@@ -3310,14 +3312,19 @@ export function moveUnit(state, unitUid, row, col) {
       return s;
     }
 
-    // SPD 2 approach: if attacker is exactly 2 tiles away, slide to adjacent approach tile first
+    // SPD 2 approach: if attacker is exactly 2 tiles away, slide to adjacent approach tile first.
+    // Flying units: attack is always valid; if no open adjacent tile exists, attacker stays put.
     const attackDist = manhattan([unit.row, unit.col], [row, col]);
     if (attackDist === 2) {
       const approachOptions = getApproachTiles(s, unit, row, col);
-      if (approachOptions.length === 0) return s; // no valid approach — abort
-      const [ar, ac] = approachOptions[0];
-      unit.row = ar;
-      unit.col = ac;
+      if (approachOptions.length === 0) {
+        if (!unit.flying) return s; // non-flying: no valid approach — abort
+        // flying: attacker stays on original tile, combat still resolves
+      } else {
+        const [ar, ac] = approachOptions[0];
+        unit.row = ar;
+        unit.col = ac;
+      }
     }
 
     const attackerAtk = getEffectiveAtk(s, unit, combatTile);

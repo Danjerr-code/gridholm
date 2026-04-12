@@ -957,6 +957,7 @@ function CardPreviewTooltip({ card }) {
   const imageUrl = getCardImageUrl(card.image);
   const keywords = [];
   if (card.rush) keywords.push({ label: 'Rush', color: '#22C55E' });
+  if (card.flying) keywords.push({ label: 'Flying', color: '#38BDF8' });
   if (card.hidden) keywords.push({ label: 'Hidden', color: '#8B5CF6' });
   if (card.action) keywords.push({ label: 'Action', color: '#F97316' });
   if (card.aura) keywords.push({ label: `Aura ${card.aura.range}`, color: '#F0E6D2' });
