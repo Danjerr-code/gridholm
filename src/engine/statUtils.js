@@ -23,6 +23,7 @@ export function getAuraAtkBonus(state, unit, combatTile = null) {
   let bonus = 0;
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
+    if (other.hidden) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
     if (other.aura.target === 'friendlybeast' && !unitTypes(unit).includes('Beast')) continue;
     const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
@@ -33,6 +34,7 @@ export function getAuraAtkBonus(state, unit, combatTile = null) {
   // Enemy debuff auras (e.g. Aendor): check combat tile position, not stored unit position
   for (const other of state.units) {
     if (other.owner === unit.owner) continue;
+    if (other.hidden) continue;
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target !== 'enemy') continue;
     const [checkRow, checkCol] = combatTile || [unit.row, unit.col];
     if (manhattan([other.row, other.col], [checkRow, checkCol]) <= other.aura.range) {
@@ -48,6 +50,7 @@ function getStandardBearerBonus(state, unit) {
   let atk = 0, hp = 0;
   for (const other of state.units) {
     if (other.owner !== unit.owner || other.uid === unit.uid) continue;
+    if (other.hidden) continue;
     if (!other.aura || other.aura.stat !== 'both') continue;
     const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
     if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range + rangeBonus) {

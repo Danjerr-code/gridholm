@@ -681,7 +681,7 @@ function fireEndTurnTriggers(state, playerIdx) {
 
   // 4. Zmore: deal 1 damage to all other combat units (excludes Zmore itself)
   state.units.forEach(u => {
-    if (u.owner === playerIdx && u.id === 'zmore') {
+    if (u.owner === playerIdx && u.id === 'zmore' && !u.hidden) {
       addLog(state, `Zmore, Sleeping Ash stirs. All other combat units take 1 damage.`);
       const allUnits = [...state.units];
       for (const t of allUnits) {

@@ -117,6 +117,8 @@ export function unregisterModifiers(unitUid, state) {
 // Returns the total aura range bonus for a unit from activeModifiers.
 export function getAuraRangeBonus(state, unitUid) {
   if (!state.activeModifiers) return 0;
+  const src = state.units.find(u => u.uid === unitUid);
+  if (src?.hidden) return 0;
   return state.activeModifiers
     .filter(m => m.type === 'auraRangeBuff' && m.unitUid === unitUid)
     .reduce((sum, m) => sum + (m.amount || 0), 0);
@@ -127,7 +129,11 @@ export function getAuraRangeBonus(state, unitUid) {
 export function getFriendlyAuraRangeBonus(state, playerIndex) {
   if (!state.activeModifiers) return 0;
   return state.activeModifiers
-    .filter(m => m.type === 'auraRangeBuff' && m.playerIndex === playerIndex)
+    .filter(m => {
+      if (m.type !== 'auraRangeBuff' || m.playerIndex !== playerIndex) return false;
+      const src = state.units.find(u => u.uid === m.unitUid);
+      return !src?.hidden;
+    })
     .reduce((sum, m) => sum + (m.amount || 0), 0);
 }
 
@@ -141,6 +147,8 @@ export function getZoneSpdBonus(state, unit) {
   for (const mod of state.activeModifiers) {
     if (mod.type !== 'zoneSpdBuff') continue;
     if (mod.playerIndex !== unit.owner) continue;
+    const zoneSrc = state.units.find(u => u.uid === mod.unitUid);
+    if (zoneSrc?.hidden) continue;
     if (mod.anchor === 'enemyChampion') {
       const enemyChamp = state.champions[1 - unit.owner];
       if (!enemyChamp) continue;
@@ -155,6 +163,7 @@ export function getZoneSpdBonus(state, unit) {
 // Condition type 'minHandSize' / 'minCardsInHand': applies when hand size >= condition.count.
 export function getConditionalStatBonus(state, unit) {
   if (!state.activeModifiers) return { atk: 0, hp: 0 };
+  if (unit.hidden) return { atk: 0, hp: 0 };
   let atk = 0, hp = 0;
   const hand = state.players[unit.owner]?.hand || [];
   for (const mod of state.activeModifiers) {
@@ -563,6 +572,10 @@ export function fireTrigger(event, context, state) {
 
     // preventRetrigger: avoid infinite loops where this effect re-fires the same listener
     if (listener.preventRetrigger && context?.retriggerUid === listener.unitUid) continue;
+
+    // Hidden unit guard: units that have not yet been revealed do not fire any abilities
+    const triggerOwner = state.units.find(u => u.uid === listener.unitUid);
+    if (triggerOwner?.hidden) continue;
 
     // Player index filter per event type
     switch (event) {
