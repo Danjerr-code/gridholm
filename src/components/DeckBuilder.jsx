@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CHAMPIONS } from '../engine/champions.js';
 import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CARD_DB } from '../engine/cards.js';
-import { getCardImageUrl } from '../supabase.js';
+import { supabase, getCardImageUrl } from '../supabase.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import Card from './Card.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
 import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
@@ -99,7 +100,34 @@ export default function DeckBuilder({ onBack, onNext }) {
   // Pending change that requires deck-clear confirmation
   const [pendingChange, setPendingChange] = useState(null); // { type: 'champion'|'secondary', key: string }
 
+  const { currentUser } = useAuth();
+  const maxDecks = currentUser ? 5 : 3;
   const savedDeckExists = savedDecks.length > 0;
+
+  // When user authenticates, fetch their decks from Supabase
+  useEffect(() => {
+    if (!currentUser || !supabase) return;
+    supabase.from('decks').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (!data) return;
+        const mapped = data.map(row => {
+          const stored = row.cards;
+          const cardIds = Array.isArray(stored) ? stored : (stored?.cards ?? []);
+          return {
+            supabaseId: row.id,
+            name: row.name,
+            champion: row.faction,
+            primaryAttribute: row.faction,
+            secondaryAttribute: stored?.secondaryAttribute ?? null,
+            cards: cardIds,
+            resonance: stored?.resonance ?? 0,
+            savedAt: new Date(row.updated_at).getTime(),
+          };
+        });
+        setSavedDecks(mapped);
+        syncCustomDeck(mapped);
+      });
+  }, [currentUser]);
 
   const deckCardIds = useMemo(() => {
     return Object.entries(deck).flatMap(([id, count]) => Array(count).fill(id));
@@ -111,18 +139,21 @@ export default function DeckBuilder({ onBack, onNext }) {
   const handleSaveDeck = useCallback(() => {
     if (!selectedChampion || !secondaryAttr || !isValid) return;
     const nextNum = savedDecks.length + 1;
-    setSaveNameInput((deckName || '').trim() || `My Deck ${nextNum}`);
-    setSaveModal({ overwrite: savedDecks.length >= 3 });
-  }, [selectedChampion, secondaryAttr, isValid, savedDecks.length, deckName]);
+    const defaultName = `${FACTION_NAMES[selectedChampion] || 'My'} Deck ${nextNum}`;
+    setSaveNameInput((deckName || '').trim() || defaultName);
+    setSaveModal({ overwrite: savedDecks.length >= maxDecks });
+  }, [selectedChampion, secondaryAttr, isValid, savedDecks.length, deckName, maxDecks]);
 
-  const handleSaveDeckConfirm = useCallback((name, overwriteIdx = null) => {
+  const handleSaveDeckConfirm = useCallback(async (name, overwriteIdx = null) => {
     const cardObjs = deckCardIds.map(id => CARD_DB[id]).filter(Boolean);
     const resonanceScore = calculateResonance(cardObjs, selectedChampion);
     const defaultName = overwriteIdx !== null
       ? (savedDecks[overwriteIdx]?.name || `My Deck ${overwriteIdx + 1}`)
-      : `My Deck ${savedDecks.length + 1}`;
+      : `${FACTION_NAMES[selectedChampion] || 'My'} Deck ${savedDecks.length + 1}`;
+    const finalName = (name || '').trim() || defaultName;
+
     const entry = {
-      name: (name || '').trim() || defaultName,
+      name: finalName,
       champion: selectedChampion,
       primaryAttribute: selectedChampion,
       secondaryAttribute: secondaryAttr,
@@ -130,16 +161,48 @@ export default function DeckBuilder({ onBack, onNext }) {
       resonance: resonanceScore,
       savedAt: Date.now(),
     };
-    const next = overwriteIdx !== null
-      ? savedDecks.map((d, i) => i === overwriteIdx ? entry : d)
-      : [...savedDecks, entry].slice(0, 3);
-    localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
-    syncCustomDeck(next);
-    setSavedDecks(next);
+
+    if (currentUser && supabase) {
+      // Store cards as a rich object so secondary attr + resonance survive a round-trip
+      const cardsPayload = { cards: deckCardIds, secondaryAttribute: secondaryAttr, resonance: resonanceScore };
+      const existingSupabaseId = overwriteIdx !== null ? savedDecks[overwriteIdx]?.supabaseId : null;
+
+      if (existingSupabaseId) {
+        const { data } = await supabase.from('decks').update({
+          name: finalName,
+          cards: cardsPayload,
+          faction: selectedChampion,
+          updated_at: new Date().toISOString(),
+        }).eq('id', existingSupabaseId).select().single();
+        if (data) entry.supabaseId = data.id;
+      } else {
+        const { data } = await supabase.from('decks').insert({
+          player_id: currentUser.id,
+          name: finalName,
+          cards: cardsPayload,
+          faction: selectedChampion,
+        }).select().single();
+        if (data) entry.supabaseId = data.id;
+      }
+
+      const next = overwriteIdx !== null
+        ? savedDecks.map((d, i) => i === overwriteIdx ? entry : d)
+        : [...savedDecks, entry];
+      syncCustomDeck(next);
+      setSavedDecks(next);
+    } else {
+      const next = overwriteIdx !== null
+        ? savedDecks.map((d, i) => i === overwriteIdx ? entry : d)
+        : [...savedDecks, entry].slice(0, 3);
+      localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
+      syncCustomDeck(next);
+      setSavedDecks(next);
+    }
+
     setSaveModal(null);
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1500);
-  }, [selectedChampion, secondaryAttr, deckCardIds, savedDecks]);
+  }, [selectedChampion, secondaryAttr, deckCardIds, savedDecks, currentUser]);
 
   function handleLoadSavedDeck(deckObj) {
     const deckMap = {};
@@ -159,9 +222,15 @@ export default function DeckBuilder({ onBack, onNext }) {
     handleLoadSavedDeck(mostRecent);
   }
 
-  function handleDeleteSavedDeck(index) {
+  async function handleDeleteSavedDeck(index) {
+    const deckEntry = savedDecks[index];
+    if (currentUser && supabase && deckEntry?.supabaseId) {
+      await supabase.from('decks').delete().eq('id', deckEntry.supabaseId);
+    }
     const next = savedDecks.filter((_, i) => i !== index);
-    localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
+    if (!currentUser || !supabase) {
+      localStorage.setItem(SAVED_DECKS_KEY, JSON.stringify(next));
+    }
     syncCustomDeck(next);
     setSavedDecks(next);
   }
@@ -367,7 +436,7 @@ export default function DeckBuilder({ onBack, onNext }) {
             ) : (
               <>
                 <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#9ca3af', margin: 0 }}>
-                  All 3 slots are full. Choose a deck to overwrite:
+                  All {maxDecks} slots are full. Choose a deck to overwrite:
                 </p>
                 {savedDecks.map((d, i) => {
                   const attr = ATTRIBUTES[d.champion] || {};
@@ -439,11 +508,26 @@ export default function DeckBuilder({ onBack, onNext }) {
       {/* My Decks section — shown at champion step when saves exist */}
       {step === 'champion' && savedDecks.length > 0 && (
         <div style={{ width: '100%', maxWidth: '860px' }}>
-          <h2 style={{
-            fontFamily: "'Cinzel', serif", fontSize: '11px',
-            color: '#4a4a6a', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: '10px',
-          }}>My Decks</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <h2 style={{
+              fontFamily: "'Cinzel', serif", fontSize: '11px',
+              color: '#4a4a6a', letterSpacing: '0.12em',
+              textTransform: 'uppercase', margin: 0,
+            }}>My Decks</h2>
+            <span style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '9px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              padding: '2px 7px',
+              borderRadius: '3px',
+              background: currentUser ? '#0a2a1a' : '#1a1a2a',
+              color: currentUser ? '#22C55E' : '#6a6a8a',
+              border: `1px solid ${currentUser ? '#22C55E44' : '#2a2a3a'}`,
+            }}>
+              {currentUser ? 'Profile' : 'Local'}
+            </span>
+          </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {savedDecks.map((d, i) => {
               const attr = ATTRIBUTES[d.champion] || {};
