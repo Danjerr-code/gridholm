@@ -53,11 +53,26 @@ function actionPriority(action, state, enemyIdx, enemyChamp) {
     if (newDist < curDist) return 30;                        // advances toward champion
     return 10;
   }
-  if (action.type === 'cast')           return 40;
-  if (action.type === 'championAbility') return 35;
-  if (action.type === 'unitAction')      return 25;
-  if (action.type === 'summon')          return 20;
-  if (action.type === 'championMove')    return 15;
+  if (action.type === 'cast')      return 40;
+  if (action.type === 'unitAction') return 25;
+  if (action.type === 'summon')     return 20;
+  if (action.type === 'championMove') return 15;
+
+  if (action.type === 'championAbility') {
+    // Context-dependent priority — prevent champion ability spam in mid/late game.
+    // Early (turns 1–8): normal, developing with the ability is fine.
+    // Mid (turns 9–15): below summon priority — board development takes precedence.
+    // Late (turns 16+): minimum — AI should be attacking and closing, not cycling abilities.
+    // Closing condition (opp HP ≤ 15 AND 2+ combat units): minimum regardless of phase.
+    const turn = state.turn ?? 0;
+    const oppChampHP = enemyChamp.hp;
+    const myCombatUnits = state.units.filter(u => u.owner === ap && !u.isRelic && !u.isOmen).length;
+    if (oppChampHP <= 15 && myCombatUnits >= 2) return 1; // closing — don't cycle abilities
+    if (turn >= 16) return 1;                              // late game — minimum
+    if (turn >= 9)  return 15;                             // mid game — below summon (20)
+    return 35;                                             // early game — normal
+  }
+
   return 5;
 }
 

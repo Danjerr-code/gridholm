@@ -53,13 +53,13 @@ export function shouldHoldCard(card, state, apIdx) {
       );
 
     case 'angelicblessing': {
-      // Play only when a friendly combat unit adjacent to own champion has ATK >= 5.
-      // Angelic Blessing (+4/+4 + spell immunity) is most valuable protecting an already
-      // threatening unit. ATK >= 5 is a reliable proxy for "+2 permanent buffs."
+      // Play only when a friendly combat unit adjacent to own champion has ATK >= 3.
+      // ATK >= 3 is a reliable proxy for "+1 permanent buff" (most base units have ATK 1–2).
+      // Relaxed from the original ATK >= 5 bar, which was rarely reached by curve builds.
       const adjacentToCaster = myCombatUnits.filter(u =>
         manhattan([u.row, u.col], [myChamp.row, myChamp.col]) === 1
       );
-      return !adjacentToCaster.some(u => (u.atk ?? 0) >= 5);
+      return !adjacentToCaster.some(u => (u.atk ?? 0) >= 3);
     }
 
     case 'tollofshadows': {
@@ -85,10 +85,11 @@ export function shouldHoldCard(card, state, apIdx) {
 
     case 'seconddawn': {
       // Second Dawn returns all friendly units from graveyard to tiles adjacent to champion.
-      // Hold until at least 3 units are in the graveyard to make it worth 8 mana.
+      // Hold until at least 2 units are in the graveyard — two dead units is enough to justify
+      // the 8-mana cost. Relaxed from 3, which was almost never reached in 30-turn games.
       const grave = state.players[ap].grave ?? [];
       const combatInGrave = grave.filter(c => c.type === 'unit' && !c.token).length;
-      return combatInGrave < 3;
+      return combatInGrave < 2;
     }
 
     case 'bloodmoon':

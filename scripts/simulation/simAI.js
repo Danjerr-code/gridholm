@@ -208,18 +208,27 @@ function scoreAction(action, state) {
       // Azulon (Mystic) hold: only use ability when a spell costing 4+ is in hand.
       if (shouldHoldChampionAbility(state, ap)) return 2;
 
-      // Use ability with leftover mana AFTER board development, not instead of it.
+      // Context-dependent priority — suppress ability spam in mid/late game.
+      // Early (turns 1–8): normal scoring below advance but useful.
+      // Mid (turns 9–15): below summon scoring — board development comes first.
+      // Late (turns 16+): minimum — AI should be attacking/advancing to close.
+      // Closing condition (opp HP ≤ 15 AND 2+ combat units): minimum regardless of phase.
+      const turn = state.turn ?? 0;
+      const oppHP = enemyChamp.hp;
+      const myCombatUnits = state.units.filter(u => u.owner === ap && !u.isRelic && !u.isOmen).length;
+
+      if (oppHP <= 15 && myCombatUnits >= 2) return 2; // closing — don't cycle abilities
+      if (turn >= 16) return 2;                         // late game — minimum
+      if (turn >= 9)  return 8;                         // mid game — below summon (~9–24)
+
+      // Early game: use ability with leftover mana AFTER board development.
       const p = state.players[ap];
       const abilityCost = 2; // all attuned abilities cost 2 mana
       const manaAfterAbility = p.resources - abilityCost;
       const hasFriendlyTarget = state.units.some(u => u.owner === ap);
-      // "Leftover mana": already acted offensively AND <=2 mana would remain after ability
-      // (meaning no significant unit can be summoned anyway)
       const alreadyActed = state.units.some(u => u.owner === ap && u.moved);
       if (alreadyActed && manaAfterAbility <= 2) return 18; // spend leftover mana
-      // Plentiful mana + units to target: just below advance, fine to use
       if (manaAfterAbility >= 3 && hasFriendlyTarget) return 14;
-      // Default: filler below all board development
       return 10;
     }
 
