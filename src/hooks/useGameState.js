@@ -40,7 +40,11 @@ import {
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
-import { playTurnStartSound, playCardPlaySound } from '../audio.js';
+import {
+  playTurnStartSound,
+  playSfxAttack, playSfxMove, playSfxDraw, playSfxSpell,
+  playSfxNoMana, playSfxWin, playSfxUheal, playSfxCheal, playSfxAttackBlock,
+} from '../audio.js';
 
 const AI_PLAYER = 1;
 const AI_DECKS = ['human', 'beast', 'elf', 'demon'];
@@ -141,9 +145,19 @@ export function useGameState({ deckId = 'human' } = {}) {
     }
     if (prevActivePlayerRef.current !== state.activePlayer && state.activePlayer !== AI_PLAYER && !state.winner) {
       playTurnStartSound();
+      playSfxDraw();
     }
     prevActivePlayerRef.current = state.activePlayer;
   }, [state.activePlayer, state.winner]);
+
+  // Play win sound when player 0 wins.
+  const prevWinnerRef = useRef(null);
+  useEffect(() => {
+    if (state.winner === 0 && prevWinnerRef.current !== 0) {
+      playSfxWin();
+    }
+    prevWinnerRef.current = state.winner;
+  }, [state.winner]);
 
   const applyAndMaybeAI = useCallback((newState) => {
     latestStateRef.current = newState;
@@ -195,6 +209,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   // ── Phase helpers ─────────────────────────────────────────────────────
 
   const handleChampionMoveTile = useCallback((row, col) => {
+    playSfxMove();
     setState(prev => moveChampion(prev, row, col));
     clearSelection();
   }, [clearSelection]);
@@ -219,7 +234,10 @@ export function useGameState({ deckId = 'human' } = {}) {
       const base = (prev.pendingSpell || prev.pendingSummon || prev.pendingTerrainCast) ? cancelSpell(prev) : prev;
       const p = base.players[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid);
-      if (!card || p.resources < card.cost) return base;
+      if (!card || p.resources < card.cost) {
+        if (card && p.resources < card.cost) playSfxNoMana();
+        return base;
+      }
 
       // Targetless spell: preview mode — don't execute yet
       if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
@@ -255,7 +273,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleCastTargetlessSpell = useCallback(() => {
     if (!selectedCard || selectMode !== 'targetless_spell') return;
     const cardUid = selectedCard;
-    playCardPlaySound();
+    playSfxSpell();
     setState(prev => playCard(prev, cardUid));
     clearSelection();
   }, [selectedCard, selectMode, clearSelection]);
@@ -269,8 +287,6 @@ export function useGameState({ deckId = 'human' } = {}) {
       } else if (s.pendingFleshtitheSacrifice) {
         setSelectMode('fleshtithe_sacrifice');
       } else {
-        // Unit was placed — pendingSummon cleared, card left hand
-        if (!s.pendingSummon) playCardPlaySound();
         setSelectedCard(null);
         setSelectedUnit(null);
         setSelectMode(null);
@@ -283,13 +299,24 @@ export function useGameState({ deckId = 'human' } = {}) {
     if (!selectedCard && !state.pendingSpell) return;
     setState(prev => {
       const cardUid = prev.pendingSpell?.cardUid ?? selectedCard;
+      const prevChampHp = prev.champions[0]?.hp;
+      const prevUnitHps = prev.units.filter(u => u.owner === 0).map(u => ({ uid: u.uid, hp: u.hp }));
       const s = resolveSpell(prev, cardUid, targetUid);
       if (s.pendingSpell) {
         // multi-step spell continues
         setSelectMode('spell');
       } else {
+        playSfxSpell();
         clearSelection();
       }
+      // Detect heal: champion
+      if ((s.champions[0]?.hp ?? 0) > prevChampHp) playSfxCheal();
+      // Detect heal: friendly unit
+      const healed = prevUnitHps.find(({ uid, hp }) => {
+        const after = s.units.find(u => u.uid === uid);
+        return after && after.hp > hp;
+      });
+      if (healed) playSfxUheal();
       return s;
     });
   }, [selectedCard, state, clearSelection]);
@@ -402,7 +429,18 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleChampionAbilityTarget = useCallback((targetUid) => {
     if (!pendingChampionAbility) return;
-    setState(prev => applyChampionAbility(prev, 0, pendingChampionAbility.abilityId, targetUid));
+    setState(prev => {
+      const prevChampHp = prev.champions[0]?.hp;
+      const prevUnitHps = prev.units.filter(u => u.owner === 0).map(u => ({ uid: u.uid, hp: u.hp }));
+      const next = applyChampionAbility(prev, 0, pendingChampionAbility.abilityId, targetUid);
+      if ((next.champions[0]?.hp ?? 0) > prevChampHp) playSfxCheal();
+      const healed = prevUnitHps.find(({ uid, hp }) => {
+        const after = next.units.find(u => u.uid === uid);
+        return after && after.hp > hp;
+      });
+      if (healed) playSfxUheal();
+      return next;
+    });
     setPendingChampionAbility(null);
     setSelectMode(null);
   }, [pendingChampionAbility]);
@@ -432,8 +470,9 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleMoveUnit = useCallback((row, col) => {
     if (!selectedUnit) return;
     let enteringApproach = false;
+    const unitUidSnap = selectedUnit;
     setState(prev => {
-      const unit = prev.units.find(u => u.uid === selectedUnit);
+      const unit = prev.units.find(u => u.uid === unitUidSnap);
       const targetHasEnemy = prev.units.some(u => u.owner !== prev.activePlayer && u.row === row && u.col === col)
         || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col);
       if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
@@ -443,7 +482,18 @@ export function useGameState({ deckId = 'human' } = {}) {
           return prev;
         }
       }
-      return moveUnit(prev, selectedUnit, row, col);
+      const next = moveUnit(prev, unitUidSnap, row, col);
+      if (targetHasEnemy) {
+        const attackerSurvived = next.units.find(u => u.uid === unitUidSnap);
+        if (!attackerSurvived) {
+          playSfxAttackBlock();
+        } else {
+          playSfxAttack();
+        }
+      } else {
+        playSfxMove();
+      }
+      return next;
     });
     if (enteringApproach) {
       setPendingApproach({ unitUid: selectedUnit, targetRow: row, targetCol: col });
@@ -456,7 +506,16 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleApproachTileChosen = useCallback((approachRow, approachCol) => {
     if (!pendingApproach) return;
     const { unitUid, targetRow, targetCol } = pendingApproach;
-    setState(prev => executeApproachAndAttack(prev, unitUid, approachRow, approachCol, targetRow, targetCol));
+    setState(prev => {
+      const next = executeApproachAndAttack(prev, unitUid, approachRow, approachCol, targetRow, targetCol);
+      const attackerSurvived = next.units.find(u => u.uid === unitUid);
+      if (!attackerSurvived) {
+        playSfxAttackBlock();
+      } else {
+        playSfxAttack();
+      }
+      return next;
+    });
     setPendingApproach(null);
     clearSelection();
   }, [pendingApproach, clearSelection]);
@@ -468,6 +527,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleArcherShoot = useCallback((targetUid) => {
     if (!selectedUnit) return;
+    playSfxAttack();
     setState(prev => archerShoot(prev, selectedUnit, targetUid));
     clearSelection();
   }, [selectedUnit, clearSelection]);

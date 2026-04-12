@@ -1,5 +1,27 @@
 const MUTE_KEY = 'gridholm_muted';
 
+// Play an MP3 file from /public at a normalized gain of 0.7.
+function playSfx(path) {
+  if (isMuted()) return;
+  try {
+    const audio = new Audio(path);
+    audio.volume = 0.7;
+    audio.play().catch(() => {});
+  } catch {
+    // Audio API not available — silent fail
+  }
+}
+
+export function playSfxAttack() { playSfx('/sfx-attack.mp3'); }
+export function playSfxMove() { playSfx('/sfx-move.mp3'); }
+export function playSfxDraw() { playSfx('/sfx-draw.mp3'); }
+export function playSfxSpell() { playSfx('/sfx-spell.mp3'); }
+export function playSfxNoMana() { playSfx('/sfx-nomana-.mp3'); }
+export function playSfxWin() { playSfx('/sfx-win.mp3'); }
+export function playSfxUheal() { playSfx('/sfx-uheal.mp3'); }
+export function playSfxCheal() { playSfx('/sfx-cheal.mp3'); }
+export function playSfxAttackBlock() { playSfx('/sfx-attackblock.mp3'); }
+
 export function isMuted() {
   try {
     return localStorage.getItem(MUTE_KEY) === 'true';
