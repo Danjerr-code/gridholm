@@ -3,14 +3,22 @@
  *
  * Board evaluation function for strategic AI.
  *
- * Supports four faction-specific weight profiles (Primal, Mystic, Light, Dark).
+ * Supports four faction-specific weight profiles (Primal, Mystic, Light, Dark)
+ * with three game phases: Early (turns 1–5), Mid (turns 6–12), Late (turns 13+).
+ *
+ * Phase modifiers multiply relevant weights to reflect how each faction should
+ * play at each stage of the game:
+ *   Early  — all factions develop board; attack urgency low
+ *   Mid    — faction-specific strategies engage fully
+ *   Late   — all factions push for champion damage; game-length urgency increases
+ *
  * When no explicit weights are passed, evaluateBoard auto-detects the active
  * player's faction from gameState.champions[ap].attribute and applies the
- * matching profile. Pass a custom weights object to override.
+ * matching profile with phase modifiers. Pass a custom weights object to override.
  *
  * Usage:
  *   import { evaluateBoard, WEIGHTS, FACTION_WEIGHTS } from './boardEval.js';
- *   const score = evaluateBoard(gameState, 'p1');           // auto-detects faction
+ *   const score = evaluateBoard(gameState, 'p1');           // auto-detects faction + phase
  *   const score = evaluateBoard(gameState, 'p1', myWeights); // explicit override
  */
 
@@ -117,6 +125,101 @@ export const FACTION_WEIGHTS = {
   },
 };
 
+// ── Phase system ──────────────────────────────────────────────────────────────
+
+/**
+ * Returns the current game phase based on turn number.
+ * @param {number} turn
+ * @returns {'early'|'mid'|'late'}
+ */
+function getPhase(turn) {
+  if (turn <= 5)  return 'early';
+  if (turn <= 12) return 'mid';
+  return 'late';
+}
+
+/**
+ * Apply phase-based multipliers to a weight profile.
+ *
+ * Early (turns 1–5): develop the board; attack urgency reduced for all factions.
+ *   - unitsThreateningChampion × 0.5  (don't rush champion early)
+ *   - championProximity       × 0.5  (don't advance aggressively)
+ *   - unitCountDiff           × 1.4  (establish board presence)
+ *   - cardsInHand             × 1.3  (value hand development)
+ *   - totalATKOnBoard         × 0.8  (raw ATK less urgent than position)
+ *
+ * Mid (turns 6–12): faction-specific strategies kick in fully.
+ *   Primal  — increase attack urgency:
+ *     unitsThreateningChampion × 1.4, championProximity × 1.3
+ *   Mystic  — increase sustain priority:
+ *     healingValue × 1.5, cardsInHand × 1.3
+ *   Light   — increase formation clustering:
+ *     unitsAdjacentToAlly × 1.5, unitCountDiff × 1.2
+ *   Dark    — increase card advantage and hidden pressure:
+ *     cardsInHand × 1.4, hiddenUnits × 1.5
+ *
+ * Late (turns 13+): all factions close the game.
+ *   - championHPDiff           × 2.0  (finishing matters most)
+ *   - unitsThreateningChampion × 1.5  (convert board into damage)
+ *   - championProximity        × 1.5  (close the distance)
+ *   - lethalThreat             × 1.5  (maximize kill potential)
+ *   Mystic late — shift from sustain to closing:
+ *     healingValue × 0.3, unitsThreateningChampion uses 18 (not 8)
+ *
+ * @param {object} w         - base weight profile
+ * @param {string} faction   - 'primal'|'mystic'|'light'|'dark'
+ * @param {string} phase     - 'early'|'mid'|'late'
+ * @returns {object}           adjusted weight profile
+ */
+function applyPhaseModifiers(w, faction, phase) {
+  // Start with a shallow copy
+  const pw = { ...w };
+
+  if (phase === 'early') {
+    pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 0.5);
+    pw.championProximity        = Math.round(w.championProximity        * 0.5);
+    pw.unitCountDiff            = Math.round(w.unitCountDiff            * 1.4);
+    pw.cardsInHand              = Math.round(w.cardsInHand              * 1.3);
+    pw.totalATKOnBoard          = Math.round(w.totalATKOnBoard          * 0.8);
+  }
+
+  if (phase === 'mid') {
+    switch (faction) {
+      case 'primal':
+        pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 1.4);
+        pw.championProximity        = Math.round(w.championProximity        * 1.3);
+        break;
+      case 'mystic':
+        pw.healingValue  = Math.round(w.healingValue  * 1.5);
+        pw.cardsInHand   = Math.round(w.cardsInHand   * 1.3);
+        break;
+      case 'light':
+        pw.unitsAdjacentToAlly = Math.round(w.unitsAdjacentToAlly * 1.5);
+        pw.unitCountDiff       = Math.round(w.unitCountDiff       * 1.2);
+        break;
+      case 'dark':
+        pw.cardsInHand  = Math.round(w.cardsInHand  * 1.4);
+        pw.hiddenUnits  = Math.round(w.hiddenUnits  * 1.5);
+        break;
+    }
+  }
+
+  if (phase === 'late') {
+    pw.championHPDiff           = Math.round(w.championHPDiff           * 2.0);
+    pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 1.5);
+    pw.championProximity        = Math.round(w.championProximity        * 1.5);
+    pw.lethalThreat             = Math.round(w.lethalThreat             * 1.5);
+
+    // Mystic late: shift from sustain to closing
+    if (faction === 'mystic') {
+      pw.healingValue             = Math.round(w.healingValue             * 0.3);
+      pw.unitsThreateningChampion = 18;  // override: from 8 (mid) to 18 (late)
+    }
+  }
+
+  return pw;
+}
+
 /**
  * Compute the game-length urgency penalty for a given faction.
  * Earlier start = more aggressive faction wants to close fast.
@@ -147,22 +250,17 @@ function computeGameLengthPenalty(faction, turnNumber) {
 }
 
 /**
- * Resolve faction-specific weights for a given player, applying any dynamic
- * adjustments (e.g. Mystic's championHPDiff scaling after turn 12).
+ * Resolve faction-specific weights for a given player, applying faction profile
+ * and phase-based modifiers for the current turn.
  *
  * @param {string} faction    - 'primal'|'mystic'|'light'|'dark'
  * @param {number} turnNumber - current game turn
  * @returns {object}           weight profile to use in evaluateBoard
  */
 function resolveFactionWeights(faction, turnNumber) {
-  const base = FACTION_WEIGHTS[faction] ?? WEIGHTS;
-
-  // Mystic: championHPDiff increases after turn 12 (late-game closing instinct)
-  if (faction === 'mystic' && turnNumber > 12) {
-    return { ...base, championHPDiff: 8 };
-  }
-
-  return base;
+  const base  = FACTION_WEIGHTS[faction] ?? WEIGHTS;
+  const phase = getPhase(turnNumber);
+  return applyPhaseModifiers(base, faction, phase);
 }
 
 /**

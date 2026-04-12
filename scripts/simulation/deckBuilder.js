@@ -8,7 +8,7 @@
  *   - Primary attribute:   55–65% of deck (16–20 cards)
  *   - Secondary attribute: 25–35% of deck  (8–10 cards)
  *   - Neutral:              0–15% of deck  (0–4 cards)
- *   - Bridge cards for the pairing are mandatory includes (not random)
+ *   - Bridge cards are in the normal pool and may appear organically (not forced)
  *   - Resonance is calculated and returned but never used to reject a deck
  *
  * Usage:
@@ -209,155 +209,98 @@ function buildCurveDeckMono(pool) {
 
 // ── Mode: curve (paired) ──────────────────────────────────────────────────────
 //
-// Paired deck split (budgets are hard limits, all counts include bridges + legs):
+// Paired deck split (hard budgets; bridge cards in normal pool, not forced):
 //   18 primary   (55–65%)
 //    9 secondary (25–35%)
 //    3 neutral    (0–15%)
 //   ──
 //   30 total
 //
-// Bridge cards are mandatory and count toward their attribute's budget.
-// Legendaries are pulled from within each attribute's remaining budget, not added on top.
+// Bridge cards for each pairing exist in the normal card pool and may appear
+// organically when the curve builder selects them. They are not mandatory.
 
-function buildCurveDeckPaired(primaryPool, secondaryPool, neutralPool, pairingId) {
+function buildCurveDeckPaired(primaryPool, secondaryPool, neutralPool) {
   const usedCount = new Map();
   const usedLeg   = new Set();
 
-  // Helper that fills into a sub-deck up to `budget` cards, then returns the ids.
-  // Uses the same fillFrom logic but operates on a local array.
-  function fillAttrSlots(nonLegByCost, legPool, budget) {
-    const sub = [];
+  // Fill exactly `budget` cards from a pool, curve-distributed.
+  function fillBudget(nonLegPool, legPool, budget) {
+    const result = [];
     const localCount = new Map(usedCount);
     const localLeg   = new Set(usedLeg);
 
-    const legBudget = Math.min(legPool.length, 2);
+    const legBudget    = Math.min(legPool.length, 2);
     const nonLegBudget = budget - legBudget;
+    const totalCurve   = CURVE_TARGETS.reduce((s, t) => s + t.target, 0);
 
-    // Curve-distributed fill for non-legendaries
+    const byCost = CURVE_TARGETS.map(slot =>
+      nonLegPool.filter(c => c.cost >= slot.minCost && c.cost <= slot.maxCost));
+
+    // Curve-proportional fill for non-legendaries
     let filled = 0;
-    const totalCurveTarget = CURVE_TARGETS.reduce((s, t) => s + t.target, 0);
     for (let i = 0; i < CURVE_TARGETS.length; i++) {
-      const slotTarget = Math.round((CURVE_TARGETS[i].target / totalCurveTarget) * nonLegBudget);
-      for (const card of nonLegByCost[i]) {
-        if (filled >= nonLegBudget || sub.length >= budget) break;
-        if (!card.legendary) {
-          const n = localCount.get(card.id) ?? 0;
-          if (n < 2) {
-            sub.push(card.id);
-            localCount.set(card.id, n + 1);
-            if (sub.length - legBudget <= slotTarget) filled++;
-          }
-        }
+      const slotTarget = Math.round((CURVE_TARGETS[i].target / totalCurve) * nonLegBudget);
+      for (const card of byCost[i]) {
+        if (filled >= nonLegBudget || result.length >= budget - legBudget) break;
+        const n = localCount.get(card.id) ?? 0;
+        if (n < 2) { result.push(card.id); localCount.set(card.id, n + 1); filled++; }
+        if (filled >= slotTarget) break;
       }
     }
-
-    // Pad non-leg if under budget
+    // Pad non-leg up to budget
     if (filled < nonLegBudget) {
       const padOrder = [2, 3, 1, 4, 5, 0];
       for (const si of padOrder) {
-        for (const card of nonLegByCost[si]) {
-          if (filled >= nonLegBudget || sub.length >= budget) break;
-          if (!card.legendary) {
-            const n = localCount.get(card.id) ?? 0;
-            if (n < 2) { sub.push(card.id); localCount.set(card.id, n + 1); filled++; }
-          }
-        }
         if (filled >= nonLegBudget) break;
+        for (const card of byCost[si]) {
+          if (filled >= nonLegBudget) break;
+          const n = localCount.get(card.id) ?? 0;
+          if (n < 2) { result.push(card.id); localCount.set(card.id, n + 1); filled++; }
+        }
       }
     }
 
-    // Add legendaries within budget
+    // Add legendaries
     let legAdded = 0;
     for (const card of legPool) {
-      if (legAdded >= legBudget || sub.length >= budget) break;
-      if (!localLeg.has(card.id)) { sub.push(card.id); localLeg.add(card.id); legAdded++; }
+      if (legAdded >= legBudget) break;
+      if (!localLeg.has(card.id)) { result.push(card.id); localLeg.add(card.id); legAdded++; }
     }
 
-    // Sync back to outer tracking
-    for (const id of sub) {
+    // Sync tracking state back
+    for (const id of result) {
       const card = CARD_DB[id];
       if (!card) continue;
       if (card.legendary) usedLeg.add(id);
       else usedCount.set(id, (usedCount.get(id) ?? 0) + 1);
     }
 
-    return sub;
+    return result;
   }
 
-  // ── Step 1: mandatory bridge cards ────────────────────────────────────────
-  const bridges = BRIDGE_CARDS[pairingId] ?? [];
-  const bridgePrimary   = [];
-  const bridgeSecondary = [];
-  for (const id of bridges) {
-    const card = CARD_DB[id];
-    if (!card) continue;
-    const isPrimary = primaryPool.some(c => c.id === id);
-    if (card.legendary) {
-      if (!usedLeg.has(id)) {
-        usedLeg.add(id);
-        isPrimary ? bridgePrimary.push(id) : bridgeSecondary.push(id);
-      }
-    } else {
-      const n = usedCount.get(id) ?? 0;
-      if (n < 2) {
-        usedCount.set(id, n + 1);
-        isPrimary ? bridgePrimary.push(id) : bridgeSecondary.push(id);
-      }
-    }
-  }
+  const primaryNonLeg   = shuffle(primaryPool.filter(c => !c.legendary));
+  const primaryLeg      = shuffle(primaryPool.filter(c =>  c.legendary));
+  const secondaryNonLeg = shuffle(secondaryPool.filter(c => !c.legendary));
+  const secondaryLeg    = shuffle(secondaryPool.filter(c =>  c.legendary));
+  const neutralNonLeg   = shuffle(neutralPool.filter(c => !c.legendary));
 
-  const primaryBridgeCount   = bridgePrimary.length;
-  const secondaryBridgeCount = bridgeSecondary.length;
+  const primarySlots   = fillBudget(primaryNonLeg,   primaryLeg,   PAIRED_PRIMARY_TARGET);
+  const secondarySlots = fillBudget(secondaryNonLeg, secondaryLeg, PAIRED_SECONDARY_TARGET);
 
-  // ── Step 2: fill primary (budget minus bridges) ────────────────────────────
-  const primaryRemaining = PAIRED_PRIMARY_TARGET - primaryBridgeCount;
-  const primaryNonLeg    = shuffle(primaryPool.filter(c => !c.legendary && !bridges.includes(c.id)));
-  const primaryLeg       = shuffle(primaryPool.filter(c =>  c.legendary && !bridges.includes(c.id)));
-  const primaryByCost    = CURVE_TARGETS.map(slot =>
-    primaryNonLeg.filter(c => c.cost >= slot.minCost && c.cost <= slot.maxCost));
-
-  const primarySlots = fillAttrSlots(primaryByCost, primaryLeg, primaryRemaining);
-
-  // ── Step 3: fill secondary (budget minus bridges) ──────────────────────────
-  const secondaryRemaining = PAIRED_SECONDARY_TARGET - secondaryBridgeCount;
-  const secondaryNonLeg    = shuffle(secondaryPool.filter(c => !c.legendary && !bridges.includes(c.id)));
-  const secondaryLeg       = shuffle(secondaryPool.filter(c =>  c.legendary && !bridges.includes(c.id)));
-  const secByCost          = CURVE_TARGETS.map(slot =>
-    secondaryNonLeg.filter(c => c.cost >= slot.minCost && c.cost <= slot.maxCost));
-
-  const secondarySlots = fillAttrSlots(secByCost, secondaryLeg, secondaryRemaining);
-
-  // ── Step 4: neutral cards ──────────────────────────────────────────────────
-  const neutralShuffled = shuffle(neutralPool.filter(c => !c.legendary));
-  const neutralSlots    = [];
-  for (const card of neutralShuffled) {
+  // Neutral (no legendaries needed)
+  const neutralSlots = [];
+  for (const card of neutralNonLeg) {
     if (neutralSlots.length >= PAIRED_NEUTRAL_TARGET) break;
     const n = usedCount.get(card.id) ?? 0;
     if (n < 2) { neutralSlots.push(card.id); usedCount.set(card.id, n + 1); }
   }
 
-  // ── Assemble deck ──────────────────────────────────────────────────────────
-  const deck = [
-    ...bridgePrimary,
-    ...bridgeSecondary,
-    ...primarySlots,
-    ...secondarySlots,
-    ...neutralSlots,
-  ];
+  const deck = [...primarySlots, ...secondarySlots, ...neutralSlots];
 
-  // ── Pad to 30 if needed ────────────────────────────────────────────────────
-  const padUsedCount = new Map(usedCount);
-  const padUsedLeg   = new Set(usedLeg);
-  for (const id of deck) {
-    const card = CARD_DB[id];
-    if (!card) continue;
-    if (card.legendary) padUsedLeg.add(id);
-    else padUsedCount.set(id, (padUsedCount.get(id) ?? 0) + 1);
-  }
-
-  if (deck.length < 30) fillFrom(deck, primaryNonLeg,   30 - deck.length, padUsedCount, padUsedLeg);
-  if (deck.length < 30) fillFrom(deck, secondaryNonLeg, 30 - deck.length, padUsedCount, padUsedLeg);
-  if (deck.length < 30) fillFrom(deck, neutralShuffled, 30 - deck.length, padUsedCount, padUsedLeg);
+  // Pad to 30 if needed
+  if (deck.length < 30) fillFrom(deck, primaryNonLeg,   30 - deck.length, usedCount, usedLeg);
+  if (deck.length < 30) fillFrom(deck, secondaryNonLeg, 30 - deck.length, usedCount, usedLeg);
+  if (deck.length < 30) fillFrom(deck, neutralNonLeg,   30 - deck.length, usedCount, usedLeg);
 
   return deck.slice(0, 30);
 }
@@ -474,7 +417,7 @@ function buildArchetypeDeck(pool, primaryAttr, archetype) {
  * @param {string}      champion       - Primary attribute: 'light'|'primal'|'mystic'|'dark'
  * @param {string|null} secondaryAttr  - Secondary attribute, or null for mono
  * @param {string}      mode           - 'random'|'curve'|'archetype'
- * @param {object}      options        - { archetype: 'aggro'|'midrange'|'control'|'tempo', pairingId: string }
+ * @param {object}      options        - { archetype: 'aggro'|'midrange'|'control'|'tempo' }
  * @returns {{ cardIds: string[], resonance: { score: number, tier: string } }}
  */
 export function buildDeck(champion, secondaryAttr = null, mode = 'curve', options = {}) {
@@ -499,12 +442,11 @@ export function buildDeck(champion, secondaryAttr = null, mode = 'curve', option
       // Mono deck — no split constraints
       cardIds = buildCurveDeckMono(fullPool);
     } else {
-      // Paired deck — enforce primary/secondary/neutral split + bridge cards
-      const pairingId = options.pairingId ?? `${champion}_${secondaryAttr}`;
+      // Paired deck — enforce 18/9/3 primary/secondary/neutral split
       const primaryPool   = fullPool.filter(c => c.attribute === primaryAttr);
       const secondaryPool = fullPool.filter(c => c.attribute === secondaryAttr);
       const neutralPool   = fullPool.filter(c => c.attribute === 'neutral');
-      cardIds = buildCurveDeckPaired(primaryPool, secondaryPool, neutralPool, pairingId);
+      cardIds = buildCurveDeckPaired(primaryPool, secondaryPool, neutralPool);
     }
   }
 
