@@ -3,41 +3,19 @@ import {
   createInitialState,
   autoAdvancePhase,
   getChampionMoveTiles,
-  moveChampion,
   getSummonTiles,
   playCard,
   summonUnit,
-  resolveSpell,
-  resolveHandSelect,
-  resolveGraveSelect,
-  resolveFleshtitheSacrifice,
-  cancelSpell,
-  endActionAndTurn,
   getUnitMoveTiles,
-  moveUnit,
-  archerShoot,
-  discardCard,
   getSpellTargets,
   getArcherShootTargets,
-  playerRevealUnit,
   triggerUnitAction,
   getChampionAbilityTargets,
-  applyChampionAbility,
   getChampionDef,
   getTerrainCastTiles,
-  castTerrainCard,
   getApproachTiles,
-  executeApproachAndAttack,
   manhattan,
   resolveLineBlast,
-  resolveDirectionTile,
-  resolveDeckPeek,
-  resolveGlimpse,
-  resolveScry,
-  resolveContractSelect,
-  resolveBloodPactFriendly,
-  resolveBloodPactEnemy,
-  resolveChampionSaplingPlace,
   getEffectiveCost,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
@@ -46,6 +24,26 @@ import {
   handleChampionMove,
   handleUnitMove,
   handleTriggerUnitAction as execTriggerUnitAction,
+  handleSpellTarget as execSpellTarget,
+  handleCancelSpell as execCancelSpell,
+  handleHandSelect as execHandSelect,
+  handleGraveSelect as execGraveSelect,
+  handleEndTurn,
+  handleArcherShoot as execArcherShoot,
+  handleDiscardCard as execDiscardCard,
+  handleRevealUnit as execRevealUnit,
+  handleDirectionTileSelect as execDirectionTileSelect,
+  handleApproachAttack,
+  handleChampionAbility as execChampionAbility,
+  handleChampionSaplingPlace as execChampionSaplingPlace,
+  handleDeckPeekSelect as execDeckPeekSelect,
+  handleGlimpseDecision as execGlimpseDecision,
+  handleScryDismiss as execScryDismiss,
+  handleContractSelect as execContractSelect,
+  handleBloodPactFriendly as execBloodPactFriendly,
+  handleBloodPactEnemy as execBloodPactEnemy,
+  handleFleshtitheSacrifice as execFleshtitheSacrifice,
+  handleTerrainCast as execTerrainCast,
 } from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
@@ -225,7 +223,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handlePlayCard = useCallback((cardUid) => {
     // Second click on the already-selected card → deselect
     if (cardUid === selectedCard) {
-      setState(prev => cancelSpell(prev));
+      setState(prev => execCancelSpell(prev));
       clearSelection();
       return;
     }
@@ -239,9 +237,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       if (prev.pendingHandSelect) return prev;
       setSelectMode(null);
       // Auto-decline any pending Flesh Tithe sacrifice before processing new card
-      const preFT = prev.pendingFleshtitheSacrifice ? resolveFleshtitheSacrifice(prev, 'no', null) : prev;
+      const preFT = prev.pendingFleshtitheSacrifice ? execFleshtitheSacrifice(prev, 'no', null) : prev;
       // Cancel any leftover pending state from a previous selection
-      const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? cancelSpell(preFT) : preFT;
+      const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? execCancelSpell(preFT) : preFT;
       const p = base.players[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid);
       const effectiveCost = card ? getEffectiveCost(card, base, base.activePlayer) : 0;
@@ -313,7 +311,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       const cardUid = prev.pendingSpell?.cardUid ?? selectedCard;
       const prevChampHp = prev.champions[0]?.hp;
       const prevUnitHps = prev.units.filter(u => u.owner === 0).map(u => ({ uid: u.uid, hp: u.hp }));
-      const s = resolveSpell(prev, cardUid, targetUid);
+      const s = execSpellTarget(prev, cardUid, targetUid);
       if (s.pendingSpell) {
         // multi-step spell continues
         setSelectMode('spell');
@@ -337,7 +335,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const hs = prev.pendingHandSelect;
       console.log('[PactOfRuin] handleHandSelect: card clicked while pendingHandSelect active. cardUid:', cardUid, 'reason:', hs?.reason, 'isPactOfRuin:', hs?.reason === 'pactofruin');
-      const s = resolveHandSelect(prev, cardUid);
+      const s = execHandSelect(prev, cardUid);
       console.log('[PactOfRuin] handleHandSelect: resolveHandSelect returned. pendingHandSelect:', JSON.stringify(s.pendingHandSelect), 'pendingSpell:', JSON.stringify(s.pendingSpell));
       if (s.pendingSpell) {
         setSelectMode('spell');
@@ -351,7 +349,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleGraveSelect = useCallback((cardUid) => {
     setState(prev => {
-      const s = resolveGraveSelect(prev, cardUid);
+      const s = execGraveSelect(prev, cardUid);
       if (s.pendingSummon?.rebirthMode) {
         setSelectedCard(s.pendingSummon.card.uid);
         setSelectMode('summon');
@@ -372,14 +370,14 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, []);
 
   const handleFleshtitheSacrifice = useCallback((choice, sacrificeUid) => {
-    setState(prev => resolveFleshtitheSacrifice(prev, choice, sacrificeUid));
+    setState(prev => execFleshtitheSacrifice(prev, choice, sacrificeUid));
     setSelectedSacrificeUid(null);
     clearSelection();
   }, [clearSelection]);
 
   const handleContractSelect = useCallback((contractId) => {
     setState(prev => {
-      const s = resolveContractSelect(prev, contractId);
+      const s = execContractSelect(prev, contractId);
       // If Blood Pact selected, stay in action phase with pendingBloodPact set
       // If Dark Bargain selected, pendingHandSelect is set — wire up selectMode so Hand shows discard UI
       if (s.pendingHandSelect) {
@@ -392,10 +390,10 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleBloodPactSelect = useCallback((unitUid) => {
     setState(prev => {
       if (prev.pendingBloodPact?.step === 'selectFriendly') {
-        return resolveBloodPactFriendly(prev, unitUid);
+        return execBloodPactFriendly(prev, unitUid);
       }
       if (prev.pendingBloodPact?.step === 'selectEnemy') {
-        const s = resolveBloodPactEnemy(prev, unitUid);
+        const s = execBloodPactEnemy(prev, unitUid);
         // Blood Pact complete — schedule AI if needed
         if (!s.pendingBloodPact && s.activePlayer === 1 && !s.winner) {
           scheduleAITurn();
@@ -407,13 +405,13 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [scheduleAITurn]);
 
   const handleCancelSpell = useCallback(() => {
-    setState(prev => cancelSpell(prev));
+    setState(prev => execCancelSpell(prev));
     clearSelection();
   }, [clearSelection]);
 
   const handleEndAction = useCallback(() => {
     setState(prev => {
-      const next = endActionAndTurn(prev);
+      const next = handleEndTurn(prev);
       latestStateRef.current = next;
       return next;
     });
@@ -439,7 +437,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleChampionAbilityActivate = useCallback((abilityId, targetFilter) => {
     if (!targetFilter) {
       // Targetless — apply immediately (e.g. Dark Pact)
-      setState(prev => applyChampionAbility(prev, 0, abilityId, null));
+      setState(prev => execChampionAbility(prev, 0, abilityId, null));
       return;
     }
     setPendingChampionAbility({ abilityId, targetFilter });
@@ -451,7 +449,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const prevChampHp = prev.champions[0]?.hp;
       const prevUnitHps = prev.units.filter(u => u.owner === 0).map(u => ({ uid: u.uid, hp: u.hp }));
-      const next = applyChampionAbility(prev, 0, pendingChampionAbility.abilityId, targetUid);
+      const next = execChampionAbility(prev, 0, pendingChampionAbility.abilityId, targetUid);
       if ((next.champions[0]?.hp ?? 0) > prevChampHp) playSfxCheal();
       const healed = prevUnitHps.find(({ uid, hp }) => {
         const after = next.units.find(u => u.uid === uid);
@@ -477,7 +475,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [state.pendingChampionSaplingPlace]);
 
   const handleChampionSaplingPlace = useCallback((row, col) => {
-    setState(prev => resolveChampionSaplingPlace(prev, row, col));
+    setState(prev => execChampionSaplingPlace(prev, row, col));
     setSelectMode(null);
   }, []);
 
@@ -522,7 +520,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     if (!pendingApproach) return;
     const { unitUid, targetRow, targetCol } = pendingApproach;
     setState(prev => {
-      const next = executeApproachAndAttack(prev, unitUid, approachRow, approachCol, targetRow, targetCol);
+      const next = handleApproachAttack(prev, unitUid, approachRow, approachCol, targetRow, targetCol);
       const attackerSurvived = next.units.find(u => u.uid === unitUid);
       if (!attackerSurvived) {
         playSfxAttackBlock();
@@ -543,13 +541,13 @@ export function useGameState({ deckId = 'human' } = {}) {
   const handleArcherShoot = useCallback((targetUid) => {
     if (!selectedUnit) return;
     playSfxAttack();
-    setState(prev => archerShoot(prev, selectedUnit, targetUid));
+    setState(prev => execArcherShoot(prev, selectedUnit, targetUid));
     clearSelection();
   }, [selectedUnit, clearSelection]);
 
   const handleDiscardCard = useCallback((cardUid) => {
     setState(prev => {
-      const next = discardCard(prev, cardUid);
+      const next = execDiscardCard(prev, cardUid);
       latestStateRef.current = next;
       return next;
     });
@@ -557,7 +555,7 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, [scheduleAITurn]);
 
   const handleRevealUnit = useCallback((unitUid) => {
-    setState(prev => playerRevealUnit(prev, unitUid));
+    setState(prev => execRevealUnit(prev, unitUid));
     clearSelection();
   }, [clearSelection]);
 
@@ -613,23 +611,23 @@ export function useGameState({ deckId = 'human' } = {}) {
     setState(prev => {
       const ds = prev.pendingDirectionSelect;
       if (!ds) return prev;
-      return resolveDirectionTile(prev, ds.unitUid, row, col);
+      return execDirectionTileSelect(prev, ds.unitUid, row, col);
     });
     clearSelection();
   }, [clearSelection]);
 
   const handleDeckPeekSelect = useCallback((cardUid) => {
-    setState(prev => resolveDeckPeek(prev, cardUid));
+    setState(prev => execDeckPeekSelect(prev, cardUid));
     clearSelection();
   }, [clearSelection]);
 
   const handleGlimpseDecision = useCallback((keepTop) => {
-    setState(prev => resolveGlimpse(prev, keepTop));
+    setState(prev => execGlimpseDecision(prev, keepTop));
     clearSelection();
   }, [clearSelection]);
 
   const handleScryDismiss = useCallback(() => {
-    setState(prev => resolveScry(prev));
+    setState(prev => execScryDismiss(prev));
     clearSelection();
   }, [clearSelection]);
 
@@ -641,7 +639,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const handleTerrainCast = useCallback((row, col) => {
     if (!selectedCard) return;
-    setState(prev => castTerrainCard(prev, selectedCard, row, col));
+    setState(prev => execTerrainCast(prev, selectedCard, row, col));
     clearSelection();
   }, [selectedCard, clearSelection]);
 

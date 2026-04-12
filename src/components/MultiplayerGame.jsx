@@ -10,33 +10,31 @@ import { ATTRIBUTES } from '../engine/attributes.js';
 import DeckSelect from './DeckSelect.jsx';
 import {
   getChampionMoveTiles,
-  moveChampion,
   getSummonTiles,
   playCard,
   summonUnit,
-  resolveSpell,
-  resolveHandSelect,
-  resolveGraveSelect,
-  resolveFleshtitheSacrifice,
-  cancelSpell,
-  endActionAndTurn,
   getUnitMoveTiles,
-  moveUnit,
-  archerShoot,
-  discardCard,
   getSpellTargets,
   getArcherShootTargets,
-  playerRevealUnit,
   triggerUnitAction,
-  resolveDirectionTile,
   getApproachTiles,
-  executeApproachAndAttack,
   manhattan,
 } from '../engine/gameEngine.js';
 import {
   handleChampionMove,
   handleUnitMove,
   handleTriggerUnitAction as execTriggerUnitAction,
+  handleSpellTarget as execSpellTarget,
+  handleCancelSpell as execCancelSpell,
+  handleHandSelect as execHandSelect,
+  handleGraveSelect as execGraveSelect,
+  handleEndTurn,
+  handleArcherShoot as execArcherShoot,
+  handleDiscardCard as execDiscardCard,
+  handleRevealUnit as execRevealUnit,
+  handleDirectionTileSelect as execDirectionTileSelect,
+  handleApproachAttack,
+  handleFleshtitheSacrifice as execFleshtitheSacrifice,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -256,7 +254,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (cardUid === selectedCard) {
       clearSelection();
       if (gameState.pendingSpell || gameState.pendingSummon) {
-        await dispatch(cancelSpell(gameState));
+        await dispatch(execCancelSpell(gameState));
       }
       return;
     }
@@ -265,9 +263,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     setSelectMode(null);
 
     // Auto-decline any pending Flesh Tithe sacrifice before processing new card
-    const preFT = gameState.pendingFleshtitheSacrifice ? resolveFleshtitheSacrifice(gameState, 'no', null) : gameState;
+    const preFT = gameState.pendingFleshtitheSacrifice ? execFleshtitheSacrifice(gameState, 'no', null) : gameState;
     // Cancel any leftover pending state from a previous selection
-    const base = (preFT.pendingSpell || preFT.pendingSummon) ? cancelSpell(preFT) : preFT;
+    const base = (preFT.pendingSpell || preFT.pendingSummon) ? execCancelSpell(preFT) : preFT;
     const p = base.players[base.activePlayer];
     const card = p.hand.find(c => c.uid === cardUid);
     if (!card || p.resources < getEffectiveCost(card, base, base.activePlayer)) return;
@@ -323,7 +321,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleFleshtitheSacrifice = useCallback(async (choice, sacrificeUid) => {
     if (!gameState) return;
     setSelectedSacrificeUid(null);
-    await dispatch(resolveFleshtitheSacrifice(gameState, choice, sacrificeUid));
+    await dispatch(execFleshtitheSacrifice(gameState, choice, sacrificeUid));
   }, [gameState, dispatch]);
 
   const handleSpellTarget = useCallback(async (targetUid) => {
@@ -339,7 +337,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }
     const cardUid = gameState.pendingSpell?.cardUid ?? selectedCard;
     if (!cardUid && !gameState.pendingSpell) return;
-    const newState = resolveSpell(gameState, cardUid, targetUid);
+    const newState = execSpellTarget(gameState, cardUid, targetUid);
     if (newState.pendingSpell) {
       // Multi-step spell or action: stay in spell mode, don't clear selection
       await dispatchAction(newState);
@@ -350,7 +348,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleGraveSelect = useCallback(async (graveUid) => {
     if (!gameState) return;
-    const s = resolveGraveSelect(gameState, graveUid);
+    const s = execGraveSelect(gameState, graveUid);
     if (!s.winner) checkWinner(s);
     if (s.pendingSummon?.rebirthMode) {
       setSelectedCard(s.pendingSummon.card.uid);
@@ -366,12 +364,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleCancelSpell = useCallback(async () => {
     if (!gameState) return;
-    await dispatch(cancelSpell(gameState));
+    await dispatch(execCancelSpell(gameState));
   }, [gameState, dispatch]);
 
   const handleEndAction = useCallback(async () => {
     if (!gameState) return;
-    await dispatch(endActionAndTurn(gameState));
+    await dispatch(handleEndTurn(gameState));
   }, [gameState, dispatch]);
 
   const handleSelectChampion = useCallback(() => {
@@ -401,7 +399,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleApproachTileChosen = useCallback(async (approachRow, approachCol) => {
     if (!gameState || !pendingApproach) return;
     const { unitUid, targetRow, targetCol } = pendingApproach;
-    await dispatch(executeApproachAndAttack(gameState, unitUid, approachRow, approachCol, targetRow, targetCol));
+    await dispatch(handleApproachAttack(gameState, unitUid, approachRow, approachCol, targetRow, targetCol));
   }, [gameState, pendingApproach, dispatch]);
 
   const handleArcherSelectTarget = useCallback((archerUid) => {
@@ -411,17 +409,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleArcherShoot = useCallback(async (targetUid) => {
     if (!gameState || !selectedUnit) return;
-    await dispatch(archerShoot(gameState, selectedUnit, targetUid));
+    await dispatch(execArcherShoot(gameState, selectedUnit, targetUid));
   }, [gameState, selectedUnit, dispatch]);
 
   const handleDiscardCard = useCallback(async (cardUid) => {
     if (!gameState) return;
-    await dispatch(discardCard(gameState, cardUid));
+    await dispatch(execDiscardCard(gameState, cardUid));
   }, [gameState, dispatch]);
 
   const handleRevealUnit = useCallback(async (unitUid) => {
     if (!gameState) return;
-    await dispatch(playerRevealUnit(gameState, unitUid));
+    await dispatch(execRevealUnit(gameState, unitUid));
   }, [gameState, dispatch]);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
@@ -463,7 +461,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleDirectionTileSelect = useCallback(async (row, col) => {
     if (!gameState) return;
-    const newState = resolveDirectionTile(gameState, gameState.pendingDirectionSelect?.unitUid, row, col);
+    const newState = execDirectionTileSelect(gameState, gameState.pendingDirectionSelect?.unitUid, row, col);
     clearSelection();
     await dispatch(newState);
   }, [gameState, dispatch, clearSelection]);
@@ -1449,7 +1447,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               onDiscardCard={handleDiscardCard}
               onHandSelect={async (cardUid) => {
                 if (!gameState) return;
-                const s = resolveHandSelect(gameState, cardUid);
+                const s = execHandSelect(gameState, cardUid);
                 if (s.pendingSpell) {
                   if (!s.winner) checkWinner(s);
                   setSelectMode('spell');
@@ -1498,7 +1496,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onDiscardCard={handleDiscardCard}
             onHandSelect={async (cardUid) => {
               if (!gameState) return;
-              const s = resolveHandSelect(gameState, cardUid);
+              const s = execHandSelect(gameState, cardUid);
               if (s.pendingSpell) {
                 if (!s.winner) checkWinner(s);
                 setSelectMode('spell');
