@@ -46,6 +46,9 @@ import {
   handleDeckPeekSelect as execDeckPeekSelect,
   handleGlimpseDecision as execGlimpseDecision,
   handleScryDismiss as execScryDismiss,
+  handleContractSelect as execContractSelect,
+  handleBloodPactFriendly as execBloodPactFriendly,
+  handleBloodPactEnemy as execBloodPactEnemy,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl } from '../supabase.js';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
@@ -508,6 +511,30 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleScryDismiss = useCallback(async () => {
     if (!gameState) return;
     await dispatch(execScryDismiss(gameState));
+  }, [gameState, dispatch]);
+
+  const handleContractSelect = useCallback(async (contractId) => {
+    if (!gameState) return;
+    const s = execContractSelect(gameState, contractId);
+    if (s.pendingHandSelect) {
+      setSelectMode('hand_select');
+      await dispatchAction(s);
+    } else {
+      await dispatch(s);
+    }
+  }, [gameState, dispatch, dispatchAction]);
+
+  const handleBloodPactSelect = useCallback(async (unitUid) => {
+    if (!gameState) return;
+    let s;
+    if (gameState.pendingBloodPact?.step === 'selectFriendly') {
+      s = execBloodPactFriendly(gameState, unitUid);
+    } else if (gameState.pendingBloodPact?.step === 'selectEnemy') {
+      s = execBloodPactEnemy(gameState, unitUid);
+    } else {
+      return;
+    }
+    await dispatch(s);
   }, [gameState, dispatch]);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
@@ -1721,6 +1748,168 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           onClose={handleMobileModalDismiss}
           myPlayerIndex={myPlayerIndex}
         />
+      )}
+
+      {/* Nezzar contract selection modal — only shown to the active player who owns Nezzar */}
+      {state.pendingContractSelect && isMyTurn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.80)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '600px',
+            width: '92vw',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '4px', textAlign: 'center' }}>
+              Nezzar, Terms and Conditions
+            </div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8080a0', marginBottom: '16px', textAlign: 'center' }}>
+              Choose a deadly contract — or decline.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {state.pendingContractSelect.contracts.map(contract => (
+                <div
+                  key={contract.id}
+                  onClick={() => handleContractSelect(contract.id)}
+                  style={{
+                    background: 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)',
+                    border: '1px solid #7a2a2a',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    minWidth: '130px',
+                    maxWidth: '160px',
+                    textAlign: 'center',
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.background = 'linear-gradient(180deg, #2a0a0a 0%, #300d0d 100%)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#7a2a2a'; e.currentTarget.style.background = 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)'; }}
+                >
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#EF4444', marginBottom: '6px', letterSpacing: '0.04em' }}>{contract.name}</div>
+                  <div style={{ fontSize: '10px', color: '#c0a0a0', lineHeight: 1.4 }}>{contract.description}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={() => handleContractSelect(null)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2a2a42',
+                  borderRadius: '4px',
+                  color: '#6060a0',
+                  fontSize: '11px',
+                  padding: '6px 20px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >Decline</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blood Pact — select a friendly unit to sacrifice */}
+      {state.pendingBloodPact?.step === 'selectFriendly' && isMyTurn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '520px',
+            width: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Blood Pact — Sacrifice a friendly unit
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {state.units
+                .filter(u => u.owner === myPlayerIndex && !u.isRelic && !u.isOmen && u.uid !== state.pendingBloodPact.nezzarUid)
+                .map(u => (
+                  <div
+                    key={u.uid}
+                    onClick={() => handleBloodPactSelect(u.uid)}
+                    style={{
+                      background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                      border: '1px solid #7a2a2a',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      minWidth: '90px',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#EF4444'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#7a2a2a'}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{u.name}</div>
+                    <div style={{ fontSize: '10px', color: '#8080a0' }}>{u.atk}/{u.hp}</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blood Pact — select an enemy unit to destroy */}
+      {state.pendingBloodPact?.step === 'selectEnemy' && isMyTurn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+        >
+          <div style={{
+            background: '#0f0f1e',
+            border: '1px solid #C9A84C60',
+            borderRadius: '8px',
+            padding: '20px',
+            maxWidth: '520px',
+            width: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
+              Blood Pact — Destroy an enemy unit
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {state.units
+                .filter(u => u.owner !== myPlayerIndex && !u.isRelic && !u.isOmen)
+                .map(u => (
+                  <div
+                    key={u.uid}
+                    onClick={() => handleBloodPactSelect(u.uid)}
+                    style={{
+                      background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+                      border: '1px solid #7a2a2a',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      minWidth: '90px',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#EF4444'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#7a2a2a'}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8e8f0', marginBottom: '2px' }}>{u.name}</div>
+                    <div style={{ fontSize: '10px', color: '#8080a0' }}>{u.atk}/{u.hp}</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

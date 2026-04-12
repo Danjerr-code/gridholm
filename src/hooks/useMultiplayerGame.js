@@ -322,7 +322,12 @@ export function useMultiplayerGame(gameId) {
     if (isComplete) {
       const losingChamp = newGameState.champions.find(c => c.hp <= 0);
       if (losingChamp) {
-        winnerGuestId = losingChamp.owner === 0 ? session.player2_id : session.player1_id;
+        // Map losing engine index to guest ID, accounting for isSwapped.
+        // When isSwapped, engine index 0 = player2 (first player); otherwise index 0 = player1.
+        const winnerEngineIdx = 1 - losingChamp.owner;
+        winnerGuestId = winnerEngineIdx === 0
+          ? (isSwapped ? session.player2_id : session.player1_id)
+          : (isSwapped ? session.player1_id : session.player2_id);
       }
     }
 
