@@ -141,12 +141,16 @@ function getPhase(turn) {
 /**
  * Apply phase-based multipliers to a weight profile.
  *
- * Early (turns 1–5): develop the board; attack urgency reduced for all factions.
- *   - unitsThreateningChampion × 0.5  (don't rush champion early)
- *   - championProximity       × 0.5  (don't advance aggressively)
- *   - unitCountDiff           × 1.4  (establish board presence)
- *   - cardsInHand             × 1.3  (value hand development)
- *   - totalATKOnBoard         × 0.8  (raw ATK less urgent than position)
+ * Early (turns 1–5): develop the board; attack urgency reduced for most factions.
+ *   - unitsThreateningChampion × 0.5  (don't rush champion early — EXCEPT Primal)
+ *   - championProximity       × 0.5  (don't advance aggressively — EXCEPT Primal)
+ *   - totalATKOnBoard         × 0.8  (raw ATK less urgent than position — EXCEPT Primal)
+ *   - unitCountDiff           × 1.4  (establish board presence — all factions)
+ *   - cardsInHand             × 1.3  (value hand development — all factions, never suppressed)
+ *   Primal signature weights (unitsThreateningChampion, totalATKOnBoard) are never
+ *   suppressed in early phase — Primal is the early-game aggression faction.
+ *   Mystic/Dark cardsInHand is never suppressed in any phase (only amplified here).
+ *   Dark hiddenUnits is never suppressed in early or mid phase (not touched here).
  *
  * Mid (turns 6–12): faction-specific strategies kick in fully.
  *   Primal  — increase attack urgency:
@@ -176,11 +180,18 @@ function applyPhaseModifiers(w, faction, phase) {
   const pw = { ...w };
 
   if (phase === 'early') {
-    pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 0.5);
-    pw.championProximity        = Math.round(w.championProximity        * 0.5);
-    pw.unitCountDiff            = Math.round(w.unitCountDiff            * 1.4);
-    pw.cardsInHand              = Math.round(w.cardsInHand              * 1.3);
-    pw.totalATKOnBoard          = Math.round(w.totalATKOnBoard          * 0.8);
+    // Primal is the early-game faction — never suppress its core attack weights.
+    // unitsThreateningChampion and totalATKOnBoard are Primal's signature weights;
+    // suppressing them early defeats the entire Primal early-rush strategy.
+    if (faction !== 'primal') {
+      pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 0.5);
+      pw.championProximity        = Math.round(w.championProximity        * 0.5);
+      pw.totalATKOnBoard          = Math.round(w.totalATKOnBoard          * 0.8);
+    }
+    pw.unitCountDiff = Math.round(w.unitCountDiff * 1.4);
+    // cardsInHand: amplify for all factions — this is never a suppression,
+    // so Mystic/Dark signature hand values are always preserved or amplified.
+    pw.cardsInHand   = Math.round(w.cardsInHand   * 1.3);
   }
 
   if (phase === 'mid') {
