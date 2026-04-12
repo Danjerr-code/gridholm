@@ -343,9 +343,18 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const handleGraveSelect = useCallback(async (graveUid) => {
     if (!gameState) return;
     const s = resolveGraveSelect(gameState, graveUid);
-    setSelectMode(null);
-    await dispatch(s);
-  }, [gameState, dispatch]);
+    if (!s.winner) checkWinner(s);
+    if (s.pendingSummon?.rebirthMode) {
+      setSelectedCard(s.pendingSummon.card.uid);
+      setSelectMode('summon');
+      await dispatchAction(s);
+    } else if (s.pendingSpell) {
+      setSelectMode('spell');
+      await dispatchAction(s);
+    } else {
+      await dispatch(s);
+    }
+  }, [gameState, dispatch, dispatchAction]);
 
   const handleCancelSpell = useCallback(async () => {
     if (!gameState) return;
@@ -413,7 +422,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, [gameState, dispatch]);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
-  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher']);
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus']);
 
   const handleTriggerUnitAction = useCallback(async (unitUid) => {
     if (!gameState) return;
@@ -1412,7 +1421,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               onHandSelect={async (cardUid) => {
                 if (!gameState) return;
                 const s = resolveHandSelect(gameState, cardUid);
-                await dispatch(s);
+                if (s.pendingSpell) {
+                  if (!s.winner) checkWinner(s);
+                  setSelectMode('spell');
+                  await dispatchAction(s);
+                } else {
+                  await dispatch(s);
+                }
               }}
               onInspectCard={handleInspectCard}
             />
@@ -1455,7 +1470,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onHandSelect={async (cardUid) => {
               if (!gameState) return;
               const s = resolveHandSelect(gameState, cardUid);
-              await dispatch(s);
+              if (s.pendingSpell) {
+                if (!s.winner) checkWinner(s);
+                setSelectMode('spell');
+                await dispatchAction(s);
+              } else {
+                await dispatch(s);
+              }
             }}
             onInspectCard={handleInspectCard}
             isMobile={true}
