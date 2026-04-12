@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { isMuted, setMuted, playCardPlaySound } from '../audio.js';
 import { useMultiplayerGame } from '../hooks/useMultiplayerGame.js';
 import useIsMobile from '../hooks/useIsMobile.js';
-import { getAuraAtkBonus } from '../engine/gameEngine.js';
+import { getAuraAtkBonus, getEffectiveCost, checkWinner } from '../engine/gameEngine.js';
 import { KEYWORD_REMINDERS } from '../engine/keywords.js';
 import { CARD_DB } from '../engine/cards.js';
 import { ATTRIBUTES } from '../engine/attributes.js';
@@ -93,6 +93,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectMode, setSelectMode] = useState(null);
+  const [selectedSacrificeUid, setSelectedSacrificeUid] = useState(null);
   const [pendingApproach, setPendingApproach] = useState(null);
   const [inspectedItem, setInspectedItem] = useState(null);
   const [mobileModalItem, setMobileModalItem] = useState(null);
@@ -227,6 +228,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   // Dispatch helper: compute new state then write to Supabase
   const dispatch = useCallback(async (newState) => {
     clearSelection();
+    // Ensure winner is detected from indirect damage (spells, triggers, passives) before sync
+    if (newState && !newState.winner) {
+      checkWinner(newState);
+    }
     await dispatchAction(newState);
   }, [dispatchAction, clearSelection]);
 
@@ -257,7 +262,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     const base = (gameState.pendingSpell || gameState.pendingSummon) ? cancelSpell(gameState) : gameState;
     const p = base.players[base.activePlayer];
     const card = p.hand.find(c => c.uid === cardUid);
-    if (!card || p.resources < card.cost) return;
+    if (!card || p.resources < getEffectiveCost(card, base, base.activePlayer)) return;
 
     // Targetless spell: preview mode — don't execute yet
     if (card.type === 'spell' && NO_TARGET_SPELL_EFFECTS.has(card.effect)) {
@@ -303,8 +308,13 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     }
   }, [gameState, selectedCard, dispatch, dispatchAction]);
 
+  const handleFleshtitheSacrificeSelect = useCallback((uid) => {
+    setSelectedSacrificeUid(uid);
+  }, []);
+
   const handleFleshtitheSacrifice = useCallback(async (choice, sacrificeUid) => {
     if (!gameState) return;
+    setSelectedSacrificeUid(null);
     await dispatch(resolveFleshtitheSacrifice(gameState, choice, sacrificeUid));
   }, [gameState, dispatch]);
 
@@ -683,7 +693,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       : 'Click a blue tile to move the unit. Or select another unit.';
   }
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
-  if (selectMode === 'fleshtithe_sacrifice') guidance = 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or click Cancel to summon as 3/3.';
+  if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
   if (selectMode === 'grave_select') guidance = 'Select a unit from your grave.';
 
@@ -734,7 +744,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const sacrificeTargetUids = selectMode === 'fleshtithe_sacrifice' && state.pendingFleshtitheSacrifice
     ? state.units
-        .filter(u => u.owner === myPlayerIndex && u.uid !== state.pendingFleshtitheSacrifice.unitUid)
+        .filter(u => u.owner === myPlayerIndex && u.uid !== state.pendingFleshtitheSacrifice.unitUid && !u.isRelic && !u.isOmen)
         .map(u => u.uid)
     : [];
 
@@ -756,6 +766,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleActionButtonClick,
     handleConfirmAction,
     handleRevealUnit,
+    handleFleshtitheSacrificeSelect,
     handleFleshtitheSacrifice,
     handleDiscardCard,
     handleNewGame: onBackToLobby,
@@ -1107,6 +1118,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             spellTargetUids={isActiveTurn ? spellTargetUids : []}
             archerShootTargets={isActiveTurn ? archerShootTargets : []}
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
+            selectedSacrificeUid={isActiveTurn ? selectedSacrificeUid : null}
             opponentMoveTiles={opponentMoveTiles}
             spellGlowTile={spellGlowTile}
             handlers={handlers}
@@ -1154,6 +1166,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                   )}
                   {phase === 'action' && selectMode === 'spell' && (
                     <ActionBtn onClick={handleCancelSpell} label="Cancel Spell" variant="cancel" fullWidth />
+                  )}
+                  {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && selectedSacrificeUid && (
+                    <ActionBtn onClick={() => handleFleshtitheSacrifice('yes', selectedSacrificeUid)} label="Confirm Sacrifice" variant="action" fullWidth />
                   )}
                   {phase === 'action' && selectMode === 'fleshtithe_sacrifice' && (
                     <ActionBtn onClick={() => handleFleshtitheSacrifice('no', null)} label="Cancel (3/3)" variant="cancel" fullWidth />
@@ -1654,7 +1669,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-start">
             <span style={nameStyle}>{card.name}</span>
-            <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{card.cost}</span>
+            <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{getEffectiveCost(card, state, myPlayerIndex)}</span>
           </div>
           <div style={{ ...typeStyle, color: attrColor }}>Terrain · {ATTRIBUTES[card.attribute]?.name ?? card.attribute}</div>
           <div style={{ ...rulesStyle, borderLeft: `2px solid ${attrColor}40`, paddingLeft: '6px' }}>
@@ -1697,7 +1712,7 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex 
         </div>
         <div className="flex justify-between items-start">
           <span style={{ ...nameStyle, color: card.legendary ? '#C9A84C' : '#ffffff' }}>{card.name}</span>
-          <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{card.cost}</span>
+          <span style={{ background: '#C9A84C', color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px' }}>{getEffectiveCost(card, state, myPlayerIndex)}</span>
         </div>
         <div style={typeStyle}>{card.type === 'spell' ? 'Spell' : card.unitType}</div>
         {card.type === 'unit' && (

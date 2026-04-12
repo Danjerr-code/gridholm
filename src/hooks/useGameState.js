@@ -38,6 +38,7 @@ import {
   resolveBloodPactFriendly,
   resolveBloodPactEnemy,
   resolveChampionSaplingPlace,
+  getEffectiveCost,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
@@ -235,8 +236,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       const base = (prev.pendingSpell || prev.pendingSummon || prev.pendingTerrainCast) ? cancelSpell(prev) : prev;
       const p = base.players[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid);
-      if (!card || p.resources < card.cost) {
-        if (card && p.resources < card.cost) playSfxNoMana();
+      const effectiveCost = card ? getEffectiveCost(card, base, base.activePlayer) : 0;
+      if (!card || p.resources < effectiveCost) {
+        if (card && p.resources < effectiveCost) playSfxNoMana();
         return base;
       }
 
@@ -354,8 +356,15 @@ export function useGameState({ deckId = 'human' } = {}) {
     });
   }, [clearSelection, scheduleAITurn]);
 
+  const [selectedSacrificeUid, setSelectedSacrificeUid] = useState(null);
+
+  const handleFleshtitheSacrificeSelect = useCallback((uid) => {
+    setSelectedSacrificeUid(uid);
+  }, []);
+
   const handleFleshtitheSacrifice = useCallback((choice, sacrificeUid) => {
     setState(prev => resolveFleshtitheSacrifice(prev, choice, sacrificeUid));
+    setSelectedSacrificeUid(null);
     clearSelection();
   }, [clearSelection]);
 
@@ -671,7 +680,7 @@ export function useGameState({ deckId = 'human' } = {}) {
 
   const sacrificeTargetUids = selectMode === 'fleshtithe_sacrifice' && state.pendingFleshtitheSacrifice
     ? state.units
-        .filter(u => u.owner === state.activePlayer && u.uid !== state.pendingFleshtitheSacrifice.unitUid)
+        .filter(u => u.owner === state.activePlayer && u.uid !== state.pendingFleshtitheSacrifice.unitUid && !u.isRelic && !u.isOmen)
         .map(u => u.uid)
     : [];
 
@@ -720,6 +729,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     spellTargetUids,
     archerShootTargets,
     sacrificeTargetUids,
+    selectedSacrificeUid,
     handlers: {
       handleChampionMoveTile,
       handlePlayCard,
@@ -728,6 +738,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleSpellTarget,
       handleHandSelect,
       handleGraveSelect,
+      handleFleshtitheSacrificeSelect,
       handleFleshtitheSacrifice,
       handleCancelSpell,
       handleEndAction,
