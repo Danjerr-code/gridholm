@@ -182,7 +182,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
     'ancientspring', 'shadowveil', 'verdantsurge', 'predatorsmark',
-    'crushingblow', 'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
+    'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
   ]);
 
   const handleInspectUnit = useCallback((unit) => {

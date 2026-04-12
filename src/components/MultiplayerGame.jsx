@@ -222,7 +222,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
     'ironthorns', 'infernalpact', 'martiallaw', 'fortify',
     'ancientspring', 'shadowveil', 'verdantsurge', 'predatorsmark',
-    'crushingblow', 'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
+    'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
   ]);
 
   // Dispatch helper: compute new state then write to Supabase
