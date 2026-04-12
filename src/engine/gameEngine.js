@@ -1743,6 +1743,7 @@ export function playCard(state, cardUid) {
       p.discard.push(card);
       addLog(s, `${p.name} casts Toll of Shadows.`);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] playCard: cast initiated — casterIdx:', s.activePlayer, 'units:', s.units.filter(u => u.owner === s.activePlayer && !u.isRelic && !u.isOmen).length, 'omens:', s.units.filter(u => u.owner === s.activePlayer && u.isOmen).length, 'relics:', s.units.filter(u => u.owner === s.activePlayer && u.isRelic).length, 'handSize:', p.hand.length);
       return _tollAdvance(s, cardUid, s.activePlayer, 0, {});
     }
 
@@ -1860,40 +1861,58 @@ export function summonUnit(state, cardUid, row, col) {
 
 // Auto-resolve opponent consequences for each category the caster sacrificed.
 function _tollOpponentResolve(s, oppIdx, sacrificed) {
+  if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: oppIdx:', oppIdx, 'sacrificed:', JSON.stringify(sacrificed), 'opp units:', s.units.filter(u => u.owner === oppIdx && !u.isRelic && !u.isOmen).length, 'opp omens:', s.units.filter(u => u.owner === oppIdx && u.isOmen).length, 'opp relics:', s.units.filter(u => u.owner === oppIdx && u.isRelic).length, 'opp handSize:', s.players[oppIdx].hand.length);
   if (sacrificed.unit) {
     const units = s.units.filter(u => u.owner === oppIdx && !u.isRelic && !u.isOmen);
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: unit retaliation — opp units available:', units.length);
     if (units.length > 0) {
       const t = units[Math.floor(Math.random() * units.length)];
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: destroying opp unit:', t.name, t.uid);
       addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
       destroyUnit(t, s, 'sacrifice');
       checkWinner(s);
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: unit retaliation skipped — no opp units');
     }
   }
   if (sacrificed.omen) {
     const omens = s.units.filter(u => u.owner === oppIdx && u.isOmen);
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: omen retaliation — opp omens available:', omens.length);
     if (omens.length > 0) {
       const t = omens[Math.floor(Math.random() * omens.length)];
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: destroying opp omen:', t.name, t.uid);
       addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
       destroyUnit(t, s, 'sacrifice');
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: omen retaliation skipped — no opp omens');
     }
   }
   if (sacrificed.relic) {
     const relics = s.units.filter(u => u.owner === oppIdx && u.isRelic);
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: relic retaliation — opp relics available:', relics.length);
     if (relics.length > 0) {
       const t = relics[Math.floor(Math.random() * relics.length)];
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: destroying opp relic:', t.name, t.uid);
       addLog(s, `Toll of Shadows: ${s.players[oppIdx].name}'s ${t.name} is destroyed.`);
       destroyUnit(t, s, 'sacrifice');
       checkWinner(s);
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: relic retaliation skipped — no opp relics');
     }
   }
   if (sacrificed.card) {
     const hand = s.players[oppIdx].hand;
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: card discard retaliation — opp handSize:', hand.length);
     if (hand.length > 0) {
       const [discarded] = hand.splice(Math.floor(Math.random() * hand.length), 1);
       s.players[oppIdx].discard.push(discarded);
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: opp discards:', discarded.name);
       addLog(s, `Toll of Shadows: ${s.players[oppIdx].name} discards ${discarded.name}.`);
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: card discard retaliation skipped — opp hand empty');
     }
   }
+  if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollOpponentResolve: COMPLETE');
   return s;
 }
 
@@ -1902,26 +1921,33 @@ function _tollOpponentResolve(s, oppIdx, sacrificed) {
 // (for discard), or runs opponent auto-resolution if all steps are complete.
 function _tollAdvance(s, cardUid, castIdx, fromStep, sacrificed) {
   const oppIdx = 1 - castIdx;
+  if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: fromStep:', fromStep, 'casterIdx:', castIdx, 'sacrificed:', JSON.stringify(sacrificed), 'units:', s.units.filter(u => u.owner === castIdx && !u.isRelic && !u.isOmen).length, 'omens:', s.units.filter(u => u.owner === castIdx && u.isOmen).length, 'relics:', s.units.filter(u => u.owner === castIdx && u.isRelic).length, 'handSize:', s.players[castIdx].hand.length);
   for (let st = fromStep; st <= 3; st++) {
     if (st === 0 && s.units.some(u => u.owner === castIdx && !u.isRelic && !u.isOmen)) {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 0 (sacrifice unit) — setting pendingSpell');
       s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: castIdx, sacrificed } };
       return s;
     }
     if (st === 1 && s.units.some(u => u.owner === castIdx && u.isOmen)) {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 1 (sacrifice omen) — setting pendingSpell');
       s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 1, data: { paid: true, casterIdx: castIdx, sacrificed } };
       return s;
     }
     if (st === 2 && s.units.some(u => u.owner === castIdx && u.isRelic)) {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 2 (sacrifice relic) — setting pendingSpell');
       s.pendingSpell = { cardUid, effect: 'tollofshadows', playerIdx: s.activePlayer, step: 2, data: { paid: true, casterIdx: castIdx, sacrificed } };
       return s;
     }
     if (st === 3 && s.players[castIdx].hand.length > 0) {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: → step 3 (discard card) — setting pendingHandSelect');
       s.pendingSpell = null;
       s.pendingHandSelect = { reason: 'tollofshadows_discard', data: { casterIdx, sacrificed } };
       return s;
     }
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: step', st, 'skipped (no eligible targets)');
   }
   // All steps done or skipped — auto-resolve opponent
+  if (typeof window !== 'undefined') console.log('[TollOfShadows] _tollAdvance: all caster steps complete — proceeding to opponent auto-resolve, sacrificed:', JSON.stringify(sacrificed));
   s.pendingSpell = null;
   return _tollOpponentResolve(s, oppIdx, sacrificed);
 }
@@ -1984,13 +2010,18 @@ export function resolveHandSelect(state, selectedCardUid) {
     const casterHand = s.players[casterIdx].hand;
     const idx = casterHand.findIndex(c => c.uid === selectedCardUid);
     const newSacrificed = { ...sacrificed };
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: discard step — selectedCardUid:', selectedCardUid, 'handSize:', casterHand.length, 'found:', idx !== -1, 'sacrificed so far:', JSON.stringify(sacrificed));
     if (idx !== -1) {
       const [discarded] = casterHand.splice(idx, 1);
       s.players[casterIdx].discard.push(discarded);
       addLog(s, `${s.players[casterIdx].name} discards ${discarded.name}.`);
       newSacrificed.card = true;
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: discarded', discarded.name, '— newSacrificed:', JSON.stringify(newSacrificed));
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: selectedCardUid not found in hand — no discard');
     }
     s.pendingHandSelect = null;
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveHandSelect: all caster steps done — calling _tollOpponentResolve for oppIdx:', 1 - casterIdx);
     // All caster steps done — auto-resolve opponent consequences
     return _tollOpponentResolve(s, 1 - casterIdx, newSacrificed);
   }
@@ -2484,13 +2515,19 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     const castIdx = data.casterIdx ?? s.activePlayer;
     const sacrificed = { ...(data.sacrificed ?? {}) };
 
+    if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: step:', step, 'target:', target?.name ?? 'none', 'target uid:', target?.uid ?? 'none', 'castIdx:', castIdx, 'sacrificed so far:', JSON.stringify(sacrificed));
+
     if (target) {
       // Caster selected a target for the current step — execute sacrifice
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: executing sacrifice at step', step, '— target:', target.name);
       s = _dispatchSpell(s, castIdx, 'tollofshadows', [target], { step, casterIdx: castIdx });
       checkWinner(s);
       if (step === 0) sacrificed.unit = true;
       else if (step === 1) sacrificed.omen = true;
       else if (step === 2) sacrificed.relic = true;
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: after sacrifice — sacrificed now:', JSON.stringify(sacrificed), 'advancing to step:', step + 1);
+    } else {
+      if (typeof window !== 'undefined') console.log('[TollOfShadows] resolveSpell: no target provided at step', step, '— advancing anyway (both branches of ternary are step+1)');
     }
 
     // Advance to next pending step (or run opponent auto-resolution when all done)
@@ -2913,9 +2950,9 @@ export function triggerUnitAction(state, unitUid) {
     return s;
   }
 
-  // The Iron Queen: direction selection — reuses pendingLineBlast / direction_select flow
+  // The Iron Queen: direction selection — same tile selection flow as Vorn
   if (unit.id === 'ironqueen') {
-    s.pendingLineBlast = { unitUid: unit.uid };
+    s.pendingDirectionSelect = { unitUid: unit.uid };
     return s;
   }
 
