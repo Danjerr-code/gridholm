@@ -539,7 +539,7 @@ function aiPlayNonCombatCards(state) {
   for (const card of terrainCards) {
     if (manaGuard(card)) continue;
 
-    const castTiles = getTerrainCastTiles(s);
+    const castTiles = getTerrainCastTiles(s, card);
     if (castTiles.length === 0) continue;
 
     let bestTile = null;
