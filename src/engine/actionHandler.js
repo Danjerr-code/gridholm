@@ -79,26 +79,19 @@ export function handleUnitMove(state, unitUid, row, col) {
     state.units.some(u => u.owner !== state.activePlayer && u.row === row && u.col === col) ||
     state.champions.some(ch => ch.owner !== state.activePlayer && ch.row === row && ch.col === col);
 
-  console.log('[SPD2 handleUnitMove] unit:', unit?.name, 'target:', row, col, 'targetHasEnemy:', targetHasEnemy, 'dist:', unit ? manhattan([unit.row, unit.col], [row, col]) : 'no unit');
-
   if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
     const tiles = getApproachTiles(state, unit, row, col);
-    console.log('[SPD2 handleUnitMove] approach tiles:', JSON.stringify(tiles), 'count:', tiles.length);
     if (tiles.length > 1) {
-      console.log('[SPD2 handleUnitMove] -> needsApproach: true');
       return { needsApproach: true, state };
     } else if (tiles.length === 1) {
-      console.log('[SPD2 handleUnitMove] -> single approach tile, calling executeApproachAndAttack');
       const [ar, ac] = tiles[0];
       return { needsApproach: false, state: executeApproachAndAttack(state, unitUid, ar, ac, row, col) };
     } else {
-      console.log('[SPD2 handleUnitMove] -> NO approach tiles, aborting');
       // No approach tiles available — highlight check should prevent this path, but guard anyway.
       return { needsApproach: false, state };
     }
   }
 
-  console.log('[SPD2 handleUnitMove] -> standard moveUnit path');
   return { needsApproach: false, state: moveUnit(state, unitUid, row, col) };
 }
 
