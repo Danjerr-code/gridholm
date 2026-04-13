@@ -249,14 +249,26 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
                   Fennwick — Top card of your deck
                 </div>
-                {state.pendingDeckPeek.cards.map(card => (
-                  <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
-                    <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
-                    {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
-                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
-                  </div>
-                ))}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {state.pendingDeckPeek.cards.map(card => {
+                  const imageUrl = getCardImageUrl(card.image);
+                  return (
+                    <div key={card.uid} style={{ width: '110px', minHeight: '145px', background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', overflow: 'hidden', userSelect: 'none' }}>
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={card.name} style={{ width: '100%', height: '88px', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ height: '40px', background: '#1a1a30' }} />
+                      )}
+                      <div style={{ padding: '4px 5px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#e8e8f0', lineHeight: 1.2, marginBottom: '2px' }}>{card.name}</div>
+                        <div style={{ fontSize: '9px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                        {card.type === 'unit' && <div style={{ fontSize: '9px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                        {card.rules && <div style={{ fontSize: '8px', color: '#6060a0', marginTop: '2px', lineHeight: 1.2 }}>{renderRules(card.rules)}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <button
                     onClick={() => handlers.handleScryDismiss()}
@@ -269,14 +281,26 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
                   Glimpse — Top card of your deck
                 </div>
-                {state.pendingDeckPeek.cards.map(card => (
-                  <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
-                    <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
-                    {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
-                    {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
-                  </div>
-                ))}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {state.pendingDeckPeek.cards.map(card => {
+                  const imageUrl = getCardImageUrl(card.image);
+                  return (
+                    <div key={card.uid} style={{ width: '110px', minHeight: '145px', background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', overflow: 'hidden', userSelect: 'none' }}>
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={card.name} style={{ width: '100%', height: '88px', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ height: '40px', background: '#1a1a30' }} />
+                      )}
+                      <div style={{ padding: '4px 5px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#e8e8f0', lineHeight: 1.2, marginBottom: '2px' }}>{card.name}</div>
+                        <div style={{ fontSize: '9px', color: '#C9A84C' }}>Cost {card.cost}</div>
+                        {card.type === 'unit' && <div style={{ fontSize: '9px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
+                        {card.rules && <div style={{ fontSize: '8px', color: '#6060a0', marginTop: '2px', lineHeight: 1.2 }}>{renderRules(card.rules)}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+                </div>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                   <button
                     onClick={() => handlers.handleGlimpseDecision(true)}
