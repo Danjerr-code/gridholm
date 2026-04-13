@@ -1,3 +1,5 @@
+import { getCardImageUrl } from '../supabase.js';
+
 export default function HowToPlay() {
   return (
     <div style={{
@@ -95,8 +97,8 @@ export default function HowToPlay() {
         {/* Section 1 */}
         <Section title="Welcome to Gridholm">
           <p style={bodyStyle}>
-            Gridholm is a tactical card game played on a 5x5 grid. You build a deck,
-            summon powerful game pieces onto the board, and outmaneuver your opponent
+            Gridholm is a tactical card game played on a 5×5 grid. You build a deck,
+            summon powerful pieces onto the board, and outmaneuver your opponent
             to destroy their champion.
           </p>
           <p style={bodyStyle}>
@@ -106,6 +108,9 @@ export default function HowToPlay() {
             Every card you play occupies a tile. Every unit you summon can move, attack,
             and be attacked. Positioning matters as much as the cards in your hand.
             One well-placed unit can turn the entire board.
+          </p>
+          <p style={bodyStyle}>
+            <strong style={{ color: '#e5e7eb' }}>Win condition:</strong> Reduce the opposing champion to 0 HP.
           </p>
         </Section>
 
@@ -119,30 +124,59 @@ export default function HowToPlay() {
         <Divider />
 
         {/* Section 3 */}
-        <Section title="Your Turn">
+        <Section title="Commands">
           <TurnFlowDiagram />
           <p style={{ ...bodyStyle, marginTop: 20 }}>
-            Begin Turn and End Turn happen automatically. Your time is spent in the
-            Action phase.
+            Begin Turn and End Turn happen automatically. Your time is spent in the Action phase.
           </p>
           <p style={bodyStyle}>
-            During your Action phase you can do any of the following in any order:
+            Each turn you have <strong style={{ color: '#C9A84C' }}>3 commands</strong> to spend.
+            Commands power your unit activity for the turn:
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px 0 16px' }}>
             {[
-              'Move your champion one tile in any cardinal direction',
-              'Play cards from your hand if you have enough mana',
-              'Move each of your units one time',
-            ].map((line, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ color: '#C9A84C', fontWeight: 700, flexShrink: 0 }}>→</span>
-                <span style={{ ...bodyStyle, margin: 0 }}>{line}</span>
+              { label: 'Move a unit', cost: '1 command', desc: 'Move any of your units up to its SPD in tiles.' },
+              { label: 'Use an action', cost: '1 command', desc: "Activate a unit's Action ability instead of moving it." },
+              { label: 'Champion move', cost: 'Free', desc: 'Your champion moves one tile per turn at no command cost.' },
+              { label: 'Champion ability', cost: 'Free', desc: "Your champion's special ability costs no commands." },
+            ].map((item, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                gap: 12,
+                alignItems: 'flex-start',
+                padding: '8px 12px',
+                background: 'rgba(255,255,255,0.02)',
+                border: '0.5px solid rgba(255,255,255,0.06)',
+                borderRadius: 6,
+              }}>
+                <div style={{ minWidth: 120, flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{item.label}</span>
+                  <div style={{
+                    display: 'inline-block',
+                    marginLeft: 8,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: item.cost === 'Free' ? '#22C55E' : '#C9A84C',
+                    background: item.cost === 'Free' ? 'rgba(34,197,94,0.1)' : 'rgba(201,168,76,0.1)',
+                    border: `0.5px solid ${item.cost === 'Free' ? 'rgba(34,197,94,0.3)' : 'rgba(201,168,76,0.3)'}`,
+                    borderRadius: 99,
+                    padding: '1px 7px',
+                  }}>
+                    {item.cost}
+                  </div>
+                </div>
+                <span style={{ ...bodyStyle, margin: 0, fontSize: 13 }}>{item.desc}</span>
               </div>
             ))}
           </div>
           <p style={bodyStyle}>
-            Units summoned this turn cannot move until your next turn. This is called
-            summoning sickness. Some cards have <strong style={{ color: '#22C55E' }}>Rush</strong> which lets them move immediately.
+            You also play cards from your hand by spending <strong style={{ color: '#e5e7eb' }}>mana</strong>.
+            You gain 1 more mana each turn (up to 10). Unspent mana is lost at end of turn.
+          </p>
+          <p style={bodyStyle}>
+            Units summoned this turn cannot use commands until your next turn — this is
+            called summoning sickness. Some cards have{' '}
+            <strong style={{ color: '#22C55E' }}>Rush</strong>, which lets them act immediately.
           </p>
         </Section>
 
@@ -163,9 +197,6 @@ export default function HowToPlay() {
             damage equal to your unit's ATK. Your unit stays where it is. The champion
             never fights back.
           </p>
-          <p style={bodyStyle}>
-            Reduce the enemy champion to 0 HP to win.
-          </p>
         </Section>
 
         <Divider />
@@ -177,11 +208,12 @@ export default function HowToPlay() {
           </p>
           <p style={bodyStyle}>
             End your turn with your champion standing on the Throne and the enemy
-            champion takes 2 damage. This cannot kill them outright but it creates
-            enormous pressure.
+            champion takes <strong style={{ color: '#ef4444' }}>2 damage</strong> at end of turn.
+            This cannot reduce the enemy champion below 1 HP — but it creates
+            enormous pressure over time.
           </p>
           <p style={bodyStyle}>
-            Controlling the Throne is not the only way to win but ignoring it is
+            Controlling the Throne is not the only way to win, but ignoring it is
             usually a mistake.
           </p>
           <ThroneGrid />
@@ -190,20 +222,81 @@ export default function HowToPlay() {
         <Divider />
 
         {/* Section 6 */}
+        <Section title="Card Types">
+          <CardTypesTable />
+        </Section>
+
+        <Divider />
+
+        {/* Section 7 */}
         <Section title="Choose Your Attribute">
           <FactionCards />
         </Section>
 
         <Divider />
 
-        {/* Section 7 */}
+        {/* Section 8 */}
+        <Section title="Attunement &amp; Resonance">
+          <p style={bodyStyle}>
+            Every deck has an <strong style={{ color: '#C9A84C' }}>Attribute</strong> — Light, Primal, Mystic, or Dark.
+            As you build your deck, each card contributes to your{' '}
+            <strong style={{ color: '#C9A84C' }}>Resonance score</strong>:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 16px' }}>
+            {[
+              { label: 'Primary attribute card', pts: '+2 pts', color: '#C9A84C' },
+              { label: 'Friendly secondary attribute', pts: '+1 pt', color: '#22C55E' },
+              { label: 'Enemy attribute card', pts: '−1 pt', color: '#ef4444' },
+              { label: 'Neutral card', pts: '0 pts', color: '#6b7280' },
+            ].map((row, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '7px 12px',
+                background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.2)',
+                borderRadius: 4,
+              }}>
+                <span style={{ fontSize: 13, color: '#9ca3af' }}>{row.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: row.color }}>{row.pts}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 12, margin: '12px 0' }}>
+            {[
+              { tier: 'Attuned', score: '30+', color: '#C9A84C', desc: 'Unlocks your attribute\'s passive power.' },
+              { tier: 'Ascended', score: '50+', color: '#A855F7', desc: 'Unlocks your attribute\'s strongest ability.' },
+            ].map(t => (
+              <div key={t.tier} style={{
+                flex: 1,
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.02)',
+                border: `0.5px solid ${t.color}55`,
+                borderRadius: 8,
+              }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: t.color, marginBottom: 4 }}>
+                  {t.tier} <span style={{ fontSize: 11, fontWeight: 400, color: '#6b7280' }}>({t.score} pts)</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>{t.desc}</div>
+              </div>
+            ))}
+          </div>
+          <p style={bodyStyle}>
+            Resonance is calculated when you save your deck. Build around a single attribute
+            to unlock its full potential.
+          </p>
+        </Section>
+
+        <Divider />
+
+        {/* Section 9 */}
         <Section title="Keywords">
           <KeywordTable />
         </Section>
 
         <Divider />
 
-        {/* Section 8 */}
+        {/* Section 10 */}
         <Section title="A Few Tips">
           <ol style={{ margin: 0, padding: '0 0 0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
@@ -259,18 +352,21 @@ function Divider() {
   );
 }
 
-function AnnotatedCard() {
-  const annotations = [
-    { num: 1, label: 'Cost', desc: 'Mana needed to play this card. You gain 1 more each turn up to 10.', top: '4%', right: '-130px', lineTop: '14px', lineRight: '130px' },
-    { num: 2, label: 'Art', desc: 'Card illustration. Each attribute has a distinct visual identity.', top: '22%', right: '-130px', lineTop: '8px', lineRight: '130px' },
-    { num: 3, label: 'Name', desc: "The card's name. Legendary cards have a gold border.", top: '46%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
-    { num: 4, label: 'Type', desc: 'Light, Primal, Mystic, or Dark. Attribute matters for synergies.', top: '54%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
-    { num: 5, label: 'ATK', desc: 'Attack power. Damage dealt in combat.', top: '66%', right: '-130px', lineTop: '8px', lineRight: '130px' },
-    { num: 6, label: 'HP', desc: 'Health points. Reduced by damage. Unit dies at 0.', top: '72%', right: '-130px', lineTop: '8px', lineRight: '130px' },
-    { num: 7, label: 'SPD', desc: 'Speed. How many tiles this unit can move per turn.', top: '78%', right: '-130px', lineTop: '8px', lineRight: '130px' },
-    { num: 8, label: 'Rules', desc: 'Special abilities. Keywords like Rush, Hidden, and Aura appear here.', top: '88%', left: '-130px', lineTop: '8px', lineLeft: '130px' },
-  ];
+// Militia: cost 1, ATK 1, HP 3, SPD 1, Human, Light, no rules text
+const MILITIA_IMAGE_URL = getCardImageUrl('militia.webp');
 
+const annotations = [
+  { num: 1, label: 'Cost', desc: 'Mana needed to play this card. You gain 1 more each turn up to 10.' },
+  { num: 2, label: 'Art', desc: "Card illustration. Each attribute has a distinct visual identity." },
+  { num: 3, label: 'Name', desc: "The card's name. Legendary cards are marked with ♛." },
+  { num: 4, label: 'Type', desc: 'Unit type (Human, Beast, Elf, Demon) and attribute (Light, Primal, Mystic, Dark).' },
+  { num: 5, label: 'ATK', desc: 'Attack power. Damage dealt in combat.' },
+  { num: 6, label: 'HP', desc: 'Health points. Reduced by damage. Unit dies at 0.' },
+  { num: 7, label: 'SPD', desc: 'Speed. How many tiles this unit can move per turn.' },
+  { num: 8, label: 'Rules Text', desc: 'Special abilities and keywords. Militia has none — it is a simple, reliable unit.' },
+];
+
+function AnnotatedCard() {
   return (
     <div>
       {/* Desktop: annotated card with labels */}
@@ -279,56 +375,70 @@ function AnnotatedCard() {
         <div style={{
           width: 200,
           height: 280,
-          background: '#111827',
-          border: '1.5px solid #3B82F6',
+          background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+          border: '1.5px solid #3B82F655',
           borderRadius: 10,
           overflow: 'hidden',
           position: 'relative',
-          boxShadow: '0 0 24px rgba(59,130,246,0.15)',
+          boxShadow: '0 0 24px rgba(59,130,246,0.12)',
         }}>
           {/* Cost */}
           <div style={{
             position: 'absolute',
             top: 6,
             right: 8,
-            background: '#1e3a5f',
-            border: '1px solid #3B82F6',
+            background: '#C9A84C',
             borderRadius: 20,
-            width: 26,
-            height: 26,
+            width: 22,
+            height: 22,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 700,
-            color: '#60a5fa',
+            color: '#0a0a14',
             zIndex: 2,
           }}>
-            3
+            1
           </div>
           {/* Art area */}
           <div style={{
-            height: '42%',
-            background: 'linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 32,
-            color: 'rgba(255,255,255,0.15)',
+            height: '44%',
+            overflow: 'hidden',
+            position: 'relative',
           }}>
-            🛡
+            {MILITIA_IMAGE_URL ? (
+              <img
+                src={MILITIA_IMAGE_URL}
+                alt="Militia"
+                onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : null}
+            <div style={{
+              display: MILITIA_IMAGE_URL ? 'none' : 'flex',
+              width: '100%',
+              height: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%)',
+              fontSize: 32,
+              color: 'rgba(255,255,255,0.25)',
+            }}>
+              🛡
+            </div>
           </div>
           {/* Card body */}
           <div style={{ padding: '8px 10px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Sergeant</div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Light</div>
-            <div style={{ display: 'flex', gap: 10, fontSize: 12, marginBottom: 8 }}>
-              <span style={{ color: '#ef4444' }}>⚔ 2</span>
-              <span style={{ color: '#22c55e' }}>♥ 2</span>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 1 }}>Militia</div>
+            <div style={{ fontSize: 10, color: '#3B82F6', marginBottom: 8, fontWeight: 500 }}>Human · Light</div>
+            <div style={{ display: 'flex', gap: 10, fontSize: 12, marginBottom: 10 }}>
+              <span style={{ color: '#ef4444' }}>⚔ 1</span>
+              <span style={{ color: '#22c55e' }}>♥ 3</span>
               <span style={{ color: '#60a5fa' }}>⚡ 1</span>
             </div>
-            <div style={{ fontSize: 10, color: '#9ca3af', lineHeight: 1.4 }}>
-              Action: The next combat unit you play this turn gains +1/+1.
+            <div style={{ fontSize: 10, color: '#4a4a6a', lineHeight: 1.4, fontStyle: 'italic' }}>
+              No special abilities.
             </div>
           </div>
         </div>
@@ -338,11 +448,11 @@ function AnnotatedCard() {
           {/* 1: Cost - top right */}
           <line x1={180} y1={14} x2={215} y2={14} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 2: Art - right */}
-          <line x1={200} y1={60} x2={215} y2={60} stroke="#C9A84C" strokeWidth={0.5} />
+          <line x1={200} y1={62} x2={215} y2={62} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 3: Name - left */}
           <line x1={0} y1={130} x2={-15} y2={130} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 4: Type - left */}
-          <line x1={0} y1={152} x2={-15} y2={152} stroke="#C9A84C" strokeWidth={0.5} />
+          <line x1={0} y1={148} x2={-15} y2={148} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 5: ATK - right */}
           <line x1={200} y1={186} x2={215} y2={186} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 6: HP - right */}
@@ -350,13 +460,13 @@ function AnnotatedCard() {
           {/* 7: SPD - right */}
           <line x1={200} y1={210} x2={215} y2={210} stroke="#C9A84C" strokeWidth={0.5} />
           {/* 8: Rules - left */}
-          <line x1={0} y1={248} x2={-15} y2={248} stroke="#C9A84C" strokeWidth={0.5} />
+          <line x1={0} y1={250} x2={-15} y2={250} stroke="#C9A84C" strokeWidth={0.5} />
         </svg>
 
         {/* Right labels */}
         {[
           { num: 1, text: 'Cost', top: 6 },
-          { num: 2, text: 'Art', top: 52 },
+          { num: 2, text: 'Art', top: 54 },
           { num: 5, text: 'ATK', top: 178 },
           { num: 6, text: 'HP', top: 190 },
           { num: 7, text: 'SPD', top: 202 },
@@ -378,8 +488,8 @@ function AnnotatedCard() {
         {/* Left labels */}
         {[
           { num: 3, text: 'Name', top: 122 },
-          { num: 4, text: 'Type', top: 144 },
-          { num: 8, text: 'Rules', top: 240 },
+          { num: 4, text: 'Type', top: 140 },
+          { num: 8, text: 'Rules Text', top: 242 },
         ].map(({ num, text, top }) => (
           <div key={num} style={{
             position: 'absolute',
@@ -399,27 +509,34 @@ function AnnotatedCard() {
 
       {/* Mobile: card + numbered list */}
       <div className="block sm:hidden">
-        <div style={{
-          width: 160,
-          height: 224,
-          background: '#111827',
-          border: '1.5px solid #3B82F6',
-          borderRadius: 8,
-          overflow: 'hidden',
-          margin: '16px auto',
-          boxShadow: '0 0 16px rgba(59,130,246,0.15)',
-        }}>
-          <div style={{ position: 'absolute', top: 4, right: 6, fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>3💎</div>
-          <div style={{ height: '40%', background: 'linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: 'rgba(255,255,255,0.15)' }}>🛡</div>
-          <div style={{ padding: '6px 8px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Sergeant</div>
-            <div style={{ fontSize: 9, color: '#6b7280', marginBottom: 6 }}>Light</div>
-            <div style={{ display: 'flex', gap: 8, fontSize: 10, marginBottom: 6 }}>
-              <span style={{ color: '#ef4444' }}>⚔ 2</span>
-              <span style={{ color: '#22c55e' }}>♥ 2</span>
-              <span style={{ color: '#60a5fa' }}>⚡ 1</span>
+        <div style={{ position: 'relative', width: 160, height: 224, margin: '16px auto' }}>
+          <div style={{
+            width: 160,
+            height: 224,
+            background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
+            border: '1.5px solid #3B82F655',
+            borderRadius: 8,
+            overflow: 'hidden',
+            boxShadow: '0 0 16px rgba(59,130,246,0.12)',
+          }}>
+            <div style={{ position: 'absolute', top: 4, right: 6, background: '#C9A84C', color: '#0a0a14', fontSize: 10, fontWeight: 700, borderRadius: 99, padding: '1px 5px' }}>1</div>
+            <div style={{ height: '40%', overflow: 'hidden', position: 'relative' }}>
+              {MILITIA_IMAGE_URL ? (
+                <img src={MILITIA_IMAGE_URL} alt="Militia" onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%)', fontSize: 28, color: 'rgba(255,255,255,0.2)' }}>🛡</div>
+              )}
             </div>
-            <div style={{ fontSize: 9, color: '#9ca3af', lineHeight: 1.4 }}>Action: next unit gains +1/+1.</div>
+            <div style={{ padding: '6px 8px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 1 }}>Militia</div>
+              <div style={{ fontSize: 9, color: '#3B82F6', marginBottom: 6, fontWeight: 500 }}>Human · Light</div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 10, marginBottom: 6 }}>
+                <span style={{ color: '#ef4444' }}>⚔ 1</span>
+                <span style={{ color: '#22c55e' }}>♥ 3</span>
+                <span style={{ color: '#60a5fa' }}>⚡ 1</span>
+              </div>
+              <div style={{ fontSize: 9, color: '#4a4a6a', lineHeight: 1.4, fontStyle: 'italic' }}>No special abilities.</div>
+            </div>
           </div>
         </div>
         <ol style={{ margin: '0', padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -477,7 +594,7 @@ function TurnFlowDiagram() {
     },
     {
       label: 'Action',
-      items: ['Move your champion', 'Play cards', 'Move units'],
+      items: ['Spend 3 commands', 'Play cards (mana)', 'Champion moves free'],
       highlight: true,
     },
     {
@@ -490,10 +607,9 @@ function TurnFlowDiagram() {
     <div style={{
       display: 'flex',
       alignItems: 'stretch',
-      gap: 0,
+      gap: 8,
       margin: '16px 0',
       flexWrap: 'wrap',
-      gap: 8,
     }}>
       {steps.map((step, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -563,8 +679,72 @@ function ThroneGrid() {
   );
 }
 
+const CARD_TYPES = [
+  {
+    type: 'Unit',
+    color: '#3B82F6',
+    desc: 'A creature that occupies a tile on the board. Has ATK, HP, and SPD. Can move, fight, and use Action abilities.',
+    example: 'Militia, Knight, Pip the Hungry',
+  },
+  {
+    type: 'Spell',
+    color: '#A855F7',
+    desc: 'Played from hand for an immediate effect, then goes to the discard pile. Does not occupy a tile.',
+    example: 'Smite, Pack Howl, Frostbolt',
+  },
+  {
+    type: 'Terrain',
+    color: '#92400E',
+    desc: 'Placed onto a tile and modifies it permanently until removed. Units standing on Terrain are affected by its rules.',
+    example: 'Thornwall, Lava Field',
+  },
+  {
+    type: 'Omen',
+    color: '#D97706',
+    desc: 'Placed on the board like a unit but has no combat stats. Applies an ongoing effect for a set number of turns.',
+    example: 'Chains of Light, Ill Omen',
+  },
+  {
+    type: 'Relic',
+    color: '#EAB308',
+    desc: 'A persistent object on the board. Has HP but no ATK. Blocks movement and can be destroyed by combat.',
+    example: 'Iron Vault, Gilded Cage',
+  },
+];
+
+function CardTypesTable() {
+  return (
+    <div style={{
+      border: '0.5px solid rgba(255,255,255,0.08)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      margin: '8px 0',
+    }}>
+      {CARD_TYPES.map((ct, i) => (
+        <div key={ct.type} style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 16,
+          padding: '12px 16px',
+          background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.2)',
+          borderBottom: i < CARD_TYPES.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
+          borderLeft: `3px solid ${ct.color}`,
+        }}>
+          <div style={{ minWidth: 68, flexShrink: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: ct.color }}>{ct.type}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, marginBottom: 3 }}>{ct.desc}</div>
+            <div style={{ fontSize: 11, color: '#4b5563', fontStyle: 'italic' }}>e.g. {ct.example}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const FACTIONS = [
-  { name: 'Light',   color: '#F0E6D2', identity: 'Strength in formation.', keyword: 'Aura' },
+  { name: 'Light',   color: '#3B82F6', identity: 'Strength in formation.', keyword: 'Aura' },
   { name: 'Primal',  color: '#22C55E', identity: 'Strike before they\'re ready.', keyword: 'Rush' },
   { name: 'Mystic',  color: '#A855F7', identity: 'They cannot outlast us.', keyword: 'Restore HP' },
   { name: 'Dark',    color: '#EF4444', identity: 'You never know what lurks.', keyword: 'Hidden' },
@@ -607,12 +787,13 @@ function FactionCards() {
 }
 
 const KEYWORDS = [
-  { word: 'Rush', color: '#22C55E', def: 'This unit may move the turn it is summoned' },
-  { word: 'Hidden', color: '#8B5CF6', def: 'Moves unseen on the board. Revealed by enemy contact or player choice' },
-  { word: 'Action', color: '#F97316', def: 'Use instead of moving. Click the Action button when selected' },
-  { word: 'Aura', color: '#F0E6D2', def: 'Passive bonus to nearby friendly or debuff to nearby enemy units' },
-  { word: 'Rooted', color: '#78716C', def: 'This unit cannot move from its summoned position' },
-  { word: 'Legendary', color: '#EAB308', def: 'Powerful unique card. Only one copy allowed per deck' },
+  { word: 'Rush',       color: '#22C55E', def: 'Can move and act the turn it is summoned.' },
+  { word: 'Hidden',     color: '#8B5CF6', def: 'Invisible to opponents until an enemy moves adjacent or attacks into its tile.' },
+  { word: 'Aura X',     color: '#F0E6D2', def: 'Passive effect applying to units within X tiles.' },
+  { word: 'Restore HP', color: '#A855F7', def: 'Effects that heal units or champions.' },
+  { word: 'Flying',     color: '#38BDF8', def: 'Can move to any tile within SPD range, ignoring units and blockers in the path.' },
+  { word: 'Rooted',     color: '#78716C', def: 'Cannot move; can still act and fight. Clears at start of next turn.' },
+  { word: 'Stunned',    color: '#D97706', def: 'Cannot move or use actions. Clears at start of next turn.' },
 ];
 
 function KeywordTable() {
