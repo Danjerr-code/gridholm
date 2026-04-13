@@ -114,18 +114,21 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
       return;
     }
 
-    const userId = data.user?.id;
-    if (userId) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: userId,
-        username: username.trim(),
-      });
-      if (profileError) {
+    // Profile row is created by the on_auth_user_created trigger (server-side,
+    // security definer) so it is never blocked by RLS timing issues.
+    // If a session is immediately available (e.g. email confirmation disabled),
+    // update the username from the email-derived default to the user's chosen name.
+    if (data.session && data.user?.id) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ username: username.trim() })
+        .eq('id', data.user.id);
+      if (updateError) {
         setLoading(false);
-        if (profileError.code === '23505') {
+        if (updateError.code === '23505') {
           setFieldErrors({ username: 'Username is already taken.' });
         } else {
-          setServerError(profileError.message);
+          setServerError(updateError.message);
         }
         return;
       }
