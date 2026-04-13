@@ -39,7 +39,18 @@ export function useMultiplayerGame(gameId) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: 'id=eq.' + gameId },
         (payload) => {
-          setSession(payload.new);
+          setSession(prev => {
+            const incoming = payload.new;
+            // Log is stripped from Supabase writes — carry forward local log so
+            // the passive player retains visibility into their accumulated log.
+            if (incoming.game_state && !incoming.game_state.log) {
+              return {
+                ...incoming,
+                game_state: { ...incoming.game_state, log: prev?.game_state?.log ?? [] },
+              };
+            }
+            return incoming;
+          });
         }
       )
       .subscribe();
@@ -375,6 +386,15 @@ export function useMultiplayerGame(gameId) {
   const dispatchAction = useCallback(async (newGameState) => {
     if (!session || !supabase) return;
 
+    // Guard: prevent writing game state during opponent's action phase turn.
+    // During mulligan both players may submit independently, so the guard is skipped.
+    // This also prevents any AI evaluation path from accidentally writing state on the
+    // opponent's turn if such a path were ever wired into the multiplayer component.
+    if (newGameState.phase !== 'mulligan' && session.active_player !== guestId) {
+      console.warn('[Multiplayer] dispatchAction skipped — not active player');
+      return;
+    }
+
     const nextActivePlayerIndex = newGameState.activePlayer;
     // If decks were swapped (player2 went first), index 0 = player2, index 1 = player1
     const firstPlayerId = newGameState.firstPlayerId || session.player1_id;
@@ -397,9 +417,12 @@ export function useMultiplayerGame(gameId) {
       }
     }
 
-    // Strip stateHistory before syncing to Supabase — it is in-memory only and
-    // grows with every turn, which would bloat the game_state JSONB column.
-    const { stateHistory: _h, ...stateForSync } = newGameState;
+    // Strip stateHistory and log before syncing to Supabase.
+    // stateHistory is in-memory only and grows with every turn.
+    // log is maintained locally on each client to avoid bloating the JSONB column;
+    // the realtime handler carries it forward for the passive player.
+    const { stateHistory: _h, log, ...stateForSync } = newGameState;
+    console.log('[Multiplayer] sync payload:', JSON.stringify(stateForSync).length, 'bytes | log entries:', (log ?? []).length);
 
     const { data: updated } = await supabase
       .from('game_sessions')
@@ -414,8 +437,9 @@ export function useMultiplayerGame(gameId) {
       .select()
       .single();
 
-    if (updated) setSession(updated);
-  }, [session, gameId]);
+    // Inject the local log back into session so the active client retains the full log.
+    if (updated) setSession({ ...updated, game_state: { ...updated.game_state, log: log ?? [] } });
+  }, [session, gameId, guestId]);
 
   // Submit this player's mulligan choice. Re-fetches the latest game state to
   // minimise the race window when both players submit simultaneously.

@@ -249,7 +249,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     if (!prev || !gameState || myPlayerIndex === null) return;
 
     const oppIndex = 1 - myPlayerIndex;
-    const newLogSlice = gameState.log.slice(prev.log.length);
+    const newLogSlice = (gameState.log ?? []).slice((prev.log ?? []).length);
     const movedTiles = new Set();
     const newEntries = [];
 
@@ -1421,7 +1421,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         {/* Right sidebar: game log + action buttons */}
         {!isMobile && (
           <div className="w-48 flex-shrink-0 flex flex-col gap-2" style={{ minHeight: 0 }}>
-            <Log entries={[...state.log, ...extraLogEntries]} onCardNameClick={handleLogCardNameClick} myPlayerIndex={myPlayerIndex} />
+            <Log entries={[...(state.log ?? []), ...extraLogEntries]} onCardNameClick={handleLogCardNameClick} myPlayerIndex={myPlayerIndex} />
 
             {/* Action buttons panel */}
             <div
