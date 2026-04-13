@@ -99,7 +99,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [joinError, setJoinError] = useState(null);
-  const [hasSavedDeck, setHasSavedDeck] = useState(false);
   const [authModal, setAuthModal] = useState(null); // 'signin' | 'signup' | null
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -107,17 +106,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
 
   const [profileUsername, setProfileUsername] = useState(null);
   const [profileStats, setProfileStats] = useState(null); // { wins, losses }
-
-  useEffect(() => {
-    try {
-      const decks = JSON.parse(localStorage.getItem('gridholm_saved_decks') || '[]');
-      if (Array.isArray(decks) && decks.length > 0) {
-        setHasSavedDeck(true);
-      }
-    } catch {
-      // ignore malformed data
-    }
-  }, []);
 
   // Fetch username and win/loss stats when user logs in
   useEffect(() => {
@@ -144,24 +132,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [profileDropdownOpen]);
-
-  function loadMostRecentDeckForPlay() {
-    try {
-      const decks = JSON.parse(localStorage.getItem('gridholm_saved_decks') || '[]');
-      if (!Array.isArray(decks) || !decks.length) return;
-      const recent = [...decks].sort((a, b) => b.savedAt - a.savedAt)[0];
-      localStorage.setItem('gridholm_custom_deck', JSON.stringify({
-        champion: recent.champion,
-        primaryAttr: recent.primaryAttribute,
-        secondaryAttr: recent.secondaryAttribute,
-        cards: recent.cards,
-        deckName: recent.name,
-        resonanceScore: recent.resonance,
-      }));
-    } catch {
-      // ignore
-    }
-  }
 
   async function handleCreateGame() {
     if (!supabase) {
@@ -361,11 +331,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck
             </button>
-            {hasSavedDeck && (
-              <button className="lobby-btn-silver" style={btnSilver} onClick={() => { loadMostRecentDeckForPlay(); onNavigate('/custom-play'); }}>
-                Play Saved Deck
-              </button>
-            )}
             <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
               How to Play
             </button>
