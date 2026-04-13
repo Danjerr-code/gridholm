@@ -506,6 +506,27 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         }}>◆ RELIC</div>
       )}
 
+      {/* Gilded Cage trapped unit name */}
+      {isRelic && unit.id === 'gildedcage_relic' && unit.trappedUnit && (
+        <div style={{
+          position: 'absolute',
+          bottom: '18px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: '#fcd34d',
+          fontSize: '7px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '90%',
+          zIndex: 3,
+          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+          letterSpacing: '0.02em',
+        }}>{unit.trappedUnit.name.length > 10 ? unit.trappedUnit.name.slice(0, 9) + '…' : unit.trappedUnit.name}</div>
+      )}
+
       {/* HP pill (relics) or ATK/HP pill (units) — centered bottom */}
       <div className={showBuff ? 'stat-pulse-anim' : ''} style={{
         position: 'absolute',
