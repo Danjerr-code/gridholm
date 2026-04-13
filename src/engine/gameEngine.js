@@ -3210,11 +3210,12 @@ function reachableTiles(state, unit, speed) {
         }
         const anyPathClear = intermediates.some(([ir, ic]) => !isTileOccupied(state, ir, ic));
         if (!anyPathClear) continue;
-        // For enemy tiles (and own Amethyst Crystal) at distance 2, also require at least one
-        // valid approach tile. This prevents highlighting an attack target when there is no
-        // adjacent tile to land on.
+        // For enemy units (and own Amethyst Crystal) at distance 2, also require at least one
+        // valid approach tile. This prevents highlighting a unit as attackable when there is
+        // no adjacent landing tile. Enemy champion tiles use the same dist check as regular
+        // movement targets — anyPathClear above is sufficient to gate champion attacks.
         const ownCrystalHere = state.units.some(u => u.id === 'amethystcrystal' && u.owner === unit.owner && u.row === nr && u.col === nc);
-        if (dist === 2 && (enemyUnit || enemyChamp || ownCrystalHere)) {
+        if (dist === 2 && (enemyUnit || ownCrystalHere)) {
           if (getApproachTiles(state, unit, nr, nc).length === 0) continue;
         }
       }
