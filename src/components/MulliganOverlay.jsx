@@ -87,7 +87,7 @@ export default function MulliganOverlay({ hand, deadline, onConfirm, waitingFor 
             Opening Mulligan
           </div>
           <div style={{ fontSize: '11px', color: '#7070a0', lineHeight: 1.4 }}>
-            Tap cards to replace them. Replaced cards go to the bottom of your deck.
+            Click cards to replace them. Replaced cards go to the bottom of your deck.
           </div>
 
           {/* Timer */}
@@ -110,13 +110,13 @@ export default function MulliganOverlay({ hand, deadline, onConfirm, waitingFor 
                   onClick={() => toggle(idx)}
                   style={{
                     position: 'relative',
-                    width: '88px',
-                    minHeight: '120px',
+                    width: '110px',
+                    minHeight: '145px',
                     background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
                     border: isReplacing ? '2px solid #ef4444' : '1px solid #3a3a60',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    opacity: isReplacing ? 0.5 : 1,
+                    opacity: 1,
                     transition: 'all 0.15s',
                     overflow: 'hidden',
                     userSelect: 'none',
@@ -127,24 +127,21 @@ export default function MulliganOverlay({ hand, deadline, onConfirm, waitingFor 
                     <div style={{
                       position: 'absolute',
                       inset: 0,
+                      background: 'rgba(239,68,68,0.55)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 2,
                       pointerEvents: 'none',
+                      borderRadius: '6px',
                     }}>
                       <div style={{
-                        background: 'rgba(239,68,68,0.85)',
-                        borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px',
+                        fontSize: '32px',
                         color: '#fff',
                         fontWeight: 700,
-                      }}>↓</div>
+                        lineHeight: 1,
+                        textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                      }}>✕</div>
                     </div>
                   )}
 
@@ -152,7 +149,7 @@ export default function MulliganOverlay({ hand, deadline, onConfirm, waitingFor 
                     <img
                       src={imageUrl}
                       alt={card.name}
-                      style={{ width: '100%', height: '70px', objectFit: 'cover', display: 'block' }}
+                      style={{ width: '100%', height: '88px', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
                     <div style={{ height: '40px', background: '#1a1a30' }} />
