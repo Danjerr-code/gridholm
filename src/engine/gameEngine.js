@@ -275,6 +275,7 @@ export function restoreHP(target, amount, state, source = 'effect') {
 // Returns the maximum commands allowed this turn for the given player.
 // Base is 3; commandBonus modifiers in activeModifiers add to it.
 export function getCommandLimit(state, playerIndex) {
+  if (!state) return 3;
   let limit = 3;
   if (state.activeModifiers) {
     for (const mod of state.activeModifiers) {
