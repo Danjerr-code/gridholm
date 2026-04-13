@@ -151,7 +151,7 @@ export const TUTORIAL_SCENARIOS = [
     guided: true,
     boardConfig: {
       p1Champion: { row: 4, col: 2, hp: 20 },
-      p2Champion: { row: 0, col: 2, hp: 20 },
+      p2Champion: { row: 0, col: 2, hp: 8 },
       units: [
         { cardId: 'captain',     owner: 0, row: 2, col: 1 },
         { cardId: 'crossbowman', owner: 0, row: 2, col: 3 },

@@ -355,18 +355,11 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
         }
       }
 
-      // End AI turn: return to player action phase without moving champion
-      const advanced = autoAdvancePhase({ ...s, activePlayer: 0, phase: 'action', turn: s.turn + 1 });
-      const final = {
-        ...advanced,
-        players: advanced.players.map((p, i) =>
-          i === 0 ? { ...p, commandsUsed: 0 } : p
-        ),
-      };
+      // End AI turn properly: handleEndTurn advances to player 0's begin-turn phase,
+      // resetting unit moved flags and commandsUsed via doBeginTurnPhase
+      const final = handleEndTurn(s);
       setState(final);
       latestStateRef.current = final;
-      aiRunningRef.current = false;
-      setAiRunning(false);
       setEnemyTurnMsg('');
     }, 800);
   }
@@ -1070,7 +1063,7 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
           paddingTop: '16px',
           paddingLeft: '8px',
           flexShrink: 0,
-          width: '88px',
+          width: '108px',
         }}>
           {/* End Turn button — right side of board */}
           {showEndTurnBtn && (
@@ -1226,8 +1219,8 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', letterSpacing: '0.1em', marginBottom: '16px' }}>
               LESSON COMPLETE
             </div>
-            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '24px' }}>
-              You win! Reduce the enemy champion to 0 HP to claim victory. SPD 1 units move 1 tile per turn. SPD 2 units move twice as far.
+            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '24px', whiteSpace: 'pre-line' }}>
+              {"You win!\n\nReduce the enemy champion to 0 HP to claim victory.\n\nSPD 1 units move 1 tile per turn. SPD 2 units move twice as far."}
             </p>
             <button
               onClick={() => {

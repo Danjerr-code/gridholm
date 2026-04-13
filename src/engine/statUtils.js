@@ -140,8 +140,8 @@ export function getEffectiveMaxHp(state, unit) {
 export function getEffectiveSpd(unit, state = null) {
   if (unit.hidden) return 1;
   const zoneBonus = state ? getZoneSpdBonus(state, unit) : 0;
-  // Fatigue: if the enemy player's deck is empty, friendly combat units gain +1 SPD
-  const fatigueBonus = (state && !unit.isRelic && !unit.isOmen && state.deckEmpty?.[1 - unit.owner]) ? 1 : 0;
+  // Fatigue: if the enemy player's deck is empty, friendly combat units gain +1 SPD (disabled in tutorial)
+  const fatigueBonus = (state && !state.isTutorial && !unit.isRelic && !unit.isOmen && state.deckEmpty?.[1 - unit.owner]) ? 1 : 0;
   return unit.spd + (unit.speedBonus || 0) + zoneBonus + fatigueBonus;
 }
 

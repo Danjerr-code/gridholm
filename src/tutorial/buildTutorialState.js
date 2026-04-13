@@ -215,6 +215,7 @@ export function buildTutorialState(scenario) {
   base.championStartTile = [null, null];
   base.lucernPendingResummon = [null, null];
   base.deckEmpty = [false, false];
+  base.isTutorial = true;
 
   return base;
 }

@@ -1314,6 +1314,9 @@ export function drawCard(state, playerIndex) {
   const p = state.players[playerIndex];
   const drawn = p.deck.shift() || null;
 
+  // No fatigue in tutorial: skip all deckEmpty effects
+  if (state.isTutorial) return drawn;
+
   if (!state.deckEmpty) state.deckEmpty = [false, false];
 
   if (drawn) {
