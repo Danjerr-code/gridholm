@@ -356,9 +356,9 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     if (healed > 0) addLog(state, `Thornweave: champion restores ${healed} HP.`);
   }
 
-  // 2. Sister Siofra: controlling player champion gains +2 max HP
+  // 2. Sister Siofra: controlling player champion gains +2 max HP (only when a combat unit dies, not relics/omens)
   const siofra = state.units.find(u => u.owner === unit.owner && u.id === 'sistersiofra');
-  if (siofra && unit.id !== 'sistersiofra') {
+  if (siofra && unit.id !== 'sistersiofra' && !unit.isRelic && !unit.isOmen) {
     const champ = state.champions[unit.owner];
     champ.maxHp += 2;
     champ.hp = Math.min(champ.maxHp, champ.hp + 2);
@@ -3807,10 +3807,12 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         .filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2)
         .map(u => u.uid);
 
-    // Forge Weapon, Iron Shield, Savage Growth: friendly units (not hidden, not spell-immune)
+    // Forge Weapon: friendly units (not hidden, not spell-immune)
     case 'forgeweapon':
-    case 'ironshield':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid);
+    // Iron Shield: friendly combat units only (not relic, not omen, not hidden, not spell-immune)
+    case 'ironshield':
+      return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
     case 'savagegrowth':
       return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune).map(u => u.uid);
     // Recall: any combat unit (friendly or enemy), not a relic/omen, not spell-immune
@@ -3822,10 +3824,10 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
     case 'moonleaf':
       return state.units.filter(u => u.owner === state.activePlayer && !u.hidden && u.type === 'unit' && !u.spellImmune).map(u => u.uid);
 
-    // Bloom step 0: friendly unit or champion; step 1: enemy unit (not omen, not spell-immune)
+    // Bloom step 0: friendly unit or champion; step 1: enemy combat unit (not relic, not omen, not spell-immune)
     case 'bloom':
       if (step === 0) return ['champion' + state.activePlayer, ...state.units.filter(u => u.owner === state.activePlayer && !u.hidden && !u.spellImmune).map(u => u.uid)];
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Entangle: friendly Elf unit
     case 'entangle':
@@ -3839,9 +3841,9 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
     case 'pounce':
       return state.units.filter(u => u.owner === state.activePlayer && u.attribute === 'primal' && !u.isOmen && !u.isRelic).map(u => u.uid);
 
-    // Ambush step 0: any friendly combat unit; step 1: enemy adjacent to selected unit (not omen)
+    // Ambush step 0: any friendly combat unit (not relic, not omen); step 1: enemy adjacent to selected unit (not omen)
     case 'ambush':
-      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen).map(u => u.uid);
       if (data.beastUid) {
         const beast = state.units.find(u => u.uid === data.beastUid);
         if (!beast) return [];
@@ -3850,10 +3852,10 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
       }
       return [];
 
-    // Blood Offering step 0: friendly unit; step 1: any enemy (not omen, not spell-immune)
+    // Blood Offering step 0: friendly combat unit (not relic, not omen); step 1: enemy combat unit (not relic, not omen, not spell-immune)
     case 'bloodoffering':
-      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer).map(u => u.uid);
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      if (step === 0) return state.units.filter(u => u.owner === state.activePlayer && !u.isRelic && !u.isOmen).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Pact of Ruin damage: any enemy unit or enemy champion (not omen, not spell-immune)
     case 'pactofruin_damage':
@@ -3862,17 +3864,17 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         ...state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid),
       ];
 
-    // Dark Sentence: any enemy unit (not omen, not spell-immune)
+    // Dark Sentence: enemy combat unit (not relic, not omen, not spell-immune)
     case 'darksentence':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
-    // Devour: enemy with 2 or less HP (not omen, not spell-immune)
+    // Devour: enemy combat unit with 2 or less HP (not relic, not omen, not spell-immune)
     case 'devour':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && u.hp <= 2).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune && u.hp <= 2).map(u => u.uid);
 
-    // Soul Drain: enemy unit (not omen, not spell-immune)
+    // Soul Drain: enemy combat unit (not relic, not omen, not spell-immune)
     case 'souldrain':
-      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
+      return state.units.filter(u => u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune).map(u => u.uid);
 
     // Spirit Bolt: any enemy unit or the enemy champion
     case 'spiritbolt':
@@ -3993,10 +3995,10 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         u.owner === state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune
       ).map(u => u.uid);
 
-    // Gore: enemy combat unit (not relic, not omen, not hidden, not spell-immune)
+    // Gore: any enemy unit, relic, or omen (not champion, not hidden, not spell-immune)
     case 'gore':
       return state.units.filter(u =>
-        u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune
+        u.owner !== state.activePlayer && !u.hidden && !u.cannotBeTargetedBySpells && !u.spellImmune
       ).map(u => u.uid);
 
     // Demolish: any relic or omen on the board (friendly or enemy)

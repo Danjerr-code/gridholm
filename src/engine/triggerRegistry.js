@@ -299,10 +299,11 @@ function resolveEffect(effectId, listener, context, state) {
     case 'gainPlusOneHPOnCommand': {
       // Increases HP of the unit that spent a command (moved or used action).
       // Triggers on onFriendlyCommand; champion excluded naturally (not in state.units).
+      // Relics are excluded — only combat units benefit.
       const acting = context?.actingUnit
         ? state.units.find(u => u.uid === context.actingUnit.uid)
         : null;
-      if (acting && acting.owner === playerIndex) {
+      if (acting && acting.owner === playerIndex && !acting.isRelic) {
         acting.hp += 1;
         acting.maxHp += 1;
         addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: ${acting.name} gains +1 HP.`);
