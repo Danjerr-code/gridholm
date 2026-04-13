@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CHAMPIONS } from '../engine/champions.js';
 import { ATTRIBUTES, calculateResonance, RESONANCE_THRESHOLDS } from '../engine/attributes.js';
 import { CARD_DB } from '../engine/cards.js';
-import { supabase, getCardImageUrl } from '../supabase.js';
+import { supabase, getCardImageUrl, getGuestId } from '../supabase.js';
+import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import Card from './Card.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
@@ -10,6 +11,13 @@ import { ATTR_SYMBOLS } from '../assets/attributeSymbols.jsx';
 
 const CUSTOM_DECK_KEY = 'gridholm_custom_deck';
 const SAVED_DECKS_KEY = 'gridholm_saved_decks';
+
+function generateGameId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id = '';
+  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
 
 const DECK_PANEL_STYLES = `
 @keyframes db-bar-pulse {
@@ -98,6 +106,11 @@ export default function DeckBuilder({ onBack, onNext }) {
   const [saveModal, setSaveModal] = useState(null); // null | { overwrite: bool }
   const [saveNameInput, setSaveNameInput] = useState('');
   const [loadModal, setLoadModal] = useState(false);
+  const [playDeckModal, setPlayDeckModal] = useState(null); // null | deck object
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // null | index
+  const [inviteLink, setInviteLink] = useState(null); // null | string
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [creatingInvite, setCreatingInvite] = useState(false);
   // Pending change that requires deck-clear confirmation
   const [pendingChange, setPendingChange] = useState(null); // { type: 'champion'|'secondary', key: string }
 
@@ -240,6 +253,50 @@ export default function DeckBuilder({ onBack, onNext }) {
     if (onNext) onNext();
   }
 
+  function handlePlayDeckAI(deckObj) {
+    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify({
+      champion: deckObj.champion,
+      primaryAttr: deckObj.primaryAttribute,
+      secondaryAttr: deckObj.secondaryAttribute,
+      cards: deckObj.cards,
+      deckName: deckObj.name,
+      resonanceScore: deckObj.resonance,
+    }));
+    window.location.hash = '/custom-ai';
+  }
+
+  async function handleSendMatchInvite(deckObj) {
+    if (!supabase) return;
+    setCreatingInvite(true);
+    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify({
+      champion: deckObj.champion,
+      primaryAttr: deckObj.primaryAttribute,
+      secondaryAttr: deckObj.secondaryAttribute,
+      cards: deckObj.cards,
+      deckName: deckObj.name,
+      resonanceScore: deckObj.resonance,
+    }));
+    const guestId = getGuestId();
+    const gameId = generateGameId();
+    const placeholderState = autoAdvancePhase(createInitialState('human', 'human'));
+    const { error } = await supabase.from('game_sessions').insert({
+      id: gameId,
+      player1_id: guestId,
+      player1_auth_id: currentUser?.id ?? null,
+      game_state: placeholderState,
+      active_player: guestId,
+      status: 'waiting',
+      player1_deck: null,
+      player2_deck: null,
+    });
+    setCreatingInvite(false);
+    if (!error) {
+      localStorage.setItem('gridholm_pending_custom_deck', '1');
+      const base = window.location.href.replace(/#.*$/, '');
+      setInviteLink(`${base}#/game/${gameId}`);
+    }
+  }
+
   function handleChampionSelect(attributeKey) {
     if (deckCount > 0) {
       setPendingChange({ type: 'champion', key: attributeKey });
@@ -377,6 +434,155 @@ export default function DeckBuilder({ onBack, onNext }) {
           </div>
         </div>
       )}
+
+      {/* Delete deck confirmation modal */}
+      {deleteConfirm !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#0d0d1a', border: '1px solid #2a2a3a',
+            borderRadius: '8px', padding: '24px',
+            maxWidth: '320px', width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+          }}>
+            <h3 style={{ fontFamily: "'Cinzel', serif", fontSize: '15px', color: '#C9A84C', margin: 0, letterSpacing: '0.06em' }}>
+              Delete saved deck?
+            </h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                style={{
+                  flex: 1, background: 'linear-gradient(135deg, #6a1a1a, #aa2a2a)',
+                  color: '#f9fafb', fontFamily: "'Cinzel', serif",
+                  fontSize: '12px', fontWeight: 600,
+                  border: '1px solid #aa3a3a', borderRadius: '4px',
+                  padding: '10px', cursor: 'pointer', letterSpacing: '0.04em',
+                }}
+                onClick={() => { handleDeleteSavedDeck(deleteConfirm); setDeleteConfirm(null); }}
+              >
+                Yes
+              </button>
+              <button
+                style={{
+                  flex: 1, background: 'transparent', color: '#6a6a8a',
+                  fontFamily: "'Cinzel', serif", fontSize: '12px',
+                  border: '1px solid #2a2a3a', borderRadius: '4px',
+                  padding: '10px', cursor: 'pointer',
+                }}
+                onClick={() => setDeleteConfirm(null)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Play deck modal */}
+      {playDeckModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#0d0d1a', border: '1px solid #2a2a3a',
+            borderRadius: '8px', padding: '24px',
+            maxWidth: '340px', width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+          }}>
+            <h3 style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#C9A84C', margin: 0, letterSpacing: '0.06em' }}>
+              {playDeckModal.name}
+            </h3>
+            {!inviteLink ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  disabled={creatingInvite}
+                  style={{
+                    background: creatingInvite ? '#1a2a3a' : 'linear-gradient(135deg, #1a2a4a, #2a4a8a)',
+                    color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                    fontSize: '12px', fontWeight: 600,
+                    border: '1px solid #3a5a9a', borderRadius: '4px',
+                    padding: '12px', cursor: creatingInvite ? 'default' : 'pointer',
+                    letterSpacing: '0.04em', opacity: creatingInvite ? 0.7 : 1,
+                  }}
+                  onClick={() => handleSendMatchInvite(playDeckModal)}
+                >
+                  {creatingInvite ? 'Creating...' : 'Send Match Invite'}
+                </button>
+                <button
+                  style={{
+                    background: 'linear-gradient(135deg, #1a3a2a, #2a6a4a)',
+                    color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                    fontSize: '12px', fontWeight: 600,
+                    border: '1px solid #3a8a5a', borderRadius: '4px',
+                    padding: '12px', cursor: 'pointer', letterSpacing: '0.04em',
+                  }}
+                  onClick={() => handlePlayDeckAI(playDeckModal)}
+                >
+                  Play vs AI
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#9ca3af', margin: 0 }}>
+                  Share this link with your opponent:
+                </p>
+                <div style={{
+                  background: '#141428', border: '1px solid #2a2a3a', borderRadius: '4px',
+                  padding: '8px 12px', fontFamily: 'monospace', fontSize: '11px',
+                  color: '#6a8ac9', wordBreak: 'break-all',
+                }}>
+                  {inviteLink}
+                </div>
+                <button
+                  style={{
+                    background: inviteLinkCopied ? 'linear-gradient(135deg, #1a3a2a, #2a6a4a)' : 'linear-gradient(135deg, #1a2a4a, #2a4a8a)',
+                    color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                    fontSize: '12px', fontWeight: 600,
+                    border: `1px solid ${inviteLinkCopied ? '#3a8a5a' : '#3a5a9a'}`, borderRadius: '4px',
+                    padding: '10px', cursor: 'pointer', letterSpacing: '0.04em',
+                  }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteLink).then(() => {
+                      setInviteLinkCopied(true);
+                      setTimeout(() => setInviteLinkCopied(false), 2000);
+                    });
+                  }}
+                >
+                  {inviteLinkCopied ? 'Copied!' : 'Copy Link'}
+                </button>
+                <button
+                  style={{
+                    background: 'linear-gradient(135deg, #1a3a2a, #2a6a4a)',
+                    color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                    fontSize: '12px', fontWeight: 600,
+                    border: '1px solid #3a8a5a', borderRadius: '4px',
+                    padding: '10px', cursor: 'pointer', letterSpacing: '0.04em',
+                  }}
+                  onClick={() => window.location.hash = `/game/${inviteLink.split('/game/')[1]}`}
+                >
+                  Open Game
+                </button>
+              </div>
+            )}
+            <button
+              style={{
+                background: 'transparent', color: '#6a6a8a',
+                fontFamily: "'Cinzel', serif", fontSize: '12px',
+                border: '1px solid #2a2a3a', borderRadius: '4px',
+                padding: '8px', cursor: 'pointer',
+              }}
+              onClick={() => { setPlayDeckModal(null); setInviteLink(null); setInviteLinkCopied(false); }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Save deck modal */}
       {saveModal && (
         <div style={{
@@ -617,6 +823,18 @@ export default function DeckBuilder({ onBack, onNext }) {
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <button
                       style={{
+                        flex: 1, background: 'linear-gradient(135deg, #1a3a2a, #2a6a4a)',
+                        color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                        fontSize: '10px', fontWeight: 600,
+                        border: '1px solid #3a8a5a', borderRadius: '3px',
+                        padding: '5px', cursor: 'pointer', letterSpacing: '0.03em',
+                      }}
+                      onClick={() => setPlayDeckModal(d)}
+                    >
+                      Play
+                    </button>
+                    <button
+                      style={{
                         flex: 1, background: 'linear-gradient(135deg, #1a3a6a, #2a5aaa)',
                         color: '#e2e8f0', fontFamily: "'Cinzel', serif",
                         fontSize: '10px', fontWeight: 600,
@@ -625,7 +843,7 @@ export default function DeckBuilder({ onBack, onNext }) {
                       }}
                       onClick={() => handleLoadSavedDeck(d)}
                     >
-                      Load
+                      Edit
                     </button>
                     <button
                       style={{
@@ -634,7 +852,7 @@ export default function DeckBuilder({ onBack, onNext }) {
                         border: '1px solid #2a2a3a', borderRadius: '3px',
                         padding: '5px 8px', cursor: 'pointer',
                       }}
-                      onClick={() => handleDeleteSavedDeck(i)}
+                      onClick={() => setDeleteConfirm(i)}
                       title="Delete this deck"
                     >
                       ×
