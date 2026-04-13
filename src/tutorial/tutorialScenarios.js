@@ -37,7 +37,7 @@ export const TUTORIAL_SCENARIOS = [
       p1Champion: { row: 4, col: 2, hp: 20 },
       p2Champion: { row: 0, col: 2, hp: 20 },
       units: [
-        { cardId: 'knight', owner: 0, row: 3, col: 2 },
+        { cardId: 'knight', owner: 0, row: 3, col: 2, overrides: { spd: 1 } },
       ],
       p1Hand: [],
       p1Mana: 0,
@@ -55,7 +55,7 @@ export const TUTORIAL_SCENARIOS = [
         prompt: 'Move your Knight forward.',
         validAction: 'move',
         validUnit: 'knight',
-        validDestinations: [[2, 2], [2, 1], [2, 3]],
+        validDestinations: [[2, 2]],
       },
       {
         prompt: 'Press End Turn to let the enemy respond.',

@@ -107,7 +107,8 @@ export function buildTutorialState(scenario) {
 
   // Place scenario units on the board
   for (const unitCfg of (bc.units || [])) {
-    const unit = makeUnit(unitCfg.cardId, unitCfg.owner, unitCfg.row, unitCfg.col);
+    let unit = makeUnit(unitCfg.cardId, unitCfg.owner, unitCfg.row, unitCfg.col);
+    if (unitCfg.overrides) unit = { ...unit, ...unitCfg.overrides };
     base.units.push(unit);
     registerUnit(unit, base);
     registerModifiers(unit, base);

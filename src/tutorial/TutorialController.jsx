@@ -318,19 +318,57 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
   }
 
   // ── Scenario 1: enemy turn after End Turn step ────────────────────────────
+  // Scripted: AI places Hellhound on the tile directly between the Knight and
+  // the AI champion. The AI champion does NOT move.
 
   function executeEnemyTurnScenario1(stateAfterEndTurn) {
     setEnemyTurnMsg('Enemy is acting…');
-    // Advance from end-turn state (phase = begin-turn, activePlayer = 1)
+    // Advance from end-turn state so enemy resources are set for their turn
     const enemyStart = autoAdvancePhase(stateAfterEndTurn);
     setState(enemyStart);
 
-    runAITurn(enemyStart, (afterEnemyTurn) => {
-      // After enemy ends turn, autoAdvancePhase brings it to player 1's begin-turn
-      // then action phase starts. We want to stay in guided step mode.
-      // The next step (attack) is already loaded; just let the player act.
-      void afterEnemyTurn;
-    });
+    setTimeout(() => {
+      let s = cloneState(enemyStart);
+
+      const hellhoundCard = s.players[1].hand.find(c => c.id === 'hellhound');
+      const knight = s.units.find(u => u.id === 'knight' && u.owner === 0);
+
+      if (hellhoundCard && knight) {
+        // Guarantee AI has enough mana to summon
+        s.players[1].resources = Math.max(s.players[1].resources, hellhoundCard.cost);
+        s.players[1].maxResourcesThisTurn = Math.max(s.players[1].maxResourcesThisTurn, hellhoundCard.cost);
+
+        // Target tile: one row toward the AI champion from the Knight's current position
+        const targetRow = Math.max(0, knight.row - 1);
+        const targetCol = knight.col;
+
+        // Fallback to [1, 2] if target is occupied
+        const isOccupied =
+          s.units.some(u => u.row === targetRow && u.col === targetCol) ||
+          s.champions.some(c => c.row === targetRow && c.col === targetCol);
+        const placeRow = isOccupied ? 1 : targetRow;
+        const placeCol = isOccupied ? 2 : targetCol;
+
+        s = playCard(s, hellhoundCard.uid);
+        if (s.pendingSummon) {
+          s = summonUnit(s, hellhoundCard.uid, placeRow, placeCol);
+        }
+      }
+
+      // End AI turn: return to player action phase without moving champion
+      const advanced = autoAdvancePhase({ ...s, activePlayer: 0, phase: 'action', turn: s.turn + 1 });
+      const final = {
+        ...advanced,
+        players: advanced.players.map((p, i) =>
+          i === 0 ? { ...p, commandsUsed: 0 } : p
+        ),
+      };
+      setState(final);
+      latestStateRef.current = final;
+      aiRunningRef.current = false;
+      setAiRunning(false);
+      setEnemyTurnMsg('');
+    }, 800);
   }
 
   // ── Scenario 4: guided multi-turn with Kragor fleeing ────────────────────
@@ -1027,17 +1065,44 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
           )}
         </div>
 
-        {/* RIGHT PANEL: status + hint button (scenario 5) */}
+        {/* RIGHT PANEL: End Turn + status + hint button */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-start',
+          alignItems: 'stretch',
           gap: '8px',
           paddingTop: '16px',
           paddingLeft: '8px',
           flexShrink: 0,
-          width: '72px',
+          width: '88px',
         }}>
+          {/* End Turn button — right side of board */}
+          {showEndTurnBtn && (
+            <button
+              onClick={handleEndAction}
+              style={{
+                background: highlightEndTurnBtn
+                  ? 'linear-gradient(135deg, #6a5a00, #E8C84C)'
+                  : 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                color: '#0a0a0f',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '11px',
+                fontWeight: 600,
+                border: highlightEndTurnBtn ? '2px solid #E8C84C' : 'none',
+                borderRadius: '4px',
+                padding: '7px 6px',
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                boxShadow: highlightEndTurnBtn
+                  ? '0 0 12px rgba(201,168,76,0.6)'
+                  : '0 2px 8px rgba(0,0,0,0.4)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              End Turn →
+            </button>
+          )}
+
           {/* Champion HP display */}
           <div style={{ fontSize: '10px', color: '#6a6a8a', fontFamily: 'var(--font-sans)', lineHeight: 1.6 }}>
             <div style={{ color: '#a0c0f0' }}>You: {state.champions[0]?.hp ?? 20}</div>
@@ -1067,46 +1132,6 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
           )}
         </div>
       </div>
-
-      {/* BOTTOM BAR: End Turn button (bottom right, matching real game) */}
-      {showEndTurnBtn && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '8px 16px',
-          borderTop: '1px solid rgba(201,168,76,0.1)',
-          background: 'rgba(10,10,15,0.8)',
-          flexShrink: 0,
-        }}>
-          {!isP1Turn && (isFreePlay || isGuided) && (
-            <span style={{ color: '#7a7a9a', fontFamily: "'Cinzel', serif", fontSize: '11px', alignSelf: 'center', marginRight: '12px' }}>
-              {aiRunning ? 'Enemy acting…' : 'AI thinking…'}
-            </span>
-          )}
-          <button
-            onClick={handleEndAction}
-            style={{
-              background: highlightEndTurnBtn
-                ? 'linear-gradient(135deg, #6a5a00, #E8C84C)'
-                : 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-              color: '#0a0a0f',
-              fontFamily: "'Cinzel', serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              border: highlightEndTurnBtn ? '2px solid #E8C84C' : 'none',
-              borderRadius: '4px',
-              padding: '8px 20px',
-              cursor: 'pointer',
-              letterSpacing: '0.05em',
-              boxShadow: highlightEndTurnBtn
-                ? '0 0 12px rgba(201,168,76,0.6)'
-                : '0 2px 8px rgba(0,0,0,0.4)',
-            }}
-          >
-            End Turn →
-          </button>
-        </div>
-      )}
 
       {/* Free play reminder (scenario 5) */}
       {isFreePlay && !state.winner && !showTurnLimitMsg && (
