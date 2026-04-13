@@ -25,6 +25,9 @@ export function useMultiplayerGame(gameId) {
   const retryTimerRef = useRef(null);
   const forfeitCalledRef = useRef(false);
   const winLossUpdatedRef = useRef(false); // guard against double win/loss update
+  // Tracks own mulligan submission so the 5s fallback can retry if opponent's
+  // write overwrote ours and the game is still stuck in mulligan phase.
+  const [myMulliganSubmission, setMyMulliganSubmission] = useState(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -441,10 +444,16 @@ export function useMultiplayerGame(gameId) {
     if (updated) setSession({ ...updated, game_state: { ...updated.game_state, log: log ?? [] } });
   }, [session, gameId, guestId]);
 
-  // Submit this player's mulligan choice. Re-fetches the latest game state to
-  // minimise the race window when both players submit simultaneously.
+  // Submit this player's mulligan choice. Re-fetches before writing to capture
+  // any concurrent opponent update, then re-fetches once more after writing to
+  // detect the simultaneous-submit race (both clients fetched before either
+  // wrote → each overwrites the other's selection). Re-applying own selection
+  // to the re-fetched state merges them correctly.
   const submitMulliganAction = useCallback(async (playerIdx, cardIndices) => {
     if (!session || !supabase) return;
+
+    // Record submission so the 5s fallback can retry if still stuck.
+    setMyMulliganSubmission({ playerIdx, cardIndices });
 
     // Re-fetch latest state to capture any update from the opponent
     const { data: latest } = await supabase
@@ -454,7 +463,10 @@ export function useMultiplayerGame(gameId) {
       .single();
 
     const baseState = latest?.game_state ?? session.game_state;
-    if (!baseState || baseState.phase !== 'mulligan') return;
+    if (!baseState || baseState.phase !== 'mulligan') {
+      setMyMulliganSubmission(null);
+      return;
+    }
 
     const s = JSON.parse(JSON.stringify(baseState));
     submitMulligan(s, playerIdx, cardIndices);
@@ -466,7 +478,76 @@ export function useMultiplayerGame(gameId) {
     }
 
     await dispatchAction(finalState);
+
+    if (finalState.phase !== 'mulligan') {
+      setMyMulliganSubmission(null);
+      return;
+    }
+
+    // Phase is still mulligan: our write only captured one selection.
+    // Re-fetch to see if the opponent wrote theirs concurrently (and may have
+    // overwritten ours). Re-apply own selection to the fresh row so both are
+    // present, then advance.
+    const { data: refetch } = await supabase
+      .from('game_sessions')
+      .select('game_state')
+      .eq('id', gameId)
+      .single();
+
+    const rState = refetch?.game_state;
+    if (!rState || rState.phase !== 'mulligan') {
+      setMyMulliganSubmission(null);
+      return; // already advanced by the other client
+    }
+
+    const r = JSON.parse(JSON.stringify(rState));
+    // Re-apply own selection (handles the case where opponent's write
+    // overwrote ours, leaving only their selection in DB).
+    submitMulligan(r, playerIdx, cardIndices);
+
+    if (r.phase === 'begin-turn') {
+      await dispatchAction(autoAdvancePhase(r));
+      setMyMulliganSubmission(null);
+    }
+    // If still only one selection, the 5s fallback effect will retry.
   }, [session, gameId, dispatchAction]);
+
+  // Fallback: if own mulligan was submitted but the game is still stuck in
+  // mulligan phase after 5 seconds, re-fetch and retry the merge. This catches
+  // any timing edge the double-fetch above missed.
+  useEffect(() => {
+    if (!myMulliganSubmission || !session || !supabase) return;
+    if (session.game_state?.phase !== 'mulligan') {
+      setMyMulliganSubmission(null);
+      return;
+    }
+
+    const { playerIdx, cardIndices } = myMulliganSubmission;
+    const timer = setTimeout(async () => {
+      const { data: refetch } = await supabase
+        .from('game_sessions')
+        .select('game_state')
+        .eq('id', gameId)
+        .single();
+
+      const rState = refetch?.game_state;
+      if (!rState || rState.phase !== 'mulligan') {
+        setMyMulliganSubmission(null);
+        return;
+      }
+
+      console.log('[Mulligan] 5s fallback firing — re-applying own selection and retrying');
+      const r = JSON.parse(JSON.stringify(rState));
+      submitMulligan(r, playerIdx, cardIndices);
+
+      if (r.phase === 'begin-turn') {
+        await dispatchAction(autoAdvancePhase(r));
+        setMyMulliganSubmission(null);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [myMulliganSubmission, session?.game_state?.phase, gameId, dispatchAction]);
 
   const concedeGame = useCallback(async () => {
     if (!session || !supabase) return;
