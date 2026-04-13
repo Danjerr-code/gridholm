@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { playTurnStartSound, playSfxDraw } from '../audio.js';
 import { createInitialState, autoAdvancePhase, submitMulligan, getChampionDef } from '../engine/gameEngine.js';
 import { FACTION_INFO, parseDeckSpec } from '../engine/cards.js';
+import { sanitizeGameState } from '../engine/stateSanitizer.js';
 
 function getDeckDisplayName(deckId) {
   const spec = parseDeckSpec(deckId);
@@ -46,13 +47,14 @@ export function useMultiplayerGame(gameId) {
             const incoming = payload.new;
             // Log is stripped from Supabase writes — carry forward local log so
             // the passive player retains visibility into their accumulated log.
-            if (incoming.game_state && !incoming.game_state.log) {
-              return {
-                ...incoming,
-                game_state: { ...incoming.game_state, log: prev?.game_state?.log ?? [] },
-              };
+            let gameState = incoming.game_state;
+            if (gameState && !gameState.log) {
+              gameState = { ...gameState, log: prev?.game_state?.log ?? [] };
             }
-            return incoming;
+            return {
+              ...incoming,
+              game_state: sanitizeGameState(gameState),
+            };
           });
         }
       )
@@ -73,14 +75,14 @@ export function useMultiplayerGame(gameId) {
 
       // Reconnecting as player 1
       if (sessionData.player1_id === guestId) {
-        setSession(sessionData);
+        setSession({ ...sessionData, game_state: sanitizeGameState(sessionData.game_state) });
         setLoading(false);
         return;
       }
 
       // Reconnecting as player 2
       if (sessionData.player2_id === guestId) {
-        setSession(sessionData);
+        setSession({ ...sessionData, game_state: sanitizeGameState(sessionData.game_state) });
         setLoading(false);
         return;
       }
@@ -109,13 +111,13 @@ export function useMultiplayerGame(gameId) {
           return;
         }
 
-        setSession(joined);
+        setSession({ ...joined, game_state: sanitizeGameState(joined.game_state) });
         setLoading(false);
         return;
       }
 
       // Game is full or complete
-      setSession(sessionData);
+      setSession({ ...sessionData, game_state: sanitizeGameState(sessionData.game_state) });
       setLoading(false);
     }
 
@@ -382,7 +384,7 @@ export function useMultiplayerGame(gameId) {
     if (updateError) {
       console.error('[DeckSelect] Failed to write deck selection:', updateError);
     } else if (updated) {
-      setSession(updated);
+      setSession({ ...updated, game_state: sanitizeGameState(updated.game_state) });
     }
   }, [session, gameId, guestId]);
 
@@ -441,7 +443,7 @@ export function useMultiplayerGame(gameId) {
       .single();
 
     // Inject the local log back into session so the active client retains the full log.
-    if (updated) setSession({ ...updated, game_state: { ...updated.game_state, log: log ?? [] } });
+    if (updated) setSession({ ...updated, game_state: { ...sanitizeGameState(updated.game_state), log: log ?? [] } });
   }, [session, gameId, guestId]);
 
   // Submit this player's mulligan choice. Re-fetches before writing to capture
@@ -462,7 +464,7 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId)
       .single();
 
-    const baseState = latest?.game_state ?? session.game_state;
+    const baseState = sanitizeGameState(latest?.game_state ?? session.game_state);
     if (!baseState || baseState.phase !== 'mulligan') {
       setMyMulliganSubmission(null);
       return;
@@ -494,7 +496,7 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId)
       .single();
 
-    const rState = refetch?.game_state;
+    const rState = sanitizeGameState(refetch?.game_state);
     if (!rState || rState.phase !== 'mulligan') {
       setMyMulliganSubmission(null);
       return; // already advanced by the other client
@@ -530,7 +532,7 @@ export function useMultiplayerGame(gameId) {
         .eq('id', gameId)
         .single();
 
-      const rState = refetch?.game_state;
+      const rState = sanitizeGameState(refetch?.game_state);
       if (!rState || rState.phase !== 'mulligan') {
         setMyMulliganSubmission(null);
         return;
@@ -572,7 +574,7 @@ export function useMultiplayerGame(gameId) {
       .eq('id', gameId)
       .select()
       .single();
-    if (updated) setSession(updated);
+    if (updated) setSession({ ...updated, game_state: sanitizeGameState(updated.game_state) });
   }, [session, gameId]);
 
   const abandonGame = useCallback(async () => {
@@ -628,7 +630,7 @@ export function useMultiplayerGame(gameId) {
       return;
     }
 
-    if (updated) setSession(updated);
+    if (updated) setSession({ ...updated, game_state: sanitizeGameState(updated.game_state) });
   }, [session, gameId]);
 
   // Propose a rematch. Uses a vote in game_state.rematchVotes — when both players
@@ -652,7 +654,7 @@ export function useMultiplayerGame(gameId) {
         .eq('id', gameId)
         .select()
         .single();
-      if (updated) setSession(updated);
+      if (updated) setSession({ ...updated, game_state: sanitizeGameState(updated.game_state) });
     }
   }, [session, gameId, guestId, startRematch]);
 
