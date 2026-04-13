@@ -32,6 +32,7 @@ import {
   hasValidTargets,
 } from './gameEngine.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
+import { getCardRating } from './cardThreatRatings.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -349,6 +350,10 @@ export const WEIGHTS = {
   lethalThreat:             35,
   championProximity:        10,
   opponentChampionLowHP:    30,
+  allyCardValue:             3,
+  enemyThreatValue:          4,
+  trappedAllyPenalty:        5,
+  highValueUnitActivity:     3,
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
@@ -414,6 +419,44 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   // Massive bonus to close out games when opponent champion is nearly dead.
   const opponentChampionLowHP = oppChamp.hp <= 3 ? 2 : (oppChamp.hp <= 5 ? 1 : 0);
 
+  // allyCardValue: sum of allyValue ratings for my combat units on board.
+  const myCombatUnits = myUnits.filter(u => !u.isRelic && !u.isOmen);
+  const allyCardValue = myCombatUnits.reduce((sum, u) => {
+    return sum + getCardRating(u.id, 'ally', u.cost ?? 4);
+  }, 0);
+
+  // enemyThreatValue: sum of threatValue ratings for enemy combat units on board (negative).
+  const oppCombatUnits = oppUnits.filter(u => !u.isRelic && !u.isOmen);
+  const enemyThreatValue = -oppCombatUnits.reduce((sum, u) => {
+    return sum + getCardRating(u.id, 'threat', u.cost ?? 4);
+  }, 0);
+
+  // trappedAllyPenalty: penalise when a high-value friendly unit is trapped in a Gilded Cage.
+  // A cage relic is owned by the caster (opponent); the trapped unit belongs to us.
+  let trappedAllyPenaltyValue = 0;
+  for (const u of oppUnits) {
+    if (u.id === 'gildedcage_relic' && u.trappedUnit && u.trappedUnit.owner === ap) {
+      const rating = getCardRating(u.trappedUnit.id, 'ally', u.trappedUnit.cost ?? 4);
+      trappedAllyPenaltyValue -= rating * (weights.trappedAllyPenalty ?? 5) / 10;
+    }
+  }
+
+  // highValueUnitActivity: penalise idle high-value friendly units that are far from any target.
+  // A unit is "idle" if it has not moved and was not just summoned this turn.
+  let highValueIdlePenalty = 0;
+  for (const u of myCombatUnits) {
+    const allyVal = getCardRating(u.id, 'ally', u.cost ?? 4);
+    if (allyVal < 7) continue;
+    if (u.moved || u.summoned) continue;
+    const distToEnemy = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    const nearEnemyUnit = oppUnits.some(eu =>
+      manhattan([u.row, u.col], [eu.row, eu.col]) <= 2
+    );
+    if (distToEnemy > 2 && !nearEnemyUnit) {
+      highValueIdlePenalty -= (allyVal - 6) * (weights.highValueUnitActivity ?? 3) / 10;
+    }
+  }
+
   return (
     championHP               * weights.championHP               +
     championHPDiff           * weights.championHPDiff           +
@@ -429,7 +472,11 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     lethalThreat             * weights.lethalThreat             +
     gameLength                                                  +
     championProximity        * weights.championProximity        +
-    opponentChampionLowHP    * weights.opponentChampionLowHP
+    opponentChampionLowHP    * weights.opponentChampionLowHP    +
+    allyCardValue            * weights.allyCardValue            +
+    enemyThreatValue         * weights.enemyThreatValue         +
+    trappedAllyPenaltyValue                                     +
+    highValueIdlePenalty
   );
 }
 

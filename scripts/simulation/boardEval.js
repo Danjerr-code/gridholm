@@ -23,6 +23,7 @@
  */
 
 import { manhattan } from '../../src/engine/gameEngine.js';
+import { getCardRating } from '../../src/engine/cardThreatRatings.js';
 
 // Throne tile: center of the 5×5 board.
 const THRONE_ROW = 2;
@@ -54,6 +55,10 @@ export const WEIGHTS = {
   healingValue:              0,  // bonus per own-champion HP point (Mystic)
   turnAggressionScale:    0.08,  // per-turn aggression ramp after turn 12 (evolved per faction)
   projectedChampionDamage:  20,  // ATK of units that can reach enemy champion this turn
+  allyCardValue:             3,  // sum of allyValue ratings for friendly combat units
+  enemyThreatValue:          4,  // sum of threatValue ratings for enemy combat units (applied negatively)
+  trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
+  highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
 };
 
 /**
@@ -432,6 +437,44 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // allyCardValue: sum of allyValue ratings for my combat units on board.
+  const myCombatUnits = myUnits.filter(u => !u.isRelic && !u.isOmen);
+  const allyCardValue = myCombatUnits.reduce((sum, u) => {
+    return sum + getCardRating(u.id, 'ally', u.cost ?? 4);
+  }, 0);
+
+  // enemyThreatValue: sum of threatValue ratings for enemy combat units (applied negatively).
+  const oppCombatUnits = oppUnits.filter(u => !u.isRelic && !u.isOmen);
+  const enemyThreatValue = -oppCombatUnits.reduce((sum, u) => {
+    return sum + getCardRating(u.id, 'threat', u.cost ?? 4);
+  }, 0);
+
+  // trappedAllyPenalty: penalise when a high-value friendly unit is trapped in a Gilded Cage.
+  // A cage relic is owned by the caster (opponent); the trapped unit belongs to us.
+  let trappedAllyPenaltyValue = 0;
+  for (const u of oppUnits) {
+    if (u.id === 'gildedcage_relic' && u.trappedUnit && u.trappedUnit.owner === ap) {
+      const rating = getCardRating(u.trappedUnit.id, 'ally', u.trappedUnit.cost ?? 4);
+      trappedAllyPenaltyValue -= rating * (w.trappedAllyPenalty ?? 5) / 10;
+    }
+  }
+
+  // highValueUnitActivity: penalise idle high-value friendly units far from any target.
+  // A unit is "idle" if it has not moved and was not just summoned this turn.
+  let highValueIdlePenalty = 0;
+  for (const u of myCombatUnits) {
+    const allyVal = getCardRating(u.id, 'ally', u.cost ?? 4);
+    if (allyVal < 7) continue;
+    if (u.moved || u.summoned) continue;
+    const distToEnemy = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    const nearEnemyUnit = oppUnits.some(eu =>
+      manhattan([u.row, u.col], [eu.row, eu.col]) <= 2
+    );
+    if (distToEnemy > 2 && !nearEnemyUnit) {
+      highValueIdlePenalty -= (allyVal - 6) * (w.highValueUnitActivity ?? 3) / 10;
+    }
+  }
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behavior.
@@ -460,7 +503,11 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     relicsOnBoard            * w.relicsOnBoard            +
     omensOnBoard             * w.omensOnBoard             +
     terrainBenefit           * w.terrainBenefit           +
-    terrainHarm              * w.terrainHarm;
+    terrainHarm              * w.terrainHarm              +
+    allyCardValue            * (w.allyCardValue ?? 3)     +
+    enemyThreatValue         * (w.enemyThreatValue ?? 4)  +
+    trappedAllyPenaltyValue                               +
+    highValueIdlePenalty;
 
   return score;
 }
