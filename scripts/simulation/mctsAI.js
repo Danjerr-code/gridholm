@@ -20,13 +20,15 @@
  *   DEFAULT_POLICY
  */
 
-import { getLegalActions, applyAction, isGameOver } from './headlessEngine.js';
+import { getLegalActions, applyAction, applyActionMutate, isGameOver } from './headlessEngine.js';
 import { manhattan } from '../../src/engine/gameEngine.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 // Safety valve: max actions per rollout regardless of turn count.
-const MAX_ROLLOUT_ACTIONS = 400;
+// Reduced from 400 → 50 for performance (8× speedup on rollout depth).
+// Override per-call via chooseActionMCTS options.maxRolloutActions.
+const MAX_ROLLOUT_ACTIONS = 50;
 
 // Exploration constant for UCB1 (√2 ≈ 1.414).
 const UCB1_C = 1.414;
@@ -60,17 +62,21 @@ function distToEnemyChamp(state, row, col, ownerIdx) {
  * additional turns have elapsed. Returns 'win' or 'loss' from `playerIdx`'s
  * perspective. Draws (turn limit reached) are counted as losses.
  *
- * @param {object} state      - current game state (not mutated)
+ * Uses applyActionMutate to skip redundant clones within the action switch —
+ * the caller passes a dedicated rollout copy so the original state is safe.
+ *
+ * @param {object} state      - current game state (not mutated by caller)
  * @param {number} playerIdx  - 0 (P1) or 1 (P2): whose perspective to report
  * @param {number} [maxTurns=30] - max additional turns before declaring a draw/loss
+ * @param {number} [maxActions=MAX_ROLLOUT_ACTIONS] - action-count safety cap
  * @returns {'win' | 'loss'}
  */
-export function randomRollout(state, playerIdx, maxTurns = 30) {
+export function randomRollout(state, playerIdx, maxTurns = 30, maxActions = MAX_ROLLOUT_ACTIONS) {
   const winnerStr  = playerIdxToStr(playerIdx);
   const turnLimit  = (state.turn ?? 0) + maxTurns;
   let actionCount  = 0;
 
-  while (actionCount < MAX_ROLLOUT_ACTIONS) {
+  while (actionCount < maxActions) {
     // Check win/loss condition.
     const { over, winner } = isGameOver(state);
     if (over) {
@@ -90,7 +96,7 @@ export function randomRollout(state, playerIdx, maxTurns = 30) {
 
     // Uniform random action selection.
     const action = actions[Math.floor(Math.random() * actions.length)];
-    state = applyAction(state, action);
+    state = applyActionMutate(state, action);
     actionCount++;
   }
 
@@ -187,18 +193,22 @@ function actionBias(action, state, policy) {
  * `policy`. The policy biases the rollout toward aggressive, game-closing play
  * without being deterministic.
  *
+ * Uses applyActionMutate to skip redundant clones within the action switch —
+ * the caller passes a dedicated rollout copy so the original state is safe.
+ *
  * @param {object} state
  * @param {number} playerIdx
  * @param {number} [maxTurns=30]
  * @param {object} [policy=DEFAULT_POLICY]
+ * @param {number} [maxActions=MAX_ROLLOUT_ACTIONS] - action-count safety cap
  * @returns {'win' | 'loss'}
  */
-export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_POLICY) {
+export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_POLICY, maxActions = MAX_ROLLOUT_ACTIONS) {
   const winnerStr  = playerIdxToStr(playerIdx);
   const turnLimit  = (state.turn ?? 0) + maxTurns;
   let actionCount  = 0;
 
-  while (actionCount < MAX_ROLLOUT_ACTIONS) {
+  while (actionCount < maxActions) {
     const { over, winner } = isGameOver(state);
     if (over) {
       return winner === winnerStr ? 'win' : 'loss';
@@ -222,7 +232,7 @@ export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_
       if (r <= 0) { chosen = actions[i]; break; }
     }
 
-    state = applyAction(state, chosen);
+    state = applyActionMutate(state, chosen);
     actionCount++;
   }
 
@@ -235,10 +245,12 @@ export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_
  * Choose an action using flat MCTS with UCB1 selection and biased rollouts.
  *
  * Options:
- *   simulations  {number}  - rollouts per decision (default 200)
- *   maxRolloutTurns {number} - max turns per rollout (default 30)
- *   policy       {object}  - rollout policy (default DEFAULT_POLICY)
- *                            Pass null to use uniform random rollouts.
+ *   simulations      {number}  - rollouts per decision (default 200)
+ *   maxRolloutTurns  {number}  - max turns per rollout (default 30)
+ *   maxRolloutActions {number} - max actions per rollout safety cap (default MAX_ROLLOUT_ACTIONS=50)
+ *   policy           {object}  - rollout policy (default DEFAULT_POLICY)
+ *                                Pass null to use uniform random rollouts.
+ *   timeoutMs        {number}  - per-decision time cap in ms (default 10000)
  *
  * @param {object} state
  * @param {object} [options]
@@ -246,17 +258,18 @@ export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_
  */
 export function chooseActionMCTS(state, options = {}) {
   const {
-    simulations    = 200,
-    maxRolloutTurns = 30,
-    policy          = DEFAULT_POLICY,
-    timeoutMs       = MCTS_TIMEOUT_MS,  // per-decision time cap (ms)
+    simulations       = 200,
+    maxRolloutTurns   = 30,
+    maxRolloutActions = MAX_ROLLOUT_ACTIONS,
+    policy            = DEFAULT_POLICY,
+    timeoutMs         = MCTS_TIMEOUT_MS,  // per-decision time cap (ms)
   } = options;
 
   const playerIdx = state.activePlayer; // 0 or 1
   const winnerStr = playerIdxToStr(playerIdx);
   const rolloutFn = policy
-    ? (s) => biasedRollout(s, playerIdx, maxRolloutTurns, policy)
-    : (s) => randomRollout(s, playerIdx, maxRolloutTurns);
+    ? (s) => biasedRollout(s, playerIdx, maxRolloutTurns, policy, maxRolloutActions)
+    : (s) => randomRollout(s, playerIdx, maxRolloutTurns, maxRolloutActions);
 
   const actions = getLegalActions(state);
 
@@ -264,11 +277,20 @@ export function chooseActionMCTS(state, options = {}) {
   if (actions.length === 0) return { type: 'endTurn' };
   if (actions.length === 1) return actions[0];
 
-  // Immediate lethal check: if any action ends the game as a win, take it.
-  for (const action of actions) {
-    const next = applyAction(state, action);
-    const { over, winner } = isGameOver(next);
-    if (over && winner === winnerStr) return action;
+  // Immediate lethal check: only scan when the enemy champion has low enough HP
+  // to be killable by a unit attack or champion attack this turn.
+  // This avoids O(n_actions) applyAction cost on every decision step.
+  const enemyChamp = state.champions[1 - playerIdx];
+  const myUnits    = state.units.filter(u => u.owner === playerIdx && !u.isRelic && !u.isOmen);
+  const maxAtk     = myUnits.reduce((m, u) => Math.max(m, u.atk ?? 0), 0);
+  const myChampAtk = state.champions[playerIdx]?.atk ?? 0;
+  const canKill    = enemyChamp && enemyChamp.hp <= Math.max(maxAtk, myChampAtk) + 2;
+  if (canKill) {
+    for (const action of actions) {
+      const next = applyAction(state, action);
+      const { over, winner } = isGameOver(next);
+      if (over && winner === winnerStr) return action;
+    }
   }
 
   // Initialize nodes — one per legal action.

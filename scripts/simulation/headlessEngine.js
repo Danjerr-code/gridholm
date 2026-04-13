@@ -345,6 +345,98 @@ export function getLegalActions(state) {
 // ── applyAction ───────────────────────────────────────────────────────────────
 
 /**
+ * Like applyAction but skips redundant cloneState calls within this function's
+ * own switch branches. The caller is responsible for cloning state before the
+ * first call in a mutate-in-place sequence (e.g. rollouts). Engine functions
+ * (moveChampion, endTurn, etc.) still return new state objects internally, so
+ * `state` is reassigned each step — no external reference to the old state is
+ * preserved, which is the desired behaviour for rollout loops.
+ *
+ * @param {object} state  - game state (may be mutated / reassigned by caller)
+ * @param {object} action - action object from getLegalActions
+ * @returns {object}       new game state
+ */
+export function applyActionMutate(state, action) {
+  const ap = state.activePlayer;
+
+  switch (action.type) {
+
+    case 'championMove':
+      return moveChampion(state, action.row, action.col);
+
+    case 'move':
+      return moveUnit(state, action.unitId, action.targetTile[0], action.targetTile[1]);
+
+    case 'summon': {
+      let s = playCard(state, action.cardUid);
+      if (!s.pendingSummon) return s;
+      return summonUnit(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
+    }
+
+    case 'terrain': {
+      let s = playCard(state, action.cardUid);
+      if (!s.pendingTerrainCast) return s;
+      return castTerrainCard(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
+    }
+
+    case 'cast': {
+      const { cardUid, targets } = action;
+      // Avoid cloneState just to read players[ap] — read directly.
+      const card = state.players[ap].hand.find(c => c.uid === cardUid);
+      if (!card) return state; // error path — skip unnecessary clone
+
+      if (NO_TARGET_SPELLS.has(card.effect)) {
+        return playCard(state, cardUid);
+      }
+
+      if (TWO_STEP_SPELLS.has(card.effect)) {
+        // Caller already owns state; skip the extra cloneState here.
+        let s = { ...state, pendingSpell: { cardUid, effect: card.effect, playerIdx: ap, step: 0, data: {} } };
+        s = resolveSpell(s, cardUid, targets[0]);
+        if (s.pendingSpell && targets[1] != null) {
+          s = resolveSpell(s, cardUid, targets[1]);
+        }
+        return s;
+      }
+
+      // Single-target spell
+      let s = playCard(state, cardUid);
+      if (!s.pendingSpell) return s;
+      return resolveSpell(s, cardUid, targets[0] ?? null);
+    }
+
+    case 'championAbility':
+      return applyChampionAbility(state, ap, action.abilityId, action.targetUid);
+
+    case 'unitAction': {
+      let s = triggerUnitAction(state, action.unitId);
+      if (s.pendingSpell && action.targetUid != null) {
+        s = resolveSpell(s, action.unitId, action.targetUid);
+      }
+      return s;
+    }
+
+    case 'fleshtitheSacrifice':
+      return resolveFleshtitheSacrifice(state, action.choice, action.sacrificeUid);
+
+    case 'handSelect':
+      return resolveHandSelect(state, action.cardUid);
+
+    case 'pendingSpellTarget': {
+      const pending = state.pendingSpell;
+      if (!pending) return state; // error path — skip unnecessary clone
+      return resolveSpell(state, pending.cardUid, action.targetUid);
+    }
+
+    case 'endTurn':
+      return endTurn(state);
+
+    default:
+      throw new Error(`Unknown action type: ${action.type}`);
+  }
+}
+
+/**
  * Takes a game state and a legal action, applies it, resolves all triggers,
  * and returns the new game state. Does not mutate the original state.
  *
