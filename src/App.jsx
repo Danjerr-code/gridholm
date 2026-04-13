@@ -1282,7 +1282,7 @@ function MobileBottomSheet({ inspectedItem, state, onDismiss, handlers, phase, i
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Throne</span>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: '#e2e8f0' }}>Terrain</span>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e2e8f0', lineHeight: 1.6, borderTop: '0.5px solid #1e1e2e', paddingTop: 8 }}>
-            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+            Control the Throne with your champion to deal 2 damage to the enemy champion at the end of your turn. Cannot deal the winning blow this way.
           </div>
         </div>
       );
@@ -1712,7 +1712,7 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
             borderTop: '0.5px solid #1e1e2e',
             paddingTop: '4px',
           }}>
-            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
+            Control the Throne with your champion to deal 2 damage to the enemy champion at the end of your turn. Cannot deal the winning blow this way.
           </div>
         </div>
       );
