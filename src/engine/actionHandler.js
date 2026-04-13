@@ -83,6 +83,12 @@ export function handleUnitMove(state, unitUid, row, col) {
     const tiles = getApproachTiles(state, unit, row, col);
     if (tiles.length > 1) {
       return { needsApproach: true, state };
+    } else if (tiles.length === 1) {
+      const [ar, ac] = tiles[0];
+      return { needsApproach: false, state: executeApproachAndAttack(state, unitUid, ar, ac, row, col) };
+    } else {
+      // No approach tiles available — highlight check should prevent this path, but guard anyway.
+      return { needsApproach: false, state };
     }
   }
 

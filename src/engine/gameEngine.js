@@ -3201,6 +3201,11 @@ function reachableTiles(state, unit, speed) {
         }
         const anyPathClear = intermediates.some(([ir, ic]) => !isTileOccupied(state, ir, ic));
         if (!anyPathClear) continue;
+        // For enemy tiles at distance 2, also require at least one valid approach tile.
+        // This prevents highlighting an enemy as attackable when there is no tile to land on.
+        if (dist === 2 && (enemyUnit || enemyChamp)) {
+          if (getApproachTiles(state, unit, nr, nc).length === 0) continue;
+        }
       }
       result.push([nr, nc]);
     }

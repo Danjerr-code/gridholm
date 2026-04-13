@@ -511,6 +511,7 @@ export default function Board({
       // Enemy unit on a valid move tile — treat as move-to (combat)
       if (selectMode === 'unit_move' && unit.owner !== activePlayer) {
         const key = `${unit.row},${unit.col}`;
+        console.log('[SPD2 Debug] click enemy unit:', unit.name, 'at', key, 'unitMoveSet has key:', unitMoveSet.has(key), 'selectMode:', selectMode);
         if (unitMoveSet.has(key)) {
           handlers.handleMoveUnit(unit.row, unit.col);
           return;
