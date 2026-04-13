@@ -11,6 +11,7 @@ export default function GraveViewerModal({ cards, title, onClose, canPlayFromGra
       onClick={onClose}
     >
       <div
+        className="no-scrollbar"
         style={{
           background: '#0f0f1e',
           border: '1px solid #3a3a60',
