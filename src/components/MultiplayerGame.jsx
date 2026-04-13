@@ -2384,11 +2384,9 @@ function CardDetailContent({ inspectedItem, state, large = false, myPlayerIndex,
       <div className="flex flex-col gap-1">
         <span style={nameStyle}>Throne</span>
         <div style={{ ...typeStyle, color: '#9090b8' }}>Terrain</div>
-        {large && (
-          <div style={rulesStyle}>
-            End your turn with your champion here to deal 4 damage to the enemy champion. This effect cannot reduce the enemy champion below 1 HP.
-          </div>
-        )}
+        <div style={rulesStyle}>
+          Control the Throne with your champion to deal 2 damage to the enemy champion at the end of your turn. Cannot deal the winning blow this way.
+        </div>
         <KeywordBubbles keywords={terrainKeyword} />
       </div>
     );
