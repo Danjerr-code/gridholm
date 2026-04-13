@@ -103,6 +103,23 @@ const STYLES = `
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
+  @media (max-width: 640px) {
+    .lp-hero-crystals {
+      flex-wrap: nowrap;
+      gap: 12px;
+    }
+    .lp-crystal-item {
+      gap: 6px;
+    }
+    .lp-crystal-item svg {
+      width: 52px !important;
+      height: 52px !important;
+    }
+    .lp-crystal-label {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+  }
 
   @keyframes lp-pulse-gold {
     0%, 100% { filter: drop-shadow(0 0 6px #C9A84C60); }

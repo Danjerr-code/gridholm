@@ -186,6 +186,11 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     && phase === 'action'
     && isP1Turn
     && (p1.commandsUsed ?? 0) < 3;
+  const showActionGrey = !showAction
+    && selectedUnitObj?.action === true
+    && selectMode === 'unit_move'
+    && phase === 'action'
+    && isP1Turn;
   const showHiddenReveal = selectedUnitObj?.hidden
     && selectedUnitObj.owner === 0
     && !selectedUnitObj.moved
@@ -905,6 +910,12 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               <ActionBtn onClick={handlers.clearSelection} label="✕" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
             </>
           )}
+          {showAction && (
+            <ActionBtn onClick={() => handlers.handleActionButtonClick(selectedUnit)} label="Action" variant="action" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {showActionGrey && (
+            <ActionBtn onClick={() => {}} label="Action" variant="cancel" style={{ minHeight: '44px', minWidth: '44px', opacity: 0.4, cursor: 'not-allowed' }} />
+          )}
           {phase === 'action' && selectedUnit && (
             <ActionBtn onClick={handlers.clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
@@ -987,6 +998,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             marginBottom: 4,
             position: 'relative',
             zIndex: 10,
+            pointerEvents: 'none',
           }}>
             <ResourceDisplay current={p1.resources} max={10} maxThisTurn={p1.maxResourcesThisTurn} playerColor="#185FA5" singleRow={true} />
           </div>
