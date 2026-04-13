@@ -77,7 +77,8 @@ export function handleUnitMove(state, unitUid, row, col) {
   const unit = state.units.find(u => u.uid === unitUid);
   const targetHasEnemy =
     state.units.some(u => u.owner !== state.activePlayer && u.row === row && u.col === col) ||
-    state.champions.some(ch => ch.owner !== state.activePlayer && ch.row === row && ch.col === col);
+    state.champions.some(ch => ch.owner !== state.activePlayer && ch.row === row && ch.col === col) ||
+    state.units.some(u => u.id === 'amethystcrystal' && u.owner === state.activePlayer && u.row === row && u.col === col);
 
   if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
     const tiles = getApproachTiles(state, unit, row, col);

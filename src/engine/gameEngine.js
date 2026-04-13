@@ -3210,9 +3210,11 @@ function reachableTiles(state, unit, speed) {
         }
         const anyPathClear = intermediates.some(([ir, ic]) => !isTileOccupied(state, ir, ic));
         if (!anyPathClear) continue;
-        // For enemy tiles at distance 2, also require at least one valid approach tile.
-        // This prevents highlighting an enemy as attackable when there is no tile to land on.
-        if (dist === 2 && (enemyUnit || enemyChamp)) {
+        // For enemy tiles (and own Amethyst Crystal) at distance 2, also require at least one
+        // valid approach tile. This prevents highlighting an attack target when there is no
+        // adjacent tile to land on.
+        const ownCrystalHere = state.units.some(u => u.id === 'amethystcrystal' && u.owner === unit.owner && u.row === nr && u.col === nc);
+        if (dist === 2 && (enemyUnit || enemyChamp || ownCrystalHere)) {
           if (getApproachTiles(state, unit, nr, nc).length === 0) continue;
         }
       }

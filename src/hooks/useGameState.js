@@ -519,7 +519,8 @@ export function useGameState({ deckId = 'human' } = {}) {
       }
       // Determine sound effects: check if this was an attack vs plain move
       const targetHasEnemy = prev.units.some(u => u.owner !== prev.activePlayer && u.row === row && u.col === col)
-        || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col);
+        || prev.champions.some(ch => ch.owner !== prev.activePlayer && ch.row === row && ch.col === col)
+        || prev.units.some(u => u.id === 'amethystcrystal' && u.owner === prev.activePlayer && u.row === row && u.col === col);
       if (targetHasEnemy) {
         attackInfo = { survived: !!result.state.units.find(u => u.uid === unitUidSnap) };
       }
