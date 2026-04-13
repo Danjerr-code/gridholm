@@ -55,6 +55,7 @@ import { getGuestId, getCardImageUrl, supabase } from '../supabase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import StatusBar, { ResourceDisplay } from './StatusBar.jsx';
 import Board from './Board.jsx';
+import Card from './Card.jsx';
 import Hand from './Hand.jsx';
 import Log from './Log.jsx';
 import PhaseTracker from './PhaseTracker.jsx';
