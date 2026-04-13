@@ -268,14 +268,15 @@ export default function DeckBuilder({ onBack, onNext }) {
   async function handleSendMatchInvite(deckObj) {
     if (!supabase) return;
     setCreatingInvite(true);
-    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify({
+    const hostDeckSpec = {
       champion: deckObj.champion,
       primaryAttr: deckObj.primaryAttribute,
       secondaryAttr: deckObj.secondaryAttribute,
       cards: deckObj.cards,
       deckName: deckObj.name,
       resonanceScore: deckObj.resonance,
-    }));
+    };
+    localStorage.setItem(CUSTOM_DECK_KEY, JSON.stringify(hostDeckSpec));
     const guestId = getGuestId();
     const gameId = generateGameId();
     const placeholderState = autoAdvancePhase(createInitialState('human', 'human'));
@@ -286,11 +287,12 @@ export default function DeckBuilder({ onBack, onNext }) {
       game_state: placeholderState,
       active_player: guestId,
       status: 'waiting',
-      player1_deck: null,
-      player2_deck: null,
+      host_deck: hostDeckSpec,
     });
     setCreatingInvite(false);
-    if (!error) {
+    if (error) {
+      console.error('[SendMatchInvite] Supabase insert error:', JSON.stringify(error, null, 2));
+    } else {
       localStorage.setItem('gridholm_pending_custom_deck', '1');
       const base = window.location.href.replace(/#.*$/, '');
       setInviteLink(`${base}#/game/${gameId}`);
