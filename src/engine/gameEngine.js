@@ -3995,11 +3995,14 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         u.owner === state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen && !u.spellImmune
       ).map(u => u.uid);
 
-    // Gore: any enemy unit, relic, or omen (not champion, not hidden, not spell-immune)
+    // Gore: any enemy piece — units, relics, or champion (not omen, not hidden, not spell-immune)
     case 'gore':
-      return state.units.filter(u =>
-        u.owner !== state.activePlayer && !u.hidden && !u.cannotBeTargetedBySpells && !u.spellImmune
-      ).map(u => u.uid);
+      return [
+        'champion' + (1 - state.activePlayer),
+        ...state.units.filter(u =>
+          u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune
+        ).map(u => u.uid),
+      ];
 
     // Demolish: any relic or omen on the board (friendly or enemy)
     case 'demolish':
