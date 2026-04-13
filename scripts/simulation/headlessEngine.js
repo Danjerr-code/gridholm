@@ -196,6 +196,26 @@ export function getLegalActions(state) {
   if (state.pendingSummon) return actions;
   if (state.pendingDiscard) return actions;
 
+  // Explicit guard for unresolvable pending states (returns [] so minimax treats as terminal)
+  if (
+    state.pendingRelicPlace ||
+    state.pendingTerrainCast ||
+    state.pendingContractSelect ||
+    state.pendingDiscardSelect ||
+    state.pendingSacrifice ||
+    state.pendingGildedCage ||
+    state.pendingMindSeize ||
+    state.pendingRecall ||
+    state.pendingCrushingBlow ||
+    state.pendingTollOfShadows ||
+    state.pendingPactOfRuin
+  ) {
+    return actions;
+  }
+  // Catch-all: any future pending state not yet in the list above
+  const hasPendingState = Object.keys(state).some(key => key.startsWith('pending') && state[key]);
+  if (hasPendingState) return actions;
+
   const ap = state.activePlayer;
   const p = state.players[ap];
   const champ = state.champions[ap];

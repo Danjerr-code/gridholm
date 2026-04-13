@@ -63,9 +63,30 @@ function getLegalActions(state) {
   const actions = [];
   if (state.winner) return actions;
   if (state.phase !== 'action') return actions;
-  if (state.pendingSpell || state.pendingSummon || state.pendingHandSelect || state.pendingFleshtitheSacrifice) return actions;
-  if (state.pendingDiscard) return actions;
-  if (state.pendingRelicPlace || state.pendingTerrainCast) return actions;
+  // Generic pending-state guard — explicit list documents all known states
+  if (
+    state.pendingRelicPlace ||
+    state.pendingTerrainCast ||
+    state.pendingSpell ||
+    state.pendingContractSelect ||
+    state.pendingDiscardSelect ||
+    state.pendingSacrifice ||
+    state.pendingGildedCage ||
+    state.pendingMindSeize ||
+    state.pendingRecall ||
+    state.pendingCrushingBlow ||
+    state.pendingTollOfShadows ||
+    state.pendingPactOfRuin ||
+    state.pendingSummon ||
+    state.pendingHandSelect ||
+    state.pendingFleshtitheSacrifice ||
+    state.pendingDiscard
+  ) {
+    return actions;
+  }
+  // Catch-all: future pending states not yet in the list above
+  const hasPendingState = Object.keys(state).some(key => key.startsWith('pending') && state[key]);
+  if (hasPendingState) return actions;
 
   const ap = state.activePlayer;
   const p = state.players[ap];
@@ -478,15 +499,21 @@ function scoreState(gameState, playerId) {
   return evaluateBoard(gameState, playerId);
 }
 
-const MAX_MINIMAX_DEPTH = 4;
-
-function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline) {
+function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline, initialDepth) {
   if (performance.now() > deadline.time) {
     return { score: scoreState(gameState, playerId), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over || depth === 0 || depth > MAX_MINIMAX_DEPTH) {
+  if (over || depth === 0) {
+    return { score: scoreState(gameState, playerId), action: null };
+  }
+
+  // Safety net: depth should only decrease from initialDepth — if it somehow exceeds
+  // initialDepth + 2, a bug has occurred. Warn loudly rather than silently cap it.
+  if (initialDepth !== undefined && depth > initialDepth + 2) {
+    const pendingKeys = Object.keys(gameState).filter(k => k.startsWith('pending') && gameState[k]);
+    console.warn('[strategicAI] minimax depth exceeded safe range — possible infinite recursion. depth:', depth, 'initial:', initialDepth, 'pending:', pendingKeys);
     return { score: scoreState(gameState, playerId), action: null };
   }
 
@@ -507,7 +534,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       const nextMaximizing   = isEndTurn ? false : true;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline);
+      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, initialDepth);
 
       if (result.timedOut) {
         if (best.action === null) best = { score: result.score, action, timedOut: true };
@@ -530,7 +557,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       const nextMaximizing   = isEndTurn ? true : false;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline);
+      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, initialDepth);
 
       if (result.timedOut) {
         if (best.action === null) best = { score: result.score, action, timedOut: true };
@@ -680,7 +707,7 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
 
   const deadline = { time: performance.now() + 2000 };
 
-  const result = minimax(gameState, depth, -Infinity, Infinity, true, playerId, cmds, deadline);
+  const result = minimax(gameState, depth, -Infinity, Infinity, true, playerId, cmds, deadline, depth);
 
   if (result.timedOut || result.action === null) {
     if (result.timedOut) {
