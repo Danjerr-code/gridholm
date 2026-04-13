@@ -1400,14 +1400,13 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
   }
   if (unit.id === 'curseflayer') {
     // On reveal: place Cursed Ground on the tile this unit was revealed on
-    if (!state.terrainGrid) state.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
-    state.terrainGrid[unit.row][unit.col] = {
+    const placed = setTerrainAt(state, unit.row, unit.col, {
       id: 'cursed',
       whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'dark', combatOnly: true },
       ownerName: 'Cursed Ground',
       cardId: 'cursed_ground',
-    };
-    addLog(state, `Curse Flayer reveal: Cursed Ground placed at (${unit.row},${unit.col}).`);
+    });
+    if (placed) addLog(state, `Curse Flayer reveal: Cursed Ground placed at (${unit.row},${unit.col}).`);
   }
   if (unit.id === 'gravecaller') {
     // On reveal: return a random combat unit from owner's grave to hand
@@ -2938,6 +2937,15 @@ export function getTerrainAt(state, row, col) {
   return state.terrainGrid[row]?.[col] ?? null;
 }
 
+// Centralized terrain write guard. No terrain effect from any source may be placed on
+// the Throne tile (2,2) or champion start tiles (0,0) and (4,4).
+function setTerrainAt(state, row, col, effect) {
+  if (TERRAIN_RESTRICTED.has(`${row},${col}`)) return false;
+  if (!state.terrainGrid) state.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
+  state.terrainGrid[row][col] = effect;
+  return true;
+}
+
 // Place a terrain card at the target tile (and all tiles within radius).
 export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   const s = cloneState(state);
@@ -2962,7 +2970,7 @@ export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   const affectedTiles = getTerrainAffectedTiles(targetRow, targetCol, radius);
 
   for (const [r, c] of affectedTiles) {
-    s.terrainGrid[r][c] = { ...card.terrainEffect, ownerName: card.name, cardId: card.id };
+    setTerrainAt(s, r, c, { ...card.terrainEffect, ownerName: card.name, cardId: card.id });
   }
 
   addLog(s, `${p.name} casts ${card.name} at (${targetRow},${targetCol}). ${affectedTiles.length} tile(s) affected.`);
@@ -3535,16 +3543,16 @@ export function moveUnit(state, unitUid, row, col) {
   }
 
   // Gavriel, Holy Stride: consecrate the tile Gavriel moved to as Hallowed Ground
+  // The Throne tile (2,2) is immune — setTerrainAt enforces this centrally.
   const gavriel = s.units.find(u => u.uid === unitUid && u.id === 'gavrielholystride');
   if (gavriel) {
-    if (!s.terrainGrid) s.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
-    s.terrainGrid[gavriel.row][gavriel.col] = {
+    const placed = setTerrainAt(s, gavriel.row, gavriel.col, {
       id: 'hallowed',
       whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'light', combatOnly: true },
       ownerName: 'Gavriel, Holy Stride',
       cardId: 'hallowed_ground',
-    };
-    addLog(s, `Gavriel consecrates the ground.`);
+    });
+    if (placed) addLog(s, `Gavriel consecrates the ground.`);
   }
 
   updateWildbornAura(s);
