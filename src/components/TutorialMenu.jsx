@@ -35,6 +35,7 @@ export default function TutorialMenu({ onBack }) {
         scenario={activeScenario}
         onExit={() => setActiveScenario(null)}
         onComplete={handleScenarioComplete}
+        onGoToLobby={onBack}
       />
     );
   }

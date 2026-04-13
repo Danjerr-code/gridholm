@@ -151,7 +151,7 @@ function getGuidedPrompt(state, scenario) {
   return 'Chase down the enemy champion. Move a unit forward.';
 }
 
-export default function TutorialController({ scenario, onExit, onComplete }) {
+export default function TutorialController({ scenario, onExit, onComplete, onGoToLobby }) {
   const [state, setState] = useState(() => buildTutorialState(scenario));
   const [stepIdx, setStepIdx] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -381,12 +381,19 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
     setEnemyTurnMsg('Kragor retreats…');
     setTimeout(() => {
       const s2 = moveKragorAway(s);
-      // Manually end enemy turn (no units, just champion move)
-      const advanced = autoAdvancePhase({ ...s2, activePlayer: 0, phase: 'action', turn: s2.turn + 1 });
-      // Reset commands for new player turn
+      // Manually advance to player 0's new turn without triggering drawCard on empty decks
       const s3 = {
-        ...advanced,
-        players: advanced.players.map((p, i) =>
+        ...s2,
+        activePlayer: 0,
+        phase: 'action',
+        turn: s2.turn + 1,
+        // Reset player 0 units for new turn (moved/summoned flags)
+        units: s2.units.map(u =>
+          u.owner === 0 ? { ...u, moved: false, summoned: false } : u
+        ),
+        // Reset both champions' moved flag: player 0 for their turn, Kragor so he can flee next turn
+        champions: s2.champions.map(c => ({ ...c, moved: false })),
+        players: s2.players.map((p, i) =>
           i === 0 ? { ...p, commandsUsed: 0, resources: 0, maxResourcesThisTurn: 0 } : p
         ),
       };
@@ -533,13 +540,6 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
 
     if (!isFreePlay && !isGuided && currentStep?.validAction === 'championMove') {
       advanceToNextStep(newState);
-    } else if (isGuided) {
-      const commandsUsed = (newState.players[0].commandsUsed ?? 0);
-      setState(newState);
-      // In guided mode, after using the 1 allowed command, auto-advance to enemy turn
-      if (commandsUsed >= p1CommandsPerTurn) {
-        setTimeout(() => executeKragorTurn(newState), 500);
-      }
     } else {
       setState(newState);
     }
@@ -626,14 +626,6 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
     }
     clearSelection();
     setState(result.state);
-
-    // Guided: auto-advance after 1 command
-    if (isGuided && !result.state.winner) {
-      const commandsUsed = (result.state.players[0].commandsUsed ?? 0);
-      if (commandsUsed >= p1CommandsPerTurn) {
-        setTimeout(() => executeKragorTurn(result.state), 500);
-      }
-    }
 
     // Dismiss hint after action
     if (hintActive) setHintActive(false);
@@ -778,6 +770,13 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
       return;
     }
 
+    if (isGuided) {
+      // Guided scenario 4: bypass handleEndTurn to avoid drawCard on empty decks (prevents deckEmpty SPD buff)
+      clearSelection();
+      executeKragorTurn(state);
+      return;
+    }
+
     const newState = handleEndTurn(state);
     clearSelection();
 
@@ -788,9 +787,6 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
         scheduleAI();
       }
       setHintsUsedThisTurn(0);
-    } else if (isGuided) {
-      // Guided scenario 4: after end turn, Kragor moves
-      executeKragorTurn(newState);
     } else {
       setState(newState);
     }
@@ -1281,16 +1277,16 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
             boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
           }}>
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', letterSpacing: '0.1em', marginBottom: '16px' }}>
-              {state.winner === 'Player 1' ? 'VICTORY' : showTurnLimitMsg ? 'PRACTICE COMPLETE' : 'DEFEAT'}
+              {state.winner === 'Player 1' ? 'LESSON COMPLETE' : showTurnLimitMsg ? 'PRACTICE COMPLETE' : 'DEFEAT'}
             </div>
             <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '16px', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '24px' }}>
               {state.winner === 'Player 1'
-                ? 'LESSON COMPLETE\nYou have learned the basics of Gridholm. Build your deck and challenge stronger opponents.'
+                ? "You're ready for battle. Head to the lobby to build your deck and prove your strength."
                 : showTurnLimitMsg
                 ? 'Good effort. Try again or move on to a real match.'
                 : 'The enemy champion was victorious. Try again to sharpen your skills.'}
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={() => {
                   markCompleted(scenario.id);
@@ -1333,6 +1329,28 @@ export default function TutorialController({ scenario, onExit, onComplete }) {
               >
                 Back to Menu
               </button>
+              {state.winner === 'Player 1' && onGoToLobby && (
+                <button
+                  onClick={() => {
+                    markCompleted(scenario.id);
+                    onGoToLobby();
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #1a4a8a, #2a6ac9)',
+                    color: '#f0f4ff',
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '8px 20px',
+                    cursor: 'pointer',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Go to Lobby
+                </button>
+              )}
             </div>
           </div>
         </div>

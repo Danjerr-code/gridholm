@@ -147,18 +147,17 @@ export const TUTORIAL_SCENARIOS = [
   {
     id: 'winning',
     title: 'Winning the Game',
-    description: "The enemy champion is weakened. Chase it down and finish the fight.",
+    description: "Move your units forward and defeat the enemy champion. Reduce its HP to 0 to win.",
     guided: true,
     boardConfig: {
       p1Champion: { row: 4, col: 2, hp: 20 },
-      p2Champion: { row: 0, col: 2, hp: 6 },
+      p2Champion: { row: 0, col: 2, hp: 20 },
       units: [
-        { cardId: 'captain',     owner: 0, row: 3, col: 1 },
-        { cardId: 'crossbowman', owner: 0, row: 3, col: 3 },
+        { cardId: 'captain',     owner: 0, row: 2, col: 1 },
+        { cardId: 'crossbowman', owner: 0, row: 2, col: 3 },
       ],
       p1Hand: [],
       p1Mana: 0,
-      p1CommandsPerTurn: 1,
     },
     steps: [],
     // Guided prompts shown based on game state (handled in TutorialController)
