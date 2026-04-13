@@ -127,7 +127,7 @@ function ConnectionDot({ connected }) {
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog, opponentConnected, onViewP1Grave, onViewP2Grave }) {
+export default function StatusBar({ state, myPlayerIndex, commandsUsed, commandLimit = 3, aiThinking, onOpenLog, opponentConnected, onViewP1Grave, onViewP2Grave }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -175,16 +175,18 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</span>
           {commandsUsed !== undefined && (
             <div style={{ display: 'flex', gap: '3px', marginTop: '2px' }}>
-              {[1, 2, 3].map(i => {
+              {Array.from({ length: commandLimit }, (_, idx) => idx + 1).map(i => {
                 const used = i <= commandsUsed;
-                const allUsed = commandsUsed >= 3;
+                const allUsed = commandsUsed >= commandLimit;
+                const isBonus = i > 3;
+                const pipColor = isBonus ? '#7ec8c8' : '#C9A84C';
                 return (
                   <div key={i} style={{
                     width: '7px',
                     height: '7px',
                     borderRadius: '50%',
-                    background: allUsed ? '#800020' : used ? '#C9A84C' : '#0f1729',
-                    border: `1px solid ${allUsed ? '#80002080' : used ? '#C9A84C80' : '#2a2a3a'}`,
+                    background: allUsed ? '#800020' : used ? pipColor : '#0f1729',
+                    border: `1px solid ${allUsed ? '#80002080' : used ? `${pipColor}80` : isBonus ? '#1a3a3a' : '#2a2a3a'}`,
                   }} />
                 );
               })}

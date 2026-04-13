@@ -30,6 +30,7 @@ import {
   getChampionAbilityTargets,
   getChampionDef,
   hasValidTargets,
+  getCommandLimit,
 } from './gameEngine.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
 import { getCardRating } from './cardThreatRatings.js';
@@ -167,7 +168,7 @@ function getLegalActions(state) {
 
   // 6. Unit action abilities
   const commandsUsed = p.commandsUsed ?? 0;
-  if (commandsUsed < 3) {
+  if (commandsUsed < getCommandLimit(state, ap)) {
     for (const unit of state.units.filter(u => u.owner === ap && !u.moved && !u.summoned)) {
       if (!ACTION_REGISTRY[unit.id]) continue;
       if (TARGETED_ACTION_UNITS.has(unit.id)) {
@@ -487,7 +488,7 @@ function filterActions(actions, state, commandsUsed) {
   const enemyIdx = 1 - ap;
   const enemyChamp = state.champions[enemyIdx];
 
-  if (commandsUsed >= 3) {
+  if (commandsUsed >= getCommandLimit(state, ap)) {
     actions = actions.filter(a => a.type !== 'move');
   }
 

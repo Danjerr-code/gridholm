@@ -3015,7 +3015,7 @@ export function triggerUnitAction(state, unitUid) {
 
   // Command gate: action abilities cost 1 command (2 for doubleCommandCost units)
   const actionCmdCost = unit.doubleCommandCost ? 2 : 1;
-  if ((s.players[s.activePlayer].commandsUsed ?? 0) + actionCmdCost > 3) return s;
+  if ((s.players[s.activePlayer].commandsUsed ?? 0) + actionCmdCost > getCommandLimit(s, s.activePlayer)) return s;
   s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + actionCmdCost;
 
   // Reveal hidden unit when it uses an action ability
@@ -3240,7 +3240,7 @@ export function moveUnit(state, unitUid, row, col) {
   // Command gate: player-directed unit moves cost 1 command (2 for doubleCommandCost); champion moves are exempt
   if (unit.owner === s.activePlayer) {
     const moveCmdCost = unit.doubleCommandCost ? 2 : 1;
-    if ((s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost > 3) return s;
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost > getCommandLimit(s, s.activePlayer)) return s;
     s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost;
   }
 
@@ -3556,7 +3556,7 @@ export function executeApproachAndAttack(state, unitUid, approachRow, approachCo
   // Command gate: counts as a single command for the whole approach+attack (2 for doubleCommandCost)
   const approachCmdCost = unit.doubleCommandCost ? 2 : 1;
   if (unit.owner === s.activePlayer) {
-    if ((s.players[s.activePlayer].commandsUsed ?? 0) + approachCmdCost > 3) return s;
+    if ((s.players[s.activePlayer].commandsUsed ?? 0) + approachCmdCost > getCommandLimit(s, s.activePlayer)) return s;
     s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + approachCmdCost;
   }
 
@@ -3608,7 +3608,7 @@ export function archerShoot(state, archerUid, targetUid) {
   if (manhattan([archer.row, archer.col], [target.row, target.col]) > 2) return s;
 
   // Command gate: archer ranged shot costs 1 command
-  if ((s.players[s.activePlayer].commandsUsed ?? 0) >= 3) return s;
+  if ((s.players[s.activePlayer].commandsUsed ?? 0) >= getCommandLimit(s, s.activePlayer)) return s;
   s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + 1;
 
   archer.moved = true;

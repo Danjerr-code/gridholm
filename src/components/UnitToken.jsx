@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
+import { getCommandLimit } from '../engine/gameEngine.js';
 import { getCardImageUrl } from '../supabase.js';
 import useLongPress from '../hooks/useLongPress.js';
 import { rulesTitle } from '../utils/rulesText.jsx';
@@ -189,6 +190,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
   // SPD 0 units with no Action (e.g. Seedling) have nothing to do on the board.
   const commandsUsed = state?.players?.[myPlayerIndex]?.commandsUsed ?? 0;
+  const commandLimit = getCommandLimit(state, myPlayerIndex);
   const isMyTurn = state?.activePlayer === myPlayerIndex;
   const showActionGlow = (
     isMyUnit &&
@@ -196,7 +198,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     !unit.summoned &&
     !unit.skipNextAction &&
     !unit.moved &&
-    commandsUsed < 3 &&
+    commandsUsed < commandLimit &&
     (effectiveSpd > 0 || !!unit.action)
   );
 

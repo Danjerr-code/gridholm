@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { getCommandLimit } from '../engine/gameEngine.js';
 import Cell from './Cell.jsx';
 import UnitToken from './UnitToken.jsx';
 import {
@@ -59,6 +60,7 @@ export default function Board({
   // In multiplayer, isMyTurn is passed explicitly from the parent component.
   const canInteract = isMyTurn !== undefined ? isMyTurn : activePlayer === 0;
   const commandsUsed = state.players[myPlayerIndex]?.commandsUsed ?? 0;
+  const commandLimit = getCommandLimit(state, myPlayerIndex);
 
   const directionUnit = selectMode === 'direction_tile_select' && state.pendingDirectionSelect
     ? state.units.find(u => u.uid === state.pendingDirectionSelect.unitUid) ?? null
@@ -469,7 +471,7 @@ export default function Board({
           unit.owner === myPlayerIndex &&
           canInteract &&
           phase === 'action' &&
-          commandsUsed < 3
+          commandsUsed < commandLimit
         );
 
         if (canUseAction && handlers.handleActionButtonClick) {
@@ -522,7 +524,7 @@ export default function Board({
           return;
         }
       }
-      if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved && commandsUsed < 3) {
+      if (unit.owner === myPlayerIndex && !unit.summoned && !unit.moved && commandsUsed < commandLimit) {
         if (unit.uid === selectedUnit) {
           handlers.clearSelection();
         } else {

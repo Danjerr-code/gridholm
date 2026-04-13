@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useGameState } from './hooks/useGameState.js';
-import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan, getEffectiveCost } from './engine/gameEngine.js';
+import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan, getEffectiveCost, getCommandLimit } from './engine/gameEngine.js';
 import { CARD_DB } from './engine/cards.js';
 import { getCardImageUrl } from './supabase.js';
 import { KEYWORD_REMINDERS } from './engine/keywords.js';
@@ -154,6 +154,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
 
   const p1 = state.players[0];
   const p2 = state.players[1];
+  const p1CommandLimit = getCommandLimit(state, 0);
 
   const selectedCardObj = selectedCard ? p1.hand.find(c => c.uid === selectedCard) : null;
 
@@ -193,7 +194,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     && selectMode === 'unit_move'
     && phase === 'action'
     && isP1Turn
-    && (p1.commandsUsed ?? 0) < 3;
+    && (p1.commandsUsed ?? 0) < p1CommandLimit;
   const showActionGrey = !showAction
     && selectedUnitObj?.action === true
     && selectMode === 'unit_move'
@@ -722,7 +723,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} aiThinking={aiThinking} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} onViewP1Grave={() => setGraveViewerPlayer(0)} onViewP2Grave={() => setGraveViewerPlayer(1)} />
+      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} aiThinking={aiThinking} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} onViewP1Grave={() => setGraveViewerPlayer(0)} onViewP2Grave={() => setGraveViewerPlayer(1)} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -738,7 +739,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
         {/* Center: command strip flush against board left edge + board */}
         <div className="flex flex-1 min-w-0 min-h-0">
           <div className="hidden sm:flex flex-col items-center justify-center flex-shrink-0">
-            <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} />
+            <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} />
           </div>
           <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
@@ -1769,8 +1770,8 @@ function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
   );
 }
 
-export function CommandDisplay({ commandsUsed }) {
-  const allUsed = commandsUsed >= 3;
+export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
+  const allUsed = commandsUsed >= commandLimit;
   return (
     <div
       className="flex-shrink-0"
@@ -1783,17 +1784,19 @@ export function CommandDisplay({ commandsUsed }) {
         padding: '8px 0',
       }}
     >
-      {[1, 2, 3].map(i => {
+      {Array.from({ length: commandLimit }, (_, idx) => idx + 1).map(i => {
         const used = i <= commandsUsed;
+        const isBonus = i > 3;
+        const pipColor = isBonus ? '#7ec8c8' : '#C9A84C';
         return (
           <div key={i} style={{
             width: '28px',
             height: '28px',
             borderRadius: '50%',
             flexShrink: 0,
-            background: allUsed ? '#800020' : used ? '#C9A84C' : '#0f1729',
-            border: `1px solid ${allUsed ? '#80002080' : used ? '#C9A84C80' : '#2a2a3a'}`,
-            boxShadow: used && !allUsed ? '0 0 6px #C9A84C60' : 'none',
+            background: allUsed ? '#800020' : used ? pipColor : '#0f1729',
+            border: `1px solid ${allUsed ? '#80002080' : used ? `${pipColor}80` : isBonus ? '#1a3a3a' : '#2a2a3a'}`,
+            boxShadow: used && !allUsed ? `0 0 6px ${pipColor}60` : 'none',
             transition: 'background 0.2s, border-color 0.2s',
             display: 'flex',
             alignItems: 'center',
@@ -1803,7 +1806,7 @@ export function CommandDisplay({ commandsUsed }) {
               fontSize: '11px',
               fontFamily: 'var(--font-sans)',
               fontWeight: 700,
-              color: allUsed ? '#ff666680' : used ? '#0a0a0f' : '#2a2a4a',
+              color: allUsed ? '#ff666680' : used ? '#0a0a0f' : isBonus ? '#1a4a4a' : '#2a2a4a',
             }}>{i}</span>
           </div>
         );
