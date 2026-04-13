@@ -582,3 +582,35 @@ button, input, .card-name, .card-stats, .card-rules,
   z-index: 9;
   animation: throne-shockwave 400ms ease-out forwards;
 }
+
+/* ── Status effect overlays ─────────────────────────────────── */
+@keyframes stunned-ring-pulse {
+  0%, 100% { box-shadow: 0 0 8px 3px #4fc3f7; }
+  50%       { box-shadow: 0 0 3px 1px rgba(79,195,247,0.35); }
+}
+
+@keyframes shield-ring-pulse {
+  0%, 100% { box-shadow: 0 0 6px 2px #c0c0c0; }
+  50%       { box-shadow: 0 0 2px 1px rgba(192,192,192,0.35); }
+}
+
+.status-overlay-stunned {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: stunned-ring-pulse 2s ease-in-out infinite;
+}
+
+.status-overlay-shield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: shield-ring-pulse 3s ease-in-out infinite;
+}
+
+.status-overlay-spellimmune {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: 0 0 10px 4px rgba(255,215,0,0.5);
+}

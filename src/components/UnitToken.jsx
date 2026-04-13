@@ -85,6 +85,13 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const isOpponentHidden = unit.hidden && !isMyUnit;
   const isOwnHidden = unit.hidden && isMyUnit;
 
+  // Status effect flags
+  const isStunned = !!unit.skipNextAction;
+  const isRooted = !!unit.rooted;
+  const hasShield = (unit.shield ?? 0) > 0;
+  const isSpellImmune = !!unit.spellImmune;
+  const tokenBorderRadius = isRelic ? '4px' : '50%';
+
   const factionColors = getFactionColors(unit.unitType);
 
   // Player 1 is always blue, Player 2 is always red — color follows owner, not viewer
@@ -451,6 +458,18 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         }}>{abbr}</span>
       )}
 
+      {/* Rooted: static green vine tendrils at bottom edge */}
+      {isRooted && (
+        <svg aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40%', pointerEvents: 'none', zIndex: 1, overflow: 'visible' }} viewBox="0 0 40 16" preserveAspectRatio="xMidYMax meet">
+          <path d="M4 16 Q7 10 11 12 Q14 14 16 9" stroke="#1a4a1a" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+          <path d="M19 16 Q22 8 26 11 Q29 13 31 7" stroke="#2d5a2d" strokeWidth="1.4" fill="none" strokeLinecap="round"/>
+          <path d="M34 16 Q36 11 39 13" stroke="#1a4a1a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+          <circle cx="11" cy="12" r="1.2" fill="#2d6a2d" opacity="0.9"/>
+          <circle cx="26" cy="11" r="1.2" fill="#2d6a2d" opacity="0.9"/>
+          <circle cx="16" cy="9" r="0.9" fill="#1a5a1a" opacity="0.8"/>
+        </svg>
+      )}
+
       {/* Status badges top center */}
       <div style={{ position: 'absolute', top: 1, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', gap: 2 }}>
         {unit.summoned && <SmallPill label="S" bg="#78716c" color="#e7e5e4" title="Summoning sickness" />}
@@ -557,6 +576,10 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       {/* Buff shimmer overlay */}
       {showBuff && <div className="unit-buff-shimmer-overlay" />}
     </div>
+    {/* Status effect border glows — outside inner token to escape overflow:hidden */}
+    {isStunned && <div className="status-overlay-stunned" style={{ borderRadius: tokenBorderRadius }} />}
+    {hasShield && <div className="status-overlay-shield" style={{ borderRadius: tokenBorderRadius }} />}
+    {isSpellImmune && <div className="status-overlay-spellimmune" style={{ borderRadius: tokenBorderRadius }} />}
     {/* Legendary CSS ring — outside inner token to escape overflow:hidden */}
     {isLegendary && !isRelic && (
       <>
