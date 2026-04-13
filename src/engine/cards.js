@@ -168,7 +168,7 @@ export const CARD_DB = {
 
   // Batch 5: Legendaries Part 1
   vornthundercaller: { id: 'vornthundercaller', name: 'Vorn, Thundercaller', type: 'unit', cost: 4, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.BEASTKIN],  attribute: 'primal',  rules: 'Action: Choose a direction. Deal 2 damage to every unit and champion in that direction.', action: true, legendary: true, image: 'vorn.webp' },
-  azulonsilvertide:  { id: 'azulonsilvertide',  name: 'Azulon, Silver Tide', type: 'unit', cost: 7, atk: 5, hp: 6, spd: 2, unitType: [UNIT_TYPES.DRAGON],    attribute: 'mystic',  rules: 'Flying\nAction: The next spell you cast this turn casts twice.', flying: true, action: true, legendary: true, image: 'azulon.webp' },
+  azulonsilvertide:  { id: 'azulonsilvertide',  name: 'Azulon, Silver Tide', type: 'unit', cost: 7, atk: 5, hp: 6, spd: 2, unitType: [UNIT_TYPES.DRAGON],    attribute: 'mystic',  rules: 'Flying|Action: The next spell you cast this turn casts twice.', flying: true, action: true, legendary: true, image: 'azulon.webp' },
   // TEMP: Clockwork Manimus removed pending trigger resolution system fix (LOG-1152)
   // clockworkmanimus:  { id: 'clockworkmanimus',  name: 'Clockwork Manimus',   type: 'unit', cost: 5, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.CONSTRUCT], attribute: 'neutral', rules: 'At the end of your turn, discard a card or destroy this unit.|Action: Deal 2 damage to target combat unit.', action: true, legendary: true, triggers: [{ event: 'onEndTurn', effect: 'discardOrDie', oncePerTurn: true }], image: 'clockworkmanimus.webp' },
 
