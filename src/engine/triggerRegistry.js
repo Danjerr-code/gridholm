@@ -436,6 +436,7 @@ function resolveEffect(effectId, listener, context, state) {
       const origTypes = Array.isArray(dead.unitType) ? dead.unitType : (dead.unitType ? [dead.unitType] : []);
       const shadowUnit = {
         id: `shadow_${dead.id}`,
+        sourceId: dead.id,
         name: `Shadow ${dead.name}`,
         type: 'unit',
         cost: dead.cost || 0,
@@ -449,6 +450,8 @@ function resolveEffect(effectId, listener, context, state) {
         action: dead.action || false,
         triggers: dead.triggers ? [...dead.triggers] : [],
         modifier: dead.modifier || null,
+        aura: dead.aura || null,
+        flying: dead.flying || false,
         image: dead.image || '',
         owner: playerIndex,
         row: tr,

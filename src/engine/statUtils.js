@@ -62,8 +62,9 @@ function getStandardBearerBonus(state, unit) {
 }
 
 // Returns the Pack Runt ATK bonus count: +1 ATK for each other friendly combat unit.
+// Also applies to shadow copies of Pack Runt (sourceId === 'packrunt').
 export function getPackBonus(state, unit) {
-  if (unit.id !== 'packrunt') return 0;
+  if (unit.id !== 'packrunt' && unit.sourceId !== 'packrunt') return 0;
   return state.units.filter(u =>
     u.owner === unit.owner &&
     u.uid !== unit.uid &&
