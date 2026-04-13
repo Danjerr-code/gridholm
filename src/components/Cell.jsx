@@ -387,7 +387,7 @@ export default function Cell({
             return (
               <span style={{
                 position: 'absolute',
-                bottom: isMyChampion ? '-24px' : '-12px',
+                bottom: '3px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 background: canInvoke ? '#b45309' : '#374151',
