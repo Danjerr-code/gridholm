@@ -219,6 +219,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     return () => clearTimeout(countdownRef.current);
   }, [opponentLeftCountdown, onBackToLobby]);
 
+  // Block Escape key while the Nezzar contract prompt is open — selection is mandatory
+  useEffect(() => {
+    if (!gameState?.pendingContractSelect) return;
+    const block = (e) => { if (e.key === 'Escape') e.preventDefault(); };
+    window.addEventListener('keydown', block, true);
+    return () => window.removeEventListener('keydown', block, true);
+  }, [gameState?.pendingContractSelect]);
+
   // Play win sound when local player wins
   const prevSessionWinnerRef = useRef(null);
   useEffect(() => {
@@ -1872,9 +1880,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               Nezzar, Terms and Conditions
             </div>
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8080a0', marginBottom: '16px', textAlign: 'center' }}>
-              Choose a deadly contract — or decline.
+              You must choose a contract to proceed.
             </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               {state.pendingContractSelect.contracts.map(contract => (
                 <div
                   key={contract.id}
@@ -1897,21 +1905,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                   <div style={{ fontSize: '10px', color: '#c0a0a0', lineHeight: 1.4 }}>{contract.description}</div>
                 </div>
               ))}
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <button
-                onClick={() => handleContractSelect(null)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #2a2a42',
-                  borderRadius: '4px',
-                  color: '#6060a0',
-                  fontSize: '11px',
-                  padding: '6px 20px',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                }}
-              >Decline</button>
             </div>
           </div>
         </div>
