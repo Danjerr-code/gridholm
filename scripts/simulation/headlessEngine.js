@@ -16,6 +16,7 @@
 import {
   createInitialState,
   autoAdvancePhase,
+  submitMulligan,
   cloneState,
   endTurn,
   moveChampion,
@@ -74,9 +75,12 @@ export function createGame(deck1Id = 'human', deck2Id = 'beast') {
       `Unsupported deck ID. Use one of: ${[...VALID_DECK_IDS].join(', ')}`
     );
   }
-  // autoAdvancePhase runs the begin-turn phase (draw, resource gain) and
-  // advances to the action phase — same initialization as the React app.
-  return autoAdvancePhase(createInitialState(deck1Id, deck2Id));
+  // Both simulation players auto-keep their opening hand (no UI mulligan step).
+  // submitMulligan with empty arrays for both immediately transitions to begin-turn.
+  const s = createInitialState(deck1Id, deck2Id);
+  submitMulligan(s, 0, []);
+  submitMulligan(s, 1, []);
+  return autoAdvancePhase(s);
 }
 
 // ── isGameOver ────────────────────────────────────────────────────────────────

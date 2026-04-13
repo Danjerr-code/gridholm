@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   createInitialState,
   autoAdvancePhase,
+  submitMulligan,
   getChampionMoveTiles,
   getSummonTiles,
   playCard,
@@ -17,9 +18,11 @@ import {
   manhattan,
   resolveLineBlast,
   getEffectiveCost,
+  cloneState,
 } from '../engine/gameEngine.js';
 import { FACTION_INFO } from '../engine/cards.js';
 import { runAITurnSteps } from '../engine/ai.js';
+import { chooseMulligan } from '../engine/strategicAI.js';
 import {
   handleChampionMove,
   handleUnitMove,
@@ -136,8 +139,9 @@ export function useGameState({ deckId = 'human' } = {}) {
   }, []); // reads only from stable refs — no state deps needed
 
   // Trigger AI turn if AI wins the coin flip and goes first on initial mount or new game.
+  // Skip during mulligan phase — the human player submits mulligan first.
   useEffect(() => {
-    if (state.activePlayer === AI_PLAYER && !state.winner) {
+    if (state.activePlayer === AI_PLAYER && !state.winner && state.phase !== 'mulligan') {
       scheduleAITurn();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -659,6 +663,18 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [clearSelection, deckId, applyAndMaybeAI]);
 
+  // Submit the local player's mulligan choice. Immediately resolves AI mulligan
+  // so both players are submitted simultaneously and the game transitions to play.
+  const handleMulliganSubmit = useCallback((cardIndices) => {
+    const s = cloneState(latestStateRef.current);
+    const aiChoices = chooseMulligan(s.players[AI_PLAYER].hand);
+    submitMulligan(s, 0, cardIndices);
+    submitMulligan(s, AI_PLAYER, aiChoices);
+    // Both submitted: phase is now 'begin-turn'; advance to action.
+    applyAndMaybeAI(autoAdvancePhase(s));
+    clearSelection();
+  }, [applyAndMaybeAI, clearSelection]);
+
   // ── Derived highlight data ─────────────────────────────────────────────
 
   const championMoveTiles = state.phase === 'action' && state.activePlayer === 0 && selectMode === 'champion_move'
@@ -775,6 +791,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleContractSelect,
       handleBloodPactSelect,
       handleNewGame,
+      handleMulliganSubmit,
       handleTerrainCast,
       clearSelection,
       handleInspectUnit,

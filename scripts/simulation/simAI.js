@@ -373,3 +373,14 @@ export function chooseAction(gameState, commandsUsed = 0) {
   const best = scored.filter(s => s.score === maxScore);
   return best[Math.floor(Math.random() * best.length)].action;
 }
+
+
+// ── Mulligan heuristic ────────────────────────────────────────────────────────
+// Returns the hand indices the AI wants to replace.
+// Mulligans any card costing more than 3 mana.
+export function chooseMulligan(hand) {
+  return hand
+    .map((card, idx) => ({ card, idx }))
+    .filter(({ card }) => card.cost > 3)
+    .map(({ idx }) => idx);
+}

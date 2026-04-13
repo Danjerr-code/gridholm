@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { playTurnStartSound, playSfxDraw } from '../audio.js';
-import { createInitialState, autoAdvancePhase, getChampionDef } from '../engine/gameEngine.js';
+import { createInitialState, autoAdvancePhase, submitMulligan, getChampionDef } from '../engine/gameEngine.js';
 import { FACTION_INFO, parseDeckSpec } from '../engine/cards.js';
 
 function getDeckDisplayName(deckId) {
@@ -417,6 +417,33 @@ export function useMultiplayerGame(gameId) {
     if (updated) setSession(updated);
   }, [session, gameId]);
 
+  // Submit this player's mulligan choice. Re-fetches the latest game state to
+  // minimise the race window when both players submit simultaneously.
+  const submitMulliganAction = useCallback(async (playerIdx, cardIndices) => {
+    if (!session || !supabase) return;
+
+    // Re-fetch latest state to capture any update from the opponent
+    const { data: latest } = await supabase
+      .from('game_sessions')
+      .select('game_state')
+      .eq('id', gameId)
+      .single();
+
+    const baseState = latest?.game_state ?? session.game_state;
+    if (!baseState || baseState.phase !== 'mulligan') return;
+
+    const s = JSON.parse(JSON.stringify(baseState));
+    submitMulligan(s, playerIdx, cardIndices);
+
+    // If execution completed, advance to action phase
+    let finalState = s;
+    if (s.phase === 'begin-turn') {
+      finalState = autoAdvancePhase(s);
+    }
+
+    await dispatchAction(finalState);
+  }, [session, gameId, dispatchAction]);
+
   const concedeGame = useCallback(async () => {
     if (!session || !supabase) return;
     const firstPlayerId = session.game_state?.firstPlayerId ?? session.player1_id;
@@ -590,6 +617,7 @@ export function useMultiplayerGame(gameId) {
     iHaveVoted,
     opponentHasVoted,
     selectDeck,
+    submitMulliganAction,
     inDeckSelect,
     myDeck,
     opponentDeck,

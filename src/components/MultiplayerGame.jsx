@@ -59,6 +59,7 @@ import Hand from './Hand.jsx';
 import Log from './Log.jsx';
 import PhaseTracker from './PhaseTracker.jsx';
 import GameEndOverlay from './GameEndOverlay.jsx';
+import MulliganOverlay from './MulliganOverlay.jsx';
 import TurnBanner from './TurnBanner.jsx';
 import { CommandDisplay } from '../App.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
@@ -89,6 +90,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     iHaveVoted,
     opponentHasVoted,
     selectDeck,
+    submitMulliganAction,
     inDeckSelect,
     myDeck,
     opponentDeck,
@@ -1054,6 +1056,21 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         }}>
           {gameStartNotice}
         </div>
+      )}
+
+      {/* Mulligan overlay — both players see this before play begins */}
+      {phase === 'mulligan' && myPlayerIndex !== null && (
+        <MulliganOverlay
+          hand={state.players[myPlayerIndex].hand}
+          deadline={state.mulliganDeadline}
+          waitingFor={
+            state.mulliganSelections?.[myPlayerIndex] !== null &&
+            state.mulliganSelections?.[1 - myPlayerIndex] === null
+              ? 'opponent'
+              : null
+          }
+          onConfirm={(cardIndices) => submitMulliganAction(myPlayerIndex, cardIndices)}
+        />
       )}
 
       {/* Winner overlay */}

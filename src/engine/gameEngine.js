@@ -1209,7 +1209,9 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     turn: 1,
     activePlayer: firstPlayer,
     firstPlayer,
-    phase: 'begin-turn',
+    phase: 'mulligan',
+    mulliganSelections: { 0: null, 1: null },
+    mulliganDeadline: Date.now() + 20000,
     phaseStep: 0,
     winner: null,
     pendingDiscard: false,
@@ -1249,6 +1251,43 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     championStunned: [false, false],    // true when champion is stunned next turn (Kragor's Behemoth)
     deckEmpty: [false, false],          // true when a player's deck has reached 0 cards (fatigue active)
   };
+}
+
+// ── mulligan ────────────────────────────────────────────────────────────────
+
+// Records a player's mulligan choice and, when both players have submitted,
+// executes the swap: selected cards go to the bottom of the deck in ascending
+// index order; the same number of cards are drawn from the top.
+// cardIndices — array of hand indices the player wants to replace ([] = keep all).
+export function submitMulligan(state, playerIdx, cardIndices) {
+  if (!state.mulliganSelections) state.mulliganSelections = { 0: null, 1: null };
+
+  const hand = state.players[playerIdx].hand;
+  const valid = cardIndices.filter(i => Number.isInteger(i) && i >= 0 && i < hand.length);
+  state.mulliganSelections[playerIdx] = valid;
+
+  if (state.mulliganSelections[0] !== null && state.mulliganSelections[1] !== null) {
+    // Execute for both players simultaneously
+    for (let pi = 0; pi <= 1; pi++) {
+      const p = state.players[pi];
+      const descIdx = [...state.mulliganSelections[pi]].sort((a, b) => b - a);
+      if (descIdx.length > 0) {
+        const removed = [];
+        for (const idx of descIdx) {
+          if (idx >= 0 && idx < p.hand.length) {
+            removed.unshift(...p.hand.splice(idx, 1));
+          }
+        }
+        p.deck.push(...removed);
+        const drawn = p.deck.splice(0, removed.length);
+        p.hand.push(...drawn);
+        addLog(state, `${p.name} mulliganed ${removed.length} card(s).`);
+      }
+    }
+    state.phase = 'begin-turn';
+  }
+
+  return state;
 }
 
 // ── log helper ─────────────────────────────────────────────────────────────

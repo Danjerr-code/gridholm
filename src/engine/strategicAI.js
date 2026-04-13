@@ -722,3 +722,13 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
   aiLog(`   → CHOSEN (score ${result.score?.toFixed(1)}): ${describeAction(result.action, gameState)}`);
   return result.action;
 }
+
+// ── Mulligan heuristic ────────────────────────────────────────────────────────
+// Returns the hand indices the AI wants to replace.
+// Mulligans any card costing more than 3 mana.
+export function chooseMulligan(hand) {
+  return hand
+    .map((card, idx) => ({ card, idx }))
+    .filter(({ card }) => card.cost > 3)
+    .map(({ idx }) => idx);
+}

@@ -12,6 +12,7 @@ import Log, { renderLogText, entryText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
+import MulliganOverlay from './components/MulliganOverlay.jsx';
 import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
 import { renderRules } from './utils/rulesText.jsx';
@@ -192,6 +193,15 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
 
   return (
     <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
+      {/* Mulligan overlay — shown at the start of every game before play begins */}
+      {phase === 'mulligan' && (
+        <MulliganOverlay
+          hand={p1.hand}
+          deadline={state.mulliganDeadline}
+          onConfirm={handlers.handleMulliganSubmit}
+        />
+      )}
+
       {/* Winner overlay */}
       {winner && (
         <GameEndOverlay isWinner={winner === p1.name}>
