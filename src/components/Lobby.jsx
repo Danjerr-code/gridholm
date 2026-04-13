@@ -331,6 +331,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck
             </button>
+            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/tutorial')}>
+              Tutorial
+            </button>
             <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
               How to Play
             </button>
@@ -374,6 +377,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
               <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
             )}
 
+            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/tutorial')}>
+              Tutorial
+            </button>
             <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
               How to Play
             </button>

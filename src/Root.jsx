@@ -7,6 +7,7 @@ import DeckSelect from './components/DeckSelect.jsx';
 import DeckBuilder from './components/DeckBuilder.jsx';
 import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
+import TutorialMenu from './components/TutorialMenu.jsx';
 import { supabase, getGuestId } from './supabase.js';
 import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
 
@@ -24,6 +25,7 @@ function parseHash() {
   if (hash === 'ai') return { view: 'ai_deck_select' };
   if (hash === 'how-to-play' || hash === 'howtoplay') return { view: 'how_to_play' };
   if (hash === 'card-gallery') return { view: 'card_gallery' };
+  if (hash === 'tutorial') return { view: 'tutorial' };
   if (hash === 'deck-builder') return { view: 'deck_builder' };
   if (hash === 'custom-play') return { view: 'custom_play' };
   if (hash === 'custom-ai') return { view: 'custom_ai' };
@@ -74,6 +76,10 @@ export default function Root() {
 
   if (route.view === 'how_to_play') {
     return <HowToPlay />;
+  }
+
+  if (route.view === 'tutorial') {
+    return <TutorialMenu onBack={() => navigate('/')} />;
   }
 
   if (route.view === 'deck_builder') {
