@@ -65,6 +65,7 @@ function getLegalActions(state) {
   if (state.phase !== 'action') return actions;
   if (state.pendingSpell || state.pendingSummon || state.pendingHandSelect || state.pendingFleshtitheSacrifice) return actions;
   if (state.pendingDiscard) return actions;
+  if (state.pendingRelicPlace || state.pendingTerrainCast) return actions;
 
   const ap = state.activePlayer;
   const p = state.players[ap];
@@ -477,13 +478,15 @@ function scoreState(gameState, playerId) {
   return evaluateBoard(gameState, playerId);
 }
 
+const MAX_MINIMAX_DEPTH = 4;
+
 function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline) {
   if (performance.now() > deadline.time) {
     return { score: scoreState(gameState, playerId), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over || depth === 0) {
+  if (over || depth === 0 || depth > MAX_MINIMAX_DEPTH) {
     return { score: scoreState(gameState, playerId), action: null };
   }
 
