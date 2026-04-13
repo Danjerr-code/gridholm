@@ -46,7 +46,7 @@ const NO_TARGET_SPELLS = new Set([
 
 const TWO_STEP_SPELLS = new Set(['bloom', 'ambush']);
 
-const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus']);
+const TARGETED_ACTION_UNITS = new Set(['woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus', 'rootsongcommander']);
 
 // ── isGameOver ────────────────────────────────────────────────────────────────
 

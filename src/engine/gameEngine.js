@@ -2684,7 +2684,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     }
   }
   // ── Rootsong Commander action (elf tribal buff until end of turn) ──
-  else if (effect === 'elfTribalBuff') {
+  else if (effect === 'rootsongcommander_action') {
     const unit = s.units.find(u => u.uid === data.sourceUid);
     if (unit && target) {
       s = _dispatchAction(unit, s, [target]);
@@ -3091,7 +3091,7 @@ export function triggerUnitAction(state, unitUid) {
   }
 
   if (unit.id === 'rootsongcommander') {
-    s.pendingSpell = { cardUid: unit.uid, effect: 'elfTribalBuff', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    s.pendingSpell = { cardUid: unit.uid, effect: 'rootsongcommander_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }
 
@@ -4028,7 +4028,7 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
     }
 
     // Rootsong Commander action: any friendly combat unit (not relic, not omen)
-    case 'elfTribalBuff':
+    case 'rootsongcommander_action':
       return state.units.filter(u =>
         u.owner === state.activePlayer &&
         !u.isRelic &&
