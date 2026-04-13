@@ -566,24 +566,11 @@ export default function Board({
     const isOwnChampion = champion.owner === myPlayerIndex;
 
     if (isMobile) {
-      // Mobile: double-tap within 300ms to inspect; single tap selects own champion only
-      const now = Date.now();
-      const ownerKey = String(champion.owner);
-      const last = lastChampTapRef.current[ownerKey] ?? 0;
-      lastChampTapRef.current[ownerKey] = now;
-
-      if (now - last < 300) {
-        // Double tap: show details for any champion
-        lastChampTapRef.current[ownerKey] = 0;
-        if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
-      } else if (isOwnChampion) {
-        // Single tap on own champion: open detail panel and select for movement
-        if (handlers.handleInspectChampion) handlers.handleInspectChampion(champion.owner);
-        if (canInteract && phase === 'action' && handlers.handleSelectChampion) {
-          handlers.handleSelectChampion();
-        }
+      // Mobile: single tap selects own champion for movement only (no details panel).
+      // Long press (handled in Cell via onChampionLongPress) opens the details panel.
+      if (isOwnChampion && canInteract && phase === 'action' && handlers.handleSelectChampion) {
+        handlers.handleSelectChampion();
       }
-      // Single tap on opponent champion: no action
       return;
     }
 

@@ -1031,7 +1031,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'terrain_cast' || selectMode === 'relic_place' || selectMode === 'champion_ability';
 
   return (
-    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
+    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '220px' : '8px' }}>
       {/* Opponent left overlay (after game over) */}
       {opponentLeftCountdown !== null && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-60">
@@ -1688,53 +1688,55 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         </div>
       )}
 
-      {/* Mobile hand toggle button */}
-      {isMobile && (
-        <button
-          style={{
-            position: 'fixed',
-            bottom: '68px',
-            right: '12px',
-            zIndex: 41,
-            width: '36px',
-            height: '36px',
-            background: '#0a0a14',
-            border: '1px solid #2a2a3a',
-            borderRadius: '6px',
-            color: '#6a6a8a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: 1,
-          }}
-          onClick={() => setHandExpanded(v => !v)}
-        >
-          {handExpanded ? '▼' : '▲'}
-        </button>
-      )}
-
       {/* My hand (face up) */}
       <div style={{
         background: pendingDiscard && isActiveTurn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
         border: `1px solid ${pendingDiscard && isActiveTurn ? '#C9A84C' : '#1e1e2e'}`,
-        borderRadius: '6px',
+        borderRadius: isMobile ? '6px 6px 0 0' : '6px',
         flexShrink: 0,
-        ...(isMobile && { transition: 'transform 0.3s ease', transform: handExpanded ? 'translateY(0)' : 'translateY(120%)' }),
+        ...(isMobile && {
+          position: 'fixed',
+          bottom: '60px',
+          left: 0,
+          right: 0,
+          zIndex: 38,
+          transition: 'transform 0.3s ease',
+          transform: handExpanded ? 'translateY(0)' : 'translateY(calc(100% - 28px))',
+        }),
       }}>
         <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           fontFamily: "'Cinzel', serif",
           fontSize: '11px',
           color: myPlayerIndex === 0 ? '#4a8abf' : '#bf4a4a',
           padding: '4px 8px 2px',
           fontWeight: 600,
         }}>
-          {myPlayer.name}
-          <span className="hidden sm:inline" style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontWeight: 400, color: '#4a4a6a', fontSize: '12px' }}>
-            {phase === 'action' && isActiveTurn ? '  (click cards to play)' : ''}
-            {pendingDiscard && isActiveTurn ? '  — click a card to discard' : ''}
+          <span>
+            {myPlayer.name}
+            <span className="hidden sm:inline" style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontWeight: 400, color: '#4a4a6a', fontSize: '12px' }}>
+              {phase === 'action' && isActiveTurn ? '  (click cards to play)' : ''}
+              {pendingDiscard && isActiveTurn ? '  — click a card to discard' : ''}
+            </span>
           </span>
+          {isMobile && (
+            <button
+              onClick={() => setHandExpanded(v => !v)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#6a6a8a',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: '2px 4px',
+                lineHeight: 1,
+              }}
+            >
+              {handExpanded ? '▼' : '▲'}
+            </button>
+          )}
         </div>
         <div className="hidden sm:flex" style={{ alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
           <div style={{
