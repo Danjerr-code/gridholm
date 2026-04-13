@@ -61,13 +61,14 @@ function getStandardBearerBonus(state, unit) {
   return { atk, hp };
 }
 
-// Returns the Pack Runt ATK bonus count: +1 ATK for each other friendly Beast combat unit.
+// Returns the Pack Runt ATK bonus count: +1 ATK for each other friendly combat unit.
 export function getPackBonus(state, unit) {
   if (unit.id !== 'packrunt') return 0;
   return state.units.filter(u =>
     u.owner === unit.owner &&
     u.uid !== unit.uid &&
-    unitTypes(u).includes('Beast') &&
+    !u.isRelic &&
+    !u.isOmen &&
     !u.hidden
   ).length;
 }
