@@ -177,6 +177,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const [gameStartNotice, setGameStartNotice] = useState(null); // null | string
   const gameStartShownRef = useRef(false);
   const gameStartTimerRef = useRef(null);
+  const [contractModalMinimized, setContractModalMinimized] = useState(false);
+
+  // Reset minimize state whenever a new contract selection appears
+  useEffect(() => {
+    if (gameState?.pendingContractSelect) setContractModalMinimized(false);
+  }, [gameState?.pendingContractSelect]);
 
   // Show "You Go First!" / "Opponent Goes First!" once when game state first arrives
   useEffect(() => {
@@ -1924,51 +1930,98 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
       {/* Nezzar contract selection modal — only shown to the active player who owns Nezzar */}
       {state.pendingContractSelect && isMyTurn && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.80)' }}
-        >
-          <div style={{
-            background: '#0f0f1e',
-            border: '1px solid #C9A84C60',
-            borderRadius: '8px',
-            padding: '20px',
-            maxWidth: '600px',
-            width: '92vw',
-            boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
-          }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '4px', textAlign: 'center' }}>
-              Nezzar, Terms and Conditions
-            </div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8080a0', marginBottom: '16px', textAlign: 'center' }}>
-              You must choose a contract to proceed.
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {state.pendingContractSelect.contracts.map(contract => (
-                <div
-                  key={contract.id}
-                  onClick={() => handleContractSelect(contract.id)}
-                  style={{
-                    background: 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)',
-                    border: '1px solid #7a2a2a',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    cursor: 'pointer',
-                    minWidth: '130px',
-                    maxWidth: '160px',
-                    textAlign: 'center',
-                    transition: 'border-color 0.15s, background 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.background = 'linear-gradient(180deg, #2a0a0a 0%, #300d0d 100%)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#7a2a2a'; e.currentTarget.style.background = 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)'; }}
-                >
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#EF4444', marginBottom: '6px', letterSpacing: '0.04em' }}>{contract.name}</div>
-                  <div style={{ fontSize: '10px', color: '#c0a0a0', lineHeight: 1.4 }}>{contract.description}</div>
+        contractModalMinimized ? (
+          <div
+            onClick={() => setContractModalMinimized(false)}
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 50,
+              background: '#1a0a0a',
+              border: '1px solid #7a2a2a',
+              borderBottom: 'none',
+              borderRadius: '8px 8px 0 0',
+              padding: '6px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              boxShadow: '0 -2px 12px rgba(0,0,0,0.6)',
+            }}
+          >
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#EF4444', letterSpacing: '0.05em' }}>
+              Choose a Contract
+            </span>
+            <span style={{ fontSize: '14px', color: '#EF4444', lineHeight: 1 }}>↑</span>
+          </div>
+        ) : (
+          <div
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.80)' }}
+          >
+            <div style={{
+              background: '#0f0f1e',
+              border: '1px solid #C9A84C60',
+              borderRadius: '8px',
+              padding: '20px',
+              maxWidth: '600px',
+              width: '92vw',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px', position: 'relative' }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#EF4444', fontVariant: 'small-caps', letterSpacing: '0.08em', textAlign: 'center' }}>
+                  Nezzar, Terms and Conditions
                 </div>
-              ))}
+                <button
+                  onClick={() => setContractModalMinimized(true)}
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    background: 'transparent',
+                    border: '1px solid #2a2a42',
+                    borderRadius: '4px',
+                    color: '#6060a0',
+                    fontSize: '14px',
+                    lineHeight: 1,
+                    padding: '2px 7px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                  title="Minimize"
+                >−</button>
+              </div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8080a0', marginBottom: '16px', textAlign: 'center' }}>
+                You must choose a contract to proceed.
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {state.pendingContractSelect.contracts.map(contract => (
+                  <div
+                    key={contract.id}
+                    onClick={() => handleContractSelect(contract.id)}
+                    style={{
+                      background: 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)',
+                      border: '1px solid #7a2a2a',
+                      borderRadius: '6px',
+                      padding: '12px',
+                      cursor: 'pointer',
+                      minWidth: '130px',
+                      maxWidth: '160px',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.background = 'linear-gradient(180deg, #2a0a0a 0%, #300d0d 100%)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#7a2a2a'; e.currentTarget.style.background = 'linear-gradient(180deg, #1a0a0a 0%, #200d0d 100%)'; }}
+                  >
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 600, color: '#EF4444', marginBottom: '6px', letterSpacing: '0.04em' }}>{contract.name}</div>
+                    <div style={{ fontSize: '10px', color: '#c0a0a0', lineHeight: 1.4 }}>{contract.description}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Blood Pact — select a friendly unit to sacrifice */}
