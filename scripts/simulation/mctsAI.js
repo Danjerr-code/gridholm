@@ -279,12 +279,14 @@ export function chooseActionMCTS(state, options = {}) {
 
   // Immediate lethal check: only scan when the enemy champion has low enough HP
   // to be killable by a unit attack or champion attack this turn.
-  // This avoids O(n_actions) applyAction cost on every decision step.
+  // No buffer (+0): the +2 buffer was triggering the full O(n_actions) scan
+  // on almost every decision in aggressive matchups (e.g. beast vs beast),
+  // adding ~100ms overhead per decision even when lethal was impossible.
   const enemyChamp = state.champions[1 - playerIdx];
   const myUnits    = state.units.filter(u => u.owner === playerIdx && !u.isRelic && !u.isOmen);
   const maxAtk     = myUnits.reduce((m, u) => Math.max(m, u.atk ?? 0), 0);
   const myChampAtk = state.champions[playerIdx]?.atk ?? 0;
-  const canKill    = enemyChamp && enemyChamp.hp <= Math.max(maxAtk, myChampAtk) + 2;
+  const canKill    = enemyChamp && enemyChamp.hp <= Math.max(maxAtk, myChampAtk);
   if (canKill) {
     for (const action of actions) {
       const next = applyAction(state, action);
