@@ -1580,7 +1580,10 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             </div>
             {myPlayer.grave && myPlayer.grave.length > 0 ? (
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                {myPlayer.grave.map((card, idx) => {
+                {(gameState.pendingGraveSelect?.reason === 'rebirth'
+                  ? myPlayer.grave.filter(u => u.type === 'unit' && !u.isOmen && !u.isRelic && !u.token && !u.isToken)
+                  : myPlayer.grave
+                ).map((card, idx) => {
                   const imageUrl = getCardImageUrl(card.image);
                   return (
                     <div

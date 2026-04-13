@@ -370,7 +370,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             </div>
             {(() => {
               const graveCards = state.pendingGraveSelect?.reason === 'rebirth'
-                ? (p1.grave || []).filter(u => u.type === 'unit' && !u.token)
+                ? (p1.grave || []).filter(u => u.type === 'unit' && !u.isOmen && !u.isRelic && !u.token && !u.isToken)
                 : (p1.grave || []);
               return graveCards.length > 0 ? (
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -556,8 +556,8 @@ export const SPELL_REGISTRY = {
     const p = state.players[caster];
     const champ = state.champions[caster];
 
-    // Collect revivable combat units from grave (exclude tokens)
-    const graveUnits = p.grave.filter(u => u.type === 'unit' && !u.token);
+    // Collect revivable combat units from grave (exclude tokens, omens, relics)
+    const graveUnits = p.grave.filter(u => u.type === 'unit' && !u.isOmen && !u.isRelic && !u.token && !u.isToken);
     if (graveUnits.length === 0) return state;
 
     // Sort by cost descending (most expensive first)

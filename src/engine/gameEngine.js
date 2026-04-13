@@ -1798,7 +1798,7 @@ export function playCard(state, cardUid) {
     // Rebirth: consume card, mark champion action, open grave selection
     if (card.effect === 'rebirth') {
       if (s.champions[s.activePlayer].moved) return s;
-      const grave = p.grave.filter(u => u.type === 'unit' && !u.token);
+      const grave = p.grave.filter(u => u.type === 'unit' && !u.isOmen && !u.isRelic && !u.token && !u.isToken);
       if (grave.length === 0) return s; // nothing to revive
       s.champions[s.activePlayer].moved = true;
       p.resources -= effectiveCost;
