@@ -27,12 +27,13 @@ for (let i = 0; i < FACTIONS.length; i++) {
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { games: 500, ai: 'heuristic', depth: 4 };
+  const args = { games: 500, ai: 'heuristic', depth: 4, sims: 200 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--games': args.games = parseInt(argv[++i], 10); break;
       case '--ai':    args.ai    = argv[++i]; break;
       case '--depth': args.depth = parseInt(argv[++i], 10); break;
+      case '--sims':  args.sims  = parseInt(argv[++i], 10); break;
     }
   }
   return args;
@@ -70,13 +71,13 @@ function runMatchup(p1Faction, p2Faction, gamesPerDir, globalGameId, opts = {}) 
   };
 }
 
-const { games: gamesPerDir, ai: aiMode, depth: minimaxDepth } = parseArgs(process.argv);
-const gameOpts = { ai: aiMode, depth: minimaxDepth };
+const { games: gamesPerDir, ai: aiMode, depth: minimaxDepth, sims: mctsSimulations } = parseArgs(process.argv);
+const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSimulations };
 
 const totalMatchups   = PAIRS.length * 2; // each pair × 2 directions
 const totalGamesAll   = totalMatchups * gamesPerDir;
 
-console.log(`Running matchup matrix: ${FACTIONS.join(', ')} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}]`);
+console.log(`Running matchup matrix: ${FACTIONS.join(', ')} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}${aiMode === 'mcts' ? ` sims=${mctsSimulations}` : ''}]`);
 console.log(`${PAIRS.length} pairs × 2 directions × ${gamesPerDir} games = ${totalGamesAll} total games\n`);
 
 // matchupData[p1][p2] = { p1Wins, p2Wins, draws, avgTurns, gamesRun }
@@ -194,7 +195,12 @@ for (const [fA, fB] of PAIRS) {
 
 console.log('\n── Top 5 Cards by Win Rate Impact per Faction ──');
 for (const faction of FACTIONS) {
-  const analysis = computeCardAnalysis(factionResults[faction]);
+  // Pass a selector so only the faction's own side is analysed — prevents
+  // opponent cards from appearing in a faction's top-card rankings.
+  const analysis = computeCardAnalysis(
+    factionResults[faction],
+    result => result.p1Deck === faction ? 'p1' : 'p2',
+  );
   // Only include cards that appeared in this faction's games as p1
   const ranked = Object.entries(analysis)
     .filter(([, a]) => a.winRateImpact != null)
@@ -234,7 +240,10 @@ for (const fA of FACTIONS) {
 
 const factionCardAnalysis = {};
 for (const faction of FACTIONS) {
-  factionCardAnalysis[faction] = computeCardAnalysis(factionResults[faction]);
+  factionCardAnalysis[faction] = computeCardAnalysis(
+    factionResults[faction],
+    result => result.p1Deck === faction ? 'p1' : 'p2',
+  );
 }
 
 const outputPath = 'scripts/simulation/matrix_results.json';

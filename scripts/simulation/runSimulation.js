@@ -11,17 +11,21 @@
  *   --p2      Deck ID for player 2 (human|beast|elf|demon, default: beast)
  *   --games   Number of games to simulate (default: 100)
  *   --output  Output file path (default: results.json)
+ *   --ai      AI mode: heuristic | minimax | mcts (default: heuristic)
+ *   --depth   Minimax depth (default: 4, only used when --ai minimax)
+ *   --sims    MCTS simulations per decision (default: 200, only used when --ai mcts)
  */
 
 import { writeFileSync } from 'fs';
 import { createGame, applyAction, isGameOver, getGameStats, getLegalActions } from './headlessEngine.js';
 import { chooseAction } from './simAI.js';
 import { chooseActionMinimax } from './minimaxAI.js';
+import { chooseActionMCTS } from './mctsAI.js';
 
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'heuristic', depth: 4 };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'heuristic', depth: 4, sims: 200 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--p1':     args.p1     = argv[++i]; break;
@@ -30,6 +34,7 @@ function parseArgs(argv) {
       case '--output': args.output = argv[++i]; break;
       case '--ai':     args.ai     = argv[++i]; break;
       case '--depth':  args.depth  = parseInt(argv[++i], 10); break;
+      case '--sims':   args.sims   = parseInt(argv[++i], 10); break;
     }
   }
   return args;
@@ -207,9 +212,14 @@ function serializeCardStats(tracker) {
 const MAX_TURNS         = 30;
 const MAX_ACTIONS_GAME  = 500;
 
+// Max actions within a single player's turn before forcing endTurn (prevents MCTS stalls).
+const MAX_ACTIONS_PER_TURN = 80;
+
 export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
   const useMinimaxAI = opts.ai === 'minimax';
+  const useMCTS      = opts.ai === 'mcts';
   const minimaxDepth = opts.depth ?? 2;
+  const mctsSimulations = opts.sims ?? 200;
 
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
@@ -223,11 +233,13 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     }
   }
 
-  let turnCount          = 0;
-  let actionCount        = 0;
-  let commandsUsedThisTurn = 0;
-  let forceDraw          = false;
-  let minimaxTotalMs     = 0;
+  let turnCount             = 0;
+  let actionCount           = 0;
+  let commandsUsedThisTurn  = 0;
+  let actionsThisTurn       = 0;
+  let forceDraw             = false;
+  let minimaxTotalMs        = 0;
+  let mctsTotalMs           = 0;
 
   while (true) {
     const { over } = isGameOver(state);
@@ -240,10 +252,17 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     }
 
     let action;
-    if (useMinimaxAI) {
+    if (useMCTS && actionsThisTurn >= MAX_ACTIONS_PER_TURN) {
+      // Force end-of-turn to prevent MCTS stalls (low sim budget avoids endTurn).
+      action = { type: 'endTurn' };
+    } else if (useMinimaxAI) {
       const t0 = performance.now();
       action = chooseActionMinimax(state, commandsUsedThisTurn, { depth: minimaxDepth });
       minimaxTotalMs += performance.now() - t0;
+    } else if (useMCTS) {
+      const t0 = performance.now();
+      action = chooseActionMCTS(state, { simulations: mctsSimulations });
+      mctsTotalMs += performance.now() - t0;
     } else {
       action = chooseAction(state, commandsUsedThisTurn);
     }
@@ -267,6 +286,9 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     } else if (action.type === 'endTurn') {
       turnCount++;
       commandsUsedThisTurn = 0;
+      actionsThisTurn = 0;
+    } else {
+      actionsThisTurn++;
     }
   }
 
@@ -296,6 +318,7 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     },
     cardStats: serializeCardStats(tracker),
     ...(useMinimaxAI ? { minimaxMs: minimaxTotalMs } : {}),
+    ...(useMCTS      ? { mctsMs: mctsTotalMs }       : {}),
   };
 }
 
@@ -306,8 +329,15 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
  *
  * For each cardId, tracks stats from the perspective of the player who had
  * the card in their deck (p1 side or p2 side in each game).
+ *
+ * @param {Array}    results            - array of game result objects
+ * @param {Function} [playerSideSelector] - optional fn(result) → 'p1'|'p2'.
+ *   When provided, only the specified player side is analysed for each game.
+ *   Use this for faction-specific analysis to avoid cross-faction contamination
+ *   (e.g. opponent cards showing up in a faction's top-card rankings).
+ *   When omitted, both sides are analysed (legacy behaviour / single-matchup use).
  */
-export function computeCardAnalysis(results) {
+export function computeCardAnalysis(results, playerSideSelector = null) {
   // Accumulate per-card across all games and both player sides
   const agg = new Map(); // cardId → aggregated counts
 
@@ -324,14 +354,20 @@ export function computeCardAnalysis(results) {
     return agg.get(cardId);
   }
 
+  /** Return the [[pKey, statsMap], ...] pairs to process for a given result. */
+  function sidesForResult(result) {
+    if (playerSideSelector) {
+      const side = playerSideSelector(result);
+      return side ? [[side, result.cardStats[side]]] : [];
+    }
+    return [['p1', result.cardStats.p1], ['p2', result.cardStats.p2]];
+  }
+
   for (const result of results) {
-    const { winner, cardStats } = result;
+    const { winner } = result;
 
-    for (const [pKey, statsMap] of [['p1', cardStats.p1], ['p2', cardStats.p2]]) {
+    for (const [pKey, statsMap] of sidesForResult(result)) {
       const playerWon = winner === pKey;
-
-      // Collect all cardIds this player drew in this game
-      const drawnIds = new Set(Object.keys(statsMap));
 
       for (const [cardId, stats] of Object.entries(statsMap)) {
         const a = getAgg(cardId);
@@ -346,20 +382,15 @@ export function computeCardAnalysis(results) {
           if (playerWon) a.winsWhenPlayed++;
         }
       }
-
-      // Track games where a card this player "could have" had was never drawn.
-      // We use all cardIds ever seen for this player side across all games.
-      // Done in a second pass below.
-      void drawnIds; // suppress lint; used in second pass
     }
   }
 
-  // Second pass: for each cardId, find games where it was never drawn by either side
-  // and track the win rate in those games. We do this by player side.
-  // Collect which player sides each cardId has been observed on.
+  // Second pass: for each cardId, find games where it was never drawn by the
+  // relevant player side and track the win rate in those games.
+  // First, collect which (cardId, pKey) pairs have ever been observed.
   const cardPlayerSides = new Map(); // cardId → Set of 'p1' | 'p2'
   for (const result of results) {
-    for (const [pKey, statsMap] of [['p1', result.cardStats.p1], ['p2', result.cardStats.p2]]) {
+    for (const [pKey, statsMap] of sidesForResult(result)) {
       for (const cardId of Object.keys(statsMap)) {
         if (!cardPlayerSides.has(cardId)) cardPlayerSides.set(cardId, new Set());
         cardPlayerSides.get(cardId).add(pKey);
@@ -369,9 +400,14 @@ export function computeCardAnalysis(results) {
 
   for (const result of results) {
     const { winner } = result;
+    // Which sides are relevant for this result?
+    const relevantSides = new Set(sidesForResult(result).map(([pKey]) => pKey));
+
     for (const [cardId, sides] of cardPlayerSides) {
       const a = getAgg(cardId);
       for (const pKey of sides) {
+        // Only check sides that are relevant for this result
+        if (!relevantSides.has(pKey)) continue;
         const statsMap = result.cardStats[pKey];
         if (!statsMap[cardId]) {
           // Card never drawn by this player in this game
