@@ -18,7 +18,7 @@ export function playSfxAttack() {
     const audio = new Audio('/sfx-attack.mp3');
     audio.volume = 0.4;
     audio.addEventListener('timeupdate', () => {
-      if (audio.duration && audio.currentTime >= audio.duration * 0.9) {
+      if (audio.duration && audio.currentTime >= audio.duration * 0.8) {
         audio.pause();
       }
     });
