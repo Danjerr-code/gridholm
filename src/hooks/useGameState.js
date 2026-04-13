@@ -306,6 +306,8 @@ export function useGameState({ deckId = 'human' } = {}) {
         setSelectMode('hand_select');
       } else if (s.pendingFleshtitheSacrifice) {
         setSelectMode('fleshtithe_sacrifice');
+      } else if (s.pendingSpell) {
+        setSelectMode('spell');
       } else {
         setSelectedCard(null);
         setSelectedUnit(null);

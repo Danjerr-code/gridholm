@@ -407,6 +407,9 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     } else if (s.pendingFleshtitheSacrifice) {
       setSelectMode('fleshtithe_sacrifice');
       await dispatchAction(s);
+    } else if (s.pendingSpell) {
+      setSelectMode('spell');
+      await dispatchAction(s);
     } else {
       if (!s.pendingSummon) playUnitSummonSound();
       await dispatch(s);
