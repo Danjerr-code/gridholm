@@ -501,6 +501,22 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
+  // Amethyst Crystal relic: when destroyed, draw 3 cards for the owner (caster).
+  // Implemented explicitly here because the declarative onFriendlyUnitDeath system
+  // does not fire for relics (guard at line 541 below).
+  if (unit.id === 'amethystcrystal') {
+    const p = state.players[unit.owner];
+    let drawnCount = 0;
+    for (let i = 0; i < 3; i++) {
+      const card = drawCard(state, unit.owner);
+      if (card) {
+        p.hand.push(card);
+        drawnCount++;
+      }
+    }
+    addLog(state, `Amethyst Crystal shattered. Drew ${drawnCount} card(s).`);
+  }
+
   // Gilded Cage relic: when destroyed, release the trapped unit on its tile.
   if (unit.id === 'gildedcage_relic' && unit.trappedUnit) {
     const tileOccupied = state.units.some(u => u.row === unit.row && u.col === unit.col)
@@ -3184,7 +3200,10 @@ function reachableTiles(state, unit, speed) {
       const dist = Math.abs(nr - unit.row) + Math.abs(nc - unit.col);
       if (dist === 0 || dist > speed) continue;
       const friendlyOccupied = isTileOccupiedByFriendly(state, unit.owner, nr, nc);
-      if (friendlyOccupied) continue;
+      if (friendlyOccupied) {
+        // Amethyst Crystal is attackable by both players — allow movement to its tile
+        if (!state.units.some(u => u.id === 'amethystcrystal' && u.owner === unit.owner && u.row === nr && u.col === nc)) continue;
+      }
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       if (unit.canAttack === false && (enemyUnit || enemyChamp)) continue;
@@ -3296,7 +3315,12 @@ export function moveUnit(state, unitUid, row, col) {
     return s;
   }
 
-  const enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
+  let enemyUnit = s.units.find(u => u.owner !== unit.owner && u.row === row && u.col === col);
+  // Amethyst Crystal is attackable by both players — treat own crystal as an attack target
+  if (!enemyUnit) {
+    const ownCrystal = s.units.find(u => u.id === 'amethystcrystal' && u.owner === unit.owner && u.row === row && u.col === col);
+    if (ownCrystal) enemyUnit = ownCrystal;
+  }
   const enemyChamp = s.champions.find(ch => ch.owner !== unit.owner && ch.row === row && ch.col === col);
   const combatTile = [row, col];
 
