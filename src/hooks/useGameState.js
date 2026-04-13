@@ -14,6 +14,7 @@ import {
   getChampionAbilityTargets,
   getChampionDef,
   getTerrainCastTiles,
+  getAmethystCacheTiles,
   getApproachTiles,
   manhattan,
   resolveLineBlast,
@@ -47,6 +48,7 @@ import {
   handleBloodPactEnemy as execBloodPactEnemy,
   handleFleshtitheSacrifice as execFleshtitheSacrifice,
   handleTerrainCast as execTerrainCast,
+  handleRelicPlace as execRelicPlace,
 } from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
@@ -245,7 +247,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       // Auto-decline any pending Flesh Tithe sacrifice before processing new card
       const preFT = prev.pendingFleshtitheSacrifice ? execFleshtitheSacrifice(prev, 'no', null) : prev;
       // Cancel any leftover pending state from a previous selection
-      const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast) ? execCancelSpell(preFT) : preFT;
+      const base = (preFT.pendingSpell || preFT.pendingSummon || preFT.pendingTerrainCast || preFT.pendingRelicPlace) ? execCancelSpell(preFT) : preFT;
       const p = base.players[base.activePlayer];
       const graveAccessActive = base.graveAccessActive?.[base.activePlayer];
       const card = p.hand.find(c => c.uid === cardUid)
@@ -264,6 +266,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       }
 
       const s = playCard(base, cardUid);
+      console.log(`[handlePlayCard] cardUid=${cardUid} pendingRelicPlace=${JSON.stringify(s.pendingRelicPlace)}`);
       if (s.pendingHandSelect) {
         setSelectedCard(cardUid);
         setSelectMode('hand_select');
@@ -273,6 +276,9 @@ export function useGameState({ deckId = 'human' } = {}) {
       } else if (s.pendingTerrainCast) {
         setSelectedCard(cardUid);
         setSelectMode('terrain_cast');
+      } else if (s.pendingRelicPlace) {
+        setSelectedCard(cardUid);
+        setSelectMode('relic_place');
       } else if (s.pendingSpell) {
         setSelectedCard(cardUid);
         setSelectMode('spell');
@@ -659,6 +665,11 @@ export function useGameState({ deckId = 'human' } = {}) {
     clearSelection();
   }, [selectedCard, clearSelection]);
 
+  const handleRelicPlace = useCallback((row, col) => {
+    setState(prev => execRelicPlace(prev, row, col));
+    clearSelection();
+  }, [clearSelection]);
+
   const handleNewGame = useCallback(() => {
     const aiDeckId = pickRandomAiDeck();
     applyAndMaybeAI(autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId)));
@@ -716,6 +727,10 @@ export function useGameState({ deckId = 'human' } = {}) {
     ? getTerrainCastTiles(state)
     : [];
 
+  const relicPlaceTiles = selectMode === 'relic_place'
+    ? getAmethystCacheTiles(state)
+    : [];
+
   // Vorn direction selection: the 4 cardinal adjacent tiles on the board
   const directionTargetTiles = selectMode === 'direction_tile_select' && state.pendingDirectionSelect
     ? (() => {
@@ -753,6 +768,7 @@ export function useGameState({ deckId = 'human' } = {}) {
     unitMoveTiles,
     approachTiles,
     terrainTargetTiles,
+    relicPlaceTiles,
     directionTargetTiles,
     spellTargetUids,
     archerShootTargets,
@@ -795,6 +811,7 @@ export function useGameState({ deckId = 'human' } = {}) {
       handleNewGame,
       handleMulliganSubmit,
       handleTerrainCast,
+      handleRelicPlace,
       clearSelection,
       handleInspectUnit,
       handleInspectChampion,

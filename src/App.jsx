@@ -39,6 +39,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     unitMoveTiles,
     approachTiles,
     terrainTargetTiles,
+    relicPlaceTiles,
     directionTargetTiles,
     spellTargetUids,
     archerShootTargets,
@@ -109,6 +110,12 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             setDragCard(null);
             return;
           }
+        } else if (selectMode === 'relic_place') {
+          if (relicPlaceTiles.some(([r, c]) => r === row && c === col)) {
+            handlers.handleRelicPlace(row, col);
+            setDragCard(null);
+            return;
+          }
         } else if (selectMode === 'spell') {
           const unit = state.units.find(u => u.row === row && u.col === col);
           const champion = state.champions.find(c => c.row === row && c.col === col);
@@ -140,7 +147,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
     handlers.handleCancelSpell();
     setTimeout(() => { setDragCard(null); setDragSnapping(false); }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handlers, selectMode, summonTiles, terrainTargetTiles, spellTargetUids, state.units, state.champions]);
+  }, [handlers, selectMode, summonTiles, terrainTargetTiles, relicPlaceTiles, spellTargetUids, state.units, state.champions]);
 
   const isP1Turn = state.activePlayer === 0;
   const { phase, winner, pendingDiscard } = state;
@@ -173,11 +180,12 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to Invoke, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
+  if (selectMode === 'relic_place') guidance = 'Click an adjacent tile to place the Amethyst Crystal.';
   if (selectMode === 'approach_select') guidance = 'Multiple approach tiles available. Click a gold tile to position your unit before attacking.';
   if (selectMode === 'direction_select') guidance = 'Choose a direction for the line blast.';
   if (selectMode === 'grave_select') guidance = 'Select a unit from your grave.';
 
-  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast' || selectMode === 'direction_select';
+  const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'champion_ability' || selectMode === 'terrain_cast' || selectMode === 'relic_place' || selectMode === 'direction_select';
 
   const showAction = selectedUnitObj?.action === true
     && !selectedUnitObj.moved
@@ -745,6 +753,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             unitMoveTiles={unitMoveTiles}
             approachTiles={approachTiles}
             terrainTargetTiles={terrainTargetTiles}
+            relicPlaceTiles={relicPlaceTiles}
             directionTargetTiles={directionTargetTiles}
             spellTargetUids={spellTargetUids}
             archerShootTargets={archerShootTargets}
@@ -805,6 +814,9 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
                 )}
                 {phase === 'action' && selectMode === 'terrain_cast' && (
                   <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel Terrain" variant="cancel" fullWidth />
+                )}
+                {phase === 'action' && selectMode === 'relic_place' && (
+                  <ActionBtn onClick={handlers.handleCancelSpell} label="Cancel" variant="cancel" fullWidth />
                 )}
                 {phase === 'action' && selectMode === 'targetless_spell' && (
                   <>
