@@ -97,6 +97,7 @@ export default function DeckBuilder({ onBack, onNext }) {
   const [saveFlash, setSaveFlash] = useState(false);
   const [saveModal, setSaveModal] = useState(null); // null | { overwrite: bool }
   const [saveNameInput, setSaveNameInput] = useState('');
+  const [loadModal, setLoadModal] = useState(false);
   // Pending change that requires deck-clear confirmation
   const [pendingChange, setPendingChange] = useState(null); // { type: 'champion'|'secondary', key: string }
 
@@ -218,8 +219,7 @@ export default function DeckBuilder({ onBack, onNext }) {
 
   function handleLoadDeck() {
     if (!savedDecks.length) return;
-    const mostRecent = [...savedDecks].sort((a, b) => b.savedAt - a.savedAt)[0];
-    handleLoadSavedDeck(mostRecent);
+    setLoadModal(true);
   }
 
   async function handleDeleteSavedDeck(index) {
@@ -480,6 +480,73 @@ export default function DeckBuilder({ onBack, onNext }) {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Load deck selection modal */}
+      {loadModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#0d0d1a', border: '1px solid #2a2a3a',
+            borderRadius: '8px', padding: '24px',
+            maxWidth: '640px', width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+            maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <h3 style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#C9A84C', margin: 0, letterSpacing: '0.06em' }}>
+              Select a Deck
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {savedDecks.map((d, i) => {
+                const attr = ATTRIBUTES[d.champion] || {};
+                const tierLabel = d.resonance >= 42 ? 'Ascended' : d.resonance >= 20 ? 'Attuned' : 'Unaligned';
+                const tierColor = d.resonance >= 42 ? '#C9A84C' : d.resonance >= 20 ? '#ffffff' : '#4a4a6a';
+                return (
+                  <div key={i} style={{
+                    background: '#141428', border: `1px solid ${attr.color || '#2a2a3a'}44`,
+                    borderLeft: `3px solid ${attr.color || '#2a2a3a'}`,
+                    borderRadius: '6px', padding: '12px 14px',
+                    display: 'flex', flexDirection: 'column', gap: '8px',
+                    minWidth: '180px', flex: '1 1 180px', maxWidth: '260px',
+                  }}>
+                    <div>
+                      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: attr.color || '#C9A84C' }}>{d.name}</div>
+                      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#6a6a8a', marginTop: '3px', letterSpacing: '0.06em' }}>
+                        {attr.name || d.champion} · <span style={{ color: tierColor }}>{tierLabel}</span> · {d.cards.length} cards
+                      </div>
+                    </div>
+                    <button
+                      style={{
+                        background: 'linear-gradient(135deg, #1a3a6a, #2a5aaa)',
+                        color: '#e2e8f0', fontFamily: "'Cinzel', serif",
+                        fontSize: '10px', fontWeight: 600,
+                        border: '1px solid #3a6aaa', borderRadius: '3px',
+                        padding: '5px', cursor: 'pointer', letterSpacing: '0.03em',
+                      }}
+                      onClick={() => { handleLoadSavedDeck(d); setLoadModal(false); }}
+                    >
+                      Load
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              style={{
+                background: 'transparent', color: '#6a6a8a',
+                fontFamily: "'Cinzel', serif", fontSize: '11px',
+                border: '1px solid #2a2a3a', borderRadius: '4px',
+                padding: '9px', cursor: 'pointer',
+              }}
+              onClick={() => setLoadModal(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
