@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useGameState } from './hooks/useGameState.js';
-import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan } from './engine/gameEngine.js';
+import { getAuraAtkBonus, playerRevealUnit, getChampionDef, manhattan, getEffectiveCost } from './engine/gameEngine.js';
 import { CARD_DB } from './engine/cards.js';
 import { getCardImageUrl } from './supabase.js';
 import { KEYWORD_REMINDERS } from './engine/keywords.js';
@@ -16,6 +16,7 @@ import MulliganOverlay from './components/MulliganOverlay.jsx';
 import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
 import { renderRules } from './utils/rulesText.jsx';
+import GraveViewerModal from './components/GraveViewerModal.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -49,6 +50,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
   const isMobile = useIsMobile();
   const [logOpen, setLogOpen] = useState(false);
   const [muted, setMutedState] = useState(() => isMuted());
+  const [graveViewerPlayer, setGraveViewerPlayer] = useState(null);
 
   // ── Card drag state ────────────────────────────────────────────────────
   const [dragCard, setDragCard] = useState(null);
@@ -683,7 +685,7 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
       </div>
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} aiThinking={aiThinking} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} />
+      <StatusBar state={state} myPlayerIndex={0} commandsUsed={state.players[0].commandsUsed ?? 0} aiThinking={aiThinking} onOpenLog={isMobile ? () => setLogOpen(true) : undefined} onViewP1Grave={() => setGraveViewerPlayer(0)} onViewP2Grave={() => setGraveViewerPlayer(1)} />
 
       {/* Middle content row: board + log (does not include bottom bar) */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -1040,6 +1042,20 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             zIndex: 50,
             animation: 'drag-cast-ring 1s ease-in-out infinite',
           }}
+        />
+      )}
+
+      {/* Grave Viewer Modal */}
+      {graveViewerPlayer !== null && (
+        <GraveViewerModal
+          cards={state.players[graveViewerPlayer].grave || []}
+          title={`${state.players[graveViewerPlayer].name}'s Grave`}
+          onClose={() => setGraveViewerPlayer(null)}
+          canPlayFromGrave={graveViewerPlayer === 0 && isP1Turn && !!(state.graveAccessActive?.[0])}
+          onPlayCard={(uid) => handlers.handlePlayCard(uid)}
+          gameState={state}
+          playerIndex={graveViewerPlayer}
+          resources={state.players[graveViewerPlayer].resources}
         />
       )}
     </div>
