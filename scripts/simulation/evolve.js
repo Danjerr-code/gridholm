@@ -447,6 +447,146 @@ function weightDiff(baseline, evolved) {
   return lines.length > 0 ? lines.join('\n') : '  (no changes)';
 }
 
+// ── Cross-faction tournament ──────────────────────────────────────────────────
+
+/**
+ * Run a cross-faction tournament.
+ *
+ * Instead of round-robin between members, each member independently plays
+ * `gamesPerMember` games against a fixed baseline opponent (using baselineWeights).
+ * Factions rotate through ALL_PAIRINGS so each member is tested across all matchups.
+ * Half the games each member is P1, half is P2.
+ *
+ * This measures cross-faction generality: a weight set that beats the baseline
+ * across many factions ranks higher than one that dominates only one mirror.
+ *
+ * @param {Array}  population     - array of {id, weights, wins, losses, draws} members
+ * @param {number} gamesPerMember - total games each member plays vs baseline
+ * @param {object} baselineWeights - opponent weight set (fixed, not evolved)
+ * @returns {Array} population sorted by win rate descending
+ */
+function runCrossTournament(population, gamesPerMember, baselineWeights) {
+  // Reset counters
+  for (const m of population) {
+    m.wins = 0; m.losses = 0; m.draws = 0;
+  }
+
+  const halfGames = Math.max(1, Math.floor(gamesPerMember / 2));
+  let totalGames  = 0;
+
+  for (const member of population) {
+    // As P1 vs baseline P2
+    for (let g = 0; g < halfGames; g++) {
+      const pairing = ALL_PAIRINGS[g % ALL_PAIRINGS.length];
+      const result  = runGame(member.weights, baselineWeights, pairing);
+      if      (result.winner === 'p1') member.wins++;
+      else if (result.winner === 'p2') member.losses++;
+      else                             member.draws++;
+      totalGames++;
+    }
+    // As P2 vs baseline P1
+    for (let g = 0; g < halfGames; g++) {
+      const pairing = ALL_PAIRINGS[g % ALL_PAIRINGS.length];
+      const result  = runGame(baselineWeights, member.weights, pairing);
+      if      (result.winner === 'p2') member.wins++;
+      else if (result.winner === 'p1') member.losses++;
+      else                             member.draws++;
+      totalGames++;
+    }
+  }
+
+  process.stderr.write(`  Cross-tournament: ${totalGames} games, ${population.length} members vs baseline\n`);
+
+  // Sort by fitness: wins / (wins + losses + draws)
+  population.sort((a, b) => {
+    const aTotal = a.wins + a.losses + a.draws;
+    const bTotal = b.wins + b.losses + b.draws;
+    const aWR = aTotal > 0 ? a.wins / aTotal : 0;
+    const bWR = bTotal > 0 ? b.wins / bTotal : 0;
+    return bWR - aWR;
+  });
+
+  return population;
+}
+
+/**
+ * Run cross-faction evolution.
+ *
+ * Like runEvolution but uses runCrossTournament — each member plays against
+ * the baseline seed across all 8 factions, measuring cross-faction generalisation.
+ * Produces a single best weight set valid for any faction (no per-faction tuning).
+ */
+export function runCrossEvolution(
+  seedWeights,
+  generations    = 30,
+  populationSize = 20,
+  gamesPerMember = 20,
+  survivorCount  = 5,
+  mutationRange  = 0.3,
+) {
+  let population = generatePopulation(seedWeights, populationSize, mutationRange);
+
+  const history = [];
+  let   best    = { member: null, winRate: -1 };
+
+  for (let gen = 0; gen < generations; gen++) {
+    process.stderr.write(`\nGeneration ${gen + 1}/${generations}...\n`);
+
+    population = runCrossTournament(population, gamesPerMember, seedWeights);
+
+    const stats = population.map(m => {
+      const total = m.wins + m.losses + m.draws;
+      return { ...m, total, winRate: total > 0 ? m.wins / total : 0 };
+    });
+
+    const topMember  = stats[0];
+    const totalGames = stats.reduce((s, m) => s + m.total, 0);
+    const totalDraws = stats.reduce((s, m) => s + m.draws, 0);
+    const drawRate   = totalGames > 0 ? totalDraws / totalGames : 0;
+    const medianWR   = stats[Math.floor(stats.length / 2)]?.winRate ?? 0;
+
+    history.push({
+      gen:      gen + 1,
+      topWR:    topMember.winRate,
+      medianWR,
+      drawRate,
+      topId:    topMember.id,
+      topWins:  topMember.wins,
+      topLosses: topMember.losses,
+      topDraws:  topMember.draws,
+    });
+
+    process.stderr.write(
+      `  Gen ${gen + 1}: topWR=${(topMember.winRate * 100).toFixed(1)}%` +
+      ` (${topMember.wins}W/${topMember.losses}L/${topMember.draws}D)` +
+      ` medianWR=${(medianWR * 100).toFixed(1)}%` +
+      ` drawRate=${(drawRate * 100).toFixed(1)}%\n`
+    );
+
+    if (topMember.winRate > best.winRate) {
+      best = { member: { ...topMember }, winRate: topMember.winRate };
+    }
+
+    if (gen < generations - 1) {
+      const survivors = population.slice(0, survivorCount).map(m => ({
+        ...m, wins: 0, losses: 0, draws: 0,
+      }));
+      const children = [];
+      while (children.length < populationSize - survivorCount) {
+        const parent = survivors[Math.floor(Math.random() * survivors.length)];
+        children.push({
+          id:      populationSize + gen * populationSize + children.length,
+          weights: mutateWeights(parent.weights, mutationRange),
+          wins:    0, losses: 0, draws: 0,
+        });
+      }
+      population = [...survivors, ...children];
+    }
+  }
+
+  return { best: best.member, history, finalPopulation: population };
+}
+
 // ── CLI arg parser ────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
@@ -457,6 +597,7 @@ function parseArgs(argv) {
     survivors:    5,
     mutationRange: 0.3,
     faction:      'primal',
+    mode:         'faction',   // 'faction' (default) | 'cross'
     output:       null,
   };
   for (let i = 2; i < argv.length; i++) {
@@ -468,6 +609,7 @@ function parseArgs(argv) {
       case '--survivors':      args.survivors      = parseInt(argv[++i], 10); break;
       case '--mutation-range': args.mutationRange  = parseFloat(argv[++i]);   break;
       case '--faction':        args.faction        = argv[++i]; break;
+      case '--mode':           args.mode           = argv[++i]; break;
       case '--output':         args.output         = argv[++i]; break;
       // Short forms (as specified in LOG-1273)
       case '--gen':  args.generations = parseInt(argv[++i], 10); break;
@@ -484,10 +626,23 @@ async function main() {
 
   // Import FACTION_WEIGHTS lazily to pick seed for the specified faction
   const { FACTION_WEIGHTS } = await import('./boardEval.js');
-  const seedWeights = FACTION_WEIGHTS[args.faction] ?? WEIGHTS;
 
-  console.log(`\n=== Evolutionary Weight Tuning ===`);
-  console.log(`Faction: ${args.faction} | Generations: ${args.generations} | Pop: ${args.population} | Games/pair: ${args.games} | Survivors: ${args.survivors}`);
+  const isCross = args.mode === 'cross';
+
+  // Cross mode uses global WEIGHTS as seed (faction-agnostic baseline).
+  // Faction mode uses the faction-specific seed if available.
+  const seedWeights = isCross
+    ? WEIGHTS
+    : (FACTION_WEIGHTS[args.faction] ?? WEIGHTS);
+
+  if (isCross) {
+    console.log(`\n=== Cross-Faction Co-Evolutionary Weight Tuning ===`);
+    console.log(`Mode: cross | Generations: ${args.generations} | Pop: ${args.population} | Games/member: ${args.games} | Survivors: ${args.survivors}`);
+    console.log(`Each member plays all 8 factions vs a fixed baseline opponent (global seed weights).`);
+  } else {
+    console.log(`\n=== Evolutionary Weight Tuning ===`);
+    console.log(`Faction: ${args.faction} | Generations: ${args.generations} | Pop: ${args.population} | Games/pair: ${args.games} | Survivors: ${args.survivors}`);
+  }
 
   // Step 1 output: log the generated population
   const initialPop = generatePopulation(seedWeights, args.population, args.mutationRange);
@@ -497,16 +652,28 @@ async function main() {
     console.log(`  Member ${m.id}: ${keys}`);
   }
 
-  // Steps 2+3: run evolution
-  const { best, history, finalPopulation } = runEvolution(
-    seedWeights,
-    args.generations,
-    args.population,
-    args.games,
-    args.survivors,
-    args.mutationRange,
-    { faction: args.faction }
-  );
+  // Steps 2+3: run evolution (cross or faction mode)
+  let best, history, finalPopulation;
+  if (isCross) {
+    ({ best, history, finalPopulation } = runCrossEvolution(
+      seedWeights,
+      args.generations,
+      args.population,
+      args.games,
+      args.survivors,
+      args.mutationRange,
+    ));
+  } else {
+    ({ best, history, finalPopulation } = runEvolution(
+      seedWeights,
+      args.generations,
+      args.population,
+      args.games,
+      args.survivors,
+      args.mutationRange,
+      { faction: args.faction }
+    ));
+  }
 
   // ── Report ───────────────────────────────────────────────────────────────
 
@@ -529,16 +696,20 @@ async function main() {
 
   console.log('\nBest weight set found:');
   console.log(`  Member ${best?.id ?? '?'} | WR: ${((best?.winRate ?? 0) * 100).toFixed(1)}%`);
-  console.log('\nWeight diff vs baseline faction seed:');
+  console.log('\nWeight diff vs seed:');
   if (best) {
     console.log(weightDiff(seedWeights, best.weights));
-    console.log('\nFull weight set (paste into FACTION_WEIGHTS if board approves):');
-    console.log(`${args.faction}: {`);
-    console.log(`  ...WEIGHTS,`);
+    console.log('\nFull weight set (paste into boardEval.js / EVOLVED_WEIGHTS if board approves):');
+    if (isCross) {
+      console.log(`// Cross-faction co-evolved weights (applies to all factions)`);
+    } else {
+      console.log(`${args.faction}: {`);
+      console.log(`  ...WEIGHTS,`);
+    }
     for (const key of EVOLVABLE_KEYS) {
       console.log(`  ${key}: ${best.weights[key] ?? 0},`);
     }
-    console.log(`}`);
+    if (!isCross) console.log(`}`);
   }
 
   // ── Save output ───────────────────────────────────────────────────────────
@@ -546,11 +717,13 @@ async function main() {
   if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const outPath   = args.output ?? `${RESULTS_DIR}/evolution_${args.faction}_${timestamp}.json`;
+  const modeTag   = isCross ? 'cross' : args.faction;
+  const outPath   = args.output ?? `${RESULTS_DIR}/evolution_${modeTag}_${timestamp}.json`;
 
   const outData = {
     meta: {
-      faction:      args.faction,
+      mode:         args.mode,
+      faction:      isCross ? 'all' : args.faction,
       generations:  args.generations,
       population:   args.population,
       gamesPerPair: args.games,
@@ -567,19 +740,33 @@ async function main() {
   writeFileSync(outPath, JSON.stringify(outData, null, 2));
   console.log(`\nResults saved: ${outPath}`);
 
-  // ── Step 4: save per-faction evolved weights ──────────────────────────────
+  // ── Save evolved weights ──────────────────────────────────────────────────
 
   if (best) {
-    const factionOutPath = `${RESULTS_DIR}/evolved_weights_${args.faction}.json`;
-    writeFileSync(factionOutPath, JSON.stringify({
-      faction:     args.faction,
-      timestamp,
-      seedWeights,
-      evolvedWeights: best.weights,
-      winRate:     best.winRate,
-      diff:        weightDiff(seedWeights, best.weights),
-    }, null, 2));
-    console.log(`Faction weights saved: ${factionOutPath}`);
+    if (isCross) {
+      const crossOutPath = `${RESULTS_DIR}/evolved_weights_cross.json`;
+      writeFileSync(crossOutPath, JSON.stringify({
+        mode:           'cross',
+        faction:        'all',
+        timestamp,
+        seedWeights,
+        evolvedWeights: best.weights,
+        winRate:        best.winRate,
+        diff:           weightDiff(seedWeights, best.weights),
+      }, null, 2));
+      console.log(`Cross-faction weights saved: ${crossOutPath}`);
+    } else {
+      const factionOutPath = `${RESULTS_DIR}/evolved_weights_${args.faction}.json`;
+      writeFileSync(factionOutPath, JSON.stringify({
+        faction:        args.faction,
+        timestamp,
+        seedWeights,
+        evolvedWeights: best.weights,
+        winRate:        best.winRate,
+        diff:           weightDiff(seedWeights, best.weights),
+      }, null, 2));
+      console.log(`Faction weights saved: ${factionOutPath}`);
+    }
   }
 }
 
