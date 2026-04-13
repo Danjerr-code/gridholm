@@ -1025,6 +1025,22 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             minWidth: 72,
             flexShrink: 0,
           }}>
+            <button
+              onClick={() => setGraveViewerPlayer(0)}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontFamily: 'var(--font-sans)',
+                background: '#12121e',
+                border: '1px solid #3a3a5a',
+                borderRadius: '4px',
+                color: '#9a7abf',
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap',
+                marginBottom: 2,
+              }}
+            >☠ Grave</button>
             <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
               MANA
             </div>
@@ -1066,6 +1082,23 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
             zIndex: 10,
             pointerEvents: 'none',
           }}>
+            <button
+              onClick={() => setGraveViewerPlayer(0)}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontFamily: 'var(--font-sans)',
+                background: '#12121e',
+                border: '1px solid #3a3a5a',
+                borderRadius: '4px',
+                color: '#9a7abf',
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                pointerEvents: 'auto',
+              }}
+            >☠ Grave</button>
             <ResourceDisplay current={p1.resources} max={10} maxThisTurn={p1.maxResourcesThisTurn} playerColor="#185FA5" singleRow={true} />
           </div>
           <Hand
