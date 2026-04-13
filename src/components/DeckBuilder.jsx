@@ -143,6 +143,30 @@ export default function DeckBuilder({ onBack, onNext }) {
       });
   }, [currentUser]);
 
+  // Auto-navigate to the game as soon as the opponent joins via invite link
+  useEffect(() => {
+    if (!inviteLink || !supabase) return;
+    const gameId = inviteLink.split('/game/')[1];
+    if (!gameId) return;
+
+    const channel = supabase
+      .channel('deck-builder-invite-' + gameId)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: 'id=eq.' + gameId },
+        (payload) => {
+          if (payload.new?.player2_id) {
+            window.location.hash = `/game/${gameId}`;
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [inviteLink]);
+
   const deckCardIds = useMemo(() => {
     return Object.entries(deck).flatMap(([id, count]) => Array(count).fill(id));
   }, [deck]);
