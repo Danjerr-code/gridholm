@@ -6,6 +6,14 @@
  *
  * For freePlay scenarios, builds a state with the scenario's reduced deck,
  * draws an opening hand, and sets mana to the scenario's starting value.
+ *
+ * For guided scenarios (scenario 4), sets up a minimal board state with the
+ * configured units and starting resources.
+ *
+ * Supports:
+ *   p2Hand: [cardId, ...]  — cards pre-dealt to enemy hand (for AI-turn scenarios)
+ *   p2Mana: number         — starting mana for the enemy
+ *   p1CommandsPerTurn: number — max commands per player turn override (scenario 4: 1)
  */
 
 import { createInitialState } from '../engine/gameEngine.js';
@@ -122,8 +130,8 @@ export function buildTutorialState(scenario) {
   // Player 2 (AI / enemy)
   base.players[1] = {
     ...base.players[1],
-    resources: 0,
-    maxResourcesThisTurn: 0,
+    resources: bc.p2Mana ?? 0,
+    maxResourcesThisTurn: bc.p2Mana ?? 0,
     commandsUsed: 0,
     turnCount: 0,
     hpRestoredThisTurn: 0,
@@ -134,7 +142,7 @@ export function buildTutorialState(scenario) {
   };
 
   if (scenario.freePlay) {
-    // Build the reduced deck, shuffle, deal 4 cards
+    // Build the player's reduced deck, shuffle, deal 4 cards
     const deckCardIds = bc.p1Deck || [];
     const deckCards = shuffle(deckCardIds.map(id => makeCard(id)));
     const openingHand = deckCards.splice(0, 4);
@@ -144,17 +152,37 @@ export function buildTutorialState(scenario) {
     base.players[0].maxResourcesThisTurn = bc.p1Mana ?? 2;
     base.players[0].turnCount = 2; // so mana ramps correctly from turn 2 onward
 
-    // Give AI the full beast deck (already shuffled by buildDeck internally via shuffle)
-    const aiDeckCards = buildDeck('beast');
+    // Give AI the custom weak deck if specified, otherwise full beast deck
+    const aiDeckIds = bc.p2Deck;
+    let aiDeckCards;
+    if (aiDeckIds && aiDeckIds.length > 0) {
+      aiDeckCards = shuffle(aiDeckIds.map(id => makeCard(id)));
+    } else {
+      aiDeckCards = buildDeck('beast');
+    }
     const aiHand = aiDeckCards.splice(0, 4);
     base.players[1].hand = aiHand;
     base.players[1].deck = aiDeckCards;
     base.players[1].resources = 1;
     base.players[1].maxResourcesThisTurn = 1;
     base.players[1].turnCount = 1;
+  } else if (scenario.guided) {
+    // Guided scenario (scenario 4): preset state, no deck
+    base.players[0].hand = (bc.p1Hand || []).map(id => makeCard(id));
+    base.players[0].resources = bc.p1Mana ?? 0;
+    base.players[0].maxResourcesThisTurn = bc.p1Mana ?? 0;
+    // p2 has no hand or deck for guided scenarios
   } else {
     // Non-freeplay: preset hand, empty deck
     base.players[0].hand = (bc.p1Hand || []).map(id => makeCard(id));
+
+    // Give enemy pre-set hand if configured (for AI-turn scenarios like scenario 1)
+    if (bc.p2Hand && bc.p2Hand.length > 0) {
+      base.players[1].hand = bc.p2Hand.map(id => makeCard(id));
+      base.players[1].resources = bc.p2Mana ?? 0;
+      base.players[1].maxResourcesThisTurn = bc.p2Mana ?? 0;
+      base.players[1].turnCount = 1; // AI will gain mana on begin-turn like turn 2
+    }
   }
 
   // Reset global state flags

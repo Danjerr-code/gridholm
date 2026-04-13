@@ -8,20 +8,24 @@
  *   p2Champion: { row, col, hp }  — enemy champion (Kragor, primal)
  *   units: [{ cardId, owner, row, col }]  — units to place on the board
  *   p1Hand: [cardId, ...]  — cards in player's hand
+ *   p2Hand: [cardId, ...]  — cards in enemy's hand (for AI-turn scenarios)
  *   p1Mana: number  — starting mana for player
- *   p1Commands: number  — commands available (if different from 3)
+ *   p2Mana: number  — starting mana for enemy (AI-turn scenarios)
+ *   p1Commands: number  — commands available at start (if different from 3)
+ *   p1CommandsPerTurn: number — max commands per player turn (scenario 4: 1)
  *
  * step validAction values:
- *   'selectUnit'  — player clicks a unit on the board; validTargets = [cardId, ...]
- *   'move'        — player moves a unit to a tile; validDestinations = [[r,c], ...]
- *                   optional: validUnit = cardId (which unit must be selected)
- *   'attack'      — player moves a unit onto an enemy tile; validTargets = [cardId|'enemyChampion']
- *                   optional: validUnit = cardId
- *   'selectCard'  — player clicks a card in hand; validTargets = [cardId, ...]
- *   'summon'      — player places a unit after playing a card; validDestinations = 'champion_adjacent' | [[r,c], ...]
- *   'castSpell'   — player targets an enemy with a spell; validCard = cardId, validTargets = [cardId, ...]
- *   'championMove' — player moves the champion to a tile; validDestinations = [[r,c], ...]
- *   'endText'     — no action; just display endText and advance
+ *   'selectUnit'   — player clicks a unit; validTargets = [cardId, ...]
+ *   'move'         — player moves a unit; validDestinations = [[r,c], ...]
+ *                    optional: validUnit = cardId (which unit must be selected)
+ *   'attack'       — player attacks; validTargets = [cardId|'enemyChampion']
+ *                    optional: validUnit = cardId
+ *   'selectCard'   — player clicks a card in hand; validTargets = [cardId, ...]
+ *   'summon'       — player places a unit; validDestinations = 'champion_adjacent' | [[r,c], ...]
+ *   'castSpell'    — player casts a spell; validCard = cardId, validTargets = [cardId, ...]
+ *   'championMove' — player moves the champion; validDestinations = [[r,c], ...]
+ *   'endTurn'      — player clicks End Turn; triggers enemy AI turn then resumes
+ *   'endText'      — no action; display endText and advance
  */
 
 export const TUTORIAL_SCENARIOS = [
@@ -33,35 +37,40 @@ export const TUTORIAL_SCENARIOS = [
       p1Champion: { row: 4, col: 2, hp: 20 },
       p2Champion: { row: 0, col: 2, hp: 20 },
       units: [
-        { cardId: 'footsoldier', owner: 0, row: 3, col: 2 },
-        { cardId: 'imp',         owner: 1, row: 1, col: 2 },
+        { cardId: 'knight', owner: 0, row: 3, col: 2 },
       ],
       p1Hand: [],
       p1Mana: 0,
+      p2Hand: ['hellhound'],
+      p2Mana: 3,
     },
     steps: [
       {
-        prompt: 'Select your Footsoldier to see where it can move.',
+        prompt: 'Select your Knight to see where it can move.',
         validAction: 'selectUnit',
-        validTargets: ['footsoldier'],
-        highlightTargets: ['footsoldier'],
+        validTargets: ['knight'],
+        highlightTargets: ['knight'],
       },
       {
-        prompt: 'Move your Footsoldier toward the enemy.',
+        prompt: 'Move your Knight forward.',
         validAction: 'move',
-        validUnit: 'footsoldier',
+        validUnit: 'knight',
         validDestinations: [[2, 2], [2, 1], [2, 3]],
       },
       {
-        prompt: 'Select your Footsoldier and attack the Imp.',
-        validAction: 'attack',
-        validUnit: 'footsoldier',
-        validTargets: ['imp'],
-        highlightTargets: ['imp'],
-        resetMovedAfterPrev: true,
+        prompt: 'Press End Turn to let the enemy respond.',
+        validAction: 'endTurn',
+        highlightEndTurn: true,
       },
       {
-        endText: 'Units move in cardinal directions up to their speed. Adjacent units can attack by moving onto them. Combat damage is mutual.',
+        prompt: 'Your Knight can attack the adjacent enemy. Select your Knight and attack the Hellhound.',
+        validAction: 'attack',
+        validUnit: 'knight',
+        validTargets: ['hellhound'],
+        highlightTargets: ['hellhound'],
+      },
+      {
+        endText: 'Units move in cardinal directions up to their speed. Adjacent units can attack each other. Combat damage is mutual.',
       },
     ],
   },
@@ -103,7 +112,7 @@ export const TUTORIAL_SCENARIOS = [
       p1Champion: { row: 4, col: 2, hp: 20 },
       p2Champion: { row: 0, col: 2, hp: 20 },
       units: [
-        { cardId: 'knight',     owner: 0, row: 3, col: 2 },
+        { cardId: 'knight',    owner: 0, row: 3, col: 2 },
         { cardId: 'brutedemon', owner: 1, row: 1, col: 2 },
       ],
       p1Hand: ['smite'],
@@ -111,25 +120,26 @@ export const TUTORIAL_SCENARIOS = [
     },
     steps: [
       {
-        prompt: 'Move your Knight forward.',
+        prompt: 'Move your Knight forward. (Command 1 of 3)',
         validAction: 'move',
         validUnit: 'knight',
-        validDestinations: [[2, 2], [2, 1], [2, 3], [3, 1], [3, 3]],
+        validDestinations: [[2, 2], [2, 1], [2, 3]],
         highlightTargets: ['knight'],
       },
       {
-        prompt: 'Cast Smite on the enemy Infernal Spider.',
+        prompt: 'Move your champion forward to get Smite in range. (Command 2 of 3)',
+        validAction: 'championMove',
+        validDestinations: [[3, 2], [3, 1], [3, 3]],
+        highlightTargets: ['champion'],
+      },
+      {
+        prompt: 'Cast Smite on the Infernal Spider. (Uses mana, not a command)',
         validAction: 'castSpell',
         validCard: 'smite',
         validTargets: ['brutedemon'],
       },
       {
-        prompt: 'Move your champion.',
-        validAction: 'championMove',
-        highlightTargets: ['champion'],
-      },
-      {
-        endText: 'You get 3 commands each turn. Moving a unit, attacking, playing cards, and casting spells each cost 1 command. Spend them wisely.',
+        endText: 'You get 3 commands each turn. Moving a unit, attacking, and using abilities use commands. Playing cards from hand costs mana, not commands.',
       },
     ],
   },
@@ -137,43 +147,28 @@ export const TUTORIAL_SCENARIOS = [
   {
     id: 'winning',
     title: 'Winning the Game',
-    description: "Your opponent's champion is weakened. Move in for the kill.",
+    description: "The enemy champion is weakened. Chase it down and finish the fight.",
+    guided: true,
     boardConfig: {
       p1Champion: { row: 4, col: 2, hp: 20 },
-      p2Champion: { row: 0, col: 2, hp: 5 },
+      p2Champion: { row: 0, col: 2, hp: 6 },
       units: [
-        { cardId: 'captain',     owner: 0, row: 2, col: 1 },
-        { cardId: 'crossbowman', owner: 0, row: 1, col: 3 },
+        { cardId: 'captain',     owner: 0, row: 3, col: 1 },
+        { cardId: 'crossbowman', owner: 0, row: 3, col: 3 },
       ],
       p1Hand: [],
       p1Mana: 0,
+      p1CommandsPerTurn: 1,
     },
-    steps: [
-      {
-        prompt: "Your opponent's champion is weakened. Move your Captain in.",
-        validAction: 'move',
-        validUnit: 'captain',
-        validDestinations: [[0, 1], [1, 1], [1, 2]],
-        highlightTargets: ['captain'],
-      },
-      {
-        prompt: 'Attack the enemy champion with your Captain.',
-        validAction: 'attack',
-        validUnit: 'captain',
-        validTargets: ['enemyChampion'],
-        resetMovedAfterPrev: true,
-      },
-      {
-        prompt: 'Finish the fight with your Crossbowman.',
-        validAction: 'attack',
-        validUnit: 'crossbowman',
-        validTargets: ['enemyChampion'],
-        resetMovedAfterPrev: true,
-      },
-      {
-        endText: 'Reduce the enemy champion to 0 HP to win. Your units are your weapons — position them to strike.',
-      },
-    ],
+    steps: [],
+    // Guided prompts shown based on game state (handled in TutorialController)
+    guidedPrompts: {
+      default: 'Chase down the enemy champion. Move a unit forward.',
+      advancing: 'Keep advancing toward the enemy champion.',
+      adjacent: 'Attack the enemy champion!',
+      done: 'LESSON COMPLETE\nYou win! Reduce the enemy champion to 0 HP to claim victory.',
+    },
+    maxTurns: 20,
   },
 
   {
@@ -185,13 +180,30 @@ export const TUTORIAL_SCENARIOS = [
       p1Champion: { row: 4, col: 2, hp: 20 },
       p2Champion: { row: 0, col: 2, hp: 20 },
       units: [],
-      // deck is built dynamically for free play — see buildTutorialState
-      p1Deck: ['militia', 'militia', 'footsoldier', 'footsoldier', 'squire', 'squire', 'knight', 'knight', 'crossbowman', 'smite', 'smite', 'ironshield', 'ironshield'],
+      p1Deck: [
+        'militia', 'militia',
+        'footsoldier', 'footsoldier',
+        'squire', 'squire',
+        'knight', 'knight',
+        'crossbowman',
+        'smite', 'smite',
+        'ironshield', 'ironshield',
+        'captain',
+        'forgeweapon',
+      ],
+      p2Deck: [
+        'imp', 'imp', 'imp',
+        'hellhound', 'hellhound',
+        'brutedemon', 'brutedemon',
+        'footsoldier', 'footsoldier',
+        'militia', 'militia',
+        'squire',
+      ],
       p1Hand: [],
       p1Mana: 2,
     },
-    reminderText: 'Commands: actions per turn. Summon next to your champion. Attack adjacent enemies.',
-    maxTurns: 10,
+    reminderText: 'Commands: actions per turn. Summon next to your champion. Attack adjacent enemies. Use the Hint button if you need guidance.',
+    maxTurns: 15,
     steps: [],
   },
 ];
