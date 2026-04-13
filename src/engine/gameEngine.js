@@ -3396,7 +3396,9 @@ export function moveUnit(state, unitUid, row, col) {
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
-        if (defenderDestroyed && !stillAlive2.rooted) {
+        const advanceTileOccupied = s.units.some(u => u.row === row && u.col === col)
+          || s.champions.some(c => c.row === row && c.col === col);
+        if (defenderDestroyed && !stillAlive2.rooted && !advanceTileOccupied) {
           stillAlive2.row = row;
           stillAlive2.col = col;
         }
