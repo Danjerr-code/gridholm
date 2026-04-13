@@ -127,7 +127,7 @@ function ConnectionDot({ connected }) {
   );
 }
 
-export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog, opponentConnected }) {
+export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinking, onOpenLog, opponentConnected, onViewP1Grave, onViewP2Grave }) {
   const p1 = state.players[0];
   const p2 = state.players[1];
   const c1 = state.champions[0];
@@ -164,7 +164,10 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
             <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p1.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c1.hp}/{c1.maxHp}</span></span>
             {showDotOnP1 && <ConnectionDot connected={opponentConnected} />}
           </div>
-          <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p1.hand.length} D:{p1.deck.length}</span>
+            {onViewP1Grave && <button onClick={onViewP1Grave} style={{ fontSize: '9px', background: 'transparent', border: '1px solid #3a3a5a', borderRadius: '3px', color: '#7a5aaa', cursor: 'pointer', padding: '0px 4px', lineHeight: '14px' }}>☠</button>}
+          </div>
         </div>
         <div className="flex flex-col items-center gap-0.5">
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: '#6a6a88' }}>Turn {state.turn}</span>
@@ -194,7 +197,10 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
             <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', fontWeight: 500, color: '#e8e8f0' }}>{p2.name} <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{c2.hp}/{c2.maxHp}</span></span>
           </div>
           {aiThinking && <span style={{ fontSize: '9px', color: '#C9A84C', fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>Thinking…</span>}
-          <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+            {onViewP2Grave && <button onClick={onViewP2Grave} style={{ fontSize: '9px', background: 'transparent', border: '1px solid #3a3a5a', borderRadius: '3px', color: '#7a5aaa', cursor: 'pointer', padding: '0px 4px', lineHeight: '14px' }}>☠</button>}
+            <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>H:{p2.hand.length} D:{p2.deck.length}</span>
+          </div>
           {onOpenLog && (
             <button
               onClick={onOpenLog}
@@ -225,6 +231,7 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
           {showDotOnP1 && <ConnectionDot connected={opponentConnected} />}
           {!hideP1Resources && <ResourceDisplay current={p1.resources} max={10} maxThisTurn={p1.maxResourcesThisTurn} playerColor="#185FA5" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p1.hand.length} | Deck: {p1.deck.length}</span>
+          {onViewP1Grave && <button onClick={onViewP1Grave} style={{ fontSize: '10px', background: 'transparent', border: '1px solid #3a3a5a', borderRadius: '3px', color: '#7a5aaa', cursor: 'pointer', padding: '1px 6px', fontFamily: 'var(--font-sans)' }}>☠ Grave</button>}
         </div>
         <div className="text-center">
           <div style={{ fontSize: '11px', color: '#6a6a88', fontFamily: 'var(--font-sans)' }}>Turn {state.turn}</div>
@@ -240,6 +247,7 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, aiThinki
           {showDotOnP2 && <ConnectionDot connected={opponentConnected} />}
           {!hideP2Resources && <ResourceDisplay current={p2.resources} max={10} maxThisTurn={p2.maxResourcesThisTurn} playerColor="#993C1D" small />}
           <span style={{ fontSize: '12px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>Hand: {p2.hand.length} | Deck: {p2.deck.length}</span>
+          {onViewP2Grave && <button onClick={onViewP2Grave} style={{ fontSize: '10px', background: 'transparent', border: '1px solid #3a3a5a', borderRadius: '3px', color: '#7a5aaa', cursor: 'pointer', padding: '1px 6px', fontFamily: 'var(--font-sans)' }}>☠ Grave</button>}
         </div>
       </div>
     </>

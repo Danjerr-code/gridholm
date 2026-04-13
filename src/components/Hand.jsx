@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Card from './Card.jsx';
 import useLongPress from '../hooks/useLongPress.js';
 import { hasValidTargets, getEffectiveCost } from '../engine/gameEngine.js';
@@ -118,18 +118,7 @@ function buildDisplayList(hand, exitingCards) {
   return result;
 }
 
-export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss, onCardDragStart, onCardDragMove, onCardDragEnd, graveAccessActive, grave }) {
-  // ── Grave toggle state ─────────────────────────────────────────────────
-  const [viewingGrave, setViewingGrave] = useState(false);
-
-  useEffect(() => {
-    if (!graveAccessActive) setViewingGrave(false);
-  }, [graveAccessActive]);
-
-  const handleGraveCardPlay = useCallback((card) => {
-    if (canPlay && onPlayCard) onPlayCard(card.uid);
-  }, [canPlay, onPlayCard]);
-
+export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss, onCardDragStart, onCardDragMove, onCardDragEnd }) {
   // ── Animation state ────────────────────────────────────────────────────
   const [animInUids, setAnimInUids] = useState(new Set());
   const [exitingCards, setExitingCards] = useState([]); // {uid, card, animType, originalIndex}
@@ -201,64 +190,11 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
   // Drag is enabled only when cards can actually be played
   const canDrag = !!(canPlay && !pendingDiscard && !pendingHandSelect && onCardDragStart);
 
-  // ── Grave toggle button (rendered alongside hand or grave view) ────────
-  const graveToggleBtn = graveAccessActive ? (
-    <button
-      onClick={() => setViewingGrave(v => !v)}
-      style={{
-        flexShrink: 0,
-        alignSelf: 'center',
-        padding: '4px 7px',
-        fontSize: '11px',
-        fontFamily: 'var(--font-sans)',
-        background: viewingGrave ? '#1e0e30' : '#12121e',
-        border: `1px solid ${viewingGrave ? '#7a4aaa' : '#3a3a5a'}`,
-        borderRadius: '5px',
-        color: viewingGrave ? '#c09af8' : '#7a7a9a',
-        cursor: 'pointer',
-        letterSpacing: '0.03em',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {viewingGrave ? 'Hand' : '☠ Grave'}
-    </button>
-  ) : null;
-
-  // ── Grave view ─────────────────────────────────────────────────────────
-  if (viewingGrave && graveAccessActive) {
-    const graveCards = grave || [];
-    return (
-      <div
-        className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 py-2 px-1 min-h-[80px] md:justify-center"
-        style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
-      >
-        {graveToggleBtn}
-        {graveCards.map(card => {
-          const effectiveCost = getEffectiveCost(card, gameState, playerIndex);
-          const isPlayable = !!(canPlay && resources >= effectiveCost);
-          return (
-            <div
-              key={card.uid}
-              style={{ scrollSnapAlign: 'start', flexShrink: 0, cursor: isPlayable ? 'pointer' : 'default' }}
-              onClick={() => handleGraveCardPlay(card)}
-            >
-              <Card card={card} effectiveCost={effectiveCost} isPlayable={isPlayable} isSelected={false} />
-            </div>
-          );
-        })}
-        {graveCards.length === 0 && (
-          <span className="text-gray-500 text-xs self-center">Grave is empty</span>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
       className={`flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 py-2 px-1 min-h-[80px] ${dimmed ? 'opacity-60' : ''} md:justify-center`}
       style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
     >
-      {graveToggleBtn}
       {displayList.map((item, idx) => {
         const { card, isGhost, animType } = item;
 

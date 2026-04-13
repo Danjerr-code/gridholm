@@ -70,6 +70,74 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
+function GraveViewerModal({ cards, title, onClose, canPlayFromGrave, onPlayCard, gameState, playerIndex, resources }) {
+  const nonTokenCards = (cards || []).filter(c => !c.token && !c.isToken);
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#0f0f1e',
+          border: '1px solid #3a3a60',
+          borderRadius: '10px',
+          padding: '20px',
+          maxWidth: '600px',
+          width: '90vw',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em' }}>
+            {title}
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'transparent', border: 'none', color: '#6a6a8a', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '0 2px' }}
+          >✕</button>
+        </div>
+        {nonTokenCards.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+            {nonTokenCards.map(card => {
+              const effectiveCost = gameState ? getEffectiveCost(card, gameState, playerIndex) : card.cost;
+              const isPlayable = !!(canPlayFromGrave && resources >= effectiveCost);
+              return (
+                <div
+                  key={card.uid}
+                  style={{ cursor: isPlayable ? 'pointer' : 'default' }}
+                  onClick={() => {
+                    if (isPlayable && onPlayCard) {
+                      onPlayCard(card.uid);
+                      onClose();
+                    }
+                  }}
+                >
+                  <Card card={card} effectiveCost={effectiveCost} isPlayable={isPlayable} isSelected={false} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', color: '#6a6a8a', fontSize: '12px', padding: '20px 0' }}>
+            Grave is empty.
+          </div>
+        )}
+        {canPlayFromGrave && nonTokenCards.length > 0 && (
+          <div style={{ textAlign: 'center', fontSize: '10px', color: '#7a5aaa', marginTop: '10px', fontFamily: 'var(--font-sans)' }}>
+            Fate's Ledger — click a card to play it from grave
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 
 export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const {
@@ -166,6 +234,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const highlightTimerRef = useRef(null);
   const [opponentMoveTiles, setOpponentMoveTiles] = useState(new Set());
   const [spellGlowTile, setSpellGlowTile] = useState(null); // {row, col}
+  // Grave viewer: null = closed, 0 = player 0's grave, 1 = player 1's grave
+  const [graveViewerPlayer, setGraveViewerPlayer] = useState(null);
   const spellGlowTimerRef = useRef(null);
   const [extraLogEntries, setExtraLogEntries] = useState([]);
   const [handExpanded, setHandExpanded] = useState(true);
@@ -1349,7 +1419,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
       )}
 
       {/* Status Bar */}
-      <StatusBar state={state} myPlayerIndex={myPlayerIndex} commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} opponentConnected={opponentPresent} />
+      <StatusBar
+        state={state}
+        myPlayerIndex={myPlayerIndex}
+        commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0}
+        opponentConnected={opponentPresent}
+        onViewP1Grave={() => setGraveViewerPlayer(0)}
+        onViewP2Grave={() => setGraveViewerPlayer(1)}
+      />
 
       {/* Middle content row */}
       <div className="flex gap-2 flex-1 min-h-0">
@@ -1528,6 +1605,20 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             <ActionBtn onClick={handleEndAction} label="End Turn →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
         </div>
+      )}
+
+      {/* Grave viewer modal */}
+      {graveViewerPlayer !== null && gameState && (
+        <GraveViewerModal
+          cards={state.players[graveViewerPlayer].grave || []}
+          title={`${state.players[graveViewerPlayer].name}'s Grave`}
+          onClose={() => setGraveViewerPlayer(null)}
+          canPlayFromGrave={graveViewerPlayer === myPlayerIndex && isActiveTurn && !!(gameState.graveAccessActive?.[myPlayerIndex])}
+          onPlayCard={handlePlayCard}
+          gameState={gameState}
+          playerIndex={graveViewerPlayer}
+          resources={state.players[graveViewerPlayer].resources}
+        />
       )}
 
       {/* Grave select modal */}
@@ -1751,6 +1842,22 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             minWidth: 72,
             flexShrink: 0,
           }}>
+            <button
+              onClick={() => setGraveViewerPlayer(myPlayerIndex)}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontFamily: 'var(--font-sans)',
+                background: '#12121e',
+                border: '1px solid #3a3a5a',
+                borderRadius: '4px',
+                color: '#9a7abf',
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap',
+                marginBottom: 2,
+              }}
+            >☠ Grave</button>
             <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
               MANA
             </div>
@@ -1787,8 +1894,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 }
               }}
               onInspectCard={handleInspectCard}
-              graveAccessActive={isActiveTurn && !!(gameState?.graveAccessActive?.[myPlayerIndex])}
-              grave={myPlayer.grave || []}
             />
           </div>
         </div>
@@ -1812,6 +1917,22 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             padding: '4px 0',
             marginBottom: 0,
           }}>
+            <button
+              onClick={() => setGraveViewerPlayer(myPlayerIndex)}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontFamily: 'var(--font-sans)',
+                background: '#12121e',
+                border: '1px solid #3a3a5a',
+                borderRadius: '4px',
+                color: '#9a7abf',
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >☠ Grave</button>
             <ResourceDisplay current={myPlayer.resources} max={10} maxThisTurn={myPlayer.maxResourcesThisTurn} playerColor={myPlayerIndex === 0 ? '#185FA5' : '#993C1D'} singleRow={true} />
           </div>
           <Hand
@@ -1842,8 +1963,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onMobileTap={handleMobileHandCardTap}
             onLongPressCard={handleInspectCard}
             onLongPressDismiss={handleClearInspect}
-            graveAccessActive={isActiveTurn && !!(gameState?.graveAccessActive?.[myPlayerIndex])}
-            grave={myPlayer.grave || []}
           />
         </div>
       </div>
