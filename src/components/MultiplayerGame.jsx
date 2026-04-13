@@ -597,7 +597,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, [gameState, dispatch]);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
-  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus']);
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus', 'rootsongcommander']);
 
   const handleTriggerUnitAction = useCallback(async (unitUid) => {
     if (!gameState) return;
