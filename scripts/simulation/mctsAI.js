@@ -249,6 +249,7 @@ export function chooseActionMCTS(state, options = {}) {
     simulations    = 200,
     maxRolloutTurns = 30,
     policy          = DEFAULT_POLICY,
+    timeoutMs       = MCTS_TIMEOUT_MS,  // per-decision time cap (ms)
   } = options;
 
   const playerIdx = state.activePlayer; // 0 or 1
@@ -278,7 +279,7 @@ export function chooseActionMCTS(state, options = {}) {
   }));
 
   let totalVisits = 0;
-  const deadline  = Date.now() + MCTS_TIMEOUT_MS;
+  const deadline  = Date.now() + timeoutMs;
 
   for (let sim = 0; sim < simulations; sim++) {
     if (Date.now() >= deadline) break;
