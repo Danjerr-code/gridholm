@@ -52,6 +52,8 @@ export const WEIGHTS = {
   terrainBenefit:            3,  // friendly units on beneficial terrain
   terrainHarm:               3,  // enemy units on harmful terrain
   healingValue:              0,  // bonus per own-champion HP point (Mystic)
+  turnAggressionScale:    0.08,  // per-turn aggression ramp after turn 12 (evolved per faction)
+  projectedChampionDamage:  20,  // ATK of units that can reach enemy champion this turn
 };
 
 /**
@@ -390,6 +392,31 @@ export function evaluateBoard(gameState, playerId, weights = null) {
   // omensOnBoard: count of friendly omens alive on the board.
   const omensOnBoard = myUnits.filter(u => u.isOmen).length;
 
+  // projectedChampionDamage: sum of ATK of friendly combat units that can reach the enemy champion
+  // this turn via a clear cardinal path (same row or column, no blocking units in between,
+  // within Manhattan distance <= unit SPD).
+  const projectedChampionDamage = myUnits.filter(u => !u.isRelic && !u.isOmen).reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    if (dist > (u.spd ?? 1)) return sum;
+    if (u.row === oppChamp.row) {
+      const minC = Math.min(u.col, oppChamp.col);
+      const maxC = Math.max(u.col, oppChamp.col);
+      const blocked = gameState.units.some(
+        other => other !== u && other.row === u.row && other.col > minC && other.col < maxC
+      );
+      return blocked ? sum : sum + (u.atk ?? 0);
+    }
+    if (u.col === oppChamp.col) {
+      const minR = Math.min(u.row, oppChamp.row);
+      const maxR = Math.max(u.row, oppChamp.row);
+      const blocked = gameState.units.some(
+        other => other !== u && other.col === u.col && other.row > minR && other.row < maxR
+      );
+      return blocked ? sum : sum + (u.atk ?? 0);
+    }
+    return sum;
+  }, 0);
+
   // terrainBenefit / terrainHarm
   let terrainBenefit = 0;
   let terrainHarm = 0;
@@ -407,6 +434,11 @@ export function evaluateBoard(gameState, playerId, weights = null) {
 
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
+  // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behavior.
+  // At turn 12: 1.0×. At turn 20: 1.64×. At turn 30: 2.44×. Evolved per faction.
+  const aggressionScale = w.turnAggressionScale ?? 0.08;
+  const aggressionMult  = 1 + Math.max(0, turnNumber - 12) * aggressionScale;
+
   const score =
     championHP               * w.championHP               +
     healingValue             * w.healingValue              +
@@ -415,15 +447,16 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     totalATKOnBoard          * w.totalATKOnBoard          +
     totalHPOnBoard           * w.totalHPOnBoard           +
     throneControl            * w.throneControl            +
-    unitsThreateningChampion * w.unitsThreateningChampion +
+    unitsThreateningChampion * w.unitsThreateningChampion * aggressionMult +
     unitsAdjacentToAlly      * w.unitsAdjacentToAlly      +
     cardsInHand              * w.cardsInHand              +
     hiddenUnits              * w.hiddenUnits              +
     manaEfficiency           * w.manaEfficiency           +
-    lethalThreat             * w.lethalThreat             +
+    lethalThreat             * w.lethalThreat             * aggressionMult +
     gameLength                                            +
-    championProximity        * w.championProximity        +
-    opponentChampionLowHP    * w.opponentChampionLowHP    +
+    championProximity        * w.championProximity        * aggressionMult +
+    opponentChampionLowHP    * w.opponentChampionLowHP    * aggressionMult +
+    projectedChampionDamage  * (w.projectedChampionDamage ?? 20) +
     relicsOnBoard            * w.relicsOnBoard            +
     omensOnBoard             * w.omensOnBoard             +
     terrainBenefit           * w.terrainBenefit           +

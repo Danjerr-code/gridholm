@@ -54,6 +54,8 @@ const EVOLVABLE_KEYS = [
   'terrainBenefit',
   'terrainHarm',
   'healingValue',
+  'turnAggressionScale',
+  'projectedChampionDamage',
 ];
 
 // ── Step 1: Population Generator ─────────────────────────────────────────────
