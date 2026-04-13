@@ -859,10 +859,10 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
   // Find live attacker (may have died in combat)
   const liveAttacker = state.units.find(u => u.uid === attacker.uid);
 
-  // 1. Whisper: restore 2 HP to controlling champion
+  // 1. Whisper: restore 1 HP to controlling champion
   if (liveAttacker && liveAttacker.id === 'whisper') {
     const champ = state.champions[liveAttacker.owner];
-    const healed = restoreHP(champ, 2, state);
+    const healed = restoreHP(champ, 1, state);
     addLog(state, `Whisper: champion restores ${healed} HP.`);
   }
 
