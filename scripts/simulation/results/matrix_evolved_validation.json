@@ -1,0 +1,644 @@
+{
+  "meta": {
+    "timestamp": "2026-04-13T02-43-28",
+    "gamesPerDirection": 28,
+    "totalGames": 1568,
+    "totalDirectional": 56,
+    "weightSources": {
+      "light": "evolved",
+      "primal": "evolved",
+      "mystic": "evolved",
+      "dark": "evolved",
+      "light_primal": "evolved",
+      "light_mystic": "evolved",
+      "primal_dark": "evolved",
+      "mystic_dark": "evolved"
+    }
+  },
+  "summary": {
+    "overallDrawRate": 0.9751,
+    "overallP1WinRate": 0.0179,
+    "overallP2WinRate": 0.007,
+    "avgGameLength": 9.74
+  },
+  "pairingStats": {
+    "light": {
+      "wins": 2,
+      "losses": 7,
+      "draws": 383,
+      "games": 392,
+      "turnTotal": 3836
+    },
+    "primal": {
+      "wins": 18,
+      "losses": 6,
+      "draws": 368,
+      "games": 392,
+      "turnTotal": 3702
+    },
+    "mystic": {
+      "wins": 2,
+      "losses": 5,
+      "draws": 385,
+      "games": 392,
+      "turnTotal": 3787
+    },
+    "dark": {
+      "wins": 0,
+      "losses": 3,
+      "draws": 389,
+      "games": 392,
+      "turnTotal": 3663
+    },
+    "light_primal": {
+      "wins": 2,
+      "losses": 7,
+      "draws": 383,
+      "games": 392,
+      "turnTotal": 3857
+    },
+    "light_mystic": {
+      "wins": 2,
+      "losses": 5,
+      "draws": 385,
+      "games": 392,
+      "turnTotal": 4011
+    },
+    "primal_dark": {
+      "wins": 9,
+      "losses": 2,
+      "draws": 381,
+      "games": 392,
+      "turnTotal": 3894
+    },
+    "mystic_dark": {
+      "wins": 4,
+      "losses": 4,
+      "draws": 384,
+      "games": 392,
+      "turnTotal": 3800
+    }
+  },
+  "pairResults": {
+    "light_vs_primal": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "primal",
+        "p1Wins": 0,
+        "p2Wins": 2,
+        "draws": 26,
+        "games": 28,
+        "avgTurns": 10
+      },
+      "rev": {
+        "p1Pairing": "primal",
+        "p2Pairing": "light",
+        "p1Wins": 3,
+        "p2Wins": 0,
+        "draws": 25,
+        "games": 28,
+        "avgTurns": 8.857142857142858
+      }
+    },
+    "light_vs_mystic": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.142857142857142
+      },
+      "rev": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "light",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 8.714285714285714
+      }
+    },
+    "light_vs_dark": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 8.857142857142858
+      },
+      "rev": {
+        "p1Pairing": "dark",
+        "p2Pairing": "light",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.964285714285714
+      }
+    },
+    "light_vs_light_primal": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "light_primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.428571428571429
+      },
+      "rev": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "light",
+        "p1Wins": 0,
+        "p2Wins": 1,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.678571428571429
+      }
+    },
+    "light_vs_light_mystic": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.75
+      },
+      "rev": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "light",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.25
+      }
+    },
+    "light_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.535714285714286
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "light",
+        "p1Wins": 2,
+        "p2Wins": 0,
+        "draws": 26,
+        "games": 28,
+        "avgTurns": 10.607142857142858
+      }
+    },
+    "light_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "light",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.785714285714286
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "light",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.428571428571429
+      }
+    },
+    "primal_vs_mystic": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "mystic",
+        "p1Wins": 2,
+        "p2Wins": 0,
+        "draws": 26,
+        "games": 28,
+        "avgTurns": 9.5
+      },
+      "rev": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "primal",
+        "p1Wins": 0,
+        "p2Wins": 1,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 8.821428571428571
+      }
+    },
+    "primal_vs_dark": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.071428571428571
+      },
+      "rev": {
+        "p1Pairing": "dark",
+        "p2Pairing": "primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 7.857142857142857
+      }
+    },
+    "primal_vs_light_primal": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "light_primal",
+        "p1Wins": 4,
+        "p2Wins": 0,
+        "draws": 24,
+        "games": 28,
+        "avgTurns": 10
+      },
+      "rev": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "primal",
+        "p1Wins": 1,
+        "p2Wins": 1,
+        "draws": 26,
+        "games": 28,
+        "avgTurns": 9.428571428571429
+      }
+    },
+    "primal_vs_light_mystic": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.714285714285714
+      },
+      "rev": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.464285714285714
+      }
+    },
+    "primal_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 2,
+        "p2Wins": 2,
+        "draws": 24,
+        "games": 28,
+        "avgTurns": 9.642857142857142
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "primal",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 9.607142857142858
+      }
+    },
+    "primal_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "primal",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.071428571428571
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "primal",
+        "p1Wins": 2,
+        "p2Wins": 1,
+        "draws": 25,
+        "games": 28,
+        "avgTurns": 9.178571428571429
+      }
+    },
+    "mystic_vs_dark": {
+      "fwd": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "dark",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 9.5
+      },
+      "rev": {
+        "p1Pairing": "dark",
+        "p2Pairing": "mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.035714285714286
+      }
+    },
+    "mystic_vs_light_primal": {
+      "fwd": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "light_primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.285714285714286
+      },
+      "rev": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.071428571428571
+      }
+    },
+    "mystic_vs_light_mystic": {
+      "fwd": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.285714285714286
+      },
+      "rev": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "mystic",
+        "p1Wins": 1,
+        "p2Wins": 1,
+        "draws": 26,
+        "games": 28,
+        "avgTurns": 12.107142857142858
+      }
+    },
+    "mystic_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 8.75
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "mystic",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.392857142857142
+      }
+    },
+    "mystic_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "mystic",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.857142857142858
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.785714285714286
+      }
+    },
+    "dark_vs_light_primal": {
+      "fwd": {
+        "p1Pairing": "dark",
+        "p2Pairing": "light_primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.535714285714286
+      },
+      "rev": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 8.821428571428571
+      }
+    },
+    "dark_vs_light_mystic": {
+      "fwd": {
+        "p1Pairing": "dark",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.214285714285714
+      },
+      "rev": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.571428571428571
+      }
+    },
+    "dark_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "dark",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.642857142857142
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.964285714285714
+      }
+    },
+    "dark_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "dark",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 0,
+        "p2Wins": 1,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 9.321428571428571
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "dark",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 9.464285714285714
+      }
+    },
+    "light_primal_vs_light_mystic": {
+      "fwd": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.25
+      },
+      "rev": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "light_primal",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.357142857142858
+      }
+    },
+    "light_primal_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.857142857142858
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "light_primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.928571428571429
+      }
+    },
+    "light_primal_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "light_primal",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 9.964285714285714
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "light_primal",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.142857142857142
+      }
+    },
+    "light_mystic_vs_primal_dark": {
+      "fwd": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 1,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.714285714285714
+      },
+      "rev": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.642857142857142
+      }
+    },
+    "light_mystic_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "light_mystic",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.321428571428571
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "light_mystic",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 10.607142857142858
+      }
+    },
+    "primal_dark_vs_mystic_dark": {
+      "fwd": {
+        "p1Pairing": "primal_dark",
+        "p2Pairing": "mystic_dark",
+        "p1Wins": 1,
+        "p2Wins": 0,
+        "draws": 27,
+        "games": 28,
+        "avgTurns": 10.392857142857142
+      },
+      "rev": {
+        "p1Pairing": "mystic_dark",
+        "p2Pairing": "primal_dark",
+        "p1Wins": 0,
+        "p2Wins": 0,
+        "draws": 28,
+        "games": 28,
+        "avgTurns": 9.392857142857142
+      }
+    }
+  }
+}

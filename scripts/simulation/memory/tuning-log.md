@@ -153,3 +153,25 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
 - **Hypothesis**: vs-Primal championHP ×1.5 multiplier fires in non-Primal matchups when opponent also defends champion, creating mutual stall.
 - **Card bottom-5**: Still all Elf/Mystic (thornweave −11.8%, elfelder −11.9%, manawell −12.1%, duskbloomtender −12.3%, oathrootkeeper −12.8%). Structural card issue persists.
 - **Status**: MIXED RESULT — Mystic closing works; opponent modifiers net-negative. All 4 steps complete. Awaiting board assessment.
+
+## Entry 15 — 2026-04-13 (LOG-1335) — MCTS actionsThisTurn bug fix
+- **Action**: Fixed critical bug in runSimulation.js — `move` actions were not counted toward `actionsThisTurn`
+- **Bug**: Only non-move, non-endTurn actions incremented `actionsThisTurn`. Since MCTS strongly favors `move` (attack bias ≥1.5), the 80-action per-turn cap never fired → unlimited moves per turn → 12+ min/game (elf vs beast)
+- **Fix**: All non-endTurn actions now increment `actionsThisTurn`
+- **Commit**: b1b6647
+- **Before**: elf vs beast DR=100% (60% confirmed post-fix with 5-game test). beast vs beast DR=20%.
+
+## Entry 16 — 2026-04-13 (LOG-1335) — MCTS defaults + attackChampionBias=6.0: FAILURE
+- **Action**: Set MCTS sims=1 as default in runSimulation.js and runMatrix.js (commit cf6a81a).
+  Raised attackChampionBias 3.0→6.0, moveTowardChampionBias 1.3→2.0 per board comment 910cf8e6 (commit 9d729f0).
+- **Full matrix result** (120 games, 10/direction, MCTS sims=1): **98.3% overall DR** — catastrophic.
+  All 12 matchups at 90-100% DR. Only 2 decisive games total.
+- **Root cause**: High attackChampionBias in biasedRollout causes aggressive champion attacks in all rollouts.
+  Against healing factions (elf, demon), champion survives → rollout returns 'loss' every time →
+  MCTS UCB1 learns champion attacks are losing moves → real game play becomes passive → draws.
+  The rollout evaluation policy and game-play action policy CANNOT be the same object with healing opponents.
+- **Comparison**: minimax d=2 baseline 29.1% DR (6,000 games). Bias=6.0 is 69pp worse.
+- **Prior 5-game sample caveat**: Pre-matrix elf vs beast test with bias=6.0 showed 20% DR (cleared the 40% gate).
+  This was a lucky seed artifact — the full matrix exposes the systematic failure.
+- **Status**: FAILED. Awaiting board direction on whether to revert, try intermediate value (4.0–4.5), or
+  decouple rollout policy from game-play policy.

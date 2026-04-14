@@ -1,0 +1,1101 @@
+{
+  "config": {
+    "gamesPerDirection": 500,
+    "totalGames": 6000
+  },
+  "matrix": {
+    "human": {
+      "beast": {
+        "p1Faction": "human",
+        "p2Faction": "beast",
+        "gamesRun": 500,
+        "p1Wins": 141,
+        "p2Wins": 298,
+        "draws": 61,
+        "avgTurns": 19.9,
+        "p1WinRate": 0.282
+      },
+      "elf": {
+        "p1Faction": "human",
+        "p2Faction": "elf",
+        "gamesRun": 500,
+        "p1Wins": 112,
+        "p2Wins": 323,
+        "draws": 65,
+        "avgTurns": 21.81,
+        "p1WinRate": 0.224
+      },
+      "demon": {
+        "p1Faction": "human",
+        "p2Faction": "demon",
+        "gamesRun": 500,
+        "p1Wins": 100,
+        "p2Wins": 113,
+        "draws": 287,
+        "avgTurns": 26.77,
+        "p1WinRate": 0.2
+      }
+    },
+    "beast": {
+      "human": {
+        "p1Faction": "beast",
+        "p2Faction": "human",
+        "gamesRun": 500,
+        "p1Wins": 257,
+        "p2Wins": 198,
+        "draws": 45,
+        "avgTurns": 19.85,
+        "p1WinRate": 0.514
+      },
+      "elf": {
+        "p1Faction": "beast",
+        "p2Faction": "elf",
+        "gamesRun": 500,
+        "p1Wins": 138,
+        "p2Wins": 331,
+        "draws": 31,
+        "avgTurns": 18.95,
+        "p1WinRate": 0.276
+      },
+      "demon": {
+        "p1Faction": "beast",
+        "p2Faction": "demon",
+        "gamesRun": 500,
+        "p1Wins": 194,
+        "p2Wins": 206,
+        "draws": 100,
+        "avgTurns": 21.99,
+        "p1WinRate": 0.388
+      }
+    },
+    "elf": {
+      "human": {
+        "p1Faction": "elf",
+        "p2Faction": "human",
+        "gamesRun": 500,
+        "p1Wins": 163,
+        "p2Wins": 71,
+        "draws": 266,
+        "avgTurns": 25.07,
+        "p1WinRate": 0.326
+      },
+      "beast": {
+        "p1Faction": "elf",
+        "p2Faction": "beast",
+        "gamesRun": 500,
+        "p1Wins": 201,
+        "p2Wins": 138,
+        "draws": 161,
+        "avgTurns": 21.4,
+        "p1WinRate": 0.402
+      },
+      "demon": {
+        "p1Faction": "elf",
+        "p2Faction": "demon",
+        "gamesRun": 500,
+        "p1Wins": 306,
+        "p2Wins": 18,
+        "draws": 176,
+        "avgTurns": 23.29,
+        "p1WinRate": 0.612
+      }
+    },
+    "demon": {
+      "human": {
+        "p1Faction": "demon",
+        "p2Faction": "human",
+        "gamesRun": 500,
+        "p1Wins": 87,
+        "p2Wins": 135,
+        "draws": 278,
+        "avgTurns": 26.5,
+        "p1WinRate": 0.174
+      },
+      "beast": {
+        "p1Faction": "demon",
+        "p2Faction": "beast",
+        "gamesRun": 500,
+        "p1Wins": 143,
+        "p2Wins": 229,
+        "draws": 128,
+        "avgTurns": 21.76,
+        "p1WinRate": 0.286
+      },
+      "elf": {
+        "p1Faction": "demon",
+        "p2Faction": "elf",
+        "gamesRun": 500,
+        "p1Wins": 17,
+        "p2Wins": 322,
+        "draws": 161,
+        "avgTurns": 22.6,
+        "p1WinRate": 0.034
+      }
+    }
+  },
+  "firstPlayerAdvantage": 0.3098,
+  "factionCardAnalysis": {
+    "human": {
+      "ironthorns": {
+        "playRate": 0.8883,
+        "avgTurnsInHand": 5.72,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2609,
+        "winRateWhenNotDrawn": 0.2393,
+        "winRateImpact": 0.0217
+      },
+      "militia": {
+        "playRate": 0.9618,
+        "avgTurnsInHand": 1.11,
+        "avgDamageDealt": null,
+        "avgKills": 0.484,
+        "winRateWhenPlayed": 0.2508,
+        "winRateWhenNotDrawn": 0.2366,
+        "winRateImpact": 0.0142
+      },
+      "lucernunbrokenvow": {
+        "playRate": 0.7427,
+        "avgTurnsInHand": 7.78,
+        "avgDamageDealt": null,
+        "avgKills": 0.667,
+        "winRateWhenPlayed": 0.2641,
+        "winRateWhenNotDrawn": 0.2553,
+        "winRateImpact": 0.0088
+      },
+      "squire": {
+        "playRate": 0.9315,
+        "avgTurnsInHand": 1.78,
+        "avgDamageDealt": null,
+        "avgKills": 0.586,
+        "winRateWhenPlayed": 0.252,
+        "winRateWhenNotDrawn": 0.2464,
+        "winRateImpact": 0.0056
+      },
+      "soulstone": {
+        "playRate": 0.8127,
+        "avgTurnsInHand": 6.05,
+        "avgDamageDealt": 0.02,
+        "avgKills": 0.003,
+        "winRateWhenPlayed": 0.2432,
+        "winRateWhenNotDrawn": 0.2621,
+        "winRateImpact": -0.0189
+      },
+      "warlord": {
+        "playRate": 0.9262,
+        "avgTurnsInHand": 4.26,
+        "avgDamageDealt": null,
+        "avgKills": 1.083,
+        "winRateWhenPlayed": 0.2688,
+        "winRateWhenNotDrawn": 0.2101,
+        "winRateImpact": 0.0587
+      },
+      "waddles": {
+        "playRate": 0.876,
+        "avgTurnsInHand": 2.88,
+        "avgDamageDealt": null,
+        "avgKills": 0.301,
+        "winRateWhenPlayed": 0.2562,
+        "winRateWhenNotDrawn": 0.2403,
+        "winRateImpact": 0.0159
+      },
+      "smite": {
+        "playRate": 0.8343,
+        "avgTurnsInHand": 6.61,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.258,
+        "winRateWhenNotDrawn": 0.2112,
+        "winRateImpact": 0.0468
+      },
+      "captain": {
+        "playRate": 0.8405,
+        "avgTurnsInHand": 6.24,
+        "avgDamageDealt": null,
+        "avgKills": 0.681,
+        "winRateWhenPlayed": 0.2711,
+        "winRateWhenNotDrawn": 0.2401,
+        "winRateImpact": 0.0311
+      },
+      "battlepriestunit": {
+        "playRate": 0.7976,
+        "avgTurnsInHand": 6.79,
+        "avgDamageDealt": null,
+        "avgKills": 0.337,
+        "winRateWhenPlayed": 0.2453,
+        "winRateWhenNotDrawn": 0.251,
+        "winRateImpact": -0.0056
+      },
+      "martiallaw": {
+        "playRate": 0.6084,
+        "avgTurnsInHand": 9.66,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2283,
+        "winRateWhenNotDrawn": 0.2507,
+        "winRateImpact": -0.0224
+      },
+      "paladin": {
+        "playRate": 0.8844,
+        "avgTurnsInHand": 5.32,
+        "avgDamageDealt": null,
+        "avgKills": 0.609,
+        "winRateWhenPlayed": 0.2746,
+        "winRateWhenNotDrawn": 0.2347,
+        "winRateImpact": 0.0399
+      },
+      "knight": {
+        "playRate": 0.9255,
+        "avgTurnsInHand": 2.93,
+        "avgDamageDealt": null,
+        "avgKills": 0.706,
+        "winRateWhenPlayed": 0.2731,
+        "winRateWhenNotDrawn": 0.2267,
+        "winRateImpact": 0.0464
+      },
+      "ironshield": {
+        "playRate": 0.9134,
+        "avgTurnsInHand": 4.69,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.243,
+        "winRateWhenNotDrawn": 0.267,
+        "winRateImpact": -0.024
+      },
+      "shieldwall": {
+        "playRate": 0.9394,
+        "avgTurnsInHand": 1.59,
+        "avgDamageDealt": null,
+        "avgKills": 0.507,
+        "winRateWhenPlayed": 0.2291,
+        "winRateWhenNotDrawn": 0.266,
+        "winRateImpact": -0.0369
+      },
+      "battlestandard": {
+        "playRate": 0.8994,
+        "avgTurnsInHand": 3.01,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2797,
+        "winRateWhenNotDrawn": 0.2272,
+        "winRateImpact": 0.0525
+      },
+      "sentinel": {
+        "playRate": 0.8243,
+        "avgTurnsInHand": 4.56,
+        "avgDamageDealt": null,
+        "avgKills": 0.304,
+        "winRateWhenPlayed": 0.244,
+        "winRateWhenNotDrawn": 0.2586,
+        "winRateImpact": -0.0146
+      },
+      "crusade": {
+        "playRate": 0.8689,
+        "avgTurnsInHand": 7.29,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2587,
+        "winRateWhenNotDrawn": 0.2558,
+        "winRateImpact": 0.0028
+      },
+      "forgeweapon": {
+        "playRate": 0.9292,
+        "avgTurnsInHand": 4.57,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2821,
+        "winRateWhenNotDrawn": 0.2223,
+        "winRateImpact": 0.0598
+      },
+      "standardbearer": {
+        "playRate": 0.8341,
+        "avgTurnsInHand": 4.65,
+        "avgDamageDealt": null,
+        "avgKills": 0.122,
+        "winRateWhenPlayed": 0.2727,
+        "winRateWhenNotDrawn": 0.2387,
+        "winRateImpact": 0.0339
+      },
+      "footsoldier": {
+        "playRate": 0.9486,
+        "avgTurnsInHand": 1.17,
+        "avgDamageDealt": null,
+        "avgKills": 0.335,
+        "winRateWhenPlayed": 0.2558,
+        "winRateWhenNotDrawn": 0.244,
+        "winRateImpact": 0.0118
+      },
+      "crossbowman": {
+        "playRate": 0.9236,
+        "avgTurnsInHand": 2.05,
+        "avgDamageDealt": null,
+        "avgKills": 0.413,
+        "winRateWhenPlayed": 0.234,
+        "winRateWhenNotDrawn": 0.2697,
+        "winRateImpact": -0.0357
+      },
+      "sergeant": {
+        "playRate": 0.8632,
+        "avgTurnsInHand": 3.93,
+        "avgDamageDealt": null,
+        "avgKills": 0.383,
+        "winRateWhenPlayed": 0.2568,
+        "winRateWhenNotDrawn": 0.247,
+        "winRateImpact": 0.0098
+      },
+      "aendor": {
+        "playRate": 0.7984,
+        "avgTurnsInHand": 7.56,
+        "avgDamageDealt": null,
+        "avgKills": 0.778,
+        "winRateWhenPlayed": 0.2988,
+        "winRateWhenNotDrawn": 0.2302,
+        "winRateImpact": 0.0687
+      },
+      "gavrielholystride": {
+        "playRate": 0.886,
+        "avgTurnsInHand": 5.2,
+        "avgDamageDealt": null,
+        "avgKills": 0.684,
+        "winRateWhenPlayed": 0.2628,
+        "winRateWhenNotDrawn": 0.2422,
+        "winRateImpact": 0.0206
+      },
+      "hallowed_ground": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.2576,
+        "winRateImpact": null
+      }
+    },
+    "beast": {
+      "crushingblow": {
+        "playRate": 0.7578,
+        "avgTurnsInHand": 7.94,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3795,
+        "winRateWhenNotDrawn": 0.415,
+        "winRateImpact": -0.0354
+      },
+      "wolf": {
+        "playRate": 0.9032,
+        "avgTurnsInHand": 2.17,
+        "avgDamageDealt": null,
+        "avgKills": 0.451,
+        "winRateWhenPlayed": 0.4049,
+        "winRateWhenNotDrawn": 0.4386,
+        "winRateImpact": -0.0337
+      },
+      "sabretooth": {
+        "playRate": 0.7866,
+        "avgTurnsInHand": 6.85,
+        "avgDamageDealt": null,
+        "avgKills": 1.103,
+        "winRateWhenPlayed": 0.4007,
+        "winRateWhenNotDrawn": 0.4259,
+        "winRateImpact": -0.0252
+      },
+      "razorclaw": {
+        "playRate": 0.9214,
+        "avgTurnsInHand": 1.71,
+        "avgDamageDealt": null,
+        "avgKills": 0.188,
+        "winRateWhenPlayed": 0.3564,
+        "winRateWhenNotDrawn": 0.4567,
+        "winRateImpact": -0.1003
+      },
+      "packrunner": {
+        "playRate": 0.7867,
+        "avgTurnsInHand": 5.32,
+        "avgDamageDealt": null,
+        "avgKills": 0.207,
+        "winRateWhenPlayed": 0.364,
+        "winRateWhenNotDrawn": 0.446,
+        "winRateImpact": -0.0821
+      },
+      "ambush": {
+        "playRate": 0.7815,
+        "avgTurnsInHand": 7.82,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3478,
+        "winRateWhenNotDrawn": 0.4439,
+        "winRateImpact": -0.0961
+      },
+      "siegemound": {
+        "playRate": 0.8908,
+        "avgTurnsInHand": 3.41,
+        "avgDamageDealt": 0.03,
+        "avgKills": 0.002,
+        "winRateWhenPlayed": 0.4303,
+        "winRateWhenNotDrawn": 0.3687,
+        "winRateImpact": 0.0616
+      },
+      "predatorsmark": {
+        "playRate": 0.812,
+        "avgTurnsInHand": 7.64,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3277,
+        "winRateWhenNotDrawn": 0.444,
+        "winRateImpact": -0.1163
+      },
+      "vornthundercaller": {
+        "playRate": 0.7577,
+        "avgTurnsInHand": 6.93,
+        "avgDamageDealt": null,
+        "avgKills": 0.19,
+        "winRateWhenPlayed": 0.3218,
+        "winRateWhenNotDrawn": 0.4659,
+        "winRateImpact": -0.1441
+      },
+      "rockhorn": {
+        "playRate": 0.8848,
+        "avgTurnsInHand": 4.81,
+        "avgDamageDealt": null,
+        "avgKills": 0.563,
+        "winRateWhenPlayed": 0.3897,
+        "winRateWhenNotDrawn": 0.4527,
+        "winRateImpact": -0.0631
+      },
+      "pip": {
+        "playRate": 0.8176,
+        "avgTurnsInHand": 5.24,
+        "avgDamageDealt": null,
+        "avgKills": 0.503,
+        "winRateWhenPlayed": 0.4236,
+        "winRateWhenNotDrawn": 0.4085,
+        "winRateImpact": 0.015
+      },
+      "korraksecondang": {
+        "playRate": 0.6523,
+        "avgTurnsInHand": 8.11,
+        "avgDamageDealt": 1.17,
+        "avgKills": 0.251,
+        "winRateWhenPlayed": 0.3242,
+        "winRateWhenNotDrawn": 0.4508,
+        "winRateImpact": -0.1266
+      },
+      "pounce": {
+        "playRate": 0.9476,
+        "avgTurnsInHand": 4.33,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3997,
+        "winRateWhenNotDrawn": 0.4345,
+        "winRateImpact": -0.0348
+      },
+      "swiftpaw": {
+        "playRate": 0.9407,
+        "avgTurnsInHand": 1.17,
+        "avgDamageDealt": null,
+        "avgKills": 0.257,
+        "winRateWhenPlayed": 0.3699,
+        "winRateWhenNotDrawn": 0.452,
+        "winRateImpact": -0.0821
+      },
+      "razorfang": {
+        "playRate": 0.7848,
+        "avgTurnsInHand": 6.96,
+        "avgDamageDealt": null,
+        "avgKills": 1.145,
+        "winRateWhenPlayed": 0.4543,
+        "winRateWhenNotDrawn": 0.3935,
+        "winRateImpact": 0.0608
+      },
+      "callofthesnakes": {
+        "playRate": 0.9488,
+        "avgTurnsInHand": 4.21,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3275,
+        "winRateWhenNotDrawn": 0.478,
+        "winRateImpact": -0.1505
+      },
+      "bloodmoon": {
+        "playRate": 0.5748,
+        "avgTurnsInHand": 8.19,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3807,
+        "winRateWhenNotDrawn": 0.4371,
+        "winRateImpact": -0.0564
+      },
+      "boar": {
+        "playRate": 0.9385,
+        "avgTurnsInHand": 1.14,
+        "avgDamageDealt": null,
+        "avgKills": 0.111,
+        "winRateWhenPlayed": 0.3619,
+        "winRateWhenNotDrawn": 0.4546,
+        "winRateImpact": -0.0927
+      },
+      "packhowl": {
+        "playRate": 0.9037,
+        "avgTurnsInHand": 5.12,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.375,
+        "winRateWhenNotDrawn": 0.4355,
+        "winRateImpact": -0.0605
+      },
+      "feralsurge": {
+        "playRate": 0.79,
+        "avgTurnsInHand": 3.77,
+        "avgDamageDealt": 0.01,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.3686,
+        "winRateWhenNotDrawn": 0.4826,
+        "winRateImpact": -0.114
+      },
+      "stalker": {
+        "playRate": 0.8692,
+        "avgTurnsInHand": 3.94,
+        "avgDamageDealt": null,
+        "avgKills": 0.423,
+        "winRateWhenPlayed": 0.4122,
+        "winRateWhenNotDrawn": 0.4138,
+        "winRateImpact": -0.0017
+      },
+      "plaguehog": {
+        "playRate": 0.8357,
+        "avgTurnsInHand": 5.61,
+        "avgDamageDealt": null,
+        "avgKills": 0.312,
+        "winRateWhenPlayed": 0.3617,
+        "winRateWhenNotDrawn": 0.449,
+        "winRateImpact": -0.0873
+      },
+      "eagerbeaver": {
+        "playRate": 0.8828,
+        "avgTurnsInHand": 3.34,
+        "avgDamageDealt": null,
+        "avgKills": 0.506,
+        "winRateWhenPlayed": 0.4009,
+        "winRateWhenNotDrawn": 0.4223,
+        "winRateImpact": -0.0214
+      },
+      "savagegrowth": {
+        "playRate": 0.9651,
+        "avgTurnsInHand": 3.13,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.4539,
+        "winRateWhenNotDrawn": 0.3839,
+        "winRateImpact": 0.07
+      },
+      "wildborne": {
+        "playRate": 0.8943,
+        "avgTurnsInHand": 2.86,
+        "avgDamageDealt": null,
+        "avgKills": 0.136,
+        "winRateWhenPlayed": 0.3818,
+        "winRateWhenNotDrawn": 0.4426,
+        "winRateImpact": -0.0608
+      }
+    },
+    "elf": {
+      "canopysentinel": {
+        "playRate": 0.406,
+        "avgTurnsInHand": 10.06,
+        "avgDamageDealt": null,
+        "avgKills": 0.535,
+        "winRateWhenPlayed": 0.5726,
+        "winRateWhenNotDrawn": 0.5512,
+        "winRateImpact": 0.0214
+      },
+      "elfranger": {
+        "playRate": 0.677,
+        "avgTurnsInHand": 6.83,
+        "avgDamageDealt": null,
+        "avgKills": 0.588,
+        "winRateWhenPlayed": 0.612,
+        "winRateWhenNotDrawn": 0.5467,
+        "winRateImpact": 0.0653
+      },
+      "moonleaf": {
+        "playRate": 0.9321,
+        "avgTurnsInHand": 2.94,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5773,
+        "winRateWhenNotDrawn": 0.5243,
+        "winRateImpact": 0.053
+      },
+      "azulonsilvertide": {
+        "playRate": 0.2147,
+        "avgTurnsInHand": 10.82,
+        "avgDamageDealt": null,
+        "avgKills": 0.633,
+        "winRateWhenPlayed": 0.6102,
+        "winRateWhenNotDrawn": 0.5357,
+        "winRateImpact": 0.0746
+      },
+      "elfarcher": {
+        "playRate": 0.2154,
+        "avgTurnsInHand": 9.94,
+        "avgDamageDealt": null,
+        "avgKills": 0.266,
+        "winRateWhenPlayed": 0.5823,
+        "winRateWhenNotDrawn": 0.5323,
+        "winRateImpact": 0.05
+      },
+      "arcanelens": {
+        "playRate": 0.6159,
+        "avgTurnsInHand": 4.53,
+        "avgDamageDealt": 0.07,
+        "avgKills": 0.005,
+        "winRateWhenPlayed": 0.5257,
+        "winRateWhenNotDrawn": 0.5628,
+        "winRateImpact": -0.0372
+      },
+      "verdantsurge": {
+        "playRate": 0.919,
+        "avgTurnsInHand": 4.29,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5568,
+        "winRateWhenNotDrawn": 0.5389,
+        "winRateImpact": 0.0179
+      },
+      "sistersiofra": {
+        "playRate": 0.2971,
+        "avgTurnsInHand": 9.05,
+        "avgDamageDealt": null,
+        "avgKills": 0.308,
+        "winRateWhenPlayed": 0.6384,
+        "winRateWhenNotDrawn": 0.5389,
+        "winRateImpact": 0.0995
+      },
+      "fennwickthequiet": {
+        "playRate": 0.609,
+        "avgTurnsInHand": 5.01,
+        "avgDamageDealt": null,
+        "avgKills": 0.188,
+        "winRateWhenPlayed": 0.6011,
+        "winRateWhenNotDrawn": 0.5343,
+        "winRateImpact": 0.0668
+      },
+      "woodlandguard": {
+        "playRate": 0.7234,
+        "avgTurnsInHand": 4.03,
+        "avgDamageDealt": null,
+        "avgKills": 0.231,
+        "winRateWhenPlayed": 0.5911,
+        "winRateWhenNotDrawn": 0.5295,
+        "winRateImpact": 0.0616
+      },
+      "thornweave": {
+        "playRate": 0.6838,
+        "avgTurnsInHand": 5.42,
+        "avgDamageDealt": null,
+        "avgKills": 0.369,
+        "winRateWhenPlayed": 0.595,
+        "winRateWhenNotDrawn": 0.5398,
+        "winRateImpact": 0.0552
+      },
+      "petrify": {
+        "playRate": 0.9117,
+        "avgTurnsInHand": 3.85,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5675,
+        "winRateWhenNotDrawn": 0.5294,
+        "winRateImpact": 0.0381
+      },
+      "elfscout": {
+        "playRate": 0.7865,
+        "avgTurnsInHand": 1.71,
+        "avgDamageDealt": null,
+        "avgKills": 0.275,
+        "winRateWhenPlayed": 0.6136,
+        "winRateWhenNotDrawn": 0.5106,
+        "winRateImpact": 0.103
+      },
+      "whisper": {
+        "playRate": 0.8219,
+        "avgTurnsInHand": 2.33,
+        "avgDamageDealt": null,
+        "avgKills": 0.49,
+        "winRateWhenPlayed": 0.5925,
+        "winRateWhenNotDrawn": 0.4838,
+        "winRateImpact": 0.1087
+      },
+      "cascadesage": {
+        "playRate": 0.2684,
+        "avgTurnsInHand": 10.13,
+        "avgDamageDealt": null,
+        "avgKills": 0.375,
+        "winRateWhenPlayed": 0.5617,
+        "winRateWhenNotDrawn": 0.5503,
+        "winRateImpact": 0.0114
+      },
+      "manawell": {
+        "playRate": 0.2547,
+        "avgTurnsInHand": 6.45,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5452,
+        "winRateWhenNotDrawn": 0.5433,
+        "winRateImpact": 0.0019
+      },
+      "grovewarden": {
+        "playRate": 0.4476,
+        "avgTurnsInHand": 8.41,
+        "avgDamageDealt": null,
+        "avgKills": 0.171,
+        "winRateWhenPlayed": 0.5916,
+        "winRateWhenNotDrawn": 0.5522,
+        "winRateImpact": 0.0393
+      },
+      "enchanted_ground": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.5277,
+        "winRateImpact": null
+      },
+      "yggara": {
+        "playRate": 0.1667,
+        "avgTurnsInHand": 11.92,
+        "avgDamageDealt": 0.43,
+        "avgKills": 0.037,
+        "winRateWhenPlayed": 0.4628,
+        "winRateWhenNotDrawn": 0.5472,
+        "winRateImpact": -0.0843
+      },
+      "glimpse": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.5665,
+        "winRateImpact": null
+      },
+      "bloom": {
+        "playRate": 0.8528,
+        "avgTurnsInHand": 5.53,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5886,
+        "winRateWhenNotDrawn": 0.5147,
+        "winRateImpact": 0.0739
+      },
+      "moonveilmystic": {
+        "playRate": 0.2576,
+        "avgTurnsInHand": 9.59,
+        "avgDamageDealt": null,
+        "avgKills": 0.263,
+        "winRateWhenPlayed": 0.5799,
+        "winRateWhenNotDrawn": 0.5328,
+        "winRateImpact": 0.0471
+      },
+      "seedling": {
+        "playRate": 0.864,
+        "avgTurnsInHand": 1.82,
+        "avgDamageDealt": 0.12,
+        "avgKills": 0.01,
+        "winRateWhenPlayed": 0.5468,
+        "winRateWhenNotDrawn": 0.5432,
+        "winRateImpact": 0.0036
+      },
+      "verdantarcher": {
+        "playRate": 0.7684,
+        "avgTurnsInHand": 3.24,
+        "avgDamageDealt": null,
+        "avgKills": 0.385,
+        "winRateWhenPlayed": 0.5964,
+        "winRateWhenNotDrawn": 0.5339,
+        "winRateImpact": 0.0626
+      },
+      "sylvancourier": {
+        "playRate": 0.7887,
+        "avgTurnsInHand": 3.24,
+        "avgDamageDealt": null,
+        "avgKills": 0.142,
+        "winRateWhenPlayed": 0.5154,
+        "winRateWhenNotDrawn": 0.5625,
+        "winRateImpact": -0.047
+      },
+      "overgrowth": {
+        "playRate": 0.8244,
+        "avgTurnsInHand": 6.28,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.5843,
+        "winRateWhenNotDrawn": 0.521,
+        "winRateImpact": 0.0633
+      },
+      "ancientspring": {
+        "playRate": 0.9222,
+        "avgTurnsInHand": 3.36,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.4663,
+        "winRateWhenNotDrawn": 0.5965,
+        "winRateImpact": -0.1302
+      },
+      "elfelder": {
+        "playRate": 0.7711,
+        "avgTurnsInHand": 4.59,
+        "avgDamageDealt": null,
+        "avgKills": 0.366,
+        "winRateWhenPlayed": 0.5835,
+        "winRateWhenNotDrawn": 0.5458,
+        "winRateImpact": 0.0376
+      },
+      "tanglerootypew": {
+        "playRate": 0.7179,
+        "avgTurnsInHand": 3.55,
+        "avgDamageDealt": 0.03,
+        "avgKills": 0.004,
+        "winRateWhenPlayed": 0.5019,
+        "winRateWhenNotDrawn": 0.5793,
+        "winRateImpact": -0.0774
+      }
+    },
+    "demon": {
+      "echostone": {
+        "playRate": 0.878,
+        "avgTurnsInHand": 4.71,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1921,
+        "winRateWhenNotDrawn": 0.1958,
+        "winRateImpact": -0.0037
+      },
+      "darkdealer": {
+        "playRate": 0.746,
+        "avgTurnsInHand": 6.35,
+        "avgDamageDealt": 0.24,
+        "avgKills": 0.012,
+        "winRateWhenPlayed": 0.1991,
+        "winRateWhenNotDrawn": 0.1971,
+        "winRateImpact": 0.0021
+      },
+      "brutedemon": {
+        "playRate": 0.8723,
+        "avgTurnsInHand": 4.07,
+        "avgDamageDealt": null,
+        "avgKills": 0.307,
+        "winRateWhenPlayed": 0.209,
+        "winRateWhenNotDrawn": 0.1859,
+        "winRateImpact": 0.0231
+      },
+      "vexishollowking": {
+        "playRate": 0.4954,
+        "avgTurnsInHand": 10.82,
+        "avgDamageDealt": null,
+        "avgKills": 0.254,
+        "winRateWhenPlayed": 0.2283,
+        "winRateWhenNotDrawn": 0.1929,
+        "winRateImpact": 0.0354
+      },
+      "bloodaltar": {
+        "playRate": 0.7624,
+        "avgTurnsInHand": 5.89,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1866,
+        "winRateWhenNotDrawn": 0.2073,
+        "winRateImpact": -0.0207
+      },
+      "imp": {
+        "playRate": 0.9407,
+        "avgTurnsInHand": 1,
+        "avgDamageDealt": null,
+        "avgKills": 0.218,
+        "winRateWhenPlayed": 0.1937,
+        "winRateWhenNotDrawn": 0.1873,
+        "winRateImpact": 0.0064
+      },
+      "veilfiend": {
+        "playRate": 0.8143,
+        "avgTurnsInHand": 5.95,
+        "avgDamageDealt": null,
+        "avgKills": 0.238,
+        "winRateWhenPlayed": 0.216,
+        "winRateWhenNotDrawn": 0.1897,
+        "winRateImpact": 0.0263
+      },
+      "dreadshade": {
+        "playRate": 0.8237,
+        "avgTurnsInHand": 6.78,
+        "avgDamageDealt": null,
+        "avgKills": 0.73,
+        "winRateWhenPlayed": 0.2222,
+        "winRateWhenNotDrawn": 0.1655,
+        "winRateImpact": 0.0567
+      },
+      "shadowfiend": {
+        "playRate": 0.8534,
+        "avgTurnsInHand": 5.32,
+        "avgDamageDealt": null,
+        "avgKills": 0.802,
+        "winRateWhenPlayed": 0.2232,
+        "winRateWhenNotDrawn": 0.1423,
+        "winRateImpact": 0.081
+      },
+      "voidtitan": {
+        "playRate": 0.8,
+        "avgTurnsInHand": 7.53,
+        "avgDamageDealt": null,
+        "avgKills": 0.683,
+        "winRateWhenPlayed": 0.2516,
+        "winRateWhenNotDrawn": 0.1631,
+        "winRateImpact": 0.0885
+      },
+      "cursed_ground": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.1718,
+        "winRateImpact": null
+      },
+      "shadowtrap": {
+        "playRate": 0.8257,
+        "avgTurnsInHand": 5.12,
+        "avgDamageDealt": 0.23,
+        "avgKills": 0.069,
+        "winRateWhenPlayed": 0.2024,
+        "winRateWhenNotDrawn": 0.1854,
+        "winRateImpact": 0.017
+      },
+      "darksentence": {
+        "playRate": 0.9451,
+        "avgTurnsInHand": 3.88,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2267,
+        "winRateWhenNotDrawn": 0.16,
+        "winRateImpact": 0.0667
+      },
+      "bloodoffering": {
+        "playRate": 0.7974,
+        "avgTurnsInHand": 6.45,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1833,
+        "winRateWhenNotDrawn": 0.2118,
+        "winRateImpact": -0.0285
+      },
+      "dreadknight": {
+        "playRate": 0.9146,
+        "avgTurnsInHand": 1.69,
+        "avgDamageDealt": null,
+        "avgKills": 0.26,
+        "winRateWhenPlayed": 0.1996,
+        "winRateWhenNotDrawn": 0.1856,
+        "winRateImpact": 0.014
+      },
+      "infernalpact": {
+        "playRate": 0.773,
+        "avgTurnsInHand": 9.25,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1754,
+        "winRateWhenNotDrawn": 0.2037,
+        "winRateImpact": -0.0283
+      },
+      "smokebomb": {
+        "playRate": 0.8682,
+        "avgTurnsInHand": 3.03,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.2079,
+        "winRateWhenNotDrawn": 0.1856,
+        "winRateImpact": 0.0223
+      },
+      "fleshtithe": {
+        "playRate": 0.7837,
+        "avgTurnsInHand": 6.41,
+        "avgDamageDealt": null,
+        "avgKills": 0.303,
+        "winRateWhenPlayed": 0.2128,
+        "winRateWhenNotDrawn": 0.1871,
+        "winRateImpact": 0.0257
+      },
+      "shadowstalker": {
+        "playRate": 0.8949,
+        "avgTurnsInHand": 3.54,
+        "avgDamageDealt": null,
+        "avgKills": 0.512,
+        "winRateWhenPlayed": 0.2064,
+        "winRateWhenNotDrawn": 0.1791,
+        "winRateImpact": 0.0272
+      },
+      "devour": {
+        "playRate": 0.9212,
+        "avgTurnsInHand": 4.21,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1957,
+        "winRateWhenNotDrawn": 0.1798,
+        "winRateImpact": 0.0159
+      },
+      "agonizingsymphony": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.1902,
+        "winRateImpact": null
+      },
+      "pestilence": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.1989,
+        "winRateImpact": null
+      },
+      "pactofruin": {
+        "playRate": 0,
+        "avgTurnsInHand": 0,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": null,
+        "winRateWhenNotDrawn": 0.192,
+        "winRateImpact": null
+      },
+      "hellhound": {
+        "playRate": 0.8481,
+        "avgTurnsInHand": 4.44,
+        "avgDamageDealt": null,
+        "avgKills": 0.398,
+        "winRateWhenPlayed": 0.2197,
+        "winRateWhenNotDrawn": 0.181,
+        "winRateImpact": 0.0387
+      },
+      "zmore": {
+        "playRate": 0.5069,
+        "avgTurnsInHand": 10.42,
+        "avgDamageDealt": null,
+        "avgKills": 0.475,
+        "winRateWhenPlayed": 0.1983,
+        "winRateWhenNotDrawn": 0.2031,
+        "winRateImpact": -0.0049
+      },
+      "souldrain": {
+        "playRate": 0.9538,
+        "avgTurnsInHand": 3.05,
+        "avgDamageDealt": 0,
+        "avgKills": 0,
+        "winRateWhenPlayed": 0.1986,
+        "winRateWhenNotDrawn": 0.1837,
+        "winRateImpact": 0.0149
+      }
+    }
+  }
+}

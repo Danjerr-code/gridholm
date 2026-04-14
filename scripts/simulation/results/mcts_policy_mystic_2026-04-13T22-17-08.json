@@ -1,0 +1,151 @@
+{
+  "meta": {
+    "mode": "mcts",
+    "faction": "mystic",
+    "generations": 3,
+    "population": 6,
+    "gamesPerPair": 6,
+    "survivors": 2,
+    "sims": 1,
+    "mutationRange": 0.3,
+    "timestamp": "2026-04-13T22-17-08"
+  },
+  "seedPolicy": {
+    "attackChampionBias": 3,
+    "attackUnitBias": 1.5,
+    "playCardBias": 1.2,
+    "moveTowardChampionBias": 1.3,
+    "moveAwayBias": 0.3,
+    "endTurnBias": 0.5,
+    "useAbilityBias": 1.5
+  },
+  "best": {
+    "id": 0,
+    "policy": {
+      "attackChampionBias": 3,
+      "attackUnitBias": 1.5,
+      "playCardBias": 1.2,
+      "moveTowardChampionBias": 1.3,
+      "moveAwayBias": 0.3,
+      "endTurnBias": 0.5,
+      "useAbilityBias": 1.5
+    },
+    "wins": 0,
+    "losses": 0,
+    "draws": 30,
+    "winRate": 0
+  },
+  "history": [
+    {
+      "gen": 1,
+      "topWR": 0,
+      "medianWR": 0,
+      "drawRate": 1
+    },
+    {
+      "gen": 2,
+      "topWR": 0,
+      "medianWR": 0,
+      "drawRate": 1
+    },
+    {
+      "gen": 3,
+      "topWR": 0,
+      "medianWR": 0,
+      "drawRate": 1
+    }
+  ],
+  "finalPopulation": [
+    {
+      "id": 0,
+      "policy": {
+        "attackChampionBias": 3,
+        "attackUnitBias": 1.5,
+        "playCardBias": 1.2,
+        "moveTowardChampionBias": 1.3,
+        "moveAwayBias": 0.3,
+        "endTurnBias": 0.5,
+        "useAbilityBias": 1.5
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30,
+      "winRate": 0
+    },
+    {
+      "id": 1,
+      "policy": {
+        "attackChampionBias": 2.290249914773749,
+        "attackUnitBias": 1.6761587127565438,
+        "playCardBias": 1.2957213915893784,
+        "moveTowardChampionBias": 0.9709045853590829,
+        "moveAwayBias": 0.27911112414414213,
+        "endTurnBias": 0.4391249146862857,
+        "useAbilityBias": 1.741303208564276
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30
+    },
+    {
+      "id": 12,
+      "policy": {
+        "attackChampionBias": 3.520310846095069,
+        "attackUnitBias": 1.8621292714314097,
+        "playCardBias": 0.8611375375616924,
+        "moveTowardChampionBias": 1.03999920558329,
+        "moveAwayBias": 0.21905402466718044,
+        "endTurnBias": 0.6019104578628892,
+        "useAbilityBias": 1.776046844999812
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30
+    },
+    {
+      "id": 13,
+      "policy": {
+        "attackChampionBias": 1.6557324139584673,
+        "attackUnitBias": 1.3269707001688094,
+        "playCardBias": 1.2588604527956089,
+        "moveTowardChampionBias": 1.1309306037693259,
+        "moveAwayBias": 0.35265760926547046,
+        "endTurnBias": 0.42578409422207875,
+        "useAbilityBias": 1.2415408870686333
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30
+    },
+    {
+      "id": 14,
+      "policy": {
+        "attackChampionBias": 3.736888123291271,
+        "attackUnitBias": 1.7466173493481916,
+        "playCardBias": 1.2932107167798397,
+        "moveTowardChampionBias": 1.6550113880021888,
+        "moveAwayBias": 0.24643552208324038,
+        "endTurnBias": 0.5895653037028427,
+        "useAbilityBias": 1.3979749946929387
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30
+    },
+    {
+      "id": 15,
+      "policy": {
+        "attackChampionBias": 2.3957789400765233,
+        "attackUnitBias": 1.9007923599263918,
+        "playCardBias": 1.160184158430538,
+        "moveTowardChampionBias": 0.8059511624429849,
+        "moveAwayBias": 0.22883636008191788,
+        "endTurnBias": 0.3617434642051592,
+        "useAbilityBias": 1.2970576000962128
+      },
+      "wins": 0,
+      "losses": 0,
+      "draws": 30
+    }
+  ]
+}

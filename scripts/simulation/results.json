@@ -1,0 +1,596 @@
+{
+  "results": [
+    {
+      "gameId": 1,
+      "p1Deck": "human",
+      "p2Deck": "beast",
+      "winner": "p2",
+      "turns": 24,
+      "p1FinalHP": -1,
+      "p2FinalHP": 6,
+      "cardsPlayed": {
+        "p1": [
+          "footsoldier",
+          "crossbowman",
+          "battlestandard",
+          "lucernunbrokenvow",
+          "standardbearer",
+          "gavrielholystride",
+          "warlord",
+          "soulstone",
+          "paladin",
+          "ironshield",
+          "militia",
+          "sergeant",
+          "forgeweapon",
+          "squire"
+        ],
+        "p2": [
+          "pip",
+          "packhowl",
+          "siegemound",
+          "plaguehog",
+          "razorfang",
+          "callofthesnakes",
+          "wolf",
+          "sabretooth",
+          "pounce",
+          "boar",
+          "predatorsmark",
+          "ambush",
+          "vornthundercaller",
+          "korraksecondang",
+          "savagegrowth"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "footsoldier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 1,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "hallowed_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "crossbowman": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "battlestandard": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "lucernunbrokenvow": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 6,
+            "damageAbsorbed": 3,
+            "killCount": 4,
+            "survivedUntilEnd": false
+          },
+          "standardbearer": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 1,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "gavrielholystride": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 16,
+            "damageAbsorbed": 3,
+            "killCount": 2,
+            "survivedUntilEnd": true
+          },
+          "warlord": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 5,
+            "damageAbsorbed": 5,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "soulstone": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "paladin": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 4,
+            "damageAbsorbed": 4,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "ironshield": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "militia": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 2,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "sergeant": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "forgeweapon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "squire": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          }
+        },
+        "p2": {
+          "pip": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 14,
+            "damageDealt": 0,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "packhowl": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "siegemound": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 17,
+            "damageDealt": 0,
+            "damageAbsorbed": 6,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "plaguehog": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 6,
+            "damageDealt": 5,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "razorfang": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 5,
+            "damageAbsorbed": 5,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "callofthesnakes": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "wolf": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 1,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "sabretooth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 9,
+            "damageAbsorbed": 5,
+            "killCount": 2,
+            "survivedUntilEnd": false
+          },
+          "pounce": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "boar": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 1,
+            "damageAbsorbed": 1,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "predatorsmark": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "ambush": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "vornthundercaller": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "korraksecondang": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 3,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "savagegrowth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      }
+    }
+  ],
+  "cardAnalysis": {
+    "footsoldier": {
+      "playRate": 1,
+      "avgTurnsInHand": 11,
+      "avgDamageDealt": 1,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "hallowed_ground": {
+      "playRate": 0,
+      "avgTurnsInHand": 0,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": null,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "crossbowman": {
+      "playRate": 1,
+      "avgTurnsInHand": 9,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "battlestandard": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "lucernunbrokenvow": {
+      "playRate": 1,
+      "avgTurnsInHand": 7,
+      "avgDamageDealt": 6,
+      "avgKills": 4,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "standardbearer": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 2,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "gavrielholystride": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 16,
+      "avgKills": 2,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "warlord": {
+      "playRate": 1,
+      "avgTurnsInHand": 3,
+      "avgDamageDealt": 5,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "soulstone": {
+      "playRate": 1,
+      "avgTurnsInHand": 5,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "paladin": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 4,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "ironshield": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "militia": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "sergeant": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "forgeweapon": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "squire": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "pip": {
+      "playRate": 1,
+      "avgTurnsInHand": 14,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "packhowl": {
+      "playRate": 1,
+      "avgTurnsInHand": 4,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "siegemound": {
+      "playRate": 1,
+      "avgTurnsInHand": 8.5,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "plaguehog": {
+      "playRate": 1,
+      "avgTurnsInHand": 6,
+      "avgDamageDealt": 5,
+      "avgKills": 1,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "razorfang": {
+      "playRate": 1,
+      "avgTurnsInHand": 9,
+      "avgDamageDealt": 5,
+      "avgKills": 1,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "callofthesnakes": {
+      "playRate": 1,
+      "avgTurnsInHand": 9,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "wolf": {
+      "playRate": 1,
+      "avgTurnsInHand": 11,
+      "avgDamageDealt": 1,
+      "avgKills": 1,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "sabretooth": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 9,
+      "avgKills": 2,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "pounce": {
+      "playRate": 1,
+      "avgTurnsInHand": 3,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "boar": {
+      "playRate": 1,
+      "avgTurnsInHand": 5,
+      "avgDamageDealt": 1,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "predatorsmark": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "ambush": {
+      "playRate": 1,
+      "avgTurnsInHand": 3,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "vornthundercaller": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 1,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "korraksecondang": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 3,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "savagegrowth": {
+      "playRate": 1,
+      "avgTurnsInHand": 1,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 1,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    }
+  }
+}

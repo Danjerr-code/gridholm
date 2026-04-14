@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "faction": "primal",
+    "generations": 1,
+    "population": 5,
+    "gamesPerDir": 5,
+    "depth": 2,
+    "timestamp": "2026-04-12T18-40-39"
+  },
+  "baseline": {
+    "championHP": 3,
+    "championHPDiff": 12,
+    "unitCountDiff": 5,
+    "totalATKOnBoard": 6,
+    "totalHPOnBoard": 2,
+    "throneControl": 20,
+    "unitsThreateningChampion": 25,
+    "unitsAdjacentToAlly": 4,
+    "cardsInHand": 2,
+    "hiddenUnits": 6,
+    "manaEfficiency": 2,
+    "lethalThreat": 35,
+    "championProximity": 10,
+    "opponentChampionLowHP": 30,
+    "relicsOnBoard": 4,
+    "omensOnBoard": 3,
+    "terrainBenefit": 3,
+    "terrainHarm": 3,
+    "healingValue": 0,
+    "_label": "baseline"
+  },
+  "bestWeights": {
+    "championHP": 4,
+    "championHPDiff": 12,
+    "unitCountDiff": 5,
+    "totalATKOnBoard": 5,
+    "totalHPOnBoard": 2,
+    "throneControl": 19,
+    "unitsThreateningChampion": 25,
+    "unitsAdjacentToAlly": 4,
+    "cardsInHand": 1,
+    "hiddenUnits": 6,
+    "manaEfficiency": 2,
+    "lethalThreat": 35,
+    "championProximity": 10,
+    "opponentChampionLowHP": 32,
+    "relicsOnBoard": 3,
+    "omensOnBoard": 3,
+    "terrainBenefit": 3,
+    "terrainHarm": 3,
+    "healingValue": 0,
+    "_label": "seed_3"
+  },
+  "bestScore": 23,
+  "history": [
+    {
+      "gen": 1,
+      "maxScore": 23,
+      "avgScore": 20,
+      "bestLabel": "seed_3"
+    }
+  ],
+  "diff": "  championHP                  :   3 →   4 (+1)\n  totalATKOnBoard             :   6 →   5 (-1)\n  throneControl               :  20 →  19 (-1)\n  cardsInHand                 :   2 →   1 (-1)\n  opponentChampionLowHP       :  30 →  32 (+2)\n  relicsOnBoard               :   4 →   3 (-1)"
+}

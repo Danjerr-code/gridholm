@@ -169,6 +169,31 @@
 
 ---
 
+---
+
+## MCTS-Specific Issues (LOG-1335)
+
+### Rollout Policy / Game-Play Policy Conflation — ACTIVE STRUCTURAL PROBLEM
+- **Problem**: `DEFAULT_POLICY` in `mctsAI.js` is used for both:
+  1. Biased rollouts (evaluating the quality of game states via simulation)
+  2. Game-play action selection (via biased rollout feedback to UCB1 scores)
+- **Effect**: High `attackChampionBias` (6.0) causes rollouts to always attack the champion.
+  Against healing factions (elf, demon), champion survives all attacks → every rollout returns 'loss'
+  from attacking positions → MCTS UCB1 learns champion attacks are losing → passive play → 98.3% DR.
+- **Tested values**: bias=3.0 (original) and bias=6.0 (board-requested). 6.0 is catastrophically worse.
+- **Proposed fix (Option C)**: Separate `rolloutPolicy` (used inside biasedRollout) from `gamePolicy`
+  (used to bias action selection at the MCTS decision level). Use neutral/lower bias in rollouts,
+  keep aggressive bias in game-play selection.
+- **Status**: Awaiting board direction. Do not change DEFAULT_POLICY values without CEO approval.
+
+### MCTS sims=1 Sample Size Risk
+- With only 1 rollout per action per MCTS decision, win rate estimates have very high variance.
+- Small-sample pre-matrix tests (5 games) can show false-positive results that don't hold at scale.
+- The 5-game elf vs beast test at bias=6.0 showed 20% DR; the 120-game full matrix showed 98.3%.
+- Always validate policy changes with ≥50 games per matchup before reporting as confirmed.
+
+---
+
 ## Recommended Next Improvements (Priority Order)
 
 1. **MAX_CANDIDATES 4 → 6** — Highest impact single change. Defensive moves and alternative summon tiles enter search.

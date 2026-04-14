@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "date": "2026-04-12T06:46:41.200Z",
+    "description": "Mystic hand-picked deck vs curve-built opponents",
+    "deck": [
+      "yggara",
+      "azulonsilvertide",
+      "sistersiofra",
+      "fennwickthequiet",
+      "whisper",
+      "elfelder",
+      "bloom",
+      "ancientspring",
+      "overgrowth",
+      "recall",
+      "canopysentinel",
+      "cascadesage",
+      "petrify",
+      "mindseize",
+      "verdantsurge",
+      "amethystcache",
+      "thornweave",
+      "moonveilmystic",
+      "elfranger",
+      "oathrootkeeper",
+      "duskbloomtender",
+      "sylvancourier",
+      "verdantarcher",
+      "elfscout",
+      "seedling",
+      "grovewarden",
+      "woodlandguard",
+      "moonleaf",
+      "entangle",
+      "grovechampion"
+    ],
+    "gamesPerMatchup": 50,
+    "minimaxDepth": 2,
+    "totalGames": 550,
+    "overallMysticWinRate": 0.2855,
+    "overallOpponentWinRate": 0.0309,
+    "overallDrawRate": 0.6836
+  },
+  "matchups": [
+    {
+      "opponentPairingId": "light",
+      "gamesRun": 50,
+      "mysticWinRate": 0.36,
+      "opponentWinRate": 0.02,
+      "drawRate": 0.62,
+      "avgTurns": 16.7
+    },
+    {
+      "opponentPairingId": "primal",
+      "gamesRun": 50,
+      "mysticWinRate": 0.36,
+      "opponentWinRate": 0.08,
+      "drawRate": 0.56,
+      "avgTurns": 15.1
+    },
+    {
+      "opponentPairingId": "dark",
+      "gamesRun": 50,
+      "mysticWinRate": 0.36,
+      "opponentWinRate": 0.02,
+      "drawRate": 0.62,
+      "avgTurns": 17.2
+    },
+    {
+      "opponentPairingId": "light_primal",
+      "gamesRun": 50,
+      "mysticWinRate": 0.34,
+      "opponentWinRate": 0.06,
+      "drawRate": 0.6,
+      "avgTurns": 16.4
+    },
+    {
+      "opponentPairingId": "light_mystic",
+      "gamesRun": 50,
+      "mysticWinRate": 0.36,
+      "opponentWinRate": 0,
+      "drawRate": 0.64,
+      "avgTurns": 18.3
+    },
+    {
+      "opponentPairingId": "primal_dark",
+      "gamesRun": 50,
+      "mysticWinRate": 0.22,
+      "opponentWinRate": 0.02,
+      "drawRate": 0.76,
+      "avgTurns": 16.4
+    },
+    {
+      "opponentPairingId": "mystic_dark",
+      "gamesRun": 50,
+      "mysticWinRate": 0.08,
+      "opponentWinRate": 0.04,
+      "drawRate": 0.88,
+      "avgTurns": 13.7
+    },
+    {
+      "opponentPairingId": "primal_mystic",
+      "gamesRun": 50,
+      "mysticWinRate": 0.28,
+      "opponentWinRate": 0.08,
+      "drawRate": 0.64,
+      "avgTurns": 16.2
+    },
+    {
+      "opponentPairingId": "mystic_primal",
+      "gamesRun": 50,
+      "mysticWinRate": 0.16,
+      "opponentWinRate": 0.02,
+      "drawRate": 0.82,
+      "avgTurns": 15.9
+    },
+    {
+      "opponentPairingId": "light_dark",
+      "gamesRun": 50,
+      "mysticWinRate": 0.32,
+      "opponentWinRate": 0,
+      "drawRate": 0.68,
+      "avgTurns": 18.9
+    },
+    {
+      "opponentPairingId": "dark_light",
+      "gamesRun": 50,
+      "mysticWinRate": 0.3,
+      "opponentWinRate": 0,
+      "drawRate": 0.7,
+      "avgTurns": 18.2
+    }
+  ],
+  "flags": [
+    "HIGH DRAW vs light: 62.0%",
+    "HIGH DRAW vs primal: 56.0%",
+    "HIGH DRAW vs dark: 62.0%",
+    "HIGH DRAW vs light_primal: 60.0%",
+    "HIGH DRAW vs light_mystic: 64.0%",
+    "HIGH DRAW vs primal_dark: 76.0%",
+    "HIGH DRAW vs mystic_dark: 88.0%",
+    "HIGH DRAW vs primal_mystic: 64.0%",
+    "HIGH DRAW vs mystic_primal: 82.0%",
+    "HIGH DRAW vs light_dark: 68.0%",
+    "HIGH DRAW vs dark_light: 70.0%"
+  ]
+}
