@@ -27,7 +27,7 @@ for (let i = 0; i < FACTIONS.length; i++) {
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { games: 500, ai: 'heuristic', depth: 4, sims: 200 };
+  const args = { games: 500, ai: 'mcts', depth: 4, sims: 1 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--games': args.games = parseInt(argv[++i], 10); break;
