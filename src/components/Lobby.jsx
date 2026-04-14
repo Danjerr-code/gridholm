@@ -452,6 +452,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           opacity: 0.33,
           pointerEvents: 'none',
           zIndex: 0,
+          transform: 'rotate(-17deg)',
         }}
       />
       <img
