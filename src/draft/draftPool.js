@@ -3,6 +3,8 @@ import { shuffle } from '../engine/cards.js';
 
 const ALL_FACTIONS = ['light', 'primal', 'mystic', 'dark'];
 
+const DRAFT_TYPE_WEIGHTS = { unit: 1.0, spell: 0.6, relic: 0.4, omen: 0.4, terrain: 0.4 };
+
 /**
  * Build a draft pool of card objects for a given primary + secondary faction pair.
  * Excludes legendaries, excludes champions, includes units/spells/relics/omens/terrain.
@@ -155,7 +157,8 @@ export function generatePack(
       if (ow === 0) continue;
       const cw = costWeight(card);
       const fw = factionWeight(card);
-      const total = ow * cw * fw;
+      const tw = DRAFT_TYPE_WEIGHTS[card.type] ?? 1.0;
+      const total = Math.max(1, Math.round(ow * cw * fw * tw));
       for (let w = 0; w < total; w++) weighted.push(card);
     }
     return weighted;
