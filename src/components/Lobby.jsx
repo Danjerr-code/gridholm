@@ -446,10 +446,10 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         alt=""
         style={{
           position: 'fixed',
-          left: '-80px',
+          left: '-115px',
           top: `${HEADER_HEIGHT}px`,
           width: '520px',
-          opacity: 0.4,
+          opacity: 0.33,
           pointerEvents: 'none',
           zIndex: 0,
         }}
@@ -463,7 +463,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           right: '-20px',
           top: `${HEADER_HEIGHT}px`,
           width: '520px',
-          opacity: 0.4,
+          opacity: 0.33,
           pointerEvents: 'none',
           zIndex: 0,
         }}
