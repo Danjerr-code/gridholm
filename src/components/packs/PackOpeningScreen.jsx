@@ -581,27 +581,32 @@ function SealedPackPhase({ packType, cards, onOpen }) {
         width: 140,
         height: 200,
         borderRadius: 12,
-        background: `linear-gradient(160deg, ${def.color}33, ${def.color}11, #0a0a0f)`,
+        background: '#0a0a0f',
         border: `2px solid ${def.color}80`,
         boxShadow: cracked
           ? `0 0 60px ${def.color}cc, 0 0 100px ${def.color}66`
           : hasLegendary
           ? `0 0 24px ${def.color}80, 0 0 8px #F59E0B60`
           : `0 0 24px ${def.color}40`,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        overflow: 'hidden',
         animation: opening ? 'none' : 'pack-float 3s ease-in-out infinite',
         transition: 'box-shadow 0.2s ease',
       }}>
-        {/* Glow pulse */}
+        {/* Pack art image */}
+        <img
+          src={PACK_ART[packType]}
+          alt={def.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+
+        {/* Glow pulse overlay */}
         <div style={{
           position: 'absolute',
           inset: -8,
           borderRadius: 18,
           background: `radial-gradient(ellipse, ${def.color}20, transparent 70%)`,
           animation: 'pack-glow-pulse 2s ease-in-out infinite',
+          pointerEvents: 'none',
         }} />
 
         {/* Legendary golden crack */}
@@ -620,19 +625,6 @@ function SealedPackPhase({ packType, cards, onOpen }) {
             animation: 'pack-glow-pulse 1.5s ease-in-out infinite',
           }} />
         )}
-
-        {/* Pack name */}
-        <div style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: 13,
-          fontWeight: 700,
-          color: def.color,
-          letterSpacing: '0.1em',
-          textAlign: 'center',
-          textShadow: `0 0 12px ${def.color}`,
-          zIndex: 1,
-          padding: '0 12px',
-        }}>{def.name}</div>
 
         {/* Crack effect on open */}
         {cracked && (
