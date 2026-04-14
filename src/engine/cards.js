@@ -326,7 +326,6 @@ const BEAST_DECK = [
   'savagegrowth',
   'animus',
   'gore',
-  'callofthesnakes',
   'spiritbolt',
   'wardrum',              // Relic + Neutral
   'feralsurge',           // Omen
@@ -388,7 +387,6 @@ const DEMON_DECK = [
   'darksentence',
   'devour',
   'infernalpact',
-  'shadowveil',
   'souldrain',
   'bloodaltar',           // Relic
   'smokebomb',            // Omen

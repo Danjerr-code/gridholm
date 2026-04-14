@@ -85,8 +85,8 @@ export const FACTION_WEIGHTS = {
 
   /**
    * Mystic — sustain/control, stay alive, value hand size and board presence.
-   * Long game is good; no closing urgency until very late.
-   * championHPDiff increases dynamically after turn 12 (late-game closing).
+   * Urgency ramp begins at turn 14 (lowered from 20) to reduce passive stalls.
+   * healingValue reduced 8→5, unitsThreateningChampion raised 8→14 for mid-game pressure.
    */
   mystic: {
     ...WEIGHTS,
@@ -94,9 +94,10 @@ export const FACTION_WEIGHTS = {
     unitCountDiff:            10,   // maintain board presence
     cardsInHand:               8,   // high — card advantage matters
     championHPDiff:            3,   // low early (increases after turn 12)
-    unitsThreateningChampion:  8,   // moderate, not primary early objective
-    healingValue:              8,   // new: score board states where champion HP is high
-    // gameLengthPenaltyStart: 20 (handled in computeGameLengthPenalty)
+    unitsThreateningChampion: 14,   // raised 8→14: more mid-game champion pressure
+    healingValue:              5,   // lowered 8→5: reduce passive sustain reward ~35%
+    opponentChampionLowHP:    45,   // raised 30→45: stronger finishing commitment
+    // gameLengthPenaltyStart: 14 (handled in computeGameLengthPenalty)
   },
 
   /**
@@ -255,9 +256,10 @@ function computeGameLengthPenalty(faction, turnNumber) {
       return -20 + (turnNumber - 18) * -5;
 
     case 'mystic':
-      // Patient: no penalty until turn 20 (long game is fine)
-      if (turnNumber <= 20) return 0;
-      return (turnNumber - 20) * -5;
+      // Urgency starts at turn 14 (lowered from 20) to push mid-game closing
+      if (turnNumber <= 14) return 0;
+      if (turnNumber <= 24) return (turnNumber - 14) * -2;
+      return -20 + (turnNumber - 24) * -5;
 
     default:
       // Light, Dark: default onset at turn 10
