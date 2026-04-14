@@ -122,11 +122,6 @@ const lobbyHoverStyles = `
     transform: translateY(1px);
     filter: brightness(0.92);
   }
-  @media (max-width: 640px) {
-    .lobby-dragon-silhouette {
-      display: none;
-    }
-  }
 `;
 
 function QuestCard({ title, description, current, target, completed, isWeekly }) {
@@ -328,35 +323,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
       position: 'relative',
     }}>
       <style>{lobbyHoverStyles}</style>
-
-      {/* Decorative dragon silhouette — left edge frame, hidden on mobile */}
-      <div
-        className="lobby-dragon-silhouette"
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: '50%',
-          transform: 'translateY(-50%) translateX(-20%)',
-          width: '500px',
-          pointerEvents: 'none',
-          zIndex: 0,
-          background: 'transparent',
-          backgroundColor: 'transparent',
-        }}
-      >
-        <img
-          src="/silhouette-dragon.png"
-          alt=""
-          aria-hidden="true"
-          style={{
-            width: '100%',
-            opacity: 0.35,
-            pointerEvents: 'none',
-            userSelect: 'none',
-            display: 'block',
-          }}
-        />
-      </div>
 
       {/* Top-right: Tutorial/How to Play links + Profile button */}
       <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', alignItems: 'center', gap: '4px' }} ref={dropdownRef}>
