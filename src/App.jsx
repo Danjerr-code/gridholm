@@ -1969,21 +1969,11 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 6px',
-        background: 'linear-gradient(180deg, #0a0a16 0%, #0d0d1e 100%)',
-        border: '1px solid #2a2a44',
-        borderRadius: '8px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
+        background: 'none',
+        border: 'none',
+        boxShadow: 'none',
       }}
     >
-      <div style={{
-        fontSize: '7px',
-        fontFamily: "'Cinzel', serif",
-        fontWeight: 600,
-        color: '#5a5a7a',
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        marginBottom: '2px',
-      }}>CMD</div>
       {Array.from({ length: commandLimit }, (_, idx) => idx + 1).map(i => {
         const used = i <= commandsUsed;
         const isBonus = i > 3;
@@ -1991,21 +1981,23 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
         const pipColorDim = isBonus ? '#7ec8c840' : '#C9A84C40';
         return (
           <div key={i} style={{
-            width: '36px',
-            height: '36px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
             flexShrink: 0,
             background: allUsed
-              ? 'radial-gradient(circle at 40% 35%, #5a0015 0%, #2a000a 70%)'
+              ? 'radial-gradient(circle at 38% 32%, #7a001e 0%, #3d000f 50%, #1a0008 100%)'
               : used
-                ? `radial-gradient(circle at 40% 35%, ${pipColor}ff 0%, ${pipColor}aa 50%, ${pipColor}66 100%)`
-                : 'radial-gradient(circle at 40% 35%, #1a1a2e 0%, #0a0a16 100%)',
-            border: `1.5px solid ${allUsed ? '#600018' : used ? pipColorDim : isBonus ? '#1a3a3a' : '#252538'}`,
+                ? isBonus
+                  ? 'radial-gradient(circle at 38% 32%, #b0f0f0 0%, #7ec8c8 30%, #4a9a9a 65%, #2a6060 100%)'
+                  : 'radial-gradient(circle at 38% 32%, #f0d070 0%, #C9A84C 30%, #9a7a28 65%, #5a4a10 100%)'
+                : 'radial-gradient(circle at 38% 32%, #22223a 0%, #14142a 60%, #0a0a16 100%)',
+            border: `1.5px solid ${allUsed ? '#880022' : used ? (isBonus ? '#5ababa' : '#b08838') : isBonus ? '#1a3a3a' : '#252538'}`,
             boxShadow: allUsed
-              ? '0 0 8px #80002040, inset 0 1px 2px rgba(255,255,255,0.05)'
+              ? '0 0 14px #cc003080, 0 0 28px #cc003040, inset 0 1px 2px rgba(255,80,80,0.12)'
               : used
-                ? `0 0 10px ${pipColor}50, 0 0 20px ${pipColor}20, inset 0 1px 3px rgba(255,255,255,0.35)`
-                : 'inset 0 2px 4px rgba(0,0,0,0.5)',
+                ? `0 0 12px ${pipColor}70, 0 0 24px ${pipColor}30, inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 2px rgba(0,0,0,0.4)`
+                : 'inset 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
             transition: 'background 0.25s, box-shadow 0.25s, border-color 0.25s',
             display: 'flex',
             alignItems: 'center',
@@ -2021,21 +2013,6 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
           </div>
         );
       })}
-      {allUsed && (
-        <div style={{
-          fontSize: '7px',
-          fontFamily: "'Cinzel', serif",
-          color: '#8a3040',
-          fontWeight: 600,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          textAlign: 'center',
-          lineHeight: 1.4,
-          marginTop: '2px',
-        }}>
-          Spent
-        </div>
-      )}
     </div>
   );
 }
