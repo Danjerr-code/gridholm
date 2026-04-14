@@ -90,6 +90,21 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const isRooted = !!unit.rooted;
   const hasShield = (unit.shield ?? 0) > 0;
   const isSpellImmune = !!unit.spellImmune;
+
+  // Fortitude glow: unit is a friendly combat unit owned by a light/ascended player (Valorian)
+  // and is within 2 manhattan tiles of their champion.
+  const hasFortitudeGlow = !!(
+    state &&
+    !unit.isRelic &&
+    !unit.isOmen &&
+    !unit.hidden &&
+    state.champions?.[unit.owner]?.attribute === 'light' &&
+    state.players?.[unit.owner]?.resonance?.tier === 'ascended' &&
+    (() => {
+      const champ = state.champions[unit.owner];
+      return Math.abs(champ.row - unit.row) + Math.abs(champ.col - unit.col) <= 2;
+    })()
+  );
   const tokenBorderRadius = isRelic ? '4px' : '50%';
 
   const factionColors = getFactionColors(unit.unitType);
@@ -603,7 +618,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     </div>
     {/* Status effect border glows — outside inner token to escape overflow:hidden */}
     {isStunned && <div className="status-overlay-stunned" style={{ borderRadius: tokenBorderRadius }} />}
-    {hasShield && <div className="status-overlay-shield" style={{ borderRadius: tokenBorderRadius }} />}
+    {(hasShield || hasFortitudeGlow) && <div className="status-overlay-shield" style={{ borderRadius: tokenBorderRadius }} />}
     {isSpellImmune && <div className="status-overlay-spellimmune" style={{ borderRadius: tokenBorderRadius }} />}
     {/* Legendary CSS ring — outside inner token to escape overflow:hidden */}
     {isLegendary && !isRelic && (
