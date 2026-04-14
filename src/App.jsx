@@ -855,12 +855,12 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
-        {/* Center: command strip flush against board left edge + board */}
+        {/* Center: board with absolutely positioned command indicators on left edge */}
         <div className="flex flex-1 min-w-0 min-h-0">
-          <div className="hidden sm:flex flex-col items-center justify-center flex-shrink-0">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
+          <div className="hidden sm:block" style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', zIndex: 10, paddingRight: '4px' }}>
             <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} />
           </div>
-          <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
           <Board
             state={state}
@@ -1963,56 +1963,78 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
     <div
       className="flex-shrink-0"
       style={{
-        width: 54,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px',
-        padding: '8px 0',
+        gap: '8px',
+        padding: '10px 6px',
+        background: 'linear-gradient(180deg, #0a0a16 0%, #0d0d1e 100%)',
+        border: '1px solid #2a2a44',
+        borderRadius: '8px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
     >
+      <div style={{
+        fontSize: '7px',
+        fontFamily: "'Cinzel', serif",
+        fontWeight: 600,
+        color: '#5a5a7a',
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        marginBottom: '2px',
+      }}>CMD</div>
       {Array.from({ length: commandLimit }, (_, idx) => idx + 1).map(i => {
         const used = i <= commandsUsed;
         const isBonus = i > 3;
         const pipColor = isBonus ? '#7ec8c8' : '#C9A84C';
+        const pipColorDim = isBonus ? '#7ec8c840' : '#C9A84C40';
         return (
           <div key={i} style={{
-            width: '28px',
-            height: '28px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             flexShrink: 0,
-            background: allUsed ? '#800020' : used ? pipColor : '#0f1729',
-            border: `1px solid ${allUsed ? '#80002080' : used ? `${pipColor}80` : isBonus ? '#1a3a3a' : '#2a2a3a'}`,
-            boxShadow: used && !allUsed ? `0 0 6px ${pipColor}60` : 'none',
-            transition: 'background 0.2s, border-color 0.2s',
+            background: allUsed
+              ? 'radial-gradient(circle at 40% 35%, #5a0015 0%, #2a000a 70%)'
+              : used
+                ? `radial-gradient(circle at 40% 35%, ${pipColor}ff 0%, ${pipColor}aa 50%, ${pipColor}66 100%)`
+                : 'radial-gradient(circle at 40% 35%, #1a1a2e 0%, #0a0a16 100%)',
+            border: `1.5px solid ${allUsed ? '#600018' : used ? pipColorDim : isBonus ? '#1a3a3a' : '#252538'}`,
+            boxShadow: allUsed
+              ? '0 0 8px #80002040, inset 0 1px 2px rgba(255,255,255,0.05)'
+              : used
+                ? `0 0 10px ${pipColor}50, 0 0 20px ${pipColor}20, inset 0 1px 3px rgba(255,255,255,0.35)`
+                : 'inset 0 2px 4px rgba(0,0,0,0.5)',
+            transition: 'background 0.25s, box-shadow 0.25s, border-color 0.25s',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
             <span style={{
-              fontSize: '11px',
-              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              fontFamily: "'Cinzel', serif",
               fontWeight: 700,
-              color: allUsed ? '#ff666680' : used ? '#0a0a0f' : isBonus ? '#1a4a4a' : '#2a2a4a',
+              color: allUsed ? '#ff444440' : used ? 'rgba(10,10,15,0.85)' : isBonus ? '#1a4a4a' : '#2e2e50',
+              textShadow: used && !allUsed ? '0 1px 2px rgba(255,255,255,0.3)' : 'none',
             }}>{i}</span>
           </div>
         );
       })}
       {allUsed && (
         <div style={{
-          fontSize: '8px',
-          fontFamily: 'var(--font-sans)',
-          color: '#ffffff',
+          fontSize: '7px',
+          fontFamily: "'Cinzel', serif",
+          color: '#8a3040',
           fontWeight: 600,
-          letterSpacing: '0.05em',
+          letterSpacing: '0.08em',
           textTransform: 'uppercase',
           textAlign: 'center',
-          lineHeight: 1.3,
+          lineHeight: 1.4,
+          marginTop: '2px',
         }}>
-          Commands<br />Exhausted
+          Spent
         </div>
       )}
-
     </div>
   );
 }
