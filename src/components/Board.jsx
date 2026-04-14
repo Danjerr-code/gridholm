@@ -586,12 +586,12 @@ export default function Board({
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
-      <div className="relative" style={{ padding: '15px' }}>
-      <div ref={boardRef} data-board-grid="true" className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div className="relative" style={{ padding: '40px' }}>
+      <div ref={boardRef} data-board-grid="true" className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)', padding: '40px' }}>
         <img
           src="/frame.png"
           className="absolute pointer-events-none select-none"
-          style={{ zIndex: 1, inset: '-15px', width: 'calc(100% + 30px)', height: 'calc(100% + 30px)' }}
+          style={{ zIndex: 1, inset: '-40px', width: 'calc(100% + 80px)', height: 'calc(100% + 80px)' }}
           alt=""
           aria-hidden="true"
         />
