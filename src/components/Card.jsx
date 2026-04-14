@@ -204,6 +204,8 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
         {/* Card type label */}
         {!isSpell && (
           <div style={{ marginTop: 'auto', fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 500, color: '#9CA3AF', textTransform: 'capitalize' }}>
+            {card.rarity === 'legendary' && <span style={{ color: '#C9A84C', marginRight: '2px' }}>★</span>}
+            {card.rarity === 'rare' && <span style={{ color: '#8BA3C4', marginRight: '2px' }}>◆</span>}
             {card.type === 'relic' ? 'Relic' :
              card.type === 'omen' ? 'Omen' :
              card.type === 'terrain' ? 'Terrain' :
