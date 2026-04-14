@@ -14,6 +14,7 @@ import CollectionScreen from './components/packs/CollectionScreen.jsx';
 import { supabase, getGuestId } from './supabase.js';
 import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
 import { loadDraftRun } from './draft/draftRunState.js';
+import { useAuth } from './contexts/AuthContext.jsx';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -45,6 +46,22 @@ export default function Root() {
   const [route, setRoute] = useState(parseHash);
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [playMode, setPlayMode] = useState(null); // 'quickplay' | 'custom'
+  const { currentUser } = useAuth();
+  const [profileDecks, setProfileDecks] = useState(null);
+
+  useEffect(() => {
+    if (!currentUser || !supabase) {
+      setProfileDecks(null);
+      return;
+    }
+    supabase
+      .from('decks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setProfileDecks(data ?? []);
+      });
+  }, [currentUser]);
 
   // Handle Supabase auth callback (password reset / email confirmation).
   // When the user clicks a Supabase link they land on /auth/callback?code=xxx.
@@ -168,6 +185,7 @@ export default function Root() {
             setSelectedDeck(deckId);
           }}
           opponentSelected={null}
+          profileDecks={profileDecks}
         />
       );
     }
