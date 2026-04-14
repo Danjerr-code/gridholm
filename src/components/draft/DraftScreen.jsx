@@ -318,10 +318,12 @@ function FullCard({ card, onClick }) {
         borderRadius: 8,
         padding: 12,
         width: 160,
+        height: 240,
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
+        overflow: 'hidden',
         transition: 'border-color 150ms ease, transform 150ms ease',
         boxSizing: 'border-box',
       }}
@@ -359,7 +361,7 @@ function FullCard({ card, onClick }) {
 
       {/* Rules */}
       {card.rules ? (
-        <p style={{ fontSize: 9, color: '#8a8aa0', margin: 0, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+        <p style={{ fontSize: 9, color: '#8a8aa0', margin: 0, lineHeight: 1.4, height: 38, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
           {card.rules}
         </p>
       ) : null}
