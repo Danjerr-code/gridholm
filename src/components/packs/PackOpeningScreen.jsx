@@ -262,27 +262,24 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
             width: '100%',
             height: '100%',
             borderRadius: 8,
-            background: 'linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)',
             border: `2px solid ${card.rarity === 'common' ? '#2a2a4a' : rarityColor}`,
             boxShadow: card.rarity !== 'common'
               ? `0 0 ${card.rarity === 'legendary' ? 16 : 8}px ${rarityColor}88`
               : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: 4,
+            overflow: 'hidden',
+            position: 'relative',
           }}>
-            {/* Faction-colored rune on back */}
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: card.rarity === 'common' ? '#2a2a4a' : `${rarityColor}33`,
-              border: `2px solid ${card.rarity === 'common' ? '#3a3a5a' : rarityColor}`,
-              boxShadow: card.rarity === 'legendary' ? `0 0 8px ${rarityColor}` : 'none',
-              animation: card.rarity === 'legendary' && !isFlipped ? 'card-back-pulse 1s ease-in-out infinite' : 'none',
-            }} />
+            <img
+              src="/cardback.png"
+              alt="Card back"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                animation: card.rarity === 'legendary' && !isFlipped ? 'card-back-pulse 1s ease-in-out infinite' : 'none',
+              }}
+            />
             {/* Anticipation: last card glow for guaranteed rare/legendary */}
             {anticipate && isLast && (
               <div style={{

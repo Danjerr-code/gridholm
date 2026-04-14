@@ -177,7 +177,9 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
     return (
       <div className="flex items-center justify-center gap-1 py-2">
         {Array.from({ length: player.hand.length }, (_, i) => (
-          <div key={i} className="w-10 h-14 bg-gray-700 border border-gray-600 rounded" />
+          <div key={i} className="w-10 h-14 rounded overflow-hidden" style={{ flexShrink: 0 }}>
+            <img src="/cardback.png" alt="Card" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
         ))}
         {player.hand.length === 0 && <span className="text-gray-500 text-xs">No cards</span>}
       </div>
