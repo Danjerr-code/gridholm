@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { PACK_TYPES, getPackInventory, generatePack, removePack, getTotalPackCount } from '../../packs/packGenerator.js';
+import { PACK_TYPES, generatePack, getTotalPackCount } from '../../packs/packGenerator.js';
 import { addCardsToCollection } from '../../packs/collection.js';
 import { getCardImageUrl } from '../../supabase.js';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import { usePackCredits } from '../../packs/usePackCredits.js';
 
 // ── Sound generation via Web Audio API ────────────────────────────────────────
 
@@ -768,7 +770,9 @@ function CardRevealPhase({ cards, packType, onDone, onOpenAnother, hasMorePacks 
 // ── Main PackOpeningScreen ─────────────────────────────────────────────────────
 
 export default function PackOpeningScreen({ onBack }) {
-  const [inventory, setInventory] = useState(getPackInventory);
+  const { currentUser } = useAuth();
+  const { inventory, loading: creditsLoading, consumeCredit, refreshInventory } = usePackCredits(currentUser);
+
   const [phase, setPhase] = useState('select'); // 'select' | 'sealed' | 'reveal'
   const [selectedPackType, setSelectedPackType] = useState(null);
   const [currentCards, setCurrentCards] = useState(null);
@@ -782,19 +786,9 @@ export default function PackOpeningScreen({ onBack }) {
     } catch { return false; }
   });
 
-  function refreshInventory() {
-    setInventory(getPackInventory());
-  }
-
-  function handleSelectPack(packType) {
+  async function handleSelectPack(packType) {
     const cards = generatePack(packType);
-    // Consume faction-specific pack first; fall back to mixed credits
-    if ((inventory[packType] || 0) > 0) {
-      removePack(packType);
-    } else {
-      removePack('mixed');
-    }
-    refreshInventory();
+    await consumeCredit(packType);
     setSelectedPackType(packType);
     setCurrentCards(cards);
     setShowWelcome(false);
@@ -805,28 +799,29 @@ export default function PackOpeningScreen({ onBack }) {
     setPhase('reveal');
   }
 
-  function handleDone() {
+  async function handleDone() {
     if (currentCards) {
       addCardsToCollection(currentCards.map(c => c.id));
     }
     setCurrentCards(null);
     setSelectedPackType(null);
     setPhase('select');
-    refreshInventory();
+    await refreshInventory();
   }
 
-  function handleOpenAnother() {
+  async function handleOpenAnother() {
     if (currentCards) {
       addCardsToCollection(currentCards.map(c => c.id));
     }
     const cards = generatePack(selectedPackType);
-    removePack(selectedPackType);
-    refreshInventory();
+    await consumeCredit(selectedPackType);
     setCurrentCards(cards);
     setPhase('sealed');
   }
 
-  const hasMoreOfSameType = selectedPackType && (inventory[selectedPackType] || 0) > 0;
+  const mixedCredits = inventory.mixed || 0;
+  const hasMoreOfSameType = selectedPackType &&
+    ((inventory[selectedPackType] || 0) + mixedCredits) > 0;
 
   return (
     <div style={{
@@ -891,7 +886,11 @@ export default function PackOpeningScreen({ onBack }) {
       )}
 
       <div style={{ width: '100%', maxWidth: 420, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {phase === 'select' && (
+        {phase === 'select' && creditsLoading ? (
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, color: '#4a4a6a', letterSpacing: '0.08em' }}>
+            Loading…
+          </div>
+        ) : phase === 'select' && (
           <PackSelectionPhase inventory={inventory} onSelectPack={handleSelectPack} />
         )}
 
