@@ -334,10 +334,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         alt=""
         style={{
           position: 'absolute',
-          left: 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '350px',
+          left: '-20px',
+          top: 0,
+          width: '520px',
           opacity: 0.25,
           pointerEvents: 'none',
           zIndex: 0,
@@ -349,10 +348,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         alt=""
         style={{
           position: 'absolute',
-          right: 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '350px',
+          right: '-20px',
+          top: 0,
+          width: '520px',
           opacity: 0.25,
           pointerEvents: 'none',
           zIndex: 0,
