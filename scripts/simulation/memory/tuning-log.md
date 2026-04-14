@@ -175,3 +175,40 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
   This was a lucky seed artifact — the full matrix exposes the systematic failure.
 - **Status**: FAILED. Awaiting board direction on whether to revert, try intermediate value (4.0–4.5), or
   decouple rollout policy from game-play policy.
+
+## Entry 17 — 2026-04-14 (LOG-1335) — Time-budget MCTS (timeoutMs parameter): FAILED
+- **Action**: Changed chooseActionMCTS defaults to simulations=10000 / timeoutMs=100 (hard cap).
+  Added --timeout CLI flag to runSimulation.js and runMatrix.js.
+- **Commit**: 474955e
+- **Sanity check** (beast vs beast):
+  - timeout=100ms: 80% DR (above 40% gate)
+  - timeout=200ms: 0% DR — cleared gate (but unrepresentative 5-game sample)
+- **Full matrix result** (120 games, timeoutMs=200): **85.8% overall DR** — still catastrophic.
+  Only 17/120 decisive games. Human faction: 100% DR in 4 matchups. Beast best at 10-15% WR.
+- **Root cause confirmed**: Flat MCTS with biased rollouts is structurally incapable of matching
+  minimax d=2 (29.1% DR). Minimax searches deterministic multi-step sequences; MCTS rollouts
+  average over noisy random play that rarely produces champion kills in 30 turns.
+- **5-game sample problem**: Every 5-game beast vs beast sanity check has shown misleadingly low DR
+  (0% at timeout=200ms) while full 120-game matrix shows 85.8% DR. Small samples with favorable
+  seeds cannot gate full matrix runs.
+- **Status**: FAILED. Awaiting board direction on next steps. Proposed: revert to minimax,
+  hybrid approach, or full-tree MCTS.
+
+## Entry 18 — 2026-04-14 (LOG-1335) — Minimax d=2 revert + validation matrix
+- **Action**: Reverted runSimulation.js and runMatrix.js defaults to --ai minimax --depth 2.
+  Audited boardEval.js: all 6 requested eval terms already present (allyCardValue, enemyThreatValue,
+  projectedChampionDamage, turnAggressionScale, trappedAllyPenalty, highValueUnitActivity).
+- **Commit**: 56a9682
+- **Full matrix result** (1200 games, minimax d=2): **63.3% overall DR**
+  - Human vs Beast: 12.5% DR ✅ (only healthy matchup)
+  - Human vs Elf: 97.0% DR 🚨 (critical)
+  - Human vs Demon: 74.0% DR 🚨
+  - Beast vs Elf: 77.0% DR 🚨
+  - Beast vs Demon: 31.5% DR ⚠️
+  - Elf vs Demon: 88.0% DR 🚨
+- **Comparison**: LOG-1203 final 66.3% DR → current 63.3% DR (+3pp improvement, within noise)
+  Original clean minimax d=2 baseline: 29.1% (from before faction weight additions)
+- **Root cause of gap vs 29.1% baseline**: LOG-1203 faction weights, phase scoring, and card hold
+  logic improved some matchups but severely worsened Elf matchups (from manageable to 77-97% DR).
+- **Per board protocol**: DR > 60% → hybrid approach is next step.
+- **Status**: Reported. Awaiting board direction on hybrid implementation.
