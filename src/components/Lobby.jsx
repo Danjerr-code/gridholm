@@ -340,11 +340,13 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           left: 0,
           top: '50%',
           transform: 'translateY(-50%) translateX(-20%)',
-          width: '300px',
-          opacity: 0.15,
+          width: '500px',
+          opacity: 0.35,
           pointerEvents: 'none',
           zIndex: 0,
           userSelect: 'none',
+          background: 'transparent',
+          mixBlendMode: 'luminosity',
         }}
       />
 
