@@ -209,6 +209,11 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     (effectiveSpd > 0 || !!unit.action)
   );
 
+  // Action pill: show on any unit/relic with an Action ability.
+  // Orange when the action is currently usable; grey otherwise (including all opponent units).
+  const hasAction = !!unit.action;
+  const actionAvailable = isMyUnit && isMyTurn && !unit.summoned && !unit.skipNextAction && !unit.moved && commandsUsed < commandLimit;
+
   // Long-press inspect on mobile
   const longPress = useLongPress(() => {
     if (onLongPress) onLongPress();
@@ -546,6 +551,25 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           textShadow: '0 1px 2px rgba(0,0,0,0.9)',
           letterSpacing: '0.02em',
         }}>{unit.trappedUnit.name.length > 10 ? unit.trappedUnit.name.slice(0, 9) + '…' : unit.trappedUnit.name}</div>
+      )}
+
+      {/* Action pill — shown on units/relics with an Action ability */}
+      {hasAction && (
+        <div style={{
+          position: 'absolute',
+          bottom: '14px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: actionAvailable ? '#ea580c' : '#374151',
+          color: actionAvailable ? '#fed7aa' : '#9ca3af',
+          fontSize: '7px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 600,
+          padding: '1px 3px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 3,
+        }} title={actionAvailable ? 'Action available' : 'Action used or unavailable'}>Action</div>
       )}
 
       {/* HP pill (relics) or ATK/HP pill (units) — centered bottom */}
