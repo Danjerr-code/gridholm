@@ -122,6 +122,14 @@ const lobbyHoverStyles = `
     transform: translateY(1px);
     filter: brightness(0.92);
   }
+  @keyframes metallicShimmer {
+    0%, 100% { filter: sepia(0.3) saturate(1.4) brightness(1.0) contrast(1.05); }
+    50% { filter: sepia(0.3) saturate(1.4) brightness(1.15) contrast(1.05); }
+  }
+  .lobby-silhouette {
+    filter: sepia(0.3) saturate(1.4) brightness(1.1) contrast(1.05);
+    animation: metallicShimmer 4s ease-in-out infinite;
+  }
   @media (max-width: 768px) {
     .lobby-silhouette { display: none; }
   }
