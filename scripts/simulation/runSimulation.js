@@ -281,13 +281,13 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     if (action.type === 'summon') registerSummonedUnit(beforeState, state, action, tracker);
     if (action.type === 'move')   trackCombatDamage(beforeState, state, action, tracker);
 
-    if (action.type === 'move') {
-      commandsUsedThisTurn++;
-    } else if (action.type === 'endTurn') {
+    if (action.type === 'endTurn') {
       turnCount++;
       commandsUsedThisTurn = 0;
       actionsThisTurn = 0;
     } else {
+      // Count all non-endTurn actions toward per-turn cap (move, championMove, summon, etc.)
+      if (action.type === 'move') commandsUsedThisTurn++;
       actionsThisTurn++;
     }
   }
