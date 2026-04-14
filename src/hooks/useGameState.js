@@ -61,6 +61,12 @@ const AI_PLAYER = 1;
 const AI_DECKS = ['human', 'beast', 'elf', 'demon'];
 
 function pickRandomAiDeck() {
+  // Draft mode injects a custom AI deck spec via localStorage before launching the game.
+  const draftAiDeck = localStorage.getItem('gridholm_draft_ai_deck');
+  if (draftAiDeck) {
+    localStorage.removeItem('gridholm_draft_ai_deck');
+    return draftAiDeck;
+  }
   return AI_DECKS[Math.floor(Math.random() * AI_DECKS.length)];
 }
 

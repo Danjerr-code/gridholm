@@ -8,8 +8,10 @@ import DeckBuilder from './components/DeckBuilder.jsx';
 import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
 import TutorialMenu from './components/TutorialMenu.jsx';
+import DraftMode from './components/draft/DraftMode.jsx';
 import { supabase, getGuestId } from './supabase.js';
 import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
+import { loadDraftRun } from './draft/draftRunState.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -23,6 +25,7 @@ function parseHash() {
   if (!hash || hash === '/') return { view: 'landing' };
   if (hash === 'lobby') return { view: 'lobby' };
   if (hash === 'ai') return { view: 'ai_deck_select' };
+  if (hash === 'draft') return { view: 'draft' };
   if (hash === 'how-to-play' || hash === 'howtoplay') return { view: 'how_to_play' };
   if (hash === 'card-gallery') return { view: 'card_gallery' };
   if (hash === 'tutorial') return { view: 'tutorial' };
@@ -130,6 +133,16 @@ export default function Root() {
 
   if (route.view === 'card_gallery') {
     return <CardGallery />;
+  }
+
+  if (route.view === 'draft') {
+    const savedRun = loadDraftRun();
+    return (
+      <DraftMode
+        onBackToLobby={() => navigate('/')}
+        initialRun={savedRun}
+      />
+    );
   }
 
   // Deck selection before AI game

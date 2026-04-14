@@ -4,6 +4,7 @@ import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import SignInModal from './SignInModal.jsx';
 import SignUpModal from './SignUpModal.jsx';
+import { loadDraftRun } from '../draft/draftRunState.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -328,6 +329,15 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onModeSelect('quickplay')}>
               Quick Play
             </button>
+            {(() => {
+              const savedRun = loadDraftRun();
+              const hasDraft = savedRun && !savedRun.runComplete;
+              return (
+                <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/draft')}>
+                  {hasDraft ? `Continue Draft (${savedRun.wins}W–${savedRun.losses}L)` : 'Draft'}
+                </button>
+              );
+            })()}
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck
             </button>

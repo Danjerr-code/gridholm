@@ -24,7 +24,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {}) {
+export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'human' } = {}) {
   const {
     state,
     selectedCard,
@@ -242,7 +242,12 @@ export default function App({ onBackToLobby, onPlayAgain, deckId = 'human' } = {
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
             }}
-            onClick={onPlayAgain ?? handlers.handleNewGame}
+            onClick={() => {
+              const didWin = winner === p1.name;
+              if (onGameEnd) onGameEnd(didWin);
+              else if (onPlayAgain) onPlayAgain();
+              else handlers.handleNewGame();
+            }}
           >
             Play Again
           </button>
