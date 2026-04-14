@@ -212,3 +212,69 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
   logic improved some matchups but severely worsened Elf matchups (from manageable to 77-97% DR).
 - **Per board protocol**: DR > 60% → hybrid approach is next step.
 - **Status**: Reported. Awaiting board direction on hybrid implementation.
+
+## Entry 19 — 2026-04-14 (LOG-1335) — Mystic eval changes + deck count fixes
+- **Action**: Applied 4 Mystic-specific eval changes to boardEval.js and fixed Beast/Demon deck counts.
+  - `unitsThreateningChampion`: 8 → 14 (Mystic override)
+  - `healingValue`: 8 → 5 (Mystic override)
+  - `opponentChampionLowHP`: 30 → 45 (new Mystic override)
+  - `gameLengthPenaltyStart` for mystic: 20 → 14
+  - Beast deck: removed `callofthesnakes` (31→30)
+  - Demon deck: removed `shadowveil` (31→30)
+- **Commit**: 74266e3
+- **Board note**: Board should confirm which Beast/Demon cards to remove — analyst chose last-alphabetical card not in prior deck.
+
+## Entry 20 — 2026-04-14 (LOG-1335) — New decks + Mystic eval validation matrix
+- **Action**: Full validation matrix with updated deck compositions and Mystic eval changes.
+- **Full matrix result** (1200 games, minimax d=2): **64.2% overall DR**
+  - Human vs Beast: 23.0% DR ✅ (healthy)
+  - Human vs Elf: 87.0% DR 🚨 (−10pp from 97.0%, still critical)
+  - Human vs Demon: 70.0% DR 🚨
+  - Beast vs Elf: 77.5% DR 🚨
+  - Beast vs Demon: 39.0% DR ⚠️
+  - Elf vs Demon: 89.0% DR 🚨
+- **Comparison vs prior**: 63.3% → 64.2% (+0.9pp, within noise). Mystic eval changes had minimal impact.
+- **Conclusion**: Elf matchups remain structurally broken. MCTS worse than minimax. Awaiting board direction.
+
+## Entry 22 — 2026-04-14 (LOG-1335) — championSurroundPressure + throneControlValue
+- **Action**: Added two new eval terms to boardEval.js (all factions).
+  - `championSurroundPressure`: kill-threat (adjATKSum-oppHP)×15 when positive, ×8 when covering >half HP; pin-bonus (occupiedAdjTiles×4) when ≥2 friendly adjacent
+  - `throneControlValue`: WEIGHTS base=10, Mystic override=20; champion on throne = full weight, adjacent to empty throne = 0.4× weight
+- **Commit**: 5e6b69d
+- **Full matrix result** (1200 games, minimax d=2): **56.1% overall DR** ← first below 60% since LOG-1203
+  - Human vs Beast: 14.5% DR ✅
+  - Human vs Elf: 83.0% DR 🚨
+  - Human vs Demon: 60.5% DR 🚨
+  - Beast vs Elf: 67.0% DR 🚨
+  - Beast vs Demon: 34.0% DR ⚠️
+  - Elf vs Demon: 77.5% DR 🚨
+- **Key improvements vs 64.2% baseline**: Elf vs Demon −11.5pp, Beast vs Elf −10.5pp, Human vs Demon −9.5pp
+- **Notable**: Elf win rates improved significantly (throneControlValue driving Mystic closing behavior)
+- **Status**: Reported. Awaiting board direction (still above 30% gate in multiple matchups).
+
+## Entry 23 — 2026-04-14 (LOG-1335) — No-profiles validation matrix
+- **Action**: Added `--no-profiles` flag to runSimulation.js and runMatrix.js. When active, passes base WEIGHTS directly to chooseActionMinimax, bypassing all faction profile overrides and phase modifiers.
+- **Commit**: 78b8b3e
+- **Full matrix result** (1200 games, minimax d=2, --no-profiles): **53.4% overall DR**
+  - Human vs Beast: 10.5% DR ✅
+  - Human vs Elf: 86.0% DR 🚨 (+3pp vs profiles — WORSE)
+  - Human vs Demon: 55.0% DR 🚨 (−5.5pp vs profiles)
+  - Beast vs Elf: 65.0% DR 🚨 (−2.0pp vs profiles)
+  - Beast vs Demon: 27.0% DR ✅ (first below 30% gate)
+  - Elf vs Demon: 77.0% DR 🚨 (−0.5pp vs profiles)
+- **Key finding**: Removing profiles improves overall DR by −2.7pp (56.1% → 53.4%). HOWEVER, Human vs Elf gets slightly worse (+3pp) — Mystic profile (throneControlValue=20, healingValue=0) was providing marginal closing benefit to Elf.
+- **Conclusion**: Elf structural draw problem is NOT profile-related. Profiles provide marginal benefit to Elf specifically. Beast vs Demon and Human vs Demon improve without profiles.
+- **Status**: Reported. Awaiting board direction on next steps (card pool reduction or draw rule mechanics).
+
+## Entry 21 — 2026-04-14 (LOG-1335) — HP hoarding removal (healingValue→0, championHP→5, championHPDiff→8)
+- **Action**: Removed all Mystic HP hoarding bonuses. Set championHP and championHPDiff to WEIGHTS base values.
+  - `healingValue`: 5 → 0
+  - `championHP`: 10 → 5 (WEIGHTS base)
+  - `championHPDiff`: 3 → 8 (WEIGHTS base)
+- **Commit**: 748523e
+- **Targeted test** (n=10 each, minimax d=2):
+  - Human vs Elf: 80.0% DR (was 87.0%)
+  - Elf vs Demon: 90.0% DR (was 89.0%)
+  - Combined: 85.0% DR — above 60% gate, no full matrix
+- **Conclusion**: All Mystic eval levers exhausted. Draw pattern is structural (healing card count).
+  Mystic profile now essentially identical to base WEIGHTS. Awaiting board direction on card pool or mechanics.
