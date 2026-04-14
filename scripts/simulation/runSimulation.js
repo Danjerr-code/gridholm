@@ -11,7 +11,7 @@
  *   --p2      Deck ID for player 2 (human|beast|elf|demon, default: beast)
  *   --games   Number of games to simulate (default: 100)
  *   --output  Output file path (default: results.json)
- *   --ai      AI mode: heuristic | minimax | mcts (default: mcts)
+ *   --ai      AI mode: heuristic | minimax | mcts (default: minimax)
  *   --depth   Minimax depth (default: 4, only used when --ai minimax)
  *   --sims    MCTS simulations upper bound (default: 10000, only used when --ai mcts)
  *   --timeout MCTS per-decision time cap in ms (default: 100, only used when --ai mcts)
@@ -26,7 +26,7 @@ import { chooseActionMCTS } from './mctsAI.js';
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'mcts', depth: 4, sims: 10000, timeout: 100 };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'minimax', depth: 2, sims: 10000, timeout: 100 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case '--p1':      args.p1      = argv[++i]; break;
