@@ -1259,6 +1259,41 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           resources={state.players[graveViewerPlayer].resources}
         />
       )}
+
+      {/* Challenge progress toasts shown at game end */}
+      {challengeToasts.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          zIndex: 200,
+          pointerEvents: 'none',
+        }}>
+          {challengeToasts.map(toast => (
+            <div key={toast.id} style={{
+              background: toast.completed ? '#0d1a0d' : '#0f0f1e',
+              border: `1px solid ${toast.completed ? '#4ade8060' : '#C9A84C40'}`,
+              borderRadius: '6px',
+              padding: '8px 14px',
+              fontSize: '12px',
+              color: toast.completed ? '#4ade80' : '#C9A84C',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.6)',
+              whiteSpace: 'nowrap',
+              fontFamily: "'Cinzel', serif",
+              letterSpacing: '0.04em',
+            }}>
+              {toast.completed
+                ? <>✓ Challenge Complete!{toast.packReward ? ` · 🎴 ×${toast.packReward} Pack earned!` : ''}</>
+                : `Challenge: ${toast.current}/${toast.target}`
+              }
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1978,40 +2013,6 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
         </div>
       )}
 
-      {/* Challenge progress toasts shown at game end */}
-      {challengeToasts.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          zIndex: 200,
-          pointerEvents: 'none',
-        }}>
-          {challengeToasts.map(toast => (
-            <div key={toast.id} style={{
-              background: toast.completed ? '#0d1a0d' : '#0f0f1e',
-              border: `1px solid ${toast.completed ? '#4ade8060' : '#C9A84C40'}`,
-              borderRadius: '6px',
-              padding: '8px 14px',
-              fontSize: '12px',
-              color: toast.completed ? '#4ade80' : '#C9A84C',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.6)',
-              whiteSpace: 'nowrap',
-              fontFamily: "'Cinzel', serif",
-              letterSpacing: '0.04em',
-            }}>
-              {toast.completed
-                ? <>✓ Challenge Complete!{toast.packReward ? ` · 🎴 ×${toast.packReward} Pack earned!` : ''}</>
-                : `Challenge: ${toast.current}/${toast.target}`
-              }
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
