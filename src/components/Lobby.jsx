@@ -6,6 +6,7 @@ import SignInModal from './SignInModal.jsx';
 import SignUpModal from './SignUpModal.jsx';
 import { loadDraftRun } from '../draft/draftRunState.js';
 import { hasUnviewedCompletions } from '../challenges/challengeManager.js';
+import { getTotalPackCount } from '../packs/packGenerator.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -96,6 +97,16 @@ const lobbyHoverStyles = `
   }
 `;
 
+const WELCOME_SEEN_KEY = 'gridholm_welcome_packs_seen';
+
+function checkShowWelcome() {
+  try {
+    if (localStorage.getItem(WELCOME_SEEN_KEY)) return false;
+    const col = localStorage.getItem('gridholm_collection');
+    return !col || col === '{}' || col === 'null';
+  } catch { return false; }
+}
+
 export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [joinInput, setJoinInput] = useState('');
   const [creating, setCreating] = useState(false);
@@ -103,6 +114,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [joinError, setJoinError] = useState(null);
   const [authModal, setAuthModal] = useState(null); // 'signin' | 'signup' | null
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showPackWelcome, setShowPackWelcome] = useState(checkShowWelcome);
   const dropdownRef = useRef(null);
   const { currentUser, signOut } = useAuth();
 
@@ -324,6 +336,48 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           }}>A tactical card game</p>
         </div>
 
+        {/* First-time pack welcome banner */}
+        {showPackWelcome && !playMode && (
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1200, #2a1e00)',
+            border: '1px solid #C9A84C60',
+            borderRadius: 8,
+            padding: '14px 18px',
+            boxShadow: '0 0 20px #C9A84C20',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, color: '#C9A84C', marginBottom: 6 }}>
+              Welcome to Gridholm!
+            </div>
+            <div style={{ fontSize: 12, color: '#a0a0c0', lineHeight: 1.5, marginBottom: 12 }}>
+              You have 3 free packs to open. Start building your collection!
+            </div>
+            <button
+              onClick={() => {
+                try { localStorage.setItem(WELCOME_SEEN_KEY, '1'); } catch {}
+                setShowPackWelcome(false);
+                onNavigate('/packs');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                color: '#0a0a0f',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 12,
+                fontWeight: 700,
+                border: 'none',
+                borderRadius: 6,
+                padding: '8px 20px',
+                cursor: 'pointer',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                boxShadow: '0 0 12px #C9A84C60',
+              }}
+            >
+              Open Packs
+            </button>
+          </div>
+        )}
+
         {/* Mode selection */}
         {!playMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -357,6 +411,36 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                   boxShadow: '0 0 6px #4ade80',
                 }} />
               )}
+            </button>
+            {(() => {
+              const packCount = getTotalPackCount();
+              return (
+                <button
+                  className="lobby-btn-muted"
+                  style={{ ...btnSecondary, position: 'relative' }}
+                  onClick={() => onNavigate('/packs')}
+                >
+                  Packs
+                  {packCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '6px',
+                      right: '10px',
+                      background: '#C9A84C',
+                      color: '#0a0a0f',
+                      fontSize: '10px',
+                      fontFamily: "'Cinzel', serif",
+                      fontWeight: 700,
+                      borderRadius: '10px',
+                      padding: '1px 6px',
+                      lineHeight: 1.4,
+                    }}>{packCount}</span>
+                  )}
+                </button>
+              );
+            })()}
+            <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/collection')}>
+              Collection
             </button>
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck

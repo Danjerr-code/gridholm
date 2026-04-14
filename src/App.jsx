@@ -18,7 +18,7 @@ import { isMuted, setMuted } from './audio.js';
 import { renderRules } from './utils/rulesText.jsx';
 import GraveViewerModal from './components/GraveViewerModal.jsx';
 import { trackGameEnd } from './challenges/challengeTracker.js';
-import { ensureChallengeProgress } from './challenges/challengeManager.js';
+import { ensureChallengeProgress, getActiveChallenges } from './challenges/challengeManager.js';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -93,12 +93,23 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
       const result = trackGameEnd(gameResult);
       if (result.progressed.length > 0) {
         // Build toast entries for progressed challenges
-        const toasts = result.progressed.slice(0, 3).map(id => ({
-          id,
-          completed: result.completed.includes(id),
-          current: result.updates[id]?.current ?? 0,
-          target: result.updates[id]?.target ?? 1,
-        }));
+        const { daily: activeDailyList, weekly: activeWeekly } = getActiveChallenges();
+        const allActive = activeWeekly ? [...activeDailyList, activeWeekly] : [...activeDailyList];
+        const toasts = result.progressed.slice(0, 3).map(id => {
+          const ch = allActive.find(c => c.id === id);
+          const completed = result.completed.includes(id);
+          let packReward = null;
+          if (completed && ch) {
+            packReward = ch.type === 'weekly' ? 2 : 1;
+          }
+          return {
+            id,
+            completed,
+            current: result.updates[id]?.current ?? 0,
+            target: result.updates[id]?.target ?? 1,
+            packReward,
+          };
+        });
         setChallengeToasts(toasts);
         setTimeout(() => setChallengeToasts([]), 4000);
       }
@@ -1993,7 +2004,10 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
               fontFamily: "'Cinzel', serif",
               letterSpacing: '0.04em',
             }}>
-              {toast.completed ? '✓ Challenge Complete!' : `Challenge: ${toast.current}/${toast.target}`}
+              {toast.completed
+                ? <>✓ Challenge Complete!{toast.packReward ? ` · 🎴 ×${toast.packReward} Pack earned!` : ''}</>
+                : `Challenge: ${toast.current}/${toast.target}`
+              }
             </div>
           ))}
         </div>

@@ -1,6 +1,7 @@
 // Challenge Tracker: evaluates a game result against active challenges and updates progress.
 
 import { getActiveChallenges, getChallengeProgress, saveChallengeProgress, recordNewCompletions } from './challengeManager.js';
+import { addPacks } from '../packs/packGenerator.js';
 
 /**
  * gameResult shape (assembled from final game state in App.jsx / DraftMode):
@@ -198,6 +199,17 @@ export function trackGameEnd(gameResult) {
   }
   if (newlyCompleted.length > 0) {
     recordNewCompletions(newlyCompleted);
+
+    // Award packs for newly completed challenges
+    for (const challengeId of newlyCompleted) {
+      const challenge = allChallenges.find(c => c.id === challengeId);
+      if (!challenge) continue;
+      if (challenge.type === 'daily') {
+        addPacks('mixed', 1);
+      } else if (challenge.type === 'weekly') {
+        addPacks('mixed', 2);
+      }
+    }
   }
 
   // Return which challenges made progress and which were newly completed
