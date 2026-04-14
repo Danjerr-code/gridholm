@@ -311,9 +311,10 @@ function FullCard({ card, onClick }) {
   return (
     <div
       onClick={onClick}
+      className={card.legendary ? 'legendary-draft-glow' : undefined}
       style={{
         background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)',
-        border: `2px solid ${attrColor}66`,
+        border: card.legendary ? '1px solid rgba(255, 140, 0, 0.8)' : `2px solid ${attrColor}66`,
         borderRadius: 8,
         padding: 12,
         width: 160,
@@ -321,11 +322,11 @@ function FullCard({ card, onClick }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
+        transition: 'border-color 150ms ease, transform 150ms ease',
         boxSizing: 'border-box',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = attrColor; e.currentTarget.style.boxShadow = `0 0 12px ${attrColor}50`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = `${attrColor}66`; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = card.legendary ? 'rgba(255, 140, 0, 1)' : attrColor; if (!card.legendary) e.currentTarget.style.boxShadow = `0 0 12px ${attrColor}50`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = card.legendary ? 'rgba(255, 140, 0, 0.8)' : `${attrColor}66`; if (!card.legendary) e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
     >
       {/* Cost badge + Name */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

@@ -24,6 +24,15 @@
   animation: legendaryShimmer 3s ease-in-out infinite;
 }
 
+@keyframes legendary-draft-glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px 4px rgba(255, 140, 0, 0.7); }
+  50% { box-shadow: 0 0 5px 2px rgba(255, 140, 0, 0.3); }
+}
+
+.legendary-draft-glow {
+  animation: legendary-draft-glow-pulse 2s ease-in-out infinite;
+}
+
 /* Legendary unit token — animated gold ring */
 @keyframes legendary-ring-rotate {
   from { transform: translate(-50%, -50%) rotate(0deg); }
