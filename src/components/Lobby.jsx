@@ -350,12 +350,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           aria-hidden="true"
           style={{
             width: '100%',
-            opacity: 0.5,
+            opacity: 0.35,
             pointerEvents: 'none',
             userSelect: 'none',
-            background: 'transparent',
-            backgroundColor: 'transparent',
-            mixBlendMode: 'multiply',
             display: 'block',
           }}
         />
