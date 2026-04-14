@@ -655,12 +655,12 @@ function SealedPackPhase({ packType, cards, onOpen }) {
 // ── Phase C+D: Card Reveal ─────────────────────────────────────────────────────
 
 function CardRevealPhase({ cards, packType, onDone, onOpenAnother, hasMorePacks }) {
-  const [flippedCount, setFlippedCount] = useState(0);
-  const allFlipped = flippedCount >= cards.length;
+  const [revealedCards, setRevealedCards] = useState(new Set());
+  const allFlipped = revealedCards.size >= cards.length;
   const def = PACK_TYPES[packType];
 
-  function handleFlip() {
-    setFlippedCount(prev => prev + 1);
+  function handleFlip(index) {
+    setRevealedCards(prev => new Set([...prev, index]));
   }
 
   return (
@@ -676,19 +676,17 @@ function CardRevealPhase({ cards, packType, onDone, onOpenAnother, hasMorePacks 
         justifyContent: 'center',
       }}>
         {cards.map((card, i) => {
-          const isFlipped = i < flippedCount;
-          const isNext = i === flippedCount;
+          const isFlipped = revealedCards.has(i);
           const isLast = i === cards.length - 1;
-          const flippedSoFar = flippedCount;
-          // Anticipation: all except last flipped, and next is last card
-          const anticipate = flippedSoFar >= cards.length - 2 && isNext && isLast;
+          // Anticipation: only the last card remains unrevealed
+          const anticipate = revealedCards.size >= cards.length - 1 && !isFlipped && isLast;
 
           return (
             <CardBack
               key={card.id}
               card={card}
               isFlipped={isFlipped}
-              onFlip={handleFlip}
+              onFlip={() => handleFlip(i)}
               isLast={isLast}
               isLegendaryCard={card.rarity === 'legendary'}
               anticipate={anticipate}
