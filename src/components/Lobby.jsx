@@ -122,6 +122,9 @@ const lobbyHoverStyles = `
     transform: translateY(1px);
     filter: brightness(0.92);
   }
+  @media (max-width: 768px) {
+    .lobby-silhouette { display: none; }
+  }
 `;
 
 function QuestCard({ title, description, current, target, completed, isWeekly }) {
@@ -324,6 +327,38 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     }}>
       <style>{lobbyHoverStyles}</style>
 
+      {/* Decorative silhouettes */}
+      <img
+        className="lobby-silhouette"
+        src="/dragon.png"
+        alt=""
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '350px',
+          opacity: 0.25,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <img
+        className="lobby-silhouette"
+        src="/angel.png"
+        alt=""
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '350px',
+          opacity: 0.25,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
       {/* Top-right: Tutorial/How to Play links + Profile button */}
       <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', alignItems: 'center', gap: '4px' }} ref={dropdownRef}>
         <button style={btnTopNav} onClick={() => onNavigate('/tutorial')}>Tutorial</button>
@@ -433,7 +468,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         />
       )}
 
-      <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{
             fontFamily: "'Cinzel', serif",
