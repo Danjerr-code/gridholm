@@ -859,7 +859,8 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
         <div className="flex flex-1 min-w-0 min-h-0">
           <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
-          <div className="flex items-center justify-center flex-1 min-h-0 gap-2">
+          <div className="flex items-center flex-1 min-h-0 justify-center">
+          <div className="flex items-center gap-1">
           <div className="hidden sm:block flex-shrink-0">
             <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} />
           </div>
@@ -889,6 +890,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
             onLongPressUnit={isMobile ? handlers.handleInspectUnit : undefined}
             onLongPressDismiss={isMobile ? handlers.handleClearInspect : undefined}
           />
+          </div>
           </div>
           </div>
         </div>

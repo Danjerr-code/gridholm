@@ -1388,7 +1388,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         <div className="flex flex-1 min-w-0 min-h-0">
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={myPlayerIndex} />
-          <div className="flex items-center justify-center flex-1 min-h-0 gap-2">
+          <div className="flex items-center flex-1 min-h-0 justify-center">
+          <div className="flex items-center gap-1">
           {!isMobile && (
             <div className="flex-shrink-0">
               <CommandDisplay commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
@@ -1422,6 +1423,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onLongPressUnit={isMobile ? handleInspectUnit : undefined}
             onLongPressDismiss={isMobile ? handleClearInspect : undefined}
           />
+          </div>
           </div>
         </div>
         </div>
