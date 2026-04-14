@@ -1891,29 +1891,6 @@ function DeckPanel({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameChang
         {saveFlash ? 'Saved!' : 'Save Deck'}
       </button>
 
-      {/* Load Deck */}
-      {savedDeckExists && (
-        <button
-          style={{
-            width: '100%',
-            background: 'transparent',
-            color: '#6a8ac9',
-            fontFamily: "'Cinzel', serif",
-            fontSize: '10px',
-            border: '1px solid #2a3a5a',
-            borderRadius: '3px',
-            padding: '5px',
-            cursor: 'pointer',
-            letterSpacing: '0.04em',
-          }}
-          onClick={onLoadDeck}
-          onMouseEnter={e => { e.currentTarget.style.color = '#93b4f5'; e.currentTarget.style.borderColor = '#4a6a9a'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#6a8ac9'; e.currentTarget.style.borderColor = '#2a3a5a'; }}
-        >
-          Load Saved Deck
-        </button>
-      )}
-
       {/* Play with this Deck */}
       {onPlay && (
         <button
@@ -2016,26 +1993,6 @@ function ChampionStep({ onSelect, onBack, onLoadDeck }) {
         >
           ← Back to Lobby
         </button>
-        {onLoadDeck && (
-          <button
-            style={{
-              background: 'transparent',
-              color: '#6a8ac9',
-              fontFamily: "'Cinzel', serif",
-              fontSize: '13px',
-              border: '1px solid #2a3a5a',
-              borderRadius: '4px',
-              padding: '8px 20px',
-              cursor: 'pointer',
-              letterSpacing: '0.04em',
-            }}
-            onClick={onLoadDeck}
-            onMouseEnter={e => { e.currentTarget.style.color = '#93b4f5'; e.currentTarget.style.borderColor = '#4a6a9a'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#6a8ac9'; e.currentTarget.style.borderColor = '#2a3a5a'; }}
-          >
-            Load Saved Deck
-          </button>
-        )}
       </div>
     </>
   );

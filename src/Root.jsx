@@ -92,7 +92,7 @@ export default function Root() {
   if (route.view === 'deck_builder') {
     return (
       <DeckBuilder
-        onBack={() => navigate('/')}
+        onBack={() => navigate('lobby')}
         onNext={() => navigate('/custom-play')}
       />
     );
