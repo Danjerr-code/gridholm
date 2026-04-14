@@ -59,6 +59,7 @@ export const WEIGHTS = {
   enemyThreatValue:          4,  // sum of threatValue ratings for enemy combat units (applied negatively)
   trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
   highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
+  throneControlValue:       10,  // bonus for friendly champion on/near throne (Mystic overrides to 20)
 };
 
 /**
@@ -98,6 +99,7 @@ export const FACTION_WEIGHTS = {
     unitsThreateningChampion: 14,   // raised 8→14: more mid-game champion pressure
     healingValue:              0,   // removed: passive HP reward eliminated
     opponentChampionLowHP:    45,   // raised 30→45: stronger finishing commitment
+    throneControlValue:       20,   // 2× base: sustain on throne is core Mystic strategy
     // gameLengthPenaltyStart: 14 (handled in computeGameLengthPenalty)
   },
 
@@ -478,6 +480,59 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // championSurroundPressure: reward positions where friendly units adjacent to enemy champion
+  // threaten a kill. Two components:
+  //   1. Kill-threat: (sumATK - oppHP) × 15 if positive (lethal); × 8 if >half HP covered.
+  //   2. Pin-bonus: (occupiedAdjTiles) × 4 when ≥2 friendly units adjacent (limits summoning).
+  const BOARD_SIZE = 5;
+  const adjDirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  const adjToOppChamp = adjDirs
+    .map(([dr, dc]) => [oppChamp.row + dr, oppChamp.col + dc])
+    .filter(([r, c]) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE);
+
+  const adjFriendlyUnits = myUnits.filter(u =>
+    adjToOppChamp.some(([r, c]) => u.row === r && u.col === c)
+  );
+  const adjATKSum = adjFriendlyUnits.reduce((s, u) => s + (u.atk ?? 0), 0);
+  const netKillPressure = adjATKSum - oppChamp.hp;
+
+  let killThreatScore = 0;
+  if (netKillPressure > 0) {
+    killThreatScore = netKillPressure * 15;
+  } else if (adjATKSum > oppChamp.hp / 2) {
+    killThreatScore = adjATKSum * 8;
+  }
+
+  let pinBonus = 0;
+  if (adjFriendlyUnits.length >= 2) {
+    const emptyAdjTiles = adjToOppChamp.filter(([r, c]) =>
+      !gameState.units.some(u => u.row === r && u.col === c) &&
+      !(gameState.champions[0].row === r && gameState.champions[0].col === c) &&
+      !(gameState.champions[1].row === r && gameState.champions[1].col === c)
+    ).length;
+    pinBonus = (adjToOppChamp.length - emptyAdjTiles) * 4;
+  }
+
+  const championSurroundPressure = killThreatScore + pinBonus;
+
+  // throneControlValue: champion-specific throne positioning bonus.
+  // Distinct from throneControl (which scores any friendly unit/champion on throne).
+  // Scores: 1.0 if my champion is on throne; 0.4 if adjacent to empty throne.
+  let throneControlValue = 0;
+  if (myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL) {
+    throneControlValue = 1.0;
+  } else {
+    const throneOccupied = gameState.units.some(u => u.row === THRONE_ROW && u.col === THRONE_COL) ||
+      (gameState.champions[0].row === THRONE_ROW && gameState.champions[0].col === THRONE_COL) ||
+      (gameState.champions[1].row === THRONE_ROW && gameState.champions[1].col === THRONE_COL);
+    const champAdjacentToThrone = adjDirs.some(
+      ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
+    );
+    if (champAdjacentToThrone && !throneOccupied) {
+      throneControlValue = 0.4; // yields +4 base (×10) or +8 Mystic (×20)
+    }
+  }
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behavior.
@@ -510,7 +565,9 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     allyCardValue            * (w.allyCardValue ?? 3)     +
     enemyThreatValue         * (w.enemyThreatValue ?? 4)  +
     trappedAllyPenaltyValue                               +
-    highValueIdlePenalty;
+    highValueIdlePenalty                                  +
+    championSurroundPressure                              +
+    throneControlValue        * (w.throneControlValue ?? 10);
 
   return score;
 }
