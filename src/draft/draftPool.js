@@ -30,78 +30,220 @@ export function buildDraftPool(primaryFaction, secondaryFaction) {
 }
 
 /**
- * Generate a pack of 3 card objects from the pool with curve balancing.
+ * Assign 10 of the 29 main pick positions as rare slots.
+ * Constraints: no two rare slots consecutive, no gap between consecutive
+ * rare slots exceeds 4 picks (i.e. consecutive rare positions differ by 2–5).
  *
- * @param {Object[]} pool           - full pool from buildDraftPool
- * @param {string[]} draftedCardIds - IDs already drafted (duplicates allowed)
- * @param {number}   pickNumber     - 1-indexed pick number (1..29)
- * @returns {Object[]} 3 card objects
+ * @returns {Set<number>} set of 1-indexed pick positions (within 1..29)
  */
-export function generatePack(pool, draftedCardIds, pickNumber) {
+export function assignRareSlots() {
+  for (let attempt = 0; attempt < 2000; attempt++) {
+    // Generate 9 spacings between consecutive rare slots, each 2–5
+    const gaps = [];
+    for (let i = 0; i < 9; i++) {
+      gaps.push(2 + Math.floor(Math.random() * 4)); // 2, 3, 4, or 5
+    }
+    const totalSpan = gaps.reduce((a, b) => a + b, 0);
+    // First rare slot: 1 to (29 - totalSpan)
+    const maxStart = 29 - totalSpan;
+    if (maxStart < 1) continue;
+    const start = 1 + Math.floor(Math.random() * maxStart);
+
+    const positions = [start];
+    for (const gap of gaps) {
+      positions.push(positions[positions.length - 1] + gap);
+    }
+
+    if (positions[positions.length - 1] > 29) continue;
+    return new Set(positions);
+  }
+
+  // Fallback: evenly spaced rare slots
+  return new Set([2, 5, 8, 11, 14, 17, 20, 23, 26, 29]);
+}
+
+/**
+ * Generate a pack of cards from the pool with rarity-aware slot composition
+ * and offering penalty weighting.
+ *
+ * @param {Object[]}     pool               - full pool from buildDraftPool
+ * @param {string[]}     draftedCardIds     - IDs already drafted
+ * @param {number}       pickNumber         - 1-indexed pick number (1..29)
+ * @param {string}       primaryFaction     - e.g. 'light'
+ * @param {string}       secondaryFaction   - e.g. 'primal'
+ * @param {Set<number>}  rareSlotPositions  - which pick numbers are rare slots
+ * @param {Object}       offerCounts        - map of cardId → times offered so far
+ * @returns {Object[]} 3 card objects (may be fewer near pool exhaustion)
+ */
+export function generatePack(
+  pool,
+  draftedCardIds,
+  pickNumber,
+  primaryFaction,
+  secondaryFaction,
+  rareSlotPositions,
+  offerCounts
+) {
   if (pool.length === 0) return [];
 
-  // For the last bracket (picks 25-29), compute underrepresented cost buckets
-  let weightedPool = null;
+  const isRareSlot = rareSlotPositions != null && rareSlotPositions.has(pickNumber);
+  const counts = offerCounts ?? {};
+
+  // Separate pool into rares and commons by rarity field
+  const rarePool = pool.filter(c => c.rarity === 'rare');
+  const commonPool = pool.filter(c => c.rarity === 'common');
+
+  // Determine cost bracket based on pick number
+  function inCostBracket(card) {
+    const cost = card.cost ?? 0;
+    if (pickNumber >= 25) {
+      // Weight underrepresented costs — handled separately below
+      return true;
+    }
+    if (pickNumber >= 1 && pickNumber <= 8) return cost >= 1 && cost <= 2;
+    if (pickNumber >= 9 && pickNumber <= 18) return cost >= 3 && cost <= 4;
+    // picks 19–24: no cost restriction
+    return true;
+  }
+
+  // For picks 25+, compute underrepresented cost buckets from drafted cards
+  let underrepCosts = null;
   if (pickNumber >= 25) {
     const costCounts = {};
     for (const id of draftedCardIds) {
       const card = CARD_DB[id];
       if (!card) continue;
-      const cost = card.cost ?? 0;
-      costCounts[cost] = (costCounts[cost] ?? 0) + 1;
-    }
-    // Weight cards in underrepresented cost slots higher
-    weightedPool = [];
-    for (const card of pool) {
       const c = card.cost ?? 0;
-      const count = costCounts[c] ?? 0;
-      const weight = count === 0 ? 4 : count === 1 ? 2 : 1;
-      for (let w = 0; w < weight; w++) weightedPool.push(card);
+      costCounts[c] = (costCounts[c] ?? 0) + 1;
+    }
+    underrepCosts = costCounts;
+  }
+
+  function costWeight(card) {
+    if (underrepCosts == null) return 1;
+    const c = card.cost ?? 0;
+    const n = underrepCosts[c] ?? 0;
+    return n === 0 ? 4 : n === 1 ? 2 : 1;
+  }
+
+  function factionWeight(card) {
+    if (!primaryFaction) return 1;
+    if (card.attribute === primaryFaction) return 3;
+    if (card.attribute === secondaryFaction) return 2;
+    return 1; // neutral
+  }
+
+  function offerWeight(card, isRare) {
+    const offered = counts[card.id] ?? 0;
+    if (isRare) {
+      if (offered === 0) return 10;
+      if (offered === 1) return 3;
+      if (offered === 2) return 1;
+      return 0; // offered 3+ times: exclude
+    } else {
+      if (offered === 0) return 4;
+      if (offered === 1) return 2;
+      if (offered === 2) return 1;
+      return 0; // offered 3+ times: exclude
     }
   }
 
-  const sourcePool = weightedPool ?? pool;
+  function buildWeighted(cards, isRare) {
+    const weighted = [];
+    for (const card of cards) {
+      const ow = offerWeight(card, isRare);
+      if (ow === 0) continue;
+      const cw = costWeight(card);
+      const fw = factionWeight(card);
+      const total = ow * cw * fw;
+      for (let w = 0; w < total; w++) weighted.push(card);
+    }
+    return weighted;
+  }
+
+  function pickFrom(weightedCandidates, exclude) {
+    const available = weightedCandidates.filter(c => !exclude.has(c.id));
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  const pickedIds = new Set();
   const picked = [];
 
-  function pickOneFrom(candidates) {
-    if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
+  function addCard(card) {
+    if (card && !pickedIds.has(card.id)) {
+      picked.push(card);
+      pickedIds.add(card.id);
+    }
   }
 
-  function costInRange(card, lo, hi) {
-    return card.cost >= lo && card.cost <= hi;
+  if (isRareSlot) {
+    // Rare slot: 2 rares + 1 common from same cost bracket
+    const bracketRares = rarePool.filter(inCostBracket);
+    let wRares = buildWeighted(bracketRares, true);
+
+    // Pick 2 rares
+    for (let i = 0; i < 2; i++) {
+      const card = pickFrom(wRares, pickedIds);
+      if (card) {
+        addCard(card);
+        // Rebuild without already-picked to maintain exclusion
+        wRares = wRares.filter(c => c.id !== card.id);
+      }
+    }
+
+    // Fallback if rare pool exhausted for this bracket
+    if (picked.length < 2) {
+      // Try adjacent cost bracket rares
+      const altRares = rarePool.filter(c => !inCostBracket(c));
+      const wAltRares = buildWeighted(altRares, true);
+      while (picked.length < 2) {
+        const card = pickFrom(wAltRares, pickedIds);
+        if (!card) break;
+        addCard(card);
+      }
+    }
+    if (picked.length < 2) {
+      // No rares available at all — fill with commons
+      console.warn('[draftPool] No rares available for rare slot at pick', pickNumber, '— falling back to commons');
+    }
+
+    // Pick 1 common
+    const bracketCommons = commonPool.filter(inCostBracket);
+    const wCommons = buildWeighted(bracketCommons, false);
+    const common = pickFrom(wCommons, pickedIds);
+    if (common) {
+      addCard(common);
+    } else {
+      // Fill remaining slots with any available common
+      const wAnyCommons = buildWeighted(commonPool, false);
+      const fallback = pickFrom(wAnyCommons, pickedIds);
+      if (fallback) addCard(fallback);
+    }
+  } else {
+    // Common slot: 3 commons, no rares
+    const bracketCommons = commonPool.filter(inCostBracket);
+    let wCommons = buildWeighted(bracketCommons, false);
+
+    // Guarantee at least 1 card from the cost bracket for picks 1-18
+    if ((pickNumber >= 1 && pickNumber <= 8) || (pickNumber >= 9 && pickNumber <= 18)) {
+      const guaranteed = pickFrom(wCommons, pickedIds);
+      if (guaranteed) {
+        addCard(guaranteed);
+        wCommons = wCommons.filter(c => c.id !== guaranteed.id);
+      }
+    }
+
+    // Fill remaining slots
+    while (picked.length < 3) {
+      const available = buildWeighted(commonPool, false);
+      const card = pickFrom(available, pickedIds);
+      if (!card) break;
+      addCard(card);
+    }
   }
 
-  // Apply bracket constraints for picks 1-24
-  if (pickNumber >= 1 && pickNumber <= 8) {
-    // At least 1 card must cost 1-2 mana
-    const lowCostCards = sourcePool.filter(c => costInRange(c, 1, 2));
-    const guaranteed = pickOneFrom(lowCostCards);
-    if (guaranteed) picked.push(guaranteed);
-  } else if (pickNumber >= 9 && pickNumber <= 18) {
-    // At least 1 card must cost 3-4 mana
-    const midCostCards = sourcePool.filter(c => costInRange(c, 3, 4));
-    const guaranteed = pickOneFrom(midCostCards);
-    if (guaranteed) picked.push(guaranteed);
-  }
-
-  // Fill remaining slots randomly
-  const remaining = 3 - picked.length;
-  const available = [...sourcePool];
-  for (let i = 0; i < remaining; i++) {
-    if (available.length === 0) break;
-    const idx = Math.floor(Math.random() * available.length);
-    picked.push(available[idx]);
-    available.splice(idx, 1);
-  }
-
-  // Deduplicate card IDs within a single pack (keep first occurrence)
-  const seen = new Set();
-  return picked.filter(card => {
-    if (seen.has(card.id)) return false;
-    seen.add(card.id);
-    return true;
-  }).slice(0, 3);
+  return picked.slice(0, 3);
 }
 
 /**

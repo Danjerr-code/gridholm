@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { CARD_DB } from '../../engine/cards.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { getCardImageUrl } from '../../supabase.js';
-import { buildDraftPool, generatePack, generateLegendaryPack, getRandomFactions } from '../../draft/draftPool.js';
+import { buildDraftPool, generatePack, generateLegendaryPack, getRandomFactions, assignRareSlots } from '../../draft/draftPool.js';
 import { CHAMPIONS } from '../../engine/champions.js';
 import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
 
@@ -45,6 +45,8 @@ export default function DraftScreen({ onDraftComplete }) {
   const [legendaryIds, setLegendaryIds] = useState([]);
   const [pickNumber, setPickNumber] = useState(1);        // 1-indexed
   const [currentPack, setCurrentPack] = useState([]);
+  const [rareSlotPositions, setRareSlotPositions] = useState(null);
+  const [offerCounts, setOfferCounts] = useState({});
 
   // Faction selection — show 2 random for primary
   const [primaryOptions] = useState(() => getRandomFactions(2));
@@ -71,8 +73,16 @@ export default function DraftScreen({ onDraftComplete }) {
     const newDraftedIds = [card.id];
     setLegendaryIds(newLegIds);
     setDraftedIds(newDraftedIds);
+    // Assign rare slots for this draft run
+    const slots = assignRareSlots();
+    setRareSlotPositions(slots);
+    const initOfferCounts = {};
     // Generate first main-draft pack
-    const pack = generatePack(pool, newDraftedIds, 1);
+    const pack = generatePack(pool, newDraftedIds, 1, primaryFaction, secondaryFaction, slots, initOfferCounts);
+    // Track offers for first pack
+    const newOfferCounts = { ...initOfferCounts };
+    for (const c of pack) newOfferCounts[c.id] = (newOfferCounts[c.id] ?? 0) + 1;
+    setOfferCounts(newOfferCounts);
     setCurrentPack(pack);
     setPickNumber(1);
     setPhase('main_draft');
@@ -88,10 +98,14 @@ export default function DraftScreen({ onDraftComplete }) {
     } else {
       const nextPick = pickNumber + 1;
       setPickNumber(nextPick);
-      const pack = generatePack(pool, newDraftedIds, nextPick);
+      const pack = generatePack(pool, newDraftedIds, nextPick, primaryFaction, secondaryFaction, rareSlotPositions, offerCounts);
+      // Track offer counts for this pack
+      const newOfferCounts = { ...offerCounts };
+      for (const c of pack) newOfferCounts[c.id] = (newOfferCounts[c.id] ?? 0) + 1;
+      setOfferCounts(newOfferCounts);
       setCurrentPack(pack);
     }
-  }, [draftedIds, pickNumber, pool]);
+  }, [draftedIds, pickNumber, pool, primaryFaction, secondaryFaction, rareSlotPositions, offerCounts]);
 
   function handleStartGauntlet() {
     onDraftComplete({

@@ -1,6 +1,6 @@
 import { CARD_DB } from '../engine/cards.js';
 import { getCardRating } from '../engine/cardThreatRatings.js';
-import { buildDraftPool, generatePack, generateLegendaryPack } from './draftPool.js';
+import { buildDraftPool, generatePack, generateLegendaryPack, assignRareSlots } from './draftPool.js';
 
 /**
  * Generate an AI draft deck of 30 card IDs.
@@ -29,10 +29,17 @@ export function generateAIDeck(
   // ── Draft remaining cards from packs ──────────────────────────────────────
   const pool = buildDraftPool(primaryFaction, secondaryFaction);
   const totalPicks = 30 - deck.length;
+  const rareSlotPositions = assignRareSlots();
+  const offerCounts = {};
 
   for (let pick = 1; pick <= totalPicks; pick++) {
-    const pack = generatePack(pool, deck, pick);
+    const pack = generatePack(pool, deck, pick, primaryFaction, secondaryFaction, rareSlotPositions, offerCounts);
     if (pack.length === 0) break;
+
+    // Track offer counts for all cards shown in this pack
+    for (const card of pack) {
+      offerCounts[card.id] = (offerCounts[card.id] ?? 0) + 1;
+    }
 
     const chosen = pickBest(pack, deck, primaryFaction, secondaryFaction, difficulty);
     deck.push(chosen.id);
