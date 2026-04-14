@@ -14,10 +14,12 @@ function pipState(i, current, maxThisTurn) {
 
 function pipStyle(state, playerColor, size, glow) {
   if (state === 'available') {
+    const outerGlow = glow ? `0 0 4px ${playerColor}60` : `0 0 3px ${playerColor}60`;
     return {
-      background: playerColor,
+      background: `radial-gradient(circle at 30% 30%, rgba(220, 240, 255, 0.85) 0%, ${playerColor} 60%)`,
       border: `1px solid ${playerColor}`,
-      boxShadow: glow ? `0 0 4px ${playerColor}60` : `0 0 3px ${playerColor}60`,
+      boxShadow: `${outerGlow}, inset 2px 2px 3px rgba(255,255,255,0.4)`,
+      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))',
     };
   }
   if (state === 'used') {
