@@ -460,9 +460,9 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         alt=""
         style={{
           position: 'fixed',
-          right: '-20px',
-          top: `${HEADER_HEIGHT}px`,
-          width: '520px',
+          right: '5px',
+          top: `${HEADER_HEIGHT + 45}px`,
+          width: '590px',
           opacity: 0.33,
           pointerEvents: 'none',
           zIndex: 0,
