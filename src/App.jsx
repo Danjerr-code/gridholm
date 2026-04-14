@@ -1059,9 +1059,6 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
 
       {/* Bottom bar: P1 hand */}
       <div style={{
-        background: pendingDiscard && isP1Turn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
-        border: `1px solid ${pendingDiscard && isP1Turn ? '#C9A84C' : '#1e1e2e'}`,
-        borderRadius: '6px',
         flexShrink: 0,
       }}>
         <div style={{

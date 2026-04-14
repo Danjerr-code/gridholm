@@ -1727,9 +1727,6 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
       {/* My hand (face up) */}
       <div style={{
-        background: pendingDiscard && isActiveTurn ? 'rgba(201,168,76,0.05)' : 'rgba(13,13,26,0.5)',
-        border: `1px solid ${pendingDiscard && isActiveTurn ? '#C9A84C' : '#1e1e2e'}`,
-        borderRadius: isMobile ? '6px 6px 0 0' : '6px',
         flexShrink: 0,
         ...(isMobile && {
           position: 'fixed',
