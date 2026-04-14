@@ -86,7 +86,7 @@ export default function Root() {
   }
 
   if (route.view === 'tutorial') {
-    return <TutorialMenu onBack={() => navigate('/')} />;
+    return <TutorialMenu onBack={() => navigate('lobby')} />;
   }
 
   if (route.view === 'deck_builder') {
@@ -140,11 +140,11 @@ export default function Root() {
   }
 
   if (route.view === 'packs') {
-    return <PackOpeningScreen onBack={() => navigate('/')} />;
+    return <PackOpeningScreen onBack={() => navigate('lobby')} />;
   }
 
   if (route.view === 'collection') {
-    return <CollectionScreen onBack={() => navigate('/')} />;
+    return <CollectionScreen onBack={() => navigate('lobby')} />;
   }
 
   if (route.view === 'draft') {
@@ -174,7 +174,7 @@ export default function Root() {
     return (
       <App
         deckId={selectedDeck}
-        onBackToLobby={() => { navigate('/'); setSelectedDeck(null); }}
+        onBackToLobby={() => { navigate('lobby'); setSelectedDeck(null); }}
         onPlayAgain={() => setSelectedDeck(null)}
       />
     );
