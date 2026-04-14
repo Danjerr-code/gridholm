@@ -342,7 +342,7 @@ const ELF_DECK = [
   'elfelder',
   'thornweave',
   'elfranger',
-  'grovewarden',
+  'rootsongcommander',
   'moonveilmystic',
   'elfarcher',
   'canopysentinel',
