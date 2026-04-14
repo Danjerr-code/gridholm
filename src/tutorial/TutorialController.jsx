@@ -8,15 +8,19 @@
  * For scenario 4: guided multi-turn mode — 1 command per turn, Kragor flees.
  * For scenario 5: free play with heuristic AI and a hint button.
  *
- * Layout matches the real game:
- *   - Commands + mana display on the LEFT of the board
- *   - End Turn button at BOTTOM RIGHT
- *   - Tutorial prompt banner at the TOP
+ * Renders through the real game layout (same as App.jsx) with a tutorial overlay
+ * for the prompt banner. Per-scenario panels are hidden via visibility:hidden so
+ * layout does not shift when the player transitions to a real game.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Board from '../components/Board.jsx';
 import Hand from '../components/Hand.jsx';
+import StatusBar from '../components/StatusBar.jsx';
+import { ResourceDisplay } from '../components/StatusBar.jsx';
+import PhaseTracker from '../components/PhaseTracker.jsx';
+import Log from '../components/Log.jsx';
+import TurnBanner from '../components/TurnBanner.jsx';
 import { buildTutorialState } from './buildTutorialState.js';
 import {
   getChampionMoveTiles,
@@ -28,6 +32,7 @@ import {
   autoAdvancePhase,
   cloneState,
   manhattan,
+  getCommandLimit,
 } from '../engine/gameEngine.js';
 import {
   handleChampionMove,
@@ -38,8 +43,7 @@ import {
 } from '../engine/actionHandler.js';
 import { runAITurnSteps, setAIMode } from '../engine/ai.js';
 import { playSfxMove, playSfxAttack, playSfxAttackBlock, playSfxSpell, playUnitSummonSound, playSfxNoMana } from '../audio.js';
-import { ResourceDisplay } from '../components/StatusBar.jsx';
-import { CommandDisplay } from '../App.jsx';
+import { CommandDisplay, CardDetailPanel } from '../App.jsx';
 
 const TUTORIAL_STORAGE_KEY = 'gridholm_tutorial_completed';
 
@@ -163,6 +167,7 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
   const [pendingSpellCard, setPendingSpellCard] = useState(null);
   const [aiRunning, setAiRunning] = useState(false);
   const [enemyTurnMsg, setEnemyTurnMsg] = useState('');
+  const [inspectedItem, setInspectedItem] = useState(null);
 
   // Hint system (scenario 5)
   const [hintActive, setHintActive] = useState(false);
@@ -798,10 +803,14 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
     handleSpellTarget,
     handleCancelSpell: handleCancelSpellAction,
     handleEndAction,
-    handleInspectUnit: () => {},
-    handleClearInspect: () => {},
+    handleInspectUnit: (uid) => {
+      const unit = state.units.find(u => u.uid === uid);
+      if (unit) setInspectedItem({ type: 'unit', uid });
+    },
+    handleClearInspect: () => setInspectedItem(null),
     handleInspectTerrain: () => {},
-    handleInspectChampion: () => {},
+    handleInspectChampion: (playerIdx) => setInspectedItem({ type: 'champion', playerIdx }),
+    handleInspectCard: () => {},
     handleArcherSelectTarget: () => {},
     handleArcherShoot: () => {},
     handleActionButtonClick: () => {},
@@ -846,40 +855,35 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
   const mana = state.players[0]?.resources ?? 0;
   const maxMana = state.players[0]?.maxResourcesThisTurn ?? mana;
   const isP1Turn = state.activePlayer === 0;
-
-  // Should End Turn be shown (and highlighted)?
-  const showEndTurn = isP1Turn && !aiRunning && (
-    isFreePlay ||
-    isGuided ||
-    currentStep?.validAction === 'endTurn' ||
-    // Allow end turn in free-form guided/freePlay at any time
-    false
-  );
+  const p1CommandLimit = getCommandLimit(state, 0);
 
   // In scripted steps (non-freePlay, non-guided), only show End Turn if the current step calls for it
   const showEndTurnBtn = isP1Turn && !aiRunning && (isFreePlay || isGuided || currentStep?.validAction === 'endTurn');
   const highlightEndTurnBtn = !isFreePlay && !isGuided && currentStep?.highlightEndTurn;
 
+  // Per-scenario panel visibility (use visibility:hidden, not display:none, to preserve layout)
+  const hideLog = scenario.id !== 'practice-round';
+  const hideCardDetail = scenario.id !== 'commands-spells' && scenario.id !== 'practice-round';
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      color: '#f9fafb',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* Tutorial banner — top of screen */}
+    <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: '8px' }}>
+
+      {/* Tutorial prompt overlay — fixed at top, above real game UI */}
       <div style={{
-        background: 'rgba(10,10,15,0.97)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 60,
+        background: 'rgba(10,10,15,0.96)',
         borderBottom: '1px solid rgba(201,168,76,0.3)',
-        padding: '8px 16px',
+        padding: '6px 12px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        minHeight: '48px',
-        flexShrink: 0,
+        gap: '10px',
+        minHeight: '44px',
       }}>
         <button
           onClick={onExit}
@@ -916,7 +920,7 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
               : 'rgba(201,168,76,0.08)',
             border: `1px solid ${enemyTurnMsg || aiRunning ? 'rgba(201,168,76,0.15)' : 'rgba(201,168,76,0.25)'}`,
             borderRadius: '4px',
-            padding: '6px 12px',
+            padding: '5px 12px',
             fontSize: '14px',
             fontFamily: "'Crimson Text', serif",
             color: enemyTurnMsg || aiRunning ? '#c0a860' : '#f0e8d0',
@@ -939,186 +943,215 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
         )}
       </div>
 
-      {/* Main game area: left panel + board + right panel */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: '8px',
-        gap: '0',
-        overflow: 'hidden',
-      }}>
-        {/* LEFT PANEL: Commands + Mana (matches real game layout) */}
+      {/* Spacer to push content below the fixed tutorial overlay */}
+      <div style={{ flexShrink: 0, height: '44px' }} />
+
+      {/* Status Bar — same as real game */}
+      <StatusBar
+        state={state}
+        myPlayerIndex={0}
+        commandsUsed={commandsUsed}
+        commandLimit={p1CommandLimit}
+        aiThinking={aiRunning}
+      />
+
+      {/* Middle content row: left sidebar + board + right sidebar */}
+      <div className="flex gap-2 flex-1 min-h-0">
+
+        {/* Left column: phase tracker + card detail */}
+        <div
+          className="flex-shrink-0 flex flex-col gap-2"
+          style={{ width: 220, minHeight: 0, visibility: hideCardDetail ? 'hidden' : 'visible' }}
+        >
+          <PhaseTracker
+            phase={state.phase}
+            phaseChangeId={`${state.turn}-${state.activePlayer}-${state.phase}`}
+          />
+          <CardDetailPanel
+            inspectedItem={inspectedItem}
+            state={state}
+            handlers={handlers}
+            phase={state.phase}
+            isP1Turn={isP1Turn}
+          />
+        </div>
+
+        {/* Center: CommandDisplay + Board */}
+        <div className="flex flex-1 min-w-0 min-h-0">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+            <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
+            <div className="flex items-center flex-1 min-h-0 justify-center">
+              <div className="flex flex-shrink-0 items-center">
+                <CommandDisplay commandsUsed={commandsUsed} commandLimit={p1CommandLimit} />
+              </div>
+              <div className="flex-1 min-w-0 min-h-0">
+                <Board
+                  state={state}
+                  selectedUnit={selectedUnit}
+                  selectMode={selectMode}
+                  championMoveTiles={championMoveTiles}
+                  summonTiles={summonTiles}
+                  unitMoveTiles={unitMoveTiles}
+                  approachTiles={[]}
+                  terrainTargetTiles={[]}
+                  relicPlaceTiles={[]}
+                  directionTargetTiles={[]}
+                  championSaplingTiles={[]}
+                  spellTargetUids={spellTargetUids.length > 0
+                    ? spellTargetUids
+                    : (hintHighlightUids.length > 0 ? hintHighlightUids : tutorialHighlightUids)}
+                  archerShootTargets={[]}
+                  sacrificeTargetUids={[]}
+                  selectedSacrificeUid={null}
+                  championAbilityTargetUids={[]}
+                  opponentMoveTiles={new Set()}
+                  handlers={handlers}
+                  onInspectUnit={handlers.handleInspectUnit}
+                  onClearInspect={handlers.handleClearInspect}
+                  onInspectTerrain={handlers.handleInspectTerrain}
+                  isMyTurn={isP1Turn}
+                  myPlayerIndex={0}
+                  isMobile={false}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right sidebar: game log + action buttons */}
+        <div
+          className="w-48 flex-shrink-0 flex flex-col gap-2"
+          style={{ minHeight: 0, visibility: hideLog ? 'hidden' : 'visible' }}
+        >
+          <Log entries={state.log} />
+
+          {/* Action buttons panel */}
+          <div
+            className="flex flex-col gap-2 flex-shrink-0"
+            style={{
+              background: '#0a0a14',
+              border: '1px solid #1e1e2e',
+              borderRadius: '6px',
+              padding: '8px',
+            }}
+          >
+            {isP1Turn && (
+              <div className="flex flex-col gap-1">
+                {(selectMode === 'summon' || selectMode === 'spell') && (
+                  <button
+                    onClick={handleCancelSpellAction}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #4a4a6a',
+                      borderRadius: '4px',
+                      color: '#6a6a8a',
+                      fontFamily: "'Cinzel', serif",
+                      fontSize: '11px',
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                      letterSpacing: '0.03em',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+                {showEndTurnBtn && (
+                  <button
+                    onClick={handleEndAction}
+                    style={{
+                      background: highlightEndTurnBtn
+                        ? 'linear-gradient(135deg, #6a5a00, #E8C84C)'
+                        : 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+                      color: '#0a0a0f',
+                      fontFamily: "'Cinzel', serif",
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      border: highlightEndTurnBtn ? '2px solid #E8C84C' : 'none',
+                      borderRadius: '4px',
+                      padding: '8px 6px',
+                      cursor: 'pointer',
+                      letterSpacing: '0.05em',
+                      boxShadow: highlightEndTurnBtn
+                        ? '0 0 12px rgba(201,168,76,0.6)'
+                        : '0 2px 8px rgba(0,0,0,0.4)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    End Turn →
+                  </button>
+                )}
+                {isFreePlay && !state.winner && (
+                  <button
+                    onClick={computeHint}
+                    disabled={hintsUsedThisTurn >= 1}
+                    style={{
+                      background: hintsUsedThisTurn >= 1 ? 'transparent' : 'rgba(201,168,76,0.1)',
+                      border: `1px solid ${hintsUsedThisTurn >= 1 ? '#2a2a3a' : 'rgba(201,168,76,0.4)'}`,
+                      borderRadius: '4px',
+                      color: hintsUsedThisTurn >= 1 ? '#3a3a5a' : '#C9A84C',
+                      fontFamily: "'Cinzel', serif",
+                      fontSize: '10px',
+                      padding: '5px 8px',
+                      cursor: hintsUsedThisTurn >= 1 ? 'default' : 'pointer',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Hint
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar: P1 hand (same as real game) */}
+      <div style={{ flexShrink: 0 }}>
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '12px',
-          paddingTop: '16px',
-          paddingRight: '4px',
-          flexShrink: 0,
-          width: '64px',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '11px',
+          color: '#4a8abf',
+          padding: '4px 8px 2px',
+          fontWeight: 600,
         }}>
-          <CommandDisplay commandsUsed={commandsUsed} />
-          <div style={{ marginTop: '8px' }}>
-            <ResourceDisplay
-              current={mana}
-              max={10}
-              maxThisTurn={maxMana}
-              playerColor="#185FA5"
-              small
+          Valorian
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 8px 8px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            padding: '10px 12px',
+            background: '#0f0f1e',
+            border: '1px solid #252538',
+            borderRadius: 8,
+            minWidth: 72,
+            flexShrink: 0,
+          }}>
+            <div style={{ fontSize: 10, color: '#6a6a88', fontWeight: 500, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', marginBottom: 2 }}>
+              MANA
+            </div>
+            <ResourceDisplay current={mana} max={10} maxThisTurn={maxMana} playerColor="#185FA5" small={false} />
+          </div>
+          <div style={{ overflow: 'hidden' }}>
+            <Hand
+              player={state.players[0]}
+              resources={mana}
+              isActive={isP1Turn}
+              canPlay={isP1Turn && state.phase === 'action'}
+              gameState={state}
+              playerIndex={0}
+              pendingDiscard={false}
+              pendingHandSelect={null}
+              selectedCard={selectedCard}
+              onPlayCard={handlePlayCard}
+              onDiscardCard={() => {}}
+              onHandSelect={() => {}}
+              onInspectCard={() => {}}
+              isMobile={false}
             />
           </div>
-        </div>
-
-        {/* CENTER: Board + Hand */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-          flex: 1,
-          minWidth: 0,
-          maxWidth: '480px',
-        }}>
-          {/* Board */}
-          <Board
-            state={state}
-            selectedUnit={selectedUnit}
-            selectMode={selectMode}
-            championMoveTiles={championMoveTiles}
-            summonTiles={summonTiles}
-            unitMoveTiles={unitMoveTiles}
-            approachTiles={[]}
-            terrainTargetTiles={[]}
-            relicPlaceTiles={[]}
-            directionTargetTiles={[]}
-            championSaplingTiles={[]}
-            spellTargetUids={spellTargetUids.length > 0
-              ? spellTargetUids
-              : (hintHighlightUids.length > 0 ? hintHighlightUids : tutorialHighlightUids)}
-            archerShootTargets={[]}
-            sacrificeTargetUids={[]}
-            selectedSacrificeUid={null}
-            championAbilityTargetUids={[]}
-            opponentMoveTiles={new Set()}
-            handlers={handlers}
-            onInspectUnit={() => {}}
-            onClearInspect={() => {}}
-            onInspectTerrain={() => {}}
-            isMyTurn={isP1Turn}
-            myPlayerIndex={0}
-            isMobile={false}
-          />
-
-          {/* Hand */}
-          {state.players[0].hand.length > 0 && (
-            <div style={{ width: '100%' }}>
-              <Hand
-                player={state.players[0]}
-                resources={mana}
-                isActive={isP1Turn}
-                canPlay={isP1Turn && state.phase === 'action'}
-                gameState={state}
-                playerIndex={0}
-                pendingDiscard={false}
-                pendingHandSelect={null}
-                selectedCard={selectedCard}
-                onPlayCard={handlePlayCard}
-                onDiscardCard={() => {}}
-                onHandSelect={() => {}}
-                onInspectCard={() => {}}
-                isMobile={false}
-              />
-            </div>
-          )}
-
-          {/* Cancel button when in spell/summon mode */}
-          {(selectMode === 'spell' || selectMode === 'summon') && (
-            <button
-              onClick={handleCancelSpellAction}
-              style={{
-                background: 'transparent',
-                border: '1px solid #4a4a6a',
-                borderRadius: '4px',
-                color: '#6a6a8a',
-                fontFamily: "'Cinzel', serif",
-                fontSize: '11px',
-                padding: '4px 16px',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-
-        {/* RIGHT PANEL: End Turn + status + hint button */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          gap: '8px',
-          paddingTop: '16px',
-          paddingLeft: '8px',
-          flexShrink: 0,
-          width: '108px',
-        }}>
-          {/* End Turn button — right side of board */}
-          {showEndTurnBtn && (
-            <button
-              onClick={handleEndAction}
-              style={{
-                background: highlightEndTurnBtn
-                  ? 'linear-gradient(135deg, #6a5a00, #E8C84C)'
-                  : 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-                color: '#0a0a0f',
-                fontFamily: "'Cinzel', serif",
-                fontSize: '11px',
-                fontWeight: 600,
-                border: highlightEndTurnBtn ? '2px solid #E8C84C' : 'none',
-                borderRadius: '4px',
-                padding: '7px 6px',
-                cursor: 'pointer',
-                letterSpacing: '0.03em',
-                boxShadow: highlightEndTurnBtn
-                  ? '0 0 12px rgba(201,168,76,0.6)'
-                  : '0 2px 8px rgba(0,0,0,0.4)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              End Turn →
-            </button>
-          )}
-
-          {/* Champion HP display */}
-          <div style={{ fontSize: '10px', color: '#6a6a8a', fontFamily: 'var(--font-sans)', lineHeight: 1.6 }}>
-            <div style={{ color: '#a0c0f0' }}>You: {state.champions[0]?.hp ?? 20}</div>
-            <div style={{ color: '#f06060' }}>Enemy: {state.champions[1]?.hp ?? 20}</div>
-          </div>
-
-          {/* Hint button — scenario 5 only */}
-          {isFreePlay && isP1Turn && !state.winner && (
-            <button
-              onClick={computeHint}
-              disabled={hintsUsedThisTurn >= 1}
-              style={{
-                background: hintsUsedThisTurn >= 1 ? 'transparent' : 'rgba(201,168,76,0.1)',
-                border: `1px solid ${hintsUsedThisTurn >= 1 ? '#2a2a3a' : 'rgba(201,168,76,0.4)'}`,
-                borderRadius: '4px',
-                color: hintsUsedThisTurn >= 1 ? '#3a3a5a' : '#C9A84C',
-                fontFamily: "'Cinzel', serif",
-                fontSize: '10px',
-                padding: '5px 8px',
-                cursor: hintsUsedThisTurn >= 1 ? 'default' : 'pointer',
-                letterSpacing: '0.04em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Hint
-            </button>
-          )}
         </div>
       </div>
 

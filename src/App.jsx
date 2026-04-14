@@ -1630,7 +1630,7 @@ function ChampionAbilitySection({ champDef, tier, champ, player, abilityUsed, is
   );
 }
 
-function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
+export function CardDetailPanel({ inspectedItem, state, handlers, phase, isP1Turn }) {
   let content = null;
 
   if (inspectedItem?.type === 'champion') {
