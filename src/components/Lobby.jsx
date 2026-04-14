@@ -330,25 +330,36 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
       <style>{lobbyHoverStyles}</style>
 
       {/* Decorative dragon silhouette — left edge frame, hidden on mobile */}
-      <img
+      <div
         className="lobby-dragon-silhouette"
-        src="/silhouette-dragon.png"
-        alt=""
-        aria-hidden="true"
         style={{
           position: 'absolute',
           left: 0,
           top: '50%',
           transform: 'translateY(-50%) translateX(-20%)',
           width: '500px',
-          opacity: 0.35,
           pointerEvents: 'none',
           zIndex: 0,
-          userSelect: 'none',
           background: 'transparent',
-          mixBlendMode: 'luminosity',
+          backgroundColor: 'transparent',
         }}
-      />
+      >
+        <img
+          src="/silhouette-dragon.png"
+          alt=""
+          aria-hidden="true"
+          style={{
+            width: '100%',
+            opacity: 0.5,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            mixBlendMode: 'multiply',
+            display: 'block',
+          }}
+        />
+      </div>
 
       {/* Top-right: Tutorial/How to Play links + Profile button */}
       <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', alignItems: 'center', gap: '4px' }} ref={dropdownRef}>
