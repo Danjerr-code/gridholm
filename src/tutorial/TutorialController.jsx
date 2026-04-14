@@ -1021,9 +1021,12 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
         {/* Right sidebar: game log + action buttons */}
         <div
           className="w-48 flex-shrink-0 flex flex-col gap-2"
-          style={{ minHeight: 0, visibility: hideLog ? 'hidden' : 'visible' }}
+          style={{ minHeight: 0 }}
         >
-          <Log entries={state.log} />
+          {/* Log hidden per-scenario via visibility so layout frame stays stable */}
+          <div style={{ flex: 1, minHeight: 0, visibility: hideLog ? 'hidden' : 'visible' }}>
+            <Log entries={state.log} />
+          </div>
 
           {/* Action buttons panel */}
           <div
