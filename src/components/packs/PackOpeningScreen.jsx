@@ -425,11 +425,91 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
 
 // ── Phase A: Pack Selection ────────────────────────────────────────────────────
 
-function PackSelectionPhase({ inventory, onSelectPack }) {
-  const packEntries = Object.entries(PACK_TYPES);
+const PACK_ART = {
+  light:  '/pack-light.svg',
+  primal: '/pack-primal.svg',
+  mystic: '/pack-mystic.svg',
+  dark:   '/pack-dark.svg',
+};
+
+const PACK_SELECTION_STYLES = `
+@media (min-width: 480px) {
+  .pack-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+`;
+
+function PackCard({ packKey, def, count, onSelect }) {
+  const [hovered, setHovered] = useState(false);
+  const disabled = count === 0;
+  const artSrc = PACK_ART[packKey];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
+    <div
+      onClick={() => !disabled && onSelect(packKey)}
+      onMouseEnter={() => !disabled && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.38 : 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        transition: 'transform 150ms ease',
+        transform: hovered ? 'scale(1.05)' : 'scale(1)',
+      }}
+    >
+      {/* TCG card — 2:3 aspect ratio */}
+      <div style={{
+        width: 130,
+        height: 195,
+        borderRadius: 10,
+        overflow: 'hidden',
+        border: `2px solid ${hovered ? def.color : def.color + '60'}`,
+        boxShadow: hovered
+          ? `0 0 22px ${def.color}90, 0 0 8px ${def.color}40`
+          : disabled
+          ? 'none'
+          : `0 0 10px ${def.color}30`,
+        transition: 'box-shadow 150ms ease, border-color 150ms ease',
+        background: '#0a0a0f',
+        flexShrink: 0,
+      }}>
+        <img
+          src={artSrc}
+          alt={def.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      </div>
+
+      {/* Pack name */}
+      <div style={{
+        fontFamily: "'Cinzel', serif",
+        fontSize: 13,
+        fontWeight: 700,
+        color: '#C9A84C',
+        letterSpacing: '0.08em',
+        textAlign: 'center',
+      }}>{def.name}</div>
+
+      {/* Pack count */}
+      <div style={{
+        fontFamily: "'Cinzel', serif",
+        fontSize: 12,
+        color: disabled ? '#3a3a5a' : def.color,
+        letterSpacing: '0.04em',
+      }}>×{count} available</div>
+    </div>
+  );
+}
+
+function PackSelectionPhase({ inventory, onSelectPack }) {
+  // Only show the four faction packs — exclude the generic mixed pack
+  const factionPacks = ['light', 'primal', 'mystic', 'dark'];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center', width: '100%' }}>
+      <style>{PACK_SELECTION_STYLES}</style>
       <div style={{
         fontFamily: "'Cinzel', serif",
         fontSize: 13,
@@ -438,58 +518,27 @@ function PackSelectionPhase({ inventory, onSelectPack }) {
         textTransform: 'uppercase',
       }}>Select a Pack to Open</div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
-        {packEntries.map(([key, def]) => {
-          const count = inventory[key] || 0;
-          const disabled = count === 0;
-          return (
-            <button
-              key={key}
-              onClick={() => !disabled && onSelectPack(key)}
-              style={{
-                background: disabled ? '#0d0d1a' : `linear-gradient(135deg, ${def.color}22, ${def.color}11)`,
-                border: `1px solid ${disabled ? '#2a2a3a' : def.color + '60'}`,
-                borderRadius: 8,
-                padding: '14px 18px',
-                cursor: disabled ? 'default' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                opacity: disabled ? 0.4 : 1,
-                transition: 'box-shadow 150ms ease, transform 150ms ease',
-                boxShadow: disabled ? 'none' : `0 0 12px ${def.color}20`,
-              }}
-              onMouseEnter={e => !disabled && (e.currentTarget.style.boxShadow = `0 0 20px ${def.color}50`)}
-              onMouseLeave={e => !disabled && (e.currentTarget.style.boxShadow = `0 0 12px ${def.color}20`)}
-            >
-              <div style={{ textAlign: 'left' }}>
-                <div style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: disabled ? '#4a4a6a' : def.color,
-                  letterSpacing: '0.06em',
-                }}>{def.name}</div>
-                {!disabled && def.faction && (
-                  <div style={{ fontSize: 11, color: '#6a6a8a', marginTop: 2 }}>
-                    Favors {def.faction.charAt(0).toUpperCase() + def.faction.slice(1)} cards
-                  </div>
-                )}
-                {!disabled && !def.faction && (
-                  <div style={{ fontSize: 11, color: '#6a6a8a', marginTop: 2 }}>All factions</div>
-                )}
-              </div>
-              <div style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 18,
-                fontWeight: 700,
-                color: disabled ? '#2a2a4a' : def.color,
-                minWidth: 32,
-                textAlign: 'right',
-              }}>×{count}</div>
-            </button>
-          );
-        })}
+      {/* 2×2 grid on desktop, single column on mobile */}
+      <div
+        className="pack-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: '28px 24px',
+          width: '100%',
+          maxWidth: 340,
+          justifyItems: 'center',
+        }}
+      >
+        {factionPacks.map(key => (
+          <PackCard
+            key={key}
+            packKey={key}
+            def={PACK_TYPES[key]}
+            count={inventory[key] || 0}
+            onSelect={onSelectPack}
+          />
+        ))}
       </div>
     </div>
   );
