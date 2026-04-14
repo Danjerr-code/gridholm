@@ -77,6 +77,7 @@ function CardModal({ card, onClose }) {
           padding: '20px',
           width: '280px',
           maxWidth: '90vw',
+          minHeight: '400px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -134,6 +135,8 @@ function CardModal({ card, onClose }) {
 
         {/* Type badge */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {card.rarity === 'legendary' && <span style={{ color: '#C9A84C', fontSize: '14px' }}>★</span>}
+          {card.rarity === 'rare' && <span style={{ color: '#8BA3C4', fontSize: '14px' }}>◆</span>}
           <span style={{
             fontSize: '10px', fontWeight: 700, fontFamily: 'var(--font-sans)',
             background: 'rgba(255,255,255,0.07)', color: '#9CA3AF',
