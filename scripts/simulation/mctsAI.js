@@ -112,10 +112,10 @@ export function randomRollout(state, playerIdx, maxTurns = 30, maxActions = MAX_
  * Values >1 increase selection probability; <1 decrease it.
  */
 export const DEFAULT_POLICY = {
-  attackChampionBias:       3.0,  // attack the enemy champion
+  attackChampionBias:       6.0,  // attack the enemy champion
   attackUnitBias:           1.5,  // attack an enemy unit
   playCardBias:             1.2,  // play a card from hand (summon or cast)
-  moveTowardChampionBias:   1.3,  // move a unit closer to the enemy champion
+  moveTowardChampionBias:   2.0,  // move a unit closer to the enemy champion
   moveAwayBias:             0.3,  // move a unit further from the enemy champion
   endTurnBias:              0.5,  // end turn early (discourage passivity)
   useAbilityBias:           1.5,  // use a unit or champion ability
