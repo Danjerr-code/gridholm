@@ -569,6 +569,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           borderRadius: '99px',
           whiteSpace: 'nowrap',
           zIndex: 3,
+          opacity: 0.85,
         }} title={actionAvailable ? 'Action available' : 'Action used or unavailable'}>Action</div>
       )}
 
