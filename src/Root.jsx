@@ -9,6 +9,7 @@ import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
 import TutorialMenu from './components/TutorialMenu.jsx';
 import DraftMode from './components/draft/DraftMode.jsx';
+import ChallengesScreen from './components/ChallengesScreen.jsx';
 import { supabase, getGuestId } from './supabase.js';
 import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
 import { loadDraftRun } from './draft/draftRunState.js';
@@ -30,6 +31,7 @@ function parseHash() {
   if (hash === 'card-gallery') return { view: 'card_gallery' };
   if (hash === 'tutorial') return { view: 'tutorial' };
   if (hash === 'deck-builder') return { view: 'deck_builder' };
+  if (hash === 'challenges') return { view: 'challenges' };
   if (hash === 'custom-play') return { view: 'custom_play' };
   if (hash === 'custom-ai') return { view: 'custom_ai' };
   const gameMatch = hash.match(/^game\/([A-Z0-9]{6})$/i);
@@ -133,6 +135,10 @@ export default function Root() {
 
   if (route.view === 'card_gallery') {
     return <CardGallery />;
+  }
+
+  if (route.view === 'challenges') {
+    return <ChallengesScreen onBack={() => navigate('/')} />;
   }
 
   if (route.view === 'draft') {

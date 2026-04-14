@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import SignInModal from './SignInModal.jsx';
 import SignUpModal from './SignUpModal.jsx';
 import { loadDraftRun } from '../draft/draftRunState.js';
+import { hasUnviewedCompletions } from '../challenges/challengeManager.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -338,6 +339,25 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                 </button>
               );
             })()}
+            <button
+              className="lobby-btn-muted"
+              style={{ ...btnSecondary, position: 'relative' }}
+              onClick={() => onNavigate('/challenges')}
+            >
+              Challenges
+              {hasUnviewedCompletions() && (
+                <span style={{
+                  position: 'absolute',
+                  top: '6px',
+                  right: '10px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#4ade80',
+                  boxShadow: '0 0 6px #4ade80',
+                }} />
+              )}
+            </button>
             <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
               Build a Deck
             </button>

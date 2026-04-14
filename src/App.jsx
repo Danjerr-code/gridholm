@@ -17,6 +17,8 @@ import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
 import { renderRules } from './utils/rulesText.jsx';
 import GraveViewerModal from './components/GraveViewerModal.jsx';
+import { trackGameEnd } from './challenges/challengeTracker.js';
+import { ensureChallengeProgress } from './challenges/challengeManager.js';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -24,7 +26,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'human' } = {}) {
+export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'human', isDraft = false } = {}) {
   const {
     state,
     selectedCard,
@@ -53,11 +55,59 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const [muted, setMutedState] = useState(() => isMuted());
   const [graveViewerPlayer, setGraveViewerPlayer] = useState(null);
   const [contractModalMinimized, setContractModalMinimized] = useState(false);
+  const [challengeToasts, setChallengeToasts] = useState([]);
 
   // Reset minimize state whenever a new contract selection appears
   useEffect(() => {
     if (state.pendingContractSelect) setContractModalMinimized(false);
   }, [state.pendingContractSelect]);
+
+  // ── Challenge tracking: fire when the game ends ───────────────────────
+  const [challengeTracked, setChallengeTracked] = useState(false);
+  useEffect(() => {
+    if (!state.winner || challengeTracked) return;
+    setChallengeTracked(true);
+    try {
+      ensureChallengeProgress();
+      const p0 = state.players[0];
+      const didWin = state.winner === p0.name;
+      const gameResult = {
+        won: didWin,
+        faction: p0.deckId ? (() => {
+          const ATTR = { human: 'light', beast: 'primal', elf: 'mystic', demon: 'dark' };
+          if (ATTR[p0.deckId]) return ATTR[p0.deckId];
+          // For draft/custom decks, try to derive faction from champion attribute
+          return state.champions[0]?.attribute ?? 'light';
+        })() : 'light',
+        turns: state.turn,
+        championDamageDealt: p0.championDamageDealt ?? 0,
+        championTookDamage: p0.championTookDamage ?? false,
+        unitsPlayed: p0.unitsPlayed ?? 0,
+        unitsDestroyed: p0.unitsDestroyed ?? 0,
+        spellsCast: p0.spellsCast ?? 0,
+        highCostCardsPlayed: p0.highCostCardsPlayed ?? 0,
+        throneControlTurns: p0.throneControlTurns ?? 0,
+        throneControlStreak: p0.throneControlStreak ?? 0,
+        isDraft: isDraft ?? false,
+      };
+      const result = trackGameEnd(gameResult);
+      if (result.progressed.length > 0) {
+        // Build toast entries for progressed challenges
+        const toasts = result.progressed.slice(0, 3).map(id => ({
+          id,
+          completed: result.completed.includes(id),
+          current: result.updates[id]?.current ?? 0,
+          target: result.updates[id]?.target ?? 1,
+        }));
+        setChallengeToasts(toasts);
+        setTimeout(() => setChallengeToasts([]), 4000);
+      }
+    } catch (e) {
+      // Challenge tracking is non-critical; don't break the game
+      console.warn('[challenges] tracking error:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.winner]);
 
   // ── Card drag state ────────────────────────────────────────────────────
   const [dragCard, setDragCard] = useState(null);
@@ -1914,6 +1964,38 @@ export function CommandDisplay({ commandsUsed, commandLimit = 3 }) {
           lineHeight: 1.3,
         }}>
           Commands<br />Exhausted
+        </div>
+      )}
+
+      {/* Challenge progress toasts shown at game end */}
+      {challengeToasts.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          zIndex: 200,
+          pointerEvents: 'none',
+        }}>
+          {challengeToasts.map(toast => (
+            <div key={toast.id} style={{
+              background: toast.completed ? '#0d1a0d' : '#0f0f1e',
+              border: `1px solid ${toast.completed ? '#4ade8060' : '#C9A84C40'}`,
+              borderRadius: '6px',
+              padding: '8px 14px',
+              fontSize: '12px',
+              color: toast.completed ? '#4ade80' : '#C9A84C',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.6)',
+              whiteSpace: 'nowrap',
+              fontFamily: "'Cinzel', serif",
+              letterSpacing: '0.04em',
+            }}>
+              {toast.completed ? '✓ Challenge Complete!' : `Challenge: ${toast.current}/${toast.target}`}
+            </div>
+          ))}
         </div>
       )}
     </div>

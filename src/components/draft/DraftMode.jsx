@@ -133,6 +133,7 @@ export default function DraftMode({ onBackToLobby, initialRun = null }) {
     return (
       <App
         deckId={playerDeckSpec}
+        isDraft={true}
         onBackToLobby={() => {
           // Player quit mid-game — return to gauntlet without recording result
           localStorage.removeItem('gridholm_draft_ai_deck');

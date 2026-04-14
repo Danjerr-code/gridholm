@@ -339,6 +339,14 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
     state.players[unit.owner].grave.push(graveEntry);
   }
 
+  // Track units destroyed stat for the opposing player (non-token, non-relic, non-omen)
+  if (!unit.isToken && !unit.token && !unit.isRelic && !unit.isOmen) {
+    const opponent = 1 - unit.owner;
+    if (state.players[opponent]) {
+      state.players[opponent].unitsDestroyed = (state.players[opponent].unitsDestroyed ?? 0) + 1;
+    }
+  }
+
   // Remove from board
   state.units = state.units.filter(u => u.uid !== unit.uid);
 
@@ -1227,8 +1235,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0 },
-      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0 },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: getDeckChampionAttr(p1DeckId) },
@@ -1696,6 +1704,7 @@ export function moveChampion(state, row, col) {
         }
       }
       champ.hp -= champIncomingDmg;
+      s.players[s.activePlayer].championTookDamage = true;
       addLog(s, `${enemyUnit.name} counterattacks champion for ${champIncomingDmg} damage.`);
     }
     // If enemy was destroyed, champion advances to that tile
@@ -1715,10 +1724,14 @@ export function moveChampion(state, row, col) {
       addLog(s, `${getPlayer(s).name}'s champion attacks ${s.players[opposingChamp.owner].name}'s champion!`);
       // Active champion deals its ATK to opposing champion
       opposingChamp.hp -= champAtk;
+      s.players[s.activePlayer].championDamageDealt = (s.players[s.activePlayer].championDamageDealt ?? 0) + champAtk;
       addLog(s, `${s.players[opposingChamp.owner].name}'s champion takes ${champAtk} damage.`);
       // Retaliation: opposing champion deals its ATK back (only if ATK > 0)
       if (opposingChampAtk > 0) {
         champ.hp -= opposingChampAtk;
+        s.players[opposingChamp.owner].championDamageDealt = (s.players[opposingChamp.owner].championDamageDealt ?? 0) + opposingChampAtk;
+        champ.championTookDamage = true; // used for champion health tracking
+        s.players[s.activePlayer].championTookDamage = true;
         addLog(s, `${s.players[opposingChamp.owner].name}'s champion retaliates for ${opposingChampAtk} damage.`);
       }
       champ.moved = true;
@@ -1808,6 +1821,8 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingGraveSelect = { reason: 'rebirth', playerIdx: s.activePlayer };
       addLog(s, `${p.name} casts Rebirth.`);
       return s;
@@ -1818,6 +1833,7 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (p.deck.length === 0) {
         addLog(s, `Glimpse: deck is empty. Drawing a card.`);
         // Draw from discard if possible (shuffle logic not in scope — just skip peek)
@@ -1840,6 +1856,8 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       // Azulon spell echo: targetless spells cast twice automatically
@@ -1865,6 +1883,8 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingRelicPlace = { effect: 'amethystcache', playerIdx: s.activePlayer };
       return s;
     }
@@ -1881,6 +1901,8 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       s.pendingHandSelect = { reason: 'pactofruin', cardUid, data: {} };
       if (typeof window !== 'undefined') console.log('[PactOfRuin] playCard: pendingHandSelect set:', JSON.stringify(s.pendingHandSelect));
@@ -1892,6 +1914,8 @@ export function playCard(state, cardUid) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
       p.discard.push(card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       addLog(s, `${p.name} casts Toll of Shadows.`);
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
       if (typeof window !== 'undefined') console.log('[TollOfShadows] playCard: cast initiated — casterIdx:', s.activePlayer, 'units:', s.units.filter(u => u.owner === s.activePlayer && !u.isRelic && !u.isOmen).length, 'omens:', s.units.filter(u => u.owner === s.activePlayer && u.isOmen).length, 'relics:', s.units.filter(u => u.owner === s.activePlayer && u.isRelic).length, 'handSize:', p.hand.length);
@@ -1980,6 +2004,13 @@ export function summonUnit(state, cardUid, row, col) {
   }
 
   s.units.push(unit);
+  // Track units played stat (non-token units only)
+  if (!unit.isToken && !unit.token) {
+    s.players[s.activePlayer].unitsPlayed = (s.players[s.activePlayer].unitsPlayed ?? 0) + 1;
+    if (card.cost >= 5) {
+      s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
+    }
+  }
   if (unit.hidden) {
     addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''} (Hidden)`, s.activePlayer);
   } else {
@@ -2422,6 +2453,8 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     p.hand.splice(cardIdx, 1);
     p.discard.push(card);
     resolvedSpellCard = card;
+    s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+    if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
   }
 
   s.pendingSpell = null;
@@ -3755,6 +3788,24 @@ export function completeTurnAdvance(state, prevHistory = null) {
   s.pendingDirectionSelect = null;
 
   champ.moved = false;
+
+  // Track throne tile control (2,2) for the active player ending their turn
+  {
+    const throneRow = 2, throneCol = 2;
+    const p = s.players[s.activePlayer];
+    const hasThroneControl =
+      (champ.row === throneRow && champ.col === throneCol) ||
+      s.units.some(u => u.owner === s.activePlayer && u.row === throneRow && u.col === throneCol);
+    if (hasThroneControl) {
+      p.throneControlTurns = (p.throneControlTurns ?? 0) + 1;
+      p._throneStreakCurrent = (p._throneStreakCurrent ?? 0) + 1;
+      if (p._throneStreakCurrent > (p.throneControlStreak ?? 0)) {
+        p.throneControlStreak = p._throneStreakCurrent;
+      }
+    } else {
+      p._throneStreakCurrent = 0;
+    }
+  }
 
   const nextPlayer = 1 - s.activePlayer;
   s.activePlayer = nextPlayer;
