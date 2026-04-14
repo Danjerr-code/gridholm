@@ -860,10 +860,10 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
           <div className="flex items-center flex-1 min-h-0 justify-center">
-          <div className="flex items-center gap-1">
-          <div className="hidden sm:block flex-shrink-0">
+          <div className="hidden sm:flex flex-shrink-0 items-center">
             <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} />
           </div>
+          <div className="flex-1 min-w-0 min-h-0">
           <Board
             state={state}
             selectedUnit={selectedUnit}
