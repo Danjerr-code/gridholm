@@ -79,6 +79,33 @@ const btnCancel = {
   transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
 };
 
+const btnTertiary = {
+  background: 'transparent',
+  color: '#6a6a8a',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '11px',
+  fontWeight: 500,
+  border: '1px solid #1e1e2e',
+  borderRadius: '4px',
+  letterSpacing: '0.04em',
+  padding: '6px 16px',
+  width: '100%',
+  cursor: 'pointer',
+  transition: 'box-shadow 150ms ease, transform 150ms ease, filter 150ms ease',
+};
+
+const btnTopNav = {
+  background: 'transparent',
+  border: 'none',
+  color: '#4a4a6a',
+  fontFamily: "'Cinzel', serif",
+  fontSize: '10px',
+  letterSpacing: '0.06em',
+  padding: '4px 6px',
+  cursor: 'pointer',
+  textTransform: 'uppercase',
+};
+
 const lobbyHoverStyles = `
   .lobby-btn-primary:hover {
     box-shadow: 0 0 14px 4px #C9A84C80 !important;
@@ -97,44 +124,72 @@ const lobbyHoverStyles = `
   }
 `;
 
-function QuestRow({ title, description, current, target, completed, isWeekly }) {
+function QuestCard({ title, description, current, target, completed, isWeekly }) {
+  const [showTip, setShowTip] = useState(false);
   const pct = Math.min(100, Math.round((current / target) * 100));
+  const accentColor = completed ? '#4ade80' : isWeekly ? '#c084fc' : '#C9A84C';
   return (
-    <div style={{
-      background: completed ? '#0d1a0d' : '#0d0d1a',
-      border: `1px solid ${completed ? '#4ade8030' : isWeekly ? '#a855f730' : '#C9A84C20'}`,
-      borderRadius: '4px',
-      padding: '7px 10px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: '10px',
-            fontWeight: 600,
-            color: completed ? '#4ade80' : isWeekly ? '#c084fc' : '#C9A84C',
-            letterSpacing: '0.03em',
-            marginBottom: '2px',
-          }}>
-            {title}
-          </div>
-          <div style={{ fontSize: '10px', color: '#6a6a9a', lineHeight: 1.3 }}>
-            {description}
-          </div>
-        </div>
-        <div style={{ fontSize: '10px', color: completed ? '#4ade80' : '#4a4a6a', flexShrink: 0, paddingTop: '1px' }}>
-          {completed ? '✓' : `${current}/${target}`}
-        </div>
+    <div
+      style={{
+        flex: 1,
+        background: completed ? '#0d1a0d' : '#0d0d1a',
+        border: `1px solid ${completed ? '#4ade8030' : isWeekly ? '#a855f730' : '#C9A84C20'}`,
+        borderRadius: '4px',
+        padding: '6px 8px',
+        position: 'relative',
+        cursor: 'default',
+        userSelect: 'none',
+      }}
+      onMouseEnter={() => setShowTip(true)}
+      onMouseLeave={() => setShowTip(false)}
+      onClick={() => setShowTip(v => !v)}
+    >
+      <div style={{
+        fontFamily: "'Cinzel', serif",
+        fontSize: '9px',
+        fontWeight: 600,
+        color: accentColor,
+        letterSpacing: '0.03em',
+        marginBottom: '2px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>{title}</div>
+      <div style={{ fontSize: '9px', color: completed ? '#4ade80' : '#4a4a6a', marginBottom: '4px' }}>
+        {completed ? '✓ Done' : `${current}/${target}`}
       </div>
-      <div style={{ background: '#1a1a2a', borderRadius: '2px', height: '3px', width: '100%', overflow: 'hidden', marginTop: '5px' }}>
+      <div style={{ background: '#1a1a2a', borderRadius: '2px', height: '3px', width: '100%', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           width: `${pct}%`,
-          background: completed ? '#4ade80' : isWeekly ? '#a855f7' : '#C9A84C',
+          background: accentColor,
           borderRadius: '2px',
           transition: 'width 0.3s ease',
         }} />
       </div>
+      {showTip && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 6px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#1a1a2a',
+          border: '1px solid #2a2a3a',
+          borderRadius: '4px',
+          padding: '6px 10px',
+          fontSize: '10px',
+          color: '#a0a0c0',
+          zIndex: 50,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
+          maxWidth: '180px',
+          whiteSpace: 'normal',
+          textAlign: 'center',
+          lineHeight: 1.4,
+        }}>
+          {description}
+        </div>
+      )}
     </div>
   );
 }
@@ -269,8 +324,12 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     }}>
       <style>{lobbyHoverStyles}</style>
 
-      {/* Profile button — top-right corner */}
-      <div style={{ position: 'absolute', top: '16px', right: '20px' }} ref={dropdownRef}>
+      {/* Top-right: Tutorial/How to Play links + Profile button */}
+      <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', alignItems: 'center', gap: '4px' }} ref={dropdownRef}>
+        <button style={btnTopNav} onClick={() => onNavigate('/tutorial')}>Tutorial</button>
+        <span style={{ color: '#2a2a3a', fontSize: '10px' }}>|</span>
+        <button style={btnTopNav} onClick={() => onNavigate('/how-to-play')}>How to Play</button>
+        <span style={{ color: '#2a2a3a', fontSize: '10px', marginRight: '4px' }}>|</span>
         {currentUser ? (
           <div style={{ position: 'relative' }}>
             <button
@@ -436,58 +495,61 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
 
         {/* Mode selection */}
         {!playMode ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Row 1: Quick Play — primary action */}
             <button className="lobby-btn-primary" style={btnPrimary} onClick={() => onModeSelect('quickplay')}>
               Quick Play
             </button>
-            {(() => {
-              const savedRun = loadDraftRun();
-              const hasDraft = savedRun && !savedRun.runComplete;
-              return (
-                <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/draft')}>
-                  {hasDraft ? `Continue Draft (${savedRun.wins}W–${savedRun.losses}L)` : 'Draft'}
-                </button>
-              );
-            })()}
-            {(() => {
-              const packCount = getTotalPackCount();
-              return (
-                <button
-                  className="lobby-btn-muted"
-                  style={{ ...btnSecondary, position: 'relative' }}
-                  onClick={() => onNavigate('/packs')}
-                >
-                  Packs
-                  {packCount > 0 && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '6px',
-                      right: '10px',
-                      background: '#C9A84C',
-                      color: '#0a0a0f',
-                      fontSize: '10px',
-                      fontFamily: "'Cinzel', serif",
-                      fontWeight: 700,
-                      borderRadius: '10px',
-                      padding: '1px 6px',
-                      lineHeight: 1.4,
-                    }}>{packCount}</span>
-                  )}
-                </button>
-              );
-            })()}
-            <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/collection')}>
-              Collection
-            </button>
-            <button className="lobby-btn-muted" style={btnSecondary} onClick={() => onNavigate('/deck-builder')}>
-              Build a Deck
-            </button>
-            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/tutorial')}>
-              Tutorial
-            </button>
-            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
-              How to Play
-            </button>
+
+            {/* Row 2: Continue Draft + Build a Deck */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(() => {
+                const savedRun = loadDraftRun();
+                const hasDraft = savedRun && !savedRun.runComplete;
+                return (
+                  <button className="lobby-btn-muted" style={{ ...btnSecondary, flex: 1 }} onClick={() => onNavigate('/draft')}>
+                    {hasDraft ? 'Continue Draft' : 'Draft'}
+                  </button>
+                );
+              })()}
+              <button className="lobby-btn-muted" style={{ ...btnSecondary, flex: 1 }} onClick={() => onNavigate('/deck-builder')}>
+                Build a Deck
+              </button>
+            </div>
+
+            {/* Row 3: Packs + Collection — secondary */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(() => {
+                const packCount = getTotalPackCount();
+                return (
+                  <button
+                    className="lobby-btn-muted"
+                    style={{ ...btnTertiary, flex: 1, position: 'relative' }}
+                    onClick={() => onNavigate('/packs')}
+                  >
+                    Packs
+                    {packCount > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '8px',
+                        background: '#C9A84C',
+                        color: '#0a0a0f',
+                        fontSize: '9px',
+                        fontFamily: "'Cinzel', serif",
+                        fontWeight: 700,
+                        borderRadius: '10px',
+                        padding: '1px 5px',
+                        lineHeight: 1.4,
+                      }}>{packCount}</span>
+                    )}
+                  </button>
+                );
+              })()}
+              <button className="lobby-btn-muted" style={{ ...btnTertiary, flex: 1 }} onClick={() => onNavigate('/collection')}>
+                Collection
+              </button>
+            </div>
 
             {/* Quests section — only for signed-in players */}
             {currentUser && quests && (
@@ -503,12 +565,12 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                 }}>
                   Daily Quests
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   {quests.daily.map(ch => {
                     const prog = questProgress[ch.id] || {};
                     const { current = 0, target = ch.requirement.target ?? 1, completed = false } = prog;
                     return (
-                      <QuestRow key={ch.id} title={ch.title} description={ch.description} current={current} target={target} completed={completed} />
+                      <QuestCard key={ch.id} title={ch.title} description={ch.description} current={current} target={target} completed={completed} />
                     );
                   })}
                 </div>
@@ -529,7 +591,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                       }}>
                         Weekly Quest
                       </div>
-                      <QuestRow title={ch.title} description={ch.description} current={current} target={target} completed={completed} isWeekly />
+                      <QuestCard title={ch.title} description={ch.description} current={current} target={target} completed={completed} isWeekly />
                     </>
                   );
                 })()}
@@ -574,13 +636,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             {createError && (
               <p style={{ fontFamily: "'Crimson Text', serif", color: '#bf4a4a', fontSize: '13px', textAlign: 'center' }}>{createError}</p>
             )}
-
-            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/tutorial')}>
-              Tutorial
-            </button>
-            <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
-              How to Play
-            </button>
 
             <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '8px' }}>
