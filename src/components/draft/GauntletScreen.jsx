@@ -240,10 +240,11 @@ function CardModal({ card, onClose }) {
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function GauntletScreen({ runState, onLaunchGame, onRunComplete }) {
+export default function GauntletScreen({ runState, onLaunchGame, onRunComplete, onBackToMenu, onEndDraft }) {
   const { wins, losses, deck, legendaryIds, primaryFaction, secondaryFaction } = runState;
   const sortedDeck = getSortedDeck(deck);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [showEndDraftConfirm, setShowEndDraftConfirm] = useState(false);
   const handleCloseModal = useCallback(() => setSelectedCard(null), []);
 
   function handleNextGame() {
@@ -338,6 +339,48 @@ export default function GauntletScreen({ runState, onLaunchGame, onRunComplete }
           Next Game →
         </button>
 
+        {/* Draft navigation buttons */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            onClick={onBackToMenu}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: '#9a9ab0',
+              fontFamily: "'Cinzel', serif",
+              fontSize: 12,
+              fontWeight: 600,
+              border: '1px solid #2a2a3a',
+              borderRadius: 4,
+              padding: '10px 16px',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
+            ← Back to Menu
+          </button>
+          <button
+            onClick={() => setShowEndDraftConfirm(true)}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: '#f87171',
+              fontFamily: "'Cinzel', serif",
+              fontSize: 12,
+              fontWeight: 600,
+              border: '1px solid #3a1a1a',
+              borderRadius: 4,
+              padding: '10px 16px',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
+            End Draft
+          </button>
+        </div>
+
         {/* Deck list */}
         <div>
           <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#6a6a8a', letterSpacing: '0.08em', marginBottom: 8 }}>
@@ -358,6 +401,82 @@ export default function GauntletScreen({ runState, onLaunchGame, onRunComplete }
       </div>
 
       {selectedCard && <CardModal card={selectedCard} onClose={handleCloseModal} />}
+
+      {showEndDraftConfirm && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.75)',
+          }}
+          onClick={() => setShowEndDraftConfirm(false)}
+        >
+          <div
+            style={{
+              background: '#08080f',
+              border: '1px solid #3a1a1a',
+              borderTop: '1px solid #f8717140',
+              borderRadius: '12px',
+              padding: '28px 24px',
+              width: '300px',
+              maxWidth: '90vw',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 14, color: '#f9fafb', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+              Are you sure you want to end your draft? Your progress will be lost.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={onEndDraft}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #7a1a1a, #c0392b)',
+                  color: '#f9fafb',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Yes, End Draft
+              </button>
+              <button
+                onClick={() => setShowEndDraftConfirm(false)}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: '#9a9ab0',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: '1px solid #2a2a3a',
+                  borderRadius: 4,
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

@@ -125,6 +125,8 @@ export default function DraftMode({ onBackToLobby, initialRun = null }) {
         runState={runState}
         onLaunchGame={handleLaunchGame}
         onRunComplete={() => setScreen('end')}
+        onBackToMenu={onBackToLobby}
+        onEndDraft={() => { clearDraftRun(); onBackToLobby(); }}
       />
     );
   }
