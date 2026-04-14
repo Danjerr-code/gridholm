@@ -53,6 +53,8 @@ export default function DeckCutScreen({ deck, newCardId, legendaryIds, onCutComp
           </p>
         </div>
 
+        <CardTypeCounter ids={deck} />
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid #1a1a2a', borderRadius: 4, padding: '4px 8px' }}>
           {sortedDeck.map((card, i) => {
             const isNew = card.id === newCardId;
@@ -158,6 +160,39 @@ function ConfirmBanner({ cardName, onConfirm, onCancel }) {
       >
         Cancel
       </button>
+    </div>
+  );
+}
+
+function getTypeCounts(ids) {
+  let units = 0, spells = 0, relics = 0, omens = 0;
+  for (const id of ids) {
+    const card = CARD_DB[id];
+    if (!card) continue;
+    if (card.isRelic || card.type === 'relic') relics++;
+    else if (card.isOmen || card.type === 'omen') omens++;
+    else if (card.type === 'spell') spells++;
+    else if (card.type === 'unit') units++;
+  }
+  return { units, spells, relics, omens };
+}
+
+function CardTypeCounter({ ids }) {
+  const { units, spells, relics, omens } = getTypeCounts(ids);
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Units: <span style={{ color: '#e8e8f0' }}>{units}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Spells: <span style={{ color: '#e8e8f0' }}>{spells}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Relics: <span style={{ color: '#e8e8f0' }}>{relics}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Omens: <span style={{ color: '#e8e8f0' }}>{omens}</span>
+      </span>
     </div>
   );
 }

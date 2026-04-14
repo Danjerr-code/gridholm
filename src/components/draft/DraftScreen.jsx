@@ -3,6 +3,8 @@ import { CARD_DB } from '../../engine/cards.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { getCardImageUrl } from '../../supabase.js';
 import { buildDraftPool, generatePack, generateLegendaryPack, getRandomFactions } from '../../draft/draftPool.js';
+import { CHAMPIONS } from '../../engine/champions.js';
+import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
 
 const TOTAL_PICKS = 29; // 1 legendary + 29 main = 30 cards
 
@@ -208,6 +210,7 @@ export default function DraftScreen({ onDraftComplete }) {
 
           {/* Mana curve */}
           <ManaCurveBar counts={curveCounts} total={draftedIds.length} />
+          <CardTypeCounter ids={draftedIds} />
 
           {/* Current deck */}
           <div>
@@ -237,6 +240,7 @@ export default function DraftScreen({ onDraftComplete }) {
             </p>
           </div>
           <ManaCurveBar counts={getCurveCounts(draftedIds)} total={30} />
+          <CardTypeCounter ids={draftedIds} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sortedDeck.map((card, i) => (
               <DeckListRow key={i} card={card} />
@@ -257,31 +261,45 @@ export default function DraftScreen({ onDraftComplete }) {
 
 function FactionCard({ faction, onClick }) {
   const style = FACTION_STYLE[faction] ?? {};
+  const champData = CHAMPIONS[faction];
+  const champImageUrl = champData ? getCardImageUrl(champData.image) : null;
+  const AttrSymbol = ATTR_SYMBOLS[faction] ?? null;
+  const attrColor = ATTRIBUTES[faction]?.color ?? '#C9A84C';
   return (
     <button
       onClick={onClick}
       style={{
-        background: style.bg,
-        color: style.color,
-        border: 'none',
-        borderRadius: 6,
-        padding: '20px 24px',
+        background: '#0d0d1a',
+        border: `1px solid ${attrColor}55`,
+        borderLeft: `3px solid ${attrColor}`,
+        borderRadius: 8,
+        padding: 0,
         cursor: 'pointer',
         textAlign: 'left',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
-        transition: 'filter 150ms ease, transform 150ms ease',
+        overflow: 'hidden',
+        transition: 'filter 150ms ease, transform 150ms ease, box-shadow 150ms ease',
       }}
-      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `inset 0 0 16px ${attrColor}33`; }}
+      onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 700, letterSpacing: '0.1em' }}>
-        {style.label?.toUpperCase()}
-      </span>
-      <span style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: 14, opacity: 0.8 }}>
-        {style.subtitle}
-      </span>
+      {champImageUrl && (
+        <div style={{ height: 120, overflow: 'hidden', flexShrink: 0 }}>
+          <img src={champImageUrl} alt={champData?.name ?? faction} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {AttrSymbol && <AttrSymbol size={20} />}
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: 16, fontWeight: 700, letterSpacing: '0.1em', color: attrColor }}>
+            {style.label?.toUpperCase()}
+          </span>
+        </div>
+        <span style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: 14, color: '#9a9ab0' }}>
+          {style.subtitle}
+        </span>
+      </div>
     </button>
   );
 }
@@ -415,6 +433,26 @@ function ManaCurveBar({ counts, total }) {
   );
 }
 
+function CardTypeCounter({ ids }) {
+  const { units, spells, relics, omens } = getTypeCounts(ids);
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Units: <span style={{ color: '#e8e8f0' }}>{units}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Spells: <span style={{ color: '#e8e8f0' }}>{spells}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Relics: <span style={{ color: '#e8e8f0' }}>{relics}</span>
+      </span>
+      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+        Omens: <span style={{ color: '#e8e8f0' }}>{omens}</span>
+      </span>
+    </div>
+  );
+}
+
 // ── Utility functions ─────────────────────────────────────────────────────────
 
 function getSortedDeck(ids) {
@@ -433,6 +471,19 @@ function getCurveCounts(ids) {
     counts[cost] = (counts[cost] ?? 0) + 1;
   }
   return counts;
+}
+
+function getTypeCounts(ids) {
+  let units = 0, spells = 0, relics = 0, omens = 0;
+  for (const id of ids) {
+    const card = CARD_DB[id];
+    if (!card) continue;
+    if (card.isRelic || card.type === 'relic') relics++;
+    else if (card.isOmen || card.type === 'omen') omens++;
+    else if (card.type === 'spell') spells++;
+    else if (card.type === 'unit') units++;
+  }
+  return { units, spells, relics, omens };
 }
 
 // ── Shared button styles ──────────────────────────────────────────────────────
