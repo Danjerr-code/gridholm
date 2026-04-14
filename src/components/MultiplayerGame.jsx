@@ -1386,13 +1386,14 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
         {/* Center: board with absolutely positioned command indicators on left edge */}
         <div className="flex flex-1 min-w-0 min-h-0">
-        <div className="flex flex-col flex-1 min-w-0 min-h-0 relative">
+        <div className="flex flex-col flex-1 min-w-0 min-h-0">
+          <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={myPlayerIndex} />
+          <div className="relative flex-1 min-h-0">
           {!isMobile && (
             <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', zIndex: 10, paddingRight: '4px' }}>
               <CommandDisplay commandsUsed={state.players[myPlayerIndex].commandsUsed ?? 0} />
             </div>
           )}
-          <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={myPlayerIndex} />
           <Board
             state={state}
             selectedUnit={selectedUnit}
@@ -1421,6 +1422,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onLongPressUnit={isMobile ? handleInspectUnit : undefined}
             onLongPressDismiss={isMobile ? handleClearInspect : undefined}
           />
+          </div>
         </div>
         </div>
 
