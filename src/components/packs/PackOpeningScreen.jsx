@@ -258,7 +258,7 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
         position: 'relative',
         animation: flipping ? 'card-flip 0.4s ease-in-out' : 'none',
       }}>
-        {!isFlipped && !flipping ? (
+        {!isFlipped && !flipping && !legendaryExpanded ? (
           // Card back
           <div style={{
             width: '100%',
