@@ -560,7 +560,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           bottom: '14px',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: actionAvailable ? '#ea580c' : '#374151',
+          background: actionAvailable ? '#f97316' : '#374151',
           color: actionAvailable ? '#fed7aa' : '#9ca3af',
           fontSize: '7px',
           fontFamily: 'var(--font-sans)',
