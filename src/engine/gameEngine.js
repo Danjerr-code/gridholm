@@ -226,9 +226,13 @@ function getPlayer(state) { return state.players[state.activePlayer]; }
 // Deep-clone state.
 // stateHistory is intentionally excluded from clones: it is managed at the endTurn
 // boundary and must not be nested inside each snapshot.
+// structuredClone is used instead of JSON.parse(JSON.stringify()) to handle circular
+// references in unit objects (e.g. Vexis shadow copies, modifier references) without
+// throwing. It is natively supported in all modern browsers (Chrome 98+, Firefox 94+,
+// Safari 15.4+) and Node.js 17+.
 export function cloneState(state) {
   const { stateHistory: _h, ...rest } = state;
-  return JSON.parse(JSON.stringify(rest));
+  return structuredClone(rest);
 }
 
 // ── HP restore ─────────────────────────────────────────────────────────────
