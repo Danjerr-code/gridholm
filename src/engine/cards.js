@@ -278,7 +278,8 @@ const HUMAN_DECK = [
   'footsoldier',
   'squire',
   'crossbowman',
-  'waddles',
+  'shieldwall',
+  'waddles',              // Legendary
   'sergeant',
   'knight',
   'standardbearer',
@@ -287,20 +288,18 @@ const HUMAN_DECK = [
   'battlepriestunit',
   'paladin',
   'captain',
-  'aendor',
+  'aendor',               // Legendary
+  'stoneguard',           // Neutral
   'smite', 'smite',
   'ironshield', 'ironshield',
   'ironthorns',
   'forgeweapon',
   'crusade',
   'martiallaw',
-  'hallowed_ground',
-  'battlestandard',
-  'soulstone',
-  // 'clockworkmanimus', // TEMP: removed pending trigger resolution system fix (LOG-1152)
-  'shieldwall',         // replacement card to restore 30-card count
-  'lucernunbrokenvow',
-  'gavrielholystride',
+  'standfirm',
+  'soulstone',            // Relic
+  'battlestandard',       // Omen
+  'hallowed_ground',      // Terrain
 ];
 
 const BEAST_DECK = [
@@ -309,26 +308,29 @@ const BEAST_DECK = [
   'wolf', 'wolf',
   'razorclaw',
   'wildborne',
-  'pip',
+  'tuskling',
+  'pip',                  // Legendary
   'eagerbeaver',
   'stalker',
   'packrunner',
+  'nighthoofreaver',
   'rockhorn', 'rockhorn',
   'plaguehog',
   'sabretooth', 'sabretooth',
-  'razorfang',
+  'razorfang',            // Legendary
   'crushingblow',
   'ambush',
   'packhowl',
   'pounce',
   'predatorsmark',
   'savagegrowth',
+  'animus',
+  'gore',
   'callofthesnakes',
-  'siegemound', 'siegemound',
-  'feralsurge', 'feralsurge',
-  'bloodmoon',
-  'vornthundercaller',
-  'korraksecondang',
+  'spiritbolt',
+  'wardrum',              // Relic + Neutral
+  'feralsurge',           // Omen
+  'huntingground',        // Terrain
 ];
 
 const ELF_DECK = [
@@ -344,33 +346,30 @@ const ELF_DECK = [
   'grovewarden',
   'moonveilmystic',
   'elfarcher',
-  'sistersiofra',
-  'yggara',
-  'glimpse',
-  'petrify',
-  'arcanelens',
-  'moonleaf',
-  'overgrowth',
-  'bloom',
-  'ancientspring',
-  'verdantsurge',
-  'enchanted_ground',
-  'manawell',
-  'tanglerootypew',
-  'azulonsilvertide',
-  'fennwickthequiet',
   'canopysentinel',
   'cascadesage',
-  // stormcrestdrake, lifebinder, rootsongcommander removed to restore 30-card count
-  // (they were added in feat: add Stormcrest Drake, Lifebinder, Rootsong Commander
-  //  without removing 3 existing cards — game designers should decide replacements)
+  'sistersiofra',         // Legendary
+  'yggara',               // Legendary
+  'glimpse',
+  'moonleaf',
+  'bloom',
+  'ancientspring',
+  'overgrowth',
+  'petrify',
+  'verdantsurge',
+  'recall',
+  'glitteringgift',
+  'entangle',
+  'arcanelens',           // Relic + Neutral
+  'manawell',             // Omen
+  'enchanted_ground',     // Terrain
 ];
 
 const DEMON_DECK = [
   'imp', 'imp',
-  'darkdealer',
+  'spiteling',
   'dreadknight',
-  'voidtitan',
+  'chaospawn',
   'hellhound',
   'brutedemon',
   'shadowtrap',
@@ -379,20 +378,21 @@ const DEMON_DECK = [
   'veilfiend',
   'fleshtithe',
   'dreadshade', 'dreadshade',
-  'zmore',
+  'zmore',                // Legendary
+  'vexishollowking',      // Legendary
+  'wanderingconstruct',   // Neutral
   'agonizingsymphony',
   'pestilence',
-  'echostone',
   'bloodoffering',
   'pactofruin',
   'darksentence',
   'devour',
   'infernalpact',
+  'shadowveil',
   'souldrain',
-  'smokebomb',
-  'cursed_ground',
-  'bloodaltar',
-  'vexishollowking',
+  'bloodaltar',           // Relic
+  'smokebomb',            // Omen
+  'cursed_ground',        // Terrain
 ];
 
 export const DECKS = {
@@ -492,6 +492,7 @@ export function buildDeck(deckId = 'human') {
 
 // Deck validation
 Object.entries(DECKS).forEach(([id, deck]) => {
+  console.log(`[deck validation] ${id}: ${deck.cards.length} cards`);
   console.assert(deck.cards.length === 30, `${id} deck must be 30 cards, got ${deck.cards.length}`);
 });
 
