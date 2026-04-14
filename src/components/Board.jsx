@@ -586,8 +586,15 @@ export default function Board({
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
-      <div className="relative" style={{ padding: '24px' }}>
+      <div className="relative" style={{ padding: '15px' }}>
       <div ref={boardRef} data-board-grid="true" className="relative grid gap-0.5" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <img
+          src="/frame.png"
+          className="absolute pointer-events-none select-none"
+          style={{ zIndex: 1, inset: '-15px', width: 'calc(100% + 30px)', height: 'calc(100% + 30px)' }}
+          alt=""
+          aria-hidden="true"
+        />
         {Array.from({ length: 5 }, (_, row) =>
           Array.from({ length: 5 }, (_, col) => {
             const key = `${row},${col}`;
@@ -668,13 +675,6 @@ export default function Board({
           })
         )}
       </div>
-      <img
-        src="/frame.png"
-        className="absolute inset-0 w-full h-full pointer-events-none select-none"
-        style={{ zIndex: 50 }}
-        alt=""
-        aria-hidden="true"
-      />
       </div>
     </div>
   );
