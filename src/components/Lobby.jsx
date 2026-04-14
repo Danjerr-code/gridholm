@@ -314,6 +314,8 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
     onNavigate(`/game/${id}`);
   }
 
+  const HEADER_HEIGHT = 50;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -323,42 +325,27 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '16px',
+      paddingTop: `${HEADER_HEIGHT + 16}px`,
       position: 'relative',
     }}>
       <style>{lobbyHoverStyles}</style>
 
-      {/* Decorative silhouettes */}
-      <img
-        className="lobby-silhouette"
-        src="/dragon.png"
-        alt=""
-        style={{
-          position: 'absolute',
-          left: '-20px',
-          top: 0,
-          width: '520px',
-          opacity: 0.25,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <img
-        className="lobby-silhouette"
-        src="/angel.png"
-        alt=""
-        style={{
-          position: 'absolute',
-          right: '-20px',
-          top: 0,
-          width: '520px',
-          opacity: 0.25,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-
-      {/* Top-right: Tutorial/How to Play links + Profile button */}
-      <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', alignItems: 'center', gap: '4px' }} ref={dropdownRef}>
+      {/* Fixed header strip */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: `${HEADER_HEIGHT}px`,
+        background: '#0a0a0f',
+        borderBottom: '1px solid #1a1a2a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        padding: '0 20px',
+        zIndex: 10,
+        gap: '4px',
+      }} ref={dropdownRef}>
         <button style={btnTopNav} onClick={() => onNavigate('/tutorial')}>Tutorial</button>
         <span style={{ color: '#2a2a3a', fontSize: '10px' }}>|</span>
         <button style={btnTopNav} onClick={() => onNavigate('/how-to-play')}>How to Play</button>
@@ -451,6 +438,36 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
           </button>
         )}
       </div>
+
+      {/* Decorative silhouettes — start below header */}
+      <img
+        className="lobby-silhouette"
+        src="/dragon.png"
+        alt=""
+        style={{
+          position: 'fixed',
+          left: '-208px',
+          top: `${HEADER_HEIGHT}px`,
+          width: '520px',
+          opacity: 0.25,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <img
+        className="lobby-silhouette"
+        src="/angel.png"
+        alt=""
+        style={{
+          position: 'fixed',
+          right: '-20px',
+          top: `${HEADER_HEIGHT}px`,
+          width: '520px',
+          opacity: 0.25,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
 
       {/* Auth modals */}
       {authModal === 'signin' && (
