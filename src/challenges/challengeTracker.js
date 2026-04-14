@@ -207,7 +207,7 @@ export function trackGameEnd(gameResult) {
       if (challenge.type === 'daily') {
         addPacks('mixed', 1);
       } else if (challenge.type === 'weekly') {
-        addPacks('mixed', 2);
+        addPacks('mixed', 3);
       }
     }
   }

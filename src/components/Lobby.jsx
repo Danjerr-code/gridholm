@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import SignInModal from './SignInModal.jsx';
 import SignUpModal from './SignUpModal.jsx';
 import { loadDraftRun } from '../draft/draftRunState.js';
-import { hasUnviewedCompletions } from '../challenges/challengeManager.js';
+import { getActiveChallenges, getChallengeProgress, ensureChallengeProgress } from '../challenges/challengeManager.js';
 import { getTotalPackCount } from '../packs/packGenerator.js';
 
 function generateGameId() {
@@ -97,6 +97,48 @@ const lobbyHoverStyles = `
   }
 `;
 
+function QuestRow({ title, description, current, target, completed, isWeekly }) {
+  const pct = Math.min(100, Math.round((current / target) * 100));
+  return (
+    <div style={{
+      background: completed ? '#0d1a0d' : '#0d0d1a',
+      border: `1px solid ${completed ? '#4ade8030' : isWeekly ? '#a855f730' : '#C9A84C20'}`,
+      borderRadius: '4px',
+      padding: '7px 10px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '10px',
+            fontWeight: 600,
+            color: completed ? '#4ade80' : isWeekly ? '#c084fc' : '#C9A84C',
+            letterSpacing: '0.03em',
+            marginBottom: '2px',
+          }}>
+            {title}
+          </div>
+          <div style={{ fontSize: '10px', color: '#6a6a9a', lineHeight: 1.3 }}>
+            {description}
+          </div>
+        </div>
+        <div style={{ fontSize: '10px', color: completed ? '#4ade80' : '#4a4a6a', flexShrink: 0, paddingTop: '1px' }}>
+          {completed ? '✓' : `${current}/${target}`}
+        </div>
+      </div>
+      <div style={{ background: '#1a1a2a', borderRadius: '2px', height: '3px', width: '100%', overflow: 'hidden', marginTop: '5px' }}>
+        <div style={{
+          height: '100%',
+          width: `${pct}%`,
+          background: completed ? '#4ade80' : isWeekly ? '#a855f7' : '#C9A84C',
+          borderRadius: '2px',
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
 const WELCOME_SEEN_KEY = 'gridholm_welcome_packs_seen';
 
 function checkShowWelcome() {
@@ -120,6 +162,8 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
 
   const [profileUsername, setProfileUsername] = useState(null);
   const [profileStats, setProfileStats] = useState(null); // { wins, losses }
+  const [quests, setQuests] = useState(null);
+  const [questProgress, setQuestProgress] = useState({});
 
   // Fetch username and win/loss stats when user logs in
   useEffect(() => {
@@ -133,6 +177,18 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
         setProfileUsername(data?.username ?? null);
         if (data) setProfileStats({ wins: data.wins ?? 0, losses: data.losses ?? 0 });
       });
+  }, [currentUser]);
+
+  // Load quests for signed-in players
+  useEffect(() => {
+    if (!currentUser) {
+      setQuests(null);
+      setQuestProgress({});
+      return;
+    }
+    ensureChallengeProgress();
+    setQuests(getActiveChallenges());
+    setQuestProgress(getChallengeProgress());
   }, [currentUser]);
 
   // Close dropdown on outside click
@@ -393,25 +449,6 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
                 </button>
               );
             })()}
-            <button
-              className="lobby-btn-muted"
-              style={{ ...btnSecondary, position: 'relative' }}
-              onClick={() => onNavigate('/challenges')}
-            >
-              Challenges
-              {hasUnviewedCompletions() && (
-                <span style={{
-                  position: 'absolute',
-                  top: '6px',
-                  right: '10px',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#4ade80',
-                  boxShadow: '0 0 6px #4ade80',
-                }} />
-              )}
-            </button>
             {(() => {
               const packCount = getTotalPackCount();
               return (
@@ -451,6 +488,53 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             <button className="lobby-btn-muted" style={btnCancel} onClick={() => onNavigate('/how-to-play')}>
               How to Play
             </button>
+
+            {/* Quests section — only for signed-in players */}
+            {currentUser && quests && (
+              <div style={{ marginTop: '4px' }}>
+                <div style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '10px',
+                  color: '#C9A84C60',
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  marginBottom: '6px',
+                  textAlign: 'center',
+                }}>
+                  Daily Quests
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {quests.daily.map(ch => {
+                    const prog = questProgress[ch.id] || {};
+                    const { current = 0, target = ch.requirement.target ?? 1, completed = false } = prog;
+                    return (
+                      <QuestRow key={ch.id} title={ch.title} description={ch.description} current={current} target={target} completed={completed} />
+                    );
+                  })}
+                </div>
+                {quests.weekly && (() => {
+                  const ch = quests.weekly;
+                  const prog = questProgress[ch.id] || {};
+                  const { current = 0, target = ch.requirement.target ?? 1, completed = false } = prog;
+                  return (
+                    <>
+                      <div style={{
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: '10px',
+                        color: '#c084fc60',
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        margin: '8px 0 6px',
+                        textAlign: 'center',
+                      }}>
+                        Weekly Quest
+                      </div>
+                      <QuestRow title={ch.title} description={ch.description} current={current} target={target} completed={completed} isWeekly />
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

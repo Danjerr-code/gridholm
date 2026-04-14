@@ -9,7 +9,6 @@ import HowToPlay from './components/HowToPlay.jsx';
 import CardGallery from './components/CardGallery.jsx';
 import TutorialMenu from './components/TutorialMenu.jsx';
 import DraftMode from './components/draft/DraftMode.jsx';
-import ChallengesScreen from './components/ChallengesScreen.jsx';
 import PackOpeningScreen from './components/packs/PackOpeningScreen.jsx';
 import CollectionScreen from './components/packs/CollectionScreen.jsx';
 import { supabase, getGuestId } from './supabase.js';
@@ -33,7 +32,6 @@ function parseHash() {
   if (hash === 'card-gallery') return { view: 'card_gallery' };
   if (hash === 'tutorial') return { view: 'tutorial' };
   if (hash === 'deck-builder') return { view: 'deck_builder' };
-  if (hash === 'challenges') return { view: 'challenges' };
   if (hash === 'packs') return { view: 'packs' };
   if (hash === 'collection') return { view: 'collection' };
   if (hash === 'custom-play') return { view: 'custom_play' };
@@ -139,10 +137,6 @@ export default function Root() {
 
   if (route.view === 'card_gallery') {
     return <CardGallery />;
-  }
-
-  if (route.view === 'challenges') {
-    return <ChallengesScreen onBack={() => navigate('/')} />;
   }
 
   if (route.view === 'packs') {
