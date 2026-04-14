@@ -84,18 +84,19 @@ export const FACTION_WEIGHTS = {
   },
 
   /**
-   * Mystic — sustain/control, stay alive, value hand size and board presence.
+   * Mystic — board pressure and card advantage, no HP hoarding.
+   * championHP and championHPDiff match WEIGHTS base (no HP-preservation bonus).
+   * healingValue=0: healing provides real defensive value but is not eval-incentivized.
    * Urgency ramp begins at turn 14 (lowered from 20) to reduce passive stalls.
-   * healingValue reduced 8→5, unitsThreateningChampion raised 8→14 for mid-game pressure.
    */
   mystic: {
     ...WEIGHTS,
-    championHP:               10,   // very high — staying alive is the strategy
+    championHP:                5,   // WEIGHTS base — no HP hoarding bonus
     unitCountDiff:            10,   // maintain board presence
     cardsInHand:               8,   // high — card advantage matters
-    championHPDiff:            3,   // low early (increases after turn 12)
+    championHPDiff:            8,   // WEIGHTS base — reward HP lead, not absolute HP
     unitsThreateningChampion: 14,   // raised 8→14: more mid-game champion pressure
-    healingValue:              5,   // lowered 8→5: reduce passive sustain reward ~35%
+    healingValue:              0,   // removed: passive HP reward eliminated
     opponentChampionLowHP:    45,   // raised 30→45: stronger finishing commitment
     // gameLengthPenaltyStart: 14 (handled in computeGameLengthPenalty)
   },
