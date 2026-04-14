@@ -855,12 +855,12 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           <CardDetailPanel inspectedItem={inspectedItem} state={state} handlers={handlers} phase={phase} isP1Turn={isP1Turn} />
         </div>
 
-        {/* Center: board with absolutely positioned command indicators on left edge */}
+        {/* Center: board with command display as flex sibling */}
         <div className="flex flex-1 min-w-0 min-h-0">
           <div className="flex flex-col flex-1 min-w-0 min-h-0">
           <TurnBanner activePlayer={state.activePlayer} myPlayerIndex={0} />
-          <div className="relative flex-1 min-h-0">
-          <div className="hidden sm:block" style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', zIndex: 10, paddingRight: '4px' }}>
+          <div className="flex items-center justify-center flex-1 min-h-0 gap-2">
+          <div className="hidden sm:block flex-shrink-0">
             <CommandDisplay commandsUsed={state.players[0].commandsUsed ?? 0} commandLimit={p1CommandLimit} />
           </div>
           <Board
