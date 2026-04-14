@@ -30,6 +30,21 @@ const THRONE_ROW = 2;
 const THRONE_COL = 2;
 
 /**
+ * Estimated HP restoration per healing card (by card ID).
+ * Used to compute opponentHealingThreat: the total healing the opponent
+ * can deploy from hand or board, which the AI should account for when
+ * planning lethal damage sequences.
+ */
+const HEALING_VALUES = {
+  bloom:         4,
+  ancientspring: 5,
+  overgrowth:    3,  // 3 HP per target (typically 1 unit + champion)
+  verdantsurge:  4,
+  glitteringgift: 3,
+  recall:        4,  // returns a healing card to hand; estimate avg healing card value
+};
+
+/**
  * Universal weight constants — used as the base for all faction profiles.
  * These are the original balanced weights; faction profiles override specific keys.
  */
@@ -59,6 +74,7 @@ export const WEIGHTS = {
   enemyThreatValue:          4,  // sum of threatValue ratings for enemy combat units (applied negatively)
   trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
   highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
+  opponentHealingThreat:     3,  // penalty per estimated HP of opponent healing available (all factions)
 };
 
 /**
@@ -478,6 +494,23 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // opponentHealingThreat: estimate total HP the opponent can restore from hand and board.
+  // Scanning hand cards and any on-board healing sources (e.g. relics with heal effects).
+  // Applied as a negative score — more opponent healing = worse position for us.
+  const oppPlayer = gameState.players[op];
+  let estimatedOpponentHealing = 0;
+  if (oppPlayer.hand) {
+    for (const card of oppPlayer.hand) {
+      const val = HEALING_VALUES[card.id];
+      if (val) estimatedOpponentHealing += val;
+    }
+  }
+  // Also check opponent units on board that may have healing IDs (e.g. healing relics/omens)
+  for (const u of oppUnits) {
+    const val = HEALING_VALUES[u.id];
+    if (val) estimatedOpponentHealing += val;
+  }
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behavior.
@@ -502,7 +535,7 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     gameLength                                            +
     championProximity        * w.championProximity        * aggressionMult +
     opponentChampionLowHP    * w.opponentChampionLowHP    * aggressionMult +
-    projectedChampionDamage  * (w.projectedChampionDamage ?? 20) +
+    Math.max(0, projectedChampionDamage - estimatedOpponentHealing) * (w.projectedChampionDamage ?? 20) +
     relicsOnBoard            * w.relicsOnBoard            +
     omensOnBoard             * w.omensOnBoard             +
     terrainBenefit           * w.terrainBenefit           +
@@ -510,7 +543,8 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     allyCardValue            * (w.allyCardValue ?? 3)     +
     enemyThreatValue         * (w.enemyThreatValue ?? 4)  +
     trappedAllyPenaltyValue                               +
-    highValueIdlePenalty;
+    highValueIdlePenalty                                  +
+    (-estimatedOpponentHealing) * (w.opponentHealingThreat ?? 3);
 
   return score;
 }
