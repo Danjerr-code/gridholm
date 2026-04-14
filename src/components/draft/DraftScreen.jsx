@@ -114,7 +114,7 @@ export default function DraftScreen({ onDraftComplete }) {
               Choose your primary faction
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
             {primaryOptions.map(faction => (
               <FactionCard
                 key={faction}
@@ -140,7 +140,7 @@ export default function DraftScreen({ onDraftComplete }) {
               {' '}— Choose your secondary faction
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
             {secondaryOptions.map(faction => (
               <FactionCard
                 key={faction}
@@ -271,7 +271,7 @@ function FactionCard({ faction, onClick }) {
       style={{
         background: '#0d0d1a',
         border: `1px solid ${attrColor}55`,
-        borderLeft: `3px solid ${attrColor}`,
+        borderTop: `3px solid ${attrColor}`,
         borderRadius: 8,
         padding: 0,
         cursor: 'pointer',
@@ -279,14 +279,15 @@ function FactionCard({ faction, onClick }) {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        width: 140,
         transition: 'filter 150ms ease, transform 150ms ease, box-shadow 150ms ease',
       }}
-      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `inset 0 0 16px ${attrColor}33`; }}
+      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 4px 20px ${attrColor}44`; }}
       onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       {champImageUrl && (
-        <div style={{ height: 120, overflow: 'hidden', flexShrink: 0 }}>
-          <img src={champImageUrl} alt={champData?.name ?? faction} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <div style={{ aspectRatio: '3 / 4', overflow: 'hidden', flexShrink: 0 }}>
+          <img src={champImageUrl} alt={champData?.name ?? faction} onError={e => { e.target.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
         </div>
       )}
       <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
