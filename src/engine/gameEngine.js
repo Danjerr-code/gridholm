@@ -314,12 +314,12 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
   unregisterUnit(unit.uid, state);
   unregisterModifiers(unit.uid, state);
 
-  // Push non-token units to the owner's grave before removal.
+  // Push non-token cards to the owner's grave before removal.
   // graveEntry is an explicit plain object with only serialisable primitives —
   // no circular references, no live board state, no triggerListeners.
   if (!unit.isToken && state.players[unit.owner]) {
     const graveEntry = {
-      type: 'unit',
+      type: unit.isRelic ? 'relic' : unit.isOmen ? 'omen' : 'unit',
       id: unit.id,
       uid: unit.uid,
       name: unit.name,
@@ -333,6 +333,8 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
       rules: unit.rules,
       legendary: unit.legendary,
       attribute: unit.attribute,
+      isRelic: unit.isRelic || false,
+      isOmen: unit.isOmen || false,
       // permanent stat changes are captured via atk/maxHp above
     };
     if (!state.players[unit.owner].grave) state.players[unit.owner].grave = [];
@@ -1820,7 +1822,7 @@ export function playCard(state, cardUid) {
       s.champions[s.activePlayer].moved = true;
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingGraveSelect = { reason: 'rebirth', playerIdx: s.activePlayer };
@@ -1832,7 +1834,7 @@ export function playCard(state, cardUid) {
     if (card.effect === 'glimpse') {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (p.deck.length === 0) {
         addLog(s, `Glimpse: deck is empty. Drawing a card.`);
@@ -1855,7 +1857,7 @@ export function playCard(state, cardUid) {
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
@@ -1882,7 +1884,7 @@ export function playCard(state, cardUid) {
       if (validTiles.length === 0) return s; // no valid tiles — cannot cast
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingRelicPlace = { effect: 'amethystcache', playerIdx: s.activePlayer };
@@ -1900,7 +1902,7 @@ export function playCard(state, cardUid) {
       // Need to select a card to discard first
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
@@ -1913,7 +1915,7 @@ export function playCard(state, cardUid) {
     if (card.effect === 'tollofshadows') {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.discard.push(card);
+      p.grave.push(card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       addLog(s, `${p.name} casts Toll of Shadows.`);
@@ -2451,7 +2453,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (p.resources < effectiveCost) return s;
     p.resources -= effectiveCost;
     p.hand.splice(cardIdx, 1);
-    p.discard.push(card);
+    p.grave.push(card);
     resolvedSpellCard = card;
     s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
     if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
@@ -3000,7 +3002,7 @@ export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   if (p.resources < effectiveCost) return s;
   p.resources -= effectiveCost;
   p.hand.splice(cardIdx, 1);
-  p.discard.push(card);
+  p.grave.push(card);
   s.pendingTerrainCast = null;
 
   const radius = card.terrainRadius ?? 0;
