@@ -426,10 +426,10 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
 // ── Phase A: Pack Selection ────────────────────────────────────────────────────
 
 const PACK_ART = {
-  light:  '/pack-light.svg',
-  primal: '/pack-primal.svg',
-  mystic: '/pack-mystic.svg',
-  dark:   '/pack-dark.svg',
+  light:  '/pack-light.png',
+  primal: '/pack-primal.png',
+  mystic: '/pack-mystic.png',
+  dark:   '/pack-dark.png',
 };
 
 const PACK_SELECTION_STYLES = `
@@ -506,6 +506,8 @@ function PackCard({ packKey, def, count, onSelect }) {
 function PackSelectionPhase({ inventory, onSelectPack }) {
   // Only show the four faction packs — exclude the generic mixed pack
   const factionPacks = ['light', 'primal', 'mystic', 'dark'];
+  // Mixed credits are redeemable on any faction pack
+  const mixedCredits = inventory.mixed || 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center', width: '100%' }}>
@@ -535,7 +537,7 @@ function PackSelectionPhase({ inventory, onSelectPack }) {
             key={key}
             packKey={key}
             def={PACK_TYPES[key]}
-            count={inventory[key] || 0}
+            count={(inventory[key] || 0) + mixedCredits}
             onSelect={onSelectPack}
           />
         ))}
@@ -786,7 +788,12 @@ export default function PackOpeningScreen({ onBack }) {
 
   function handleSelectPack(packType) {
     const cards = generatePack(packType);
-    removePack(packType);
+    // Consume faction-specific pack first; fall back to mixed credits
+    if ((inventory[packType] || 0) > 0) {
+      removePack(packType);
+    } else {
+      removePack('mixed');
+    }
     refreshInventory();
     setSelectedPackType(packType);
     setCurrentCards(cards);
