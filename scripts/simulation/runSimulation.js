@@ -13,7 +13,8 @@
  *   --output  Output file path (default: results.json)
  *   --ai      AI mode: heuristic | minimax | mcts (default: mcts)
  *   --depth   Minimax depth (default: 4, only used when --ai minimax)
- *   --sims    MCTS simulations per decision (default: 1, only used when --ai mcts)
+ *   --sims    MCTS simulations upper bound (default: 10000, only used when --ai mcts)
+ *   --timeout MCTS per-decision time cap in ms (default: 100, only used when --ai mcts)
  */
 
 import { writeFileSync } from 'fs';
@@ -25,16 +26,17 @@ import { chooseActionMCTS } from './mctsAI.js';
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'mcts', depth: 4, sims: 1 };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'mcts', depth: 4, sims: 10000, timeout: 100 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--p1':     args.p1     = argv[++i]; break;
-      case '--p2':     args.p2     = argv[++i]; break;
-      case '--games':  args.games  = parseInt(argv[++i], 10); break;
-      case '--output': args.output = argv[++i]; break;
-      case '--ai':     args.ai     = argv[++i]; break;
-      case '--depth':  args.depth  = parseInt(argv[++i], 10); break;
-      case '--sims':   args.sims   = parseInt(argv[++i], 10); break;
+      case '--p1':      args.p1      = argv[++i]; break;
+      case '--p2':      args.p2      = argv[++i]; break;
+      case '--games':   args.games   = parseInt(argv[++i], 10); break;
+      case '--output':  args.output  = argv[++i]; break;
+      case '--ai':      args.ai      = argv[++i]; break;
+      case '--depth':   args.depth   = parseInt(argv[++i], 10); break;
+      case '--sims':    args.sims    = parseInt(argv[++i], 10); break;
+      case '--timeout': args.timeout = parseInt(argv[++i], 10); break;
     }
   }
   return args;
@@ -217,9 +219,10 @@ const MAX_ACTIONS_PER_TURN = 80;
 
 export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
   const useMinimaxAI = opts.ai === 'minimax';
-  const useMCTS      = opts.ai === 'mcts';
-  const minimaxDepth = opts.depth ?? 2;
-  const mctsSimulations = opts.sims ?? 200;
+  const useMCTS         = opts.ai === 'mcts';
+  const minimaxDepth    = opts.depth ?? 2;
+  const mctsSimulations = opts.sims ?? 10000;
+  const mctsTimeoutMs   = opts.timeout ?? 100;
 
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
@@ -261,7 +264,7 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
       minimaxTotalMs += performance.now() - t0;
     } else if (useMCTS) {
       const t0 = performance.now();
-      action = chooseActionMCTS(state, { simulations: mctsSimulations });
+      action = chooseActionMCTS(state, { simulations: mctsSimulations, timeoutMs: mctsTimeoutMs });
       mctsTotalMs += performance.now() - t0;
     } else {
       action = chooseAction(state, commandsUsedThisTurn);
@@ -452,10 +455,10 @@ const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 
 const args = parseArgs(process.argv);
-const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth } = args;
-const gameOpts = { ai: aiMode, depth: minimaxDepth };
+const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout } = args;
+const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout };
 
-console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}]`);
+console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeout}ms` : ''}]`);
 
 const results = [];
 let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0;

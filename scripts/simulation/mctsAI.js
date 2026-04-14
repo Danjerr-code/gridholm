@@ -244,13 +244,17 @@ export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_
 /**
  * Choose an action using flat MCTS with UCB1 selection and biased rollouts.
  *
+ * Time-budget mode (recommended): set `timeoutMs` to a hard cap (e.g. 100ms).
+ * `simulations` acts as an upper bound that will not be reached in practice —
+ * the UCB1 loop exits as soon as the deadline passes.
+ *
  * Options:
- *   simulations      {number}  - rollouts per decision (default 200)
+ *   simulations      {number}  - max rollouts per decision upper bound (default 10000)
  *   maxRolloutTurns  {number}  - max turns per rollout (default 30)
  *   maxRolloutActions {number} - max actions per rollout safety cap (default MAX_ROLLOUT_ACTIONS=50)
  *   policy           {object}  - rollout policy (default DEFAULT_POLICY)
  *                                Pass null to use uniform random rollouts.
- *   timeoutMs        {number}  - per-decision time cap in ms (default 10000)
+ *   timeoutMs        {number}  - per-decision hard time cap in ms (default 100)
  *
  * @param {object} state
  * @param {object} [options]
@@ -258,11 +262,11 @@ export function biasedRollout(state, playerIdx, maxTurns = 30, policy = DEFAULT_
  */
 export function chooseActionMCTS(state, options = {}) {
   const {
-    simulations       = 200,
+    simulations       = 10000,  // upper bound — timeoutMs cuts off first in practice
     maxRolloutTurns   = 30,
     maxRolloutActions = MAX_ROLLOUT_ACTIONS,
     policy            = DEFAULT_POLICY,
-    timeoutMs         = MCTS_TIMEOUT_MS,  // per-decision time cap (ms)
+    timeoutMs         = 100,    // hard per-decision time cap (ms)
   } = options;
 
   const playerIdx = state.activePlayer; // 0 or 1
