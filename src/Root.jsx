@@ -11,6 +11,7 @@ import TutorialMenu from './components/TutorialMenu.jsx';
 import DraftMode from './components/draft/DraftMode.jsx';
 import PackOpeningScreen from './components/packs/PackOpeningScreen.jsx';
 import CollectionScreen from './components/packs/CollectionScreen.jsx';
+import AdventureMode from './components/adventure/AdventureMode.jsx';
 import { supabase, getGuestId } from './supabase.js';
 import { createInitialState, autoAdvancePhase } from './engine/gameEngine.js';
 import { loadDraftRun } from './draft/draftRunState.js';
@@ -37,6 +38,7 @@ function parseHash() {
   if (hash === 'collection') return { view: 'collection' };
   if (hash === 'custom-play') return { view: 'custom_play' };
   if (hash === 'custom-ai') return { view: 'custom_ai' };
+  if (hash === 'adventure') return { view: 'adventure' };
   const gameMatch = hash.match(/^game\/([A-Z0-9]{6})$/i);
   if (gameMatch) return { view: 'game', gameId: gameMatch[1].toUpperCase() };
   return { view: 'landing' };
@@ -162,6 +164,10 @@ export default function Root() {
 
   if (route.view === 'collection') {
     return <CollectionScreen onBack={() => navigate('lobby')} />;
+  }
+
+  if (route.view === 'adventure') {
+    return <AdventureMode onBack={() => navigate('lobby')} />;
   }
 
   if (route.view === 'draft') {

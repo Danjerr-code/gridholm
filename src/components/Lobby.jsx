@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import SignInModal from './SignInModal.jsx';
 import SignUpModal from './SignUpModal.jsx';
 import { loadDraftRun } from '../draft/draftRunState.js';
+import { loadRun as loadAdventureRun } from '../adventure/adventureState.js';
 import { getActiveChallenges, getChallengeProgress, ensureChallengeProgress } from '../challenges/challengeManager.js';
 import { getTotalPackCount } from '../packs/packGenerator.js';
 
@@ -561,7 +562,17 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
               Quick Play
             </button>
 
-            {/* Row 2: Continue Draft + Build a Deck */}
+            {/* Row 2: Adventure */}
+            {(() => {
+              const adventureRun = loadAdventureRun();
+              return (
+                <button className="lobby-btn-primary" style={{ ...btnPrimary, background: 'linear-gradient(135deg, #3a1a60, #7a40b0)' }} onClick={() => onNavigate('/adventure')}>
+                  {adventureRun ? 'Continue Adventure' : 'Adventure'}
+                </button>
+              );
+            })()}
+
+            {/* Row 3: Continue Draft + Build a Deck */}
             <div style={{ display: 'flex', gap: '8px' }}>
               {(() => {
                 const savedRun = loadDraftRun();
