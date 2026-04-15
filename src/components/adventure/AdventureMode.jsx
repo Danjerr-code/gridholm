@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import Card from '../Card.jsx';
 import {
   createNewRun, loadRun, clearRun, saveRun,
   moveToTile, completeTile, applyReward,
@@ -666,210 +668,385 @@ const PANEL_BG = '#0d0d18';
 const PANEL_BORDER = '1px solid #1e1e2e';
 
 function DeckPanel({ deck }) {
+  const [selectedCardId, setSelectedCardId] = useState(null);
   const groups = buildDeckGroups(deck);
+  const selectedCard = selectedCardId ? CARD_DB[selectedCardId] : null;
+
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      padding: '14px 12px',
-      gap: '10px',
-    }}>
+    <>
       <div style={{
-        fontFamily: "'Cinzel', serif",
-        fontSize: '10px',
-        color: '#6a6a8a',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        marginBottom: '2px',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '14px 12px',
+        gap: '10px',
       }}>
-        Deck · {deck.length} cards
-      </div>
-      <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {groups.map(group => (
-          <div key={group.cost}>
-            <div style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: '9px',
-              color: '#4a4a6a',
-              letterSpacing: '0.06em',
-              marginBottom: '4px',
-              borderBottom: '1px solid #1e1e2e',
-              paddingBottom: '2px',
-            }}>
-              Cost {group.cost}
-            </div>
-            {group.cards.map(card => (
-              <div key={card.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '3px 4px',
-                borderRadius: '3px',
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '10px',
+          color: '#6a6a8a',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: '2px',
+        }}>
+          Deck · {deck.length} cards
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {groups.map(group => (
+            <div key={group.cost}>
+              <div style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: '9px',
+                color: '#4a4a6a',
+                letterSpacing: '0.06em',
+                marginBottom: '4px',
+                borderBottom: '1px solid #1e1e2e',
+                paddingBottom: '2px',
               }}>
-                <div style={{
-                  fontFamily: "'Crimson Text', serif",
-                  fontSize: '12px',
-                  color: card.type === 'spell' ? '#c084fc' : card.type === 'omen' ? '#f9a8d4' : '#c0c0d8',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {card.name}
-                </div>
-                {card.count > 1 && (
-                  <div style={{
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: '9px',
-                    color: '#4a4a6a',
-                    flexShrink: 0,
-                    marginLeft: '4px',
-                  }}>
-                    ×{card.count}
-                  </div>
-                )}
+                Cost {group.cost}
               </div>
-            ))}
-          </div>
-        ))}
+              {group.cards.map(card => (
+                <div
+                  key={card.id}
+                  onClick={() => setSelectedCardId(card.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '3px 4px',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#1a1a2a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{
+                    fontFamily: "'Crimson Text', serif",
+                    fontSize: '12px',
+                    color: card.type === 'spell' ? '#c084fc' : card.type === 'omen' ? '#f9a8d4' : '#c0c0d8',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {card.name}
+                  </div>
+                  {card.count > 1 && (
+                    <div style={{
+                      fontFamily: "'Cinzel', serif",
+                      fontSize: '9px',
+                      color: '#4a4a6a',
+                      flexShrink: 0,
+                      marginLeft: '4px',
+                    }}>
+                      ×{card.count}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {selectedCard && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setSelectedCardId(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setSelectedCardId(null); }}
+        >
+          <div
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <Card card={selectedCard} isPlayable={false} isSelected={false} />
+            <button
+              onClick={() => setSelectedCardId(null)}
+              style={{
+                background: 'transparent',
+                color: '#6a6a8a',
+                border: '1px solid #2a2a3a',
+                borderRadius: '4px',
+                padding: '6px 20px',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '11px',
+                letterSpacing: '0.06em',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
 function RunPanel({ run, livePenalty }) {
   const blessingMap = Object.fromEntries(BLESSINGS_POOL.map(b => [b.id, b]));
+  const [selectedEntry, setSelectedEntry] = useState(null); // { kind: 'blessing'|'curse', id }
+
+  const tilesMoved = run.tilesMoved ?? 0;
+  const stepsDisplay = tilesMoved >= 100 ? '100 (max)' : tilesMoved;
+
+  const selectedBlessingInfo = selectedEntry?.kind === 'blessing'
+    ? (blessingMap[selectedEntry.id] ?? { name: selectedEntry.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), desc: '' })
+    : null;
+  const selectedCurseInfo = selectedEntry?.kind === 'curse'
+    ? (CURSES_INFO[selectedEntry.id] ?? { name: selectedEntry.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), desc: '' })
+    : null;
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      padding: '14px 12px',
-      gap: '14px',
-      overflowY: 'auto',
-    }}>
-      {/* Blessings */}
-      <div>
-        <div style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: '10px',
-          color: '#6a6a8a',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          marginBottom: '6px',
-        }}>
-          Blessings
-        </div>
-        {run.blessings && run.blessings.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {run.blessings.map(id => {
-              const b = blessingMap[id];
-              return (
-                <div key={id} style={{
-                  background: '#0a1200',
-                  border: '1px solid #4ade8030',
-                  borderRadius: '4px',
-                  padding: '5px 8px',
-                }}>
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#80e860', letterSpacing: '0.05em' }}>
-                    ✦ {b?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </div>
-                  {b?.desc && (
-                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#4a6a40', marginTop: '2px', lineHeight: 1.3 }}>
-                      {b.desc}
+    <>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '14px 12px',
+        gap: '14px',
+        overflowY: 'auto',
+      }}>
+        {/* Blessings */}
+        <div>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '10px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '6px',
+          }}>
+            Blessings
+          </div>
+          {run.blessings && run.blessings.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {run.blessings.map(id => {
+                const b = blessingMap[id];
+                return (
+                  <div
+                    key={id}
+                    onClick={() => setSelectedEntry({ kind: 'blessing', id })}
+                    style={{
+                      background: '#0a1200',
+                      border: '1px solid #4ade8030',
+                      borderRadius: '4px',
+                      padding: '5px 8px',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade8060'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4ade8030'; }}
+                  >
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#80e860', letterSpacing: '0.05em' }}>
+                      ✦ {b?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
-            No blessings
-          </div>
-        )}
-      </div>
-
-      {/* Curses */}
-      <div>
-        <div style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: '10px',
-          color: '#6a6a8a',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          marginBottom: '6px',
-        }}>
-          Curses
-        </div>
-        {run.curses && run.curses.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {run.curses.map(id => {
-              const c = CURSES_INFO[id];
-              return (
-                <div key={id} style={{
-                  background: '#1a0a0a',
-                  border: '1px solid #f8717130',
-                  borderRadius: '4px',
-                  padding: '5px 8px',
-                }}>
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#f87171', letterSpacing: '0.05em' }}>
-                    ✦ {c?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
+                    {b?.desc && (
+                      <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#4a6a40', marginTop: '2px', lineHeight: 1.3 }}>
+                        {b.desc}
+                      </div>
+                    )}
                   </div>
-                  {c?.desc && (
-                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#6a3a3a', marginTop: '2px', lineHeight: 1.3 }}>
-                      {c.desc}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
-            No curses
-          </div>
-        )}
-      </div>
-
-      {/* Run stats */}
-      <div>
-        <div style={{
-          fontFamily: "'Cinzel', serif",
-          fontSize: '10px',
-          color: '#6a6a8a',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          marginBottom: '6px',
-        }}>
-          Run Stats
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {[
-            { label: 'Fights Won',   value: run.roomsCleared },
-            { label: 'Steps Taken',  value: run.tilesMoved ?? 0 },
-            { label: 'Move Penalty', value: livePenalty > 0 ? `+${livePenalty} enemy HP` : 'None', color: livePenalty > 0 ? '#f87171' : '#4a4a6a' },
-            { label: 'Loop',         value: run.loopCount },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.04em' }}>
-                {label}
-              </div>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: color ?? '#a0a0c0' }}>
-                {value}
-              </div>
+                );
+              })}
             </div>
-          ))}
+          ) : (
+            <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
+              No blessings
+            </div>
+          )}
+        </div>
+
+        {/* Curses */}
+        <div>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '10px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '6px',
+          }}>
+            Curses
+          </div>
+          {run.curses && run.curses.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {run.curses.map(id => {
+                const c = CURSES_INFO[id];
+                return (
+                  <div
+                    key={id}
+                    onClick={() => setSelectedEntry({ kind: 'curse', id })}
+                    style={{
+                      background: '#1a0a0a',
+                      border: '1px solid #f8717130',
+                      borderRadius: '4px',
+                      padding: '5px 8px',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#f8717160'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f8717130'; }}
+                  >
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#f87171', letterSpacing: '0.05em' }}>
+                      ✦ {c?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
+                    </div>
+                    {c?.desc && (
+                      <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#6a3a3a', marginTop: '2px', lineHeight: 1.3 }}>
+                        {c.desc}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
+              No curses
+            </div>
+          )}
+        </div>
+
+        {/* Run stats */}
+        <div>
+          <div style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: '10px',
+            color: '#6a6a8a',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: '6px',
+          }}>
+            Run Stats
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {[
+              { label: 'Fights Won',   value: run.roomsCleared },
+              { label: 'Steps Taken',  value: stepsDisplay },
+              { label: 'Move Penalty', value: livePenalty > 0 ? `+${livePenalty} enemy HP` : 'None', color: livePenalty > 0 ? '#f87171' : '#4a4a6a' },
+              { label: 'Loop',         value: run.loopCount },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.04em' }}>
+                  {label}
+                </div>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: color ?? '#a0a0c0' }}>
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Blessing/Curse detail modal */}
+      {selectedEntry && (selectedBlessingInfo || selectedCurseInfo) && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setSelectedEntry(null)}
+        >
+          <div
+            style={{
+              background: selectedEntry.kind === 'blessing' ? 'linear-gradient(135deg, #0a1a06, #0d1e08)' : 'linear-gradient(135deg, #1a0606, #1e0808)',
+              border: `1px solid ${selectedEntry.kind === 'blessing' ? '#4ade8060' : '#f8717160'}`,
+              borderRadius: '8px',
+              padding: '24px 28px',
+              maxWidth: '360px',
+              width: '100%',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.7)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '8px',
+              color: selectedEntry.kind === 'blessing' ? '#4ade80' : '#f87171',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              marginBottom: '8px',
+            }}>
+              {selectedEntry.kind === 'blessing' ? '✦ Blessing' : '✦ Curse'}
+            </div>
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '16px',
+              color: selectedEntry.kind === 'blessing' ? '#80e860' : '#f87171',
+              marginBottom: '12px',
+            }}>
+              {(selectedBlessingInfo ?? selectedCurseInfo).name}
+            </div>
+            <div style={{
+              fontFamily: "'Crimson Text', serif",
+              fontSize: '15px',
+              color: selectedEntry.kind === 'blessing' ? '#8ab880' : '#c08080',
+              lineHeight: 1.6,
+            }}>
+              {(selectedBlessingInfo ?? selectedCurseInfo).desc || 'No additional details.'}
+            </div>
+            <button
+              onClick={() => setSelectedEntry(null)}
+              style={{
+                marginTop: '20px',
+                background: 'transparent',
+                color: '#6a6a8a',
+                border: '1px solid #2a2a3a',
+                borderRadius: '4px',
+                padding: '6px 20px',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '11px',
+                letterSpacing: '0.06em',
+                width: '100%',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
+const CONFIRM_MOVE_TYPES = new Set(['fight', 'elite_fight', 'boss', 'shop', 'event']);
+
 function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [pendingMove, setPendingMove] = useState(null); // { row, col, tileType }
   const isMobile = useIsMobile();
+
+  function handleMapTileClick(row, col) {
+    const tile = run.dungeonLayout[row]?.[col];
+    if (!tile) return;
+    if (CONFIRM_MOVE_TYPES.has(tile.type) && !tile.completed) {
+      setPendingMove({ row, col, tileType: tile.type });
+    } else {
+      onTileClick(row, col);
+    }
+  }
+
+  function confirmMove() {
+    if (!pendingMove) return;
+    const { row, col } = pendingMove;
+    setPendingMove(null);
+    onTileClick(row, col);
+  }
   const faction = FACTION_INFO[run.championFaction] ?? FACTION_INFO.light;
   const currentTileType = run.dungeonLayout[run.currentTile.row]?.[run.currentTile.col]?.type ?? 'start';
   const tilesMoved = run.tilesMoved ?? 0;
@@ -896,7 +1073,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
       <StatPill label="Potions" value={`${run.potions}/3`} color="#60a0ff" />
       <StatPill label="Rooms"   value={run.roomsCleared}   color="#a0a0c0" />
       <StatPill label="Cards"   value={run.deck.length}    color="#c084fc" />
-      <StatPill label="Steps"   value={tilesMoved}         color={getStepsColor(tilesMoved)} />
+      <StatPill label="Steps"   value={tilesMoved >= 100 ? '100 (max)' : tilesMoved} color={getStepsColor(tilesMoved)} />
     </div>
   );
 
@@ -951,6 +1128,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   // ── Mobile layout (single column, unchanged) ─────────────────────────────
   if (isMobile) {
     return (
+      <>
       <div style={{
         minHeight: '100vh',
         background: '#0a0a0f',
@@ -980,7 +1158,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         {hudBar}
         {penaltyBadge}
 
-        <DungeonMap state={run} onTileClick={onTileClick} />
+        <DungeonMap state={run} onTileClick={handleMapTileClick} />
 
         <div style={{
           fontFamily: "'Crimson Text', serif",
@@ -1023,7 +1201,17 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         {potionButton}
         {abandonControls}
       </div>
-    );
+
+      {pendingMove && createPortal(
+        <MoveConfirmOverlay
+          tileType={pendingMove.tileType}
+          onConfirm={confirmMove}
+          onCancel={() => setPendingMove(null)}
+        />,
+        document.body
+      )}
+    </>
+  );
   }
 
   // ── Desktop layout (three-panel) ──────────────────────────────────────────
@@ -1076,7 +1264,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         {hudBar}
         {penaltyBadge}
 
-        <DungeonMap state={run} onTileClick={onTileClick} tileSize={76} />
+        <DungeonMap state={run} onTileClick={handleMapTileClick} tileSize={76} />
 
         <div style={{
           fontFamily: "'Crimson Text', serif",
@@ -1099,10 +1287,119 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
       <div style={{ ...sidePanel, borderLeft: PANEL_BORDER, borderRight: 'none' }}>
         <RunPanel run={run} livePenalty={livePenalty} />
       </div>
+
+      {pendingMove && createPortal(
+        <MoveConfirmOverlay
+          tileType={pendingMove.tileType}
+          onConfirm={confirmMove}
+          onCancel={() => setPendingMove(null)}
+        />,
+        document.body
+      )}
     </div>
   );
 }
 
+
+// ── Move Confirmation Overlay ─────────────────────────────────────────────────
+
+const MOVE_CONFIRM_ICONS = {
+  fight:       '⚔',
+  elite_fight: '⚔⚔',
+  boss:        '💀',
+  shop:        '🪙',
+  event:       '❓',
+};
+
+function MoveConfirmOverlay({ tileType, onConfirm, onCancel }) {
+  const label = TILE_LABELS[tileType] ?? tileType;
+  const icon = MOVE_CONFIRM_ICONS[tileType] ?? '?';
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0d0d18, #141420)',
+          border: '1px solid #3a3a60',
+          borderRadius: '8px',
+          padding: '28px 32px',
+          maxWidth: '320px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ fontSize: '28px', marginBottom: '12px', lineHeight: 1 }}>{icon}</div>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '8px',
+          color: '#6a6a8a',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          marginBottom: '4px',
+        }}>
+          Move to
+        </div>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '16px',
+          color: '#C9A84C',
+          marginBottom: '24px',
+          letterSpacing: '0.06em',
+        }}>
+          {label}
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button
+            onClick={onConfirm}
+            style={{
+              background: 'linear-gradient(135deg, #1a2a10, #2a4a18)',
+              color: '#80e860',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '12px',
+              fontWeight: 600,
+              border: '1px solid #4ade8060',
+              borderRadius: '4px',
+              padding: '10px 28px',
+              cursor: 'pointer',
+              letterSpacing: '0.06em',
+            }}
+          >
+            Yes
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              background: 'transparent',
+              color: '#6a6a8a',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '12px',
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+              padding: '10px 28px',
+              cursor: 'pointer',
+              letterSpacing: '0.06em',
+            }}
+          >
+            No
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Shared mini-styles ────────────────────────────────────────────────────────
 

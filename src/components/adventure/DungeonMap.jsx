@@ -316,6 +316,26 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
         {label}
       </div>
 
+      {/* Boss name label — always visible so player knows the boss before reaching it */}
+      {tile.type === 'boss' && (
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '6px',
+          letterSpacing: '0.05em',
+          color: '#ff6060',
+          marginTop: '1px',
+          textTransform: 'uppercase',
+          userSelect: 'none',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          maxWidth: `${tileSize - 4}px`,
+          textOverflow: 'ellipsis',
+        }}>
+          The Enthroned
+        </div>
+      )}
+
       {/* Gate tile indicator — door icon in top-left corner */}
       {isGate && (
         <div style={{

@@ -130,7 +130,7 @@ export function moveToTile(state, row, col) {
     currentTile: { row, col },
     revealedTiles: newRevealedTiles,
     movementPath: [...(state.movementPath ?? [state.currentTile]), { row, col }],
-    tilesMoved: (state.tilesMoved ?? 0) + 1,
+    tilesMoved: Math.min(100, (state.tilesMoved ?? 0) + 1),
   };
   return saveRun(newState), newState;
 }
