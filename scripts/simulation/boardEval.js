@@ -63,6 +63,7 @@ export const WEIGHTS = {
   tradeEfficiency:           5,  // bonus for favorable trades: kills defender while surviving
   tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
   boardCentrality:           4,  // net centrality score: sum of (4 - manhattanDistToCenter) per friendly piece minus enemy
+  throneAnchor:             15,  // bonus for champion staying on throne; separate from throneControlValue
 };
 
 /**
@@ -535,6 +536,16 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // throneAnchor: reward champion staying on throne (separate from throneControlValue).
+  // Full bonus when champion is currently on the throne; 0 otherwise.
+  // Rewards "stay and summon" strategies over casual champion repositioning.
+  const throneAnchorValue = myChampOnThrone ? 1.0 : 0;
+
+  // Change 3: when champion is on throne, reduce projectedChampionDamage weight by 50%.
+  // The champion collects 2 passive damage/turn from throne; units should position
+  // strategically rather than rushing for direct champion attacks.
+  const pcdWeight = (w.projectedChampionDamage ?? 20) * (myChampOnThrone ? 0.5 : 1.0);
+
   // boardCentrality: net Manhattan-from-center score across all pieces.
   // Each piece scores (4 - distToCenter): center=4, adj=3, dist2=2, dist3=1, corner=0.
   // Subtract the same calculation for all enemy pieces.
@@ -570,7 +581,7 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     gameLength                                            +
     championProximity        * w.championProximity        * aggressionMult +
     opponentChampionLowHP    * w.opponentChampionLowHP    * aggressionMult +
-    projectedChampionDamage  * (w.projectedChampionDamage ?? 20) +
+    projectedChampionDamage  * pcdWeight                        +
     relicsOnBoard            * w.relicsOnBoard            +
     omensOnBoard             * w.omensOnBoard             +
     terrainBenefit           * w.terrainBenefit           +
@@ -583,7 +594,8 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     throneControlValue        * (w.throneControlValue ?? 25) +
     tradeEfficiencyValue      * (w.tradeEfficiency ?? 5)  +
     tileDenialCount           * (w.tileDenial ?? 6)       +
-    boardCentrality           * (w.boardCentrality ?? 4);
+    boardCentrality           * (w.boardCentrality ?? 4)       +
+    throneAnchorValue         * (w.throneAnchor ?? 15);
 
   return score;
 }

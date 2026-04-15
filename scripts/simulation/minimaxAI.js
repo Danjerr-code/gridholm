@@ -70,8 +70,25 @@ function actionPriority(action, state, enemyIdx, enemyChamp) {
   }
   if (action.type === 'cast')      return 40;
   if (action.type === 'unitAction') return 25;
-  if (action.type === 'summon')     return 20;
-  if (action.type === 'championMove') return 15;
+  if (action.type === 'summon') {
+    // Throne anchor (Change 2): boost summon priority when champion is on throne.
+    // Human replay pattern: stay on throne and summon units to do the fighting.
+    const myIdx2 = 1 - enemyIdx;
+    const myChamp2 = state.champions[myIdx2];
+    if (myChamp2.row === THRONE_ROW && myChamp2.col === THRONE_COL) return 25; // +5 boost
+    return 20;
+  }
+  if (action.type === 'championMove') {
+    // Throne anchor penalty (Change 1): heavily penalize moving champion off throne.
+    // -throneAnchor * 0.8 applied to priority: from 15 → 3 for off-throne moves.
+    const myIdx2 = 1 - enemyIdx;
+    const myChamp2 = state.champions[myIdx2];
+    if (myChamp2.row === THRONE_ROW && myChamp2.col === THRONE_COL &&
+        !(action.row === THRONE_ROW && action.col === THRONE_COL)) {
+      return 3; // penalized: below summon (20/25), unit action (25), cast (40)
+    }
+    return 15;
+  }
 
   if (action.type === 'championAbility') {
     // Context-dependent priority — prevent champion ability spam in mid/late game.
