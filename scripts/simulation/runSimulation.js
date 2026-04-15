@@ -7,14 +7,15 @@
  *   node runSimulation.js --p1 human --p2 beast --games 1000 --output results.json
  *
  * Options:
- *   --p1      Deck ID for player 1 (human|beast|elf|demon, default: human)
- *   --p2      Deck ID for player 2 (human|beast|elf|demon, default: beast)
- *   --games   Number of games to simulate (default: 100)
- *   --output  Output file path (default: results.json)
- *   --ai      AI mode: heuristic | minimax | mcts (default: minimax)
- *   --depth   Minimax depth (default: 4, only used when --ai minimax)
- *   --sims    MCTS simulations upper bound (default: 10000, only used when --ai mcts)
- *   --timeout MCTS per-decision time cap in ms (default: 100, only used when --ai mcts)
+ *   --p1           Deck ID for player 1 (human|beast|elf|demon, default: human)
+ *   --p2           Deck ID for player 2 (human|beast|elf|demon, default: beast)
+ *   --games        Number of games to simulate (default: 100)
+ *   --output       Output file path (default: results.json)
+ *   --ai           AI mode: heuristic | minimax | mcts (default: minimax)
+ *   --depth        Minimax max depth cap for iterative deepening (default: 20)
+ *   --time-budget  Minimax per-decision time limit in ms (default: 800)
+ *   --sims         MCTS simulations upper bound (default: 10000, only used when --ai mcts)
+ *   --timeout      MCTS per-decision time cap in ms (default: 100, only used when --ai mcts)
  */
 
 import { writeFileSync } from 'fs';
@@ -26,19 +27,18 @@ import { chooseActionMCTS } from './mctsAI.js';
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'minimax', depth: 2, sims: 10000, timeout: 100 };
+  const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'minimax', depth: 20, timeBudget: 800, sims: 10000, timeout: 100 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--p1':         args.p1         = argv[++i]; break;
-      case '--p2':         args.p2         = argv[++i]; break;
-      case '--games':      args.games      = parseInt(argv[++i], 10); break;
-      case '--output':     args.output     = argv[++i]; break;
-      case '--ai':         args.ai         = argv[++i]; break;
-      case '--depth':      args.depth      = parseInt(argv[++i], 10); break;
-      case '--depth-top':  args.depthTop   = parseInt(argv[++i], 10); break;
-      case '--depth-rest': args.depthRest  = parseInt(argv[++i], 10); break;
-      case '--sims':       args.sims       = parseInt(argv[++i], 10); break;
-      case '--timeout':    args.timeout    = parseInt(argv[++i], 10); break;
+      case '--p1':          args.p1         = argv[++i]; break;
+      case '--p2':          args.p2         = argv[++i]; break;
+      case '--games':       args.games      = parseInt(argv[++i], 10); break;
+      case '--output':      args.output     = argv[++i]; break;
+      case '--ai':          args.ai         = argv[++i]; break;
+      case '--depth':       args.depth      = parseInt(argv[++i], 10); break;
+      case '--time-budget': args.timeBudget = parseInt(argv[++i], 10); break;
+      case '--sims':        args.sims       = parseInt(argv[++i], 10); break;
+      case '--timeout':     args.timeout    = parseInt(argv[++i], 10); break;
     }
   }
   return args;
@@ -222,13 +222,14 @@ const MAX_ACTIONS_PER_TURN = 80;
 export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
   const useMinimaxAI    = opts.ai === 'minimax';
   const useMCTS         = opts.ai === 'mcts';
-  const minimaxDepth    = opts.depth ?? 2;
-  const minimaxDepthTop  = opts.depthTop;  // undefined = no selective deepening
-  const minimaxDepthRest = opts.depthRest; // undefined = no selective deepening
-  const mctsSimulations = opts.sims ?? 10000;
+  const minimaxDepth    = opts.depth      ?? 20;
+  const minimaxBudget   = opts.timeBudget ?? 800; // ms per AI decision
+  const mctsSimulations = opts.sims    ?? 10000;
   const mctsTimeoutMs   = opts.timeout ?? 100;
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
+  // Accumulated minimax stats for this game (depth reached, TT metrics)
+  const minimaxStats = { ttLookups: 0, ttHits: 0, depthSum: 0, ttSizeSum: 0, decisions: 0 };
 
   // Seed initial hands as if they were drawn on turn 0
   for (let pIdx = 0; pIdx < 2; pIdx++) {
@@ -264,9 +265,9 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     } else if (useMinimaxAI) {
       const t0 = performance.now();
       action = chooseActionMinimax(state, commandsUsedThisTurn, {
-        depth: minimaxDepth,
-        ...(minimaxDepthTop  != null ? { depthTop:  minimaxDepthTop  } : {}),
-        ...(minimaxDepthRest != null ? { depthRest: minimaxDepthRest } : {}),
+        depth:      minimaxDepth,
+        timeBudget: minimaxBudget,
+        stats:      minimaxStats,
       });
       minimaxTotalMs += performance.now() - t0;
     } else if (useMCTS) {
@@ -327,8 +328,16 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
       p2: [...(tracker.p2)].filter(([, s]) => s.timesPlayed > 0).map(([id]) => id),
     },
     cardStats: serializeCardStats(tracker),
-    ...(useMinimaxAI ? { minimaxMs: minimaxTotalMs } : {}),
-    ...(useMCTS      ? { mctsMs: mctsTotalMs }       : {}),
+    ...(useMinimaxAI ? {
+      minimaxMs:      minimaxTotalMs,
+      minimaxStats:   {
+        avgDepth:    minimaxStats.decisions > 0 ? minimaxStats.depthSum  / minimaxStats.decisions : 0,
+        avgTtSize:   minimaxStats.decisions > 0 ? minimaxStats.ttSizeSum / minimaxStats.decisions : 0,
+        ttHitRate:   minimaxStats.ttLookups > 0 ? minimaxStats.ttHits    / minimaxStats.ttLookups : 0,
+        decisions:   minimaxStats.decisions,
+      },
+    } : {}),
+    ...(useMCTS ? { mctsMs: mctsTotalMs } : {}),
   };
 }
 
@@ -462,10 +471,10 @@ const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 
 const args = parseArgs(process.argv);
-const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout } = args;
-const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout };
+const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth, timeBudget: minimaxBudget, sims: mctsSims, timeout: mctsTimeout } = args;
+const gameOpts = { ai: aiMode, depth: minimaxDepth, timeBudget: minimaxBudget, sims: mctsSims, timeout: mctsTimeout };
 
-console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeout}ms` : ''}]`);
+console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` timeBudget=${minimaxBudget}ms` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeout}ms` : ''}]`);
 
 const results = [];
 let p1Wins = 0, p2Wins = 0, draws = 0, totalTurns = 0;
@@ -506,11 +515,22 @@ console.log(`  Draws        : ${draws} (${((draws / totalGames) * 100).toFixed(1
 console.log(`  Avg turns    : ${avgTurns}`);
 console.log(`  Avg winner HP: ${avgWinnerHP}`);
 if (aiMode === 'minimax') {
-  const avgDecisionMs = totalGames > 0 ? totalMinimaxMs / totalGames : 0;
-  console.log(`  Avg AI time/game: ${avgDecisionMs.toFixed(0)}ms`);
-  if (avgDecisionMs > 1000) {
-    console.log('  [WARNING] Average decision time exceeds 1s — consider reducing --depth or --games.');
-  }
+  const avgGameMs = totalGames > 0 ? totalMinimaxMs / totalGames : 0;
+  // Aggregate depth/TT stats across all games
+  const allStats = results.flatMap(r => r.minimaxStats ? [r.minimaxStats] : []);
+  const totalDecisions = allStats.reduce((s, r) => s + r.decisions, 0);
+  const avgDepth   = totalDecisions > 0
+    ? allStats.reduce((s, r) => s + r.avgDepth * r.decisions, 0) / totalDecisions : 0;
+  const avgTtHit   = allStats.length > 0
+    ? allStats.reduce((s, r) => s + r.ttHitRate, 0) / allStats.length : 0;
+  const avgTtSize  = allStats.length > 0
+    ? allStats.reduce((s, r) => s + r.avgTtSize, 0) / allStats.length : 0;
+  const avgDecisionMs = totalDecisions > 0 ? totalMinimaxMs / totalDecisions : 0;
+  console.log(`  Avg AI time/game   : ${avgGameMs.toFixed(0)}ms`);
+  console.log(`  Avg decision time  : ${avgDecisionMs.toFixed(1)}ms`);
+  console.log(`  Avg depth reached  : ${avgDepth.toFixed(2)}`);
+  console.log(`  TT hit rate        : ${(avgTtHit * 100).toFixed(1)}%`);
+  console.log(`  Avg TT size/dec    : ${avgTtSize.toFixed(0)} entries`);
 }
 console.log('────────────────────────────────────────────');
 

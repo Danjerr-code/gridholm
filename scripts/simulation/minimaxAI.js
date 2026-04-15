@@ -700,21 +700,21 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       alpha = Math.max(alpha, result.score);
       if (beta <= alpha) {
         recordKiller(killers, depth, action); // beta cutoff — record killer
-        ttStore(tt, hash, depth, best.score, TT_LOWER, action);
-        break;
+        // Lower bound: true value >= best.score (we stopped searching early)
+        ttStore(tt, hash, depth, best.score, TT_LOWER, best.action);
+        return best;
       }
     }
 
-    // Store in TT after full search (no cutoff path)
-    if (best.score > originalAlpha) {
-      ttStore(tt, hash, depth, best.score, TT_EXACT, best.action);
-    } else {
-      ttStore(tt, hash, depth, best.score, TT_UPPER, best.action);
-    }
+    // All actions searched without cutoff — determine bound type.
+    // EXACT if best improved over originalAlpha; UPPER if nothing beat alpha.
+    const flag = best.score > originalAlpha ? TT_EXACT : TT_UPPER;
+    ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
 
   } else {
     let best = { score: Infinity, action: null };
+    const originalBeta = beta;
 
     for (const action of actions) {
       const newState = applyAction(gameState, action);
@@ -742,13 +742,16 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
       beta = Math.min(beta, result.score);
       if (beta <= alpha) {
         recordKiller(killers, depth, action); // alpha cutoff — record killer
-        ttStore(tt, hash, depth, best.score, TT_UPPER, action);
-        break;
+        // Upper bound: true value <= best.score (we stopped searching early)
+        ttStore(tt, hash, depth, best.score, TT_UPPER, best.action);
+        return best;
       }
     }
 
-    // Store exact result after full minimizer search (no cutoff)
-    ttStore(tt, hash, depth, best.score, TT_EXACT, best.action);
+    // All actions searched without cutoff.
+    // EXACT if best improved on originalBeta; LOWER if nothing beat beta.
+    const flag = best.score < originalBeta ? TT_EXACT : TT_LOWER;
+    ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
   }
 }
@@ -756,26 +759,33 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Choose the best action using minimax search with alpha-beta pruning.
- * Falls back to the heuristic AI from simAI.js if no action is found.
+ * Choose the best action using minimax with alpha-beta pruning and iterative deepening.
  *
- * Search improvements:
+ * Replaces the prior fixed-depth / selective-deepening approach with iterative
+ * deepening (ID): search all candidates at depth 1, then depth 2, then depth 3,
+ * and so on until the time budget (default 800ms) is exhausted. The best move
+ * from the deepest completed iteration is returned.
+ *
+ * Search improvements stacked:
  *   1. Move ordering — TT best action first, then killer moves, then heuristic sort.
- *   2. Killer heuristic — moves that caused cutoffs are tried first at sibling nodes.
- *   3. Transposition table — positions hashed with Zobrist; results cached and reused.
- *      Table is fresh per AI decision, shared across iterative deepening iterations.
+ *   2. Killer heuristic — moves that caused cutoffs tried first at sibling nodes.
+ *   3. Transposition table — Zobrist-hashed positions, fresh per decision,
+ *      shared across ID iterations (depth-N seeds move ordering for depth-(N+1)).
+ *   4. Iterative deepening — time-budgeted loop; incomplete final iteration discarded.
  *
  * @param {object}  gameState    - current game state
  * @param {number}  commandsUsed - move actions already taken this turn (0–3)
- * @param {object}  [options]    - { depth, weights, stats }
- *   depth   - max depth cap for iterative deepening (default 20; time budget governs in practice)
- *   weights - explicit weight overrides for evaluateBoard (null = auto-detect faction)
- *   stats   - optional mutable accumulator: { ttLookups, ttHits, depthReached, ttSize, decisions }
+ * @param {object}  [options]
+ *   timeBudget - per-decision time limit in ms (default 800)
+ *   depth      - max depth cap for iterative deepening (default 20)
+ *   weights    - explicit weight overrides for evaluateBoard (null = auto-detect faction)
+ *   stats      - optional mutable accumulator: { ttLookups, ttHits, depthSum, ttSizeSum, decisions }
  * @returns {object} action object to apply
  */
 export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
-  const maxDepth = options.depth   ?? 20; // cap for safety; time budget governs in practice
-  const weights  = options.weights ?? undefined;
+  const timeBudget = options.timeBudget ?? 800; // ms per AI decision
+  const maxDepth   = options.depth      ?? 20;  // safety cap; time budget governs in practice
+  const weights    = options.weights    ?? undefined;
 
   const ap       = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
@@ -834,9 +844,7 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
   const localStats = { ttLookups: 0, ttHits: 0 };
 
   // ── Iterative deepening search ────────────────────────────────────────────────
-  // Delegate to the caller-owned deadline via options.deadline if provided
-  // (used internally for consistency with time budget).
-  const deadline = options._deadline ?? { time: performance.now() + 5000 };
+  const deadline = { time: performance.now() + timeBudget };
 
   let bestAction    = null;
   let depthReached  = 0;
