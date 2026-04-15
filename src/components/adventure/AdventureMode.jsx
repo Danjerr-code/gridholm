@@ -8,6 +8,7 @@ import AdventureDraftScreen from './AdventureDraftScreen.jsx';
 import { buildAdventureGameState } from '../../adventure/adventureFight.js';
 import {
   generateFightReward, generateTreasure, generateShopOfferings,
+  BLESSINGS_POOL,
 } from '../../adventure/encounterRewards.js';
 import { makeEventRng, getRandomEvent } from '../../adventure/eventDefinitions.js';
 import DungeonMap from './DungeonMap.jsx';
@@ -17,6 +18,8 @@ import RunSummary from './RunSummary.jsx';
 import App from '../../App.jsx';
 import { supabase, getGuestId, getCardImageUrl } from '../../supabase.js';
 import { CHAMPIONS } from '../../engine/champions.js';
+import { CARD_DB } from '../../engine/cards.js';
+import useIsMobile from '../../hooks/useIsMobile.js';
 
 const FACTION_INFO = {
   light:  { label: 'Light',  color: '#e8d8a0', bg: '#1a1600', border: '#C9A84C60', desc: 'Steadfast defenders and holy warriors.' },
@@ -34,6 +37,11 @@ const TILE_LABELS = {
   event:       'Mysterious Event',
   boss:        'The Boss',
   start:       'Starting Chamber',
+};
+
+const CURSES_INFO = {
+  plagued:  { name: 'Plagued',  desc: 'Lose 1 HP each time you move to a tile.' },
+  weakened: { name: 'Weakened', desc: 'Your champion starts each fight with reduced ATK.' },
 };
 
 const FIGHT_TILE_TYPES = new Set(['fight', 'elite_fight', 'boss']);
@@ -547,156 +555,470 @@ function getStepsColor(tilesMoved) {
   return '#f9fafb';                       // white
 }
 
+// Build a grouped, sorted deck list from card IDs
+function buildDeckGroups(deckIds) {
+  const counts = {};
+  for (const id of deckIds) {
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  const entries = Object.entries(counts)
+    .map(([id, count]) => {
+      const card = CARD_DB[id];
+      return card ? { id, name: card.name, cost: card.cost, type: card.type, count } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.cost - b.cost);
+
+  // Group by cost
+  const groups = [];
+  let lastCost = null;
+  for (const entry of entries) {
+    if (entry.cost !== lastCost) {
+      groups.push({ cost: entry.cost, cards: [] });
+      lastCost = entry.cost;
+    }
+    groups[groups.length - 1].cards.push(entry);
+  }
+  return groups;
+}
+
+const PANEL_BG = '#0d0d18';
+const PANEL_BORDER = '1px solid #1e1e2e';
+
+function DeckPanel({ deck }) {
+  const groups = buildDeckGroups(deck);
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      padding: '14px 12px',
+      gap: '10px',
+    }}>
+      <div style={{
+        fontFamily: "'Cinzel', serif",
+        fontSize: '10px',
+        color: '#6a6a8a',
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        marginBottom: '2px',
+      }}>
+        Deck · {deck.length} cards
+      </div>
+      <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {groups.map(group => (
+          <div key={group.cost}>
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '9px',
+              color: '#4a4a6a',
+              letterSpacing: '0.06em',
+              marginBottom: '4px',
+              borderBottom: '1px solid #1e1e2e',
+              paddingBottom: '2px',
+            }}>
+              Cost {group.cost}
+            </div>
+            {group.cards.map(card => (
+              <div key={card.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '3px 4px',
+                borderRadius: '3px',
+              }}>
+                <div style={{
+                  fontFamily: "'Crimson Text', serif",
+                  fontSize: '12px',
+                  color: card.type === 'spell' ? '#c084fc' : card.type === 'omen' ? '#f9a8d4' : '#c0c0d8',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {card.name}
+                </div>
+                {card.count > 1 && (
+                  <div style={{
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '9px',
+                    color: '#4a4a6a',
+                    flexShrink: 0,
+                    marginLeft: '4px',
+                  }}>
+                    ×{card.count}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RunPanel({ run, livePenalty }) {
+  const blessingMap = Object.fromEntries(BLESSINGS_POOL.map(b => [b.id, b]));
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      padding: '14px 12px',
+      gap: '14px',
+      overflowY: 'auto',
+    }}>
+      {/* Blessings */}
+      <div>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '10px',
+          color: '#6a6a8a',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: '6px',
+        }}>
+          Blessings
+        </div>
+        {run.blessings && run.blessings.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {run.blessings.map(id => {
+              const b = blessingMap[id];
+              return (
+                <div key={id} style={{
+                  background: '#0a1200',
+                  border: '1px solid #4ade8030',
+                  borderRadius: '4px',
+                  padding: '5px 8px',
+                }}>
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#80e860', letterSpacing: '0.05em' }}>
+                    ✦ {b?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </div>
+                  {b?.desc && (
+                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#4a6a40', marginTop: '2px', lineHeight: 1.3 }}>
+                      {b.desc}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
+            No blessings
+          </div>
+        )}
+      </div>
+
+      {/* Curses */}
+      <div>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '10px',
+          color: '#6a6a8a',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: '6px',
+        }}>
+          Curses
+        </div>
+        {run.curses && run.curses.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {run.curses.map(id => {
+              const c = CURSES_INFO[id];
+              return (
+                <div key={id} style={{
+                  background: '#1a0a0a',
+                  border: '1px solid #f8717130',
+                  borderRadius: '4px',
+                  padding: '5px 8px',
+                }}>
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#f87171', letterSpacing: '0.05em' }}>
+                    ✦ {c?.name ?? id.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
+                  </div>
+                  {c?.desc && (
+                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#6a3a3a', marginTop: '2px', lineHeight: 1.3 }}>
+                      {c.desc}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#3a3a5a' }}>
+            No curses
+          </div>
+        )}
+      </div>
+
+      {/* Run stats */}
+      <div>
+        <div style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: '10px',
+          color: '#6a6a8a',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: '6px',
+        }}>
+          Run Stats
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {[
+            { label: 'Fights Won',   value: run.roomsCleared },
+            { label: 'Steps Taken',  value: run.tilesMoved ?? 0 },
+            { label: 'Move Penalty', value: livePenalty > 0 ? `+${livePenalty} enemy HP` : 'None', color: livePenalty > 0 ? '#f87171' : '#4a4a6a' },
+            { label: 'Loop',         value: run.loopCount },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.04em' }}>
+                {label}
+              </div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: color ?? '#a0a0c0' }}>
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const isMobile = useIsMobile();
   const faction = FACTION_INFO[run.championFaction] ?? FACTION_INFO.light;
   const currentTileType = run.dungeonLayout[run.currentTile.row]?.[run.currentTile.col]?.type ?? 'start';
   const tilesMoved = run.tilesMoved ?? 0;
   const livePenalty = Math.floor(tilesMoved / 5);
 
-  return (
+  // HUD bar used in both layouts
+  const hudBar = (
     <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      color: '#f9fafb',
+      width: '100%',
+      maxWidth: isMobile ? '500px' : undefined,
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '20px 16px',
-      gap: '16px',
+      gap: '12px',
+      background: '#0d0d18',
+      border: '1px solid #2a2a3a',
+      borderRadius: '6px',
+      padding: '10px 14px',
     }}>
-      {/* Header */}
-      <div style={{
-        width: '100%',
-        maxWidth: '500px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', color: '#C9A84C', letterSpacing: '0.12em' }}>
-          ADVENTURE
-        </div>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a', letterSpacing: '0.1em' }}>
-          {faction.label} · Loop {run.loopCount}
-        </div>
-      </div>
-
-      {/* Stats bar */}
-      <div style={{
-        width: '100%',
-        maxWidth: '500px',
-        display: 'flex',
-        gap: '12px',
-        background: '#0d0d18',
-        border: '1px solid #2a2a3a',
-        borderRadius: '6px',
-        padding: '10px 14px',
-      }}>
-        <StatPill
-          label="HP"
-          value={`${run.championHP}/${run.maxChampionHP}`}
-          color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'}
-        />
-        <StatPill label="Gold"    value={run.gold}             color="#C9A84C" />
-        <StatPill label="Potions" value={`${run.potions}/3`}   color="#60a0ff" />
-        <StatPill label="Rooms"   value={run.roomsCleared}     color="#a0a0c0" />
-        <StatPill label="Cards"   value={run.deck.length}      color="#c084fc" />
-        <StatPill label="Steps"   value={tilesMoved}           color={getStepsColor(tilesMoved)} />
-      </div>
-      {livePenalty > 0 && (
-        <div style={{
-          width: '100%',
-          maxWidth: '500px',
-          textAlign: 'right',
-          fontFamily: "'Crimson Text', serif",
-          fontStyle: 'italic',
-          fontSize: '11px',
-          color: '#f87171',
-          marginTop: '-8px',
-        }}>
-          Enemy Champion +{livePenalty} HP
-        </div>
-      )}
-
-      {/* Dungeon Map */}
-      <DungeonMap
-        state={run}
-        onTileClick={onTileClick}
+      <StatPill
+        label="HP"
+        value={`${run.championHP}/${run.maxChampionHP}`}
+        color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'}
       />
+      <StatPill label="Gold"    value={run.gold}           color="#C9A84C" />
+      <StatPill label="Potions" value={`${run.potions}/3`} color="#60a0ff" />
+      <StatPill label="Rooms"   value={run.roomsCleared}   color="#a0a0c0" />
+      <StatPill label="Cards"   value={run.deck.length}    color="#c084fc" />
+      <StatPill label="Steps"   value={tilesMoved}         color={getStepsColor(tilesMoved)} />
+    </div>
+  );
 
-      {/* Current tile info */}
+  const penaltyBadge = livePenalty > 0 && (
+    <div style={{
+      width: '100%',
+      maxWidth: isMobile ? '500px' : undefined,
+      textAlign: 'right',
+      fontFamily: "'Crimson Text', serif",
+      fontStyle: 'italic',
+      fontSize: '11px',
+      color: '#f87171',
+      marginTop: '-8px',
+    }}>
+      Enemy Champion +{livePenalty} HP
+    </div>
+  );
+
+  const potionButton = run.potions > 0 && (
+    <button
+      onClick={onUsePotion}
+      disabled={run.championHP >= run.maxChampionHP}
+      style={{
+        background: run.championHP >= run.maxChampionHP ? '#1a1a2a' : 'linear-gradient(135deg, #0a1a3a, #1a4a8a)',
+        color: run.championHP >= run.maxChampionHP ? '#3a3a5a' : '#60a0ff',
+        fontFamily: "'Cinzel', serif",
+        fontSize: '12px',
+        fontWeight: 600,
+        border: `1px solid ${run.championHP >= run.maxChampionHP ? '#2a2a3a' : '#60a0ff60'}`,
+        borderRadius: '4px',
+        padding: '8px 20px',
+        cursor: run.championHP >= run.maxChampionHP ? 'not-allowed' : 'pointer',
+        letterSpacing: '0.05em',
+      }}
+    >
+      🧪 Use Potion (+5 HP) · {run.potions}/{3}
+    </button>
+  );
+
+  const abandonControls = confirmAbandon ? (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '13px', color: '#f87171' }}>Abandon run?</span>
+      <button onClick={onAbandon} style={smallDangerBtn}>Yes, abandon</button>
+      <button onClick={() => setConfirmAbandon(false)} style={smallCancelBtn}>Cancel</button>
+    </div>
+  ) : (
+    <button onClick={() => setConfirmAbandon(true)} style={smallCancelBtn}>
+      Abandon Run
+    </button>
+  );
+
+  // ── Mobile layout (single column, unchanged) ─────────────────────────────
+  if (isMobile) {
+    return (
       <div style={{
-        fontFamily: "'Crimson Text', serif",
-        fontStyle: 'italic',
-        fontSize: '13px',
-        color: '#6a6a8a',
+        minHeight: '100vh',
+        background: '#0a0a0f',
+        color: '#f9fafb',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px 16px',
+        gap: '16px',
       }}>
-        You are at: <span style={{ color: '#a0a0c0' }}>{TILE_LABELS[currentTileType] ?? currentTileType}</span>
-        {run.loopCount > 0 && (
-          <span style={{ color: '#f87171', marginLeft: '8px' }}>· Loop scaling: +{run.loopCount}/+{run.loopCount} to all enemies</span>
-        )}
-      </div>
-
-      {/* Blessings display */}
-      {run.blessings && run.blessings.length > 0 && (
+        {/* Header */}
         <div style={{
           width: '100%',
           maxWidth: '500px',
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '6px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}>
-          {run.blessings.map(b => (
-            <div key={b} style={{
-              background: '#0a1200',
-              border: '1px solid #4ade8040',
-              borderRadius: '4px',
-              padding: '3px 8px',
-              fontFamily: "'Cinzel', serif",
-              fontSize: '9px',
-              color: '#80e860',
-              letterSpacing: '0.05em',
-            }}>
-              ✦ {b.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-            </div>
-          ))}
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', color: '#C9A84C', letterSpacing: '0.12em' }}>
+            ADVENTURE
+          </div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a', letterSpacing: '0.1em' }}>
+            {faction.label} · Loop {run.loopCount}
+          </div>
         </div>
-      )}
 
-      {/* Use Potion button */}
-      {run.potions > 0 && (
-        <button
-          onClick={onUsePotion}
-          disabled={run.championHP >= run.maxChampionHP}
-          style={{
-            background: run.championHP >= run.maxChampionHP ? '#1a1a2a' : 'linear-gradient(135deg, #0a1a3a, #1a4a8a)',
-            color: run.championHP >= run.maxChampionHP ? '#3a3a5a' : '#60a0ff',
-            fontFamily: "'Cinzel', serif",
-            fontSize: '12px',
-            fontWeight: 600,
-            border: `1px solid ${run.championHP >= run.maxChampionHP ? '#2a2a3a' : '#60a0ff60'}`,
-            borderRadius: '4px',
-            padding: '8px 20px',
-            cursor: run.championHP >= run.maxChampionHP ? 'not-allowed' : 'pointer',
-            letterSpacing: '0.05em',
-          }}
-        >
-          🧪 Use Potion (+5 HP) · {run.potions}/{3}
-        </button>
-      )}
+        {hudBar}
+        {penaltyBadge}
 
-      {/* Abandon button */}
-      {confirmAbandon ? (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '13px', color: '#f87171' }}>Abandon run?</span>
-          <button onClick={onAbandon} style={smallDangerBtn}>Yes, abandon</button>
-          <button onClick={() => setConfirmAbandon(false)} style={smallCancelBtn}>Cancel</button>
+        <DungeonMap state={run} onTileClick={onTileClick} />
+
+        <div style={{
+          fontFamily: "'Crimson Text', serif",
+          fontStyle: 'italic',
+          fontSize: '13px',
+          color: '#6a6a8a',
+        }}>
+          You are at: <span style={{ color: '#a0a0c0' }}>{TILE_LABELS[currentTileType] ?? currentTileType}</span>
+          {run.loopCount > 0 && (
+            <span style={{ color: '#f87171', marginLeft: '8px' }}>· Loop scaling: +{run.loopCount}/+{run.loopCount} to all enemies</span>
+          )}
         </div>
-      ) : (
-        <button onClick={() => setConfirmAbandon(true)} style={smallCancelBtn}>
-          Abandon Run
-        </button>
-      )}
+
+        {/* Blessings (mobile only — desktop uses right panel) */}
+        {run.blessings && run.blessings.length > 0 && (
+          <div style={{
+            width: '100%',
+            maxWidth: '500px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+          }}>
+            {run.blessings.map(b => (
+              <div key={b} style={{
+                background: '#0a1200',
+                border: '1px solid #4ade8040',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '9px',
+                color: '#80e860',
+                letterSpacing: '0.05em',
+              }}>
+                ✦ {b.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {potionButton}
+        {abandonControls}
+      </div>
+    );
+  }
+
+  // ── Desktop layout (three-panel) ──────────────────────────────────────────
+  const sidePanel = {
+    width: '250px',
+    flexShrink: 0,
+    background: PANEL_BG,
+    borderRight: PANEL_BORDER,
+    overflowY: 'auto',
+  };
+
+  return (
+    <div style={{
+      height: '100vh',
+      background: '#0a0a0f',
+      color: '#f9fafb',
+      display: 'flex',
+      overflow: 'hidden',
+    }}>
+      {/* Left panel — Deck */}
+      <div style={{ ...sidePanel, borderRight: PANEL_BORDER, borderLeft: 'none' }}>
+        <DeckPanel deck={run.deck} />
+      </div>
+
+      {/* Center panel — Map */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px 24px',
+        gap: '14px',
+        overflowY: 'auto',
+      }}>
+        {/* Header */}
+        <div style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '18px', color: '#C9A84C', letterSpacing: '0.12em' }}>
+            ADVENTURE
+          </div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#4a4a6a', letterSpacing: '0.1em' }}>
+            {faction.label} · Loop {run.loopCount}
+          </div>
+        </div>
+
+        {hudBar}
+        {penaltyBadge}
+
+        <DungeonMap state={run} onTileClick={onTileClick} tileSize={76} />
+
+        <div style={{
+          fontFamily: "'Crimson Text', serif",
+          fontStyle: 'italic',
+          fontSize: '13px',
+          color: '#6a6a8a',
+          textAlign: 'center',
+        }}>
+          You are at: <span style={{ color: '#a0a0c0' }}>{TILE_LABELS[currentTileType] ?? currentTileType}</span>
+          {run.loopCount > 0 && (
+            <span style={{ color: '#f87171', marginLeft: '8px' }}>· Loop scaling: +{run.loopCount}/+{run.loopCount} to all enemies</span>
+          )}
+        </div>
+
+        {potionButton}
+        {abandonControls}
+      </div>
+
+      {/* Right panel — Blessings / Curses / Stats */}
+      <div style={{ ...sidePanel, borderLeft: PANEL_BORDER, borderRight: 'none' }}>
+        <RunPanel run={run} livePenalty={livePenalty} />
+      </div>
     </div>
   );
 }

@@ -37,15 +37,14 @@ const TILE_COLORS = {
   wall:        '#1a1a2a',
 };
 
-const TILE_SIZE = 56;
+const DEFAULT_TILE_SIZE = 56;
 const TILE_GAP = 4;
 const GRID_PADDING = 12;
-const GRID_TOTAL = GRID_PADDING * 2 + 5 * TILE_SIZE + 4 * TILE_GAP; // 320px
 
-function tileCenter(row, col) {
+function tileCenter(row, col, tileSize) {
   return {
-    x: GRID_PADDING + col * (TILE_SIZE + TILE_GAP) + TILE_SIZE / 2,
-    y: GRID_PADDING + row * (TILE_SIZE + TILE_GAP) + TILE_SIZE / 2,
+    x: GRID_PADDING + col * (tileSize + TILE_GAP) + tileSize / 2,
+    y: GRID_PADDING + row * (tileSize + TILE_GAP) + tileSize / 2,
   };
 }
 
@@ -82,7 +81,8 @@ const PULSE_STYLE = `
  *   state       — adventure run state
  *   onTileClick — (row, col) callback when a movable tile is clicked
  */
-export default function DungeonMap({ state, onTileClick }) {
+export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE_SIZE }) {
+  const gridTotal = GRID_PADDING * 2 + 5 * tileSize + 4 * TILE_GAP;
   const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath } = state;
 
   // Determine whether the boss room is currently locked (player not on gate tile)
@@ -128,8 +128,8 @@ export default function DungeonMap({ state, onTileClick }) {
   // Build SVG path points from movementPath for the trail line
   const pathPoints = useMemo(() => {
     if (!movementPath || movementPath.length < 2) return null;
-    return movementPath.map(({ row, col }) => tileCenter(row, col));
-  }, [movementPath]);
+    return movementPath.map(({ row, col }) => tileCenter(row, col, tileSize));
+  }, [movementPath, tileSize]);
 
   return (
     <div style={{
@@ -155,8 +155,8 @@ export default function DungeonMap({ state, onTileClick }) {
             pointerEvents: 'none',
             zIndex: 1,
           }}
-          width={GRID_TOTAL}
-          height={GRID_TOTAL}
+          width={gridTotal}
+          height={gridTotal}
         >
           {pathPoints.slice(1).map((pt, i) => (
             <line
@@ -198,6 +198,7 @@ export default function DungeonMap({ state, onTileClick }) {
                 locked={locked}
                 dimmed={dimmed}
                 onClick={movable ? () => onTileClick(r, c) : undefined}
+                tileSize={tileSize}
               />
             );
           })}
@@ -207,13 +208,13 @@ export default function DungeonMap({ state, onTileClick }) {
   );
 }
 
-function TileCell({ tile, revealed, completed, current, movable, locked, dimmed, onClick }) {
+function TileCell({ tile, revealed, completed, current, movable, locked, dimmed, onClick, tileSize = DEFAULT_TILE_SIZE }) {
   if (!revealed) {
     // Hidden tile
     return (
       <div style={{
-        width: `${TILE_SIZE}px`,
-        height: `${TILE_SIZE}px`,
+        width: `${tileSize}px`,
+        height: `${tileSize}px`,
         background: '#0d0d18',
         border: '1px solid #1a1a2a',
         borderRadius: '4px',
@@ -225,8 +226,8 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
   if (tile.type === 'wall') {
     return (
       <div style={{
-        width: `${TILE_SIZE}px`,
-        height: `${TILE_SIZE}px`,
+        width: `${tileSize}px`,
+        height: `${tileSize}px`,
         background: '#111120',
         border: '1px solid #1a1a26',
         borderRadius: '4px',
@@ -274,8 +275,8 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
       onClick={onClick}
       title={`${label}${completed ? ' (cleared)' : ''}`}
       style={{
-        width: `${TILE_SIZE}px`,
-        height: `${TILE_SIZE}px`,
+        width: `${tileSize}px`,
+        height: `${tileSize}px`,
         background,
         border: `${borderWidth} solid ${borderColor}`,
         borderRadius: '4px',
@@ -309,7 +310,7 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
         textAlign: 'center',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
-        maxWidth: '52px',
+        maxWidth: `${tileSize - 4}px`,
         textOverflow: 'ellipsis',
       }}>
         {label}
