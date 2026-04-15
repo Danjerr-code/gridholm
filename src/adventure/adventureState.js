@@ -220,6 +220,7 @@ export function completeTile(state, row, col, fightResult = null) {
   let tilesMoved = state.tilesMoved ?? 0;
   let cumulativeChampionHPBonus = state.cumulativeChampionHPBonus ?? 0;
   let movementPath = state.movementPath ?? [];
+  let currentTile = state.currentTile;
 
   if (isBoss) {
     loopCount = state.loopCount + 1;
@@ -236,6 +237,7 @@ export function completeTile(state, row, col, fightResult = null) {
       }
       if (startTile) break;
     }
+    currentTile = startTile;
     revealedTiles = _revealAround(startTile.row, startTile.col, []);
     completedTiles = [startTile];
     movementPath = [startTile];
@@ -247,6 +249,7 @@ export function completeTile(state, row, col, fightResult = null) {
 
   const newState = {
     ...state,
+    currentTile,
     dungeonLayout,
     seed,
     completedTiles,
