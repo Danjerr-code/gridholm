@@ -59,9 +59,10 @@ export const WEIGHTS = {
   enemyThreatValue:          4,  // sum of threatValue ratings for enemy combat units (applied negatively)
   trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
   highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
-  throneControlValue:       15,  // bonus for friendly champion on/near throne (Mystic overrides to 20; raised 10→15)
+  throneControlValue:       25,  // bonus for friendly champion on/near throne (raised 15→25; Mystic overrides to 30)
   tradeEfficiency:           5,  // bonus for favorable trades: kills defender while surviving
   tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
+  boardCentrality:           4,  // net centrality score: sum of (4 - manhattanDistToCenter) per friendly piece minus enemy
 };
 
 /**
@@ -74,7 +75,7 @@ export const WEIGHTS = {
  */
 export const FACTION_WEIGHTS = {
   primal: { ...WEIGHTS },
-  mystic: { ...WEIGHTS, throneControlValue: 20 },  // only override supported by data
+  mystic: { ...WEIGHTS, throneControlValue: 30 },  // raised 20→30; throne control decisive for Mystic closing
   light:  { ...WEIGHTS },
   dark:   { ...WEIGHTS },
 };
@@ -496,13 +497,27 @@ export function evaluateBoard(gameState, playerId, weights = null) {
 
   const championSurroundPressure = killThreatScore + pinBonus;
 
-  // throneControlValue: champion-specific throne positioning bonus.
-  // Distinct from throneControl (which scores any friendly unit/champion on throne).
-  // Scores: 1.0 if my champion is on throne; 0.4 if adjacent to empty throne.
+  // throneControlValue: throne positioning bonus.
+  // Components:
+  //   1. Champion on throne         → +1.0 factor
+  //   2. Friendly unit on throne    → +0.5 factor (denies tile, valuable even w/o 2-dmg trigger)
+  //   3. Champion adjacent to empty throne → +0.4 factor
+  //   4. Champion-toward-center gradient   → +(4 - distToCenter) * 0.3 when no friendly piece on throne
+  const myChampOnThrone = myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL;
+  const myUnitOnThrone  = myUnits.some(u => u.row === THRONE_ROW && u.col === THRONE_COL);
+  const myPieceOnThrone = myChampOnThrone || myUnitOnThrone;
+
   let throneControlValue = 0;
-  if (myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL) {
-    throneControlValue = 1.0;
-  } else {
+
+  if (myChampOnThrone) {
+    throneControlValue += 1.0;
+  }
+
+  if (myUnitOnThrone) {
+    throneControlValue += 0.5;
+  }
+
+  if (!myChampOnThrone) {
     const throneOccupied = gameState.units.some(u => u.row === THRONE_ROW && u.col === THRONE_COL) ||
       (gameState.champions[0].row === THRONE_ROW && gameState.champions[0].col === THRONE_COL) ||
       (gameState.champions[1].row === THRONE_ROW && gameState.champions[1].col === THRONE_COL);
@@ -510,9 +525,26 @@ export function evaluateBoard(gameState, playerId, weights = null) {
       ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
     );
     if (champAdjacentToThrone && !throneOccupied) {
-      throneControlValue = 0.4; // yields +4 base (×10) or +8 Mystic (×20)
+      throneControlValue += 0.4;
+    }
+
+    // Champion-toward-center gradient: pull champion toward throne when it is unclaimed.
+    if (!myPieceOnThrone) {
+      const champDistToCenter = manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]);
+      throneControlValue += (4 - champDistToCenter) * 0.3;
     }
   }
+
+  // boardCentrality: net Manhattan-from-center score across all pieces.
+  // Each piece scores (4 - distToCenter): center=4, adj=3, dist2=2, dist3=1, corner=0.
+  // Subtract the same calculation for all enemy pieces.
+  const boardCentrality =
+    (myUnits.reduce((sum, u) =>
+      sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
+     Math.max(0, 4 - manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]))) -
+    (oppUnits.reduce((sum, u) =>
+      sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
+     Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
 
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
@@ -548,9 +580,10 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     trappedAllyPenaltyValue                               +
     highValueIdlePenalty                                  +
     championSurroundPressure                              +
-    throneControlValue        * (w.throneControlValue ?? 10) +
+    throneControlValue        * (w.throneControlValue ?? 25) +
     tradeEfficiencyValue      * (w.tradeEfficiency ?? 5)  +
-    tileDenialCount           * (w.tileDenial ?? 6);
+    tileDenialCount           * (w.tileDenial ?? 6)       +
+    boardCentrality           * (w.boardCentrality ?? 4);
 
   return score;
 }
