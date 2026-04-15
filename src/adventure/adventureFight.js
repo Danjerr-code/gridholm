@@ -117,12 +117,35 @@ function applyBlessings(state, blessings) {
   for (const blessing of blessings) {
     switch (blessing) {
       case 'arcane_efficiency':
+        // Reduce spell cost by 1 (minimum 1) via engine modifier
         state.activeModifiers.push({ type: 'spellCostReduction', playerIndex: 0, amount: 1 });
         break;
+
       case 'fortified_start':
+        // Champion starts each fight with +3 max HP
         state.champions[0].maxHp += 3;
         state.champions[0].hp = Math.min(state.champions[0].hp + 3, state.champions[0].maxHp);
         break;
+
+      case 'prepared':
+        // Draw 2 extra cards at fight start (pull from player's deck directly)
+        for (let i = 0; i < 2; i++) {
+          const card = state.players[0].deck.shift();
+          if (card) state.players[0].hand.push(card);
+        }
+        break;
+
+      case 'aggressive_posture':
+        // +1 ATK to all player units on summon (engine reads adventurePlayerAtkBonus)
+        state.adventurePlayerAtkBonus = (state.adventurePlayerAtkBonus || 0) + 1;
+        break;
+
+      case 'swift_advance':
+        // +1 champion move range for first 3 turns (engine reads adventureSwiftAdvanceTurns)
+        state.adventureSwiftAdvanceTurns = 3;
+        break;
+
+      // throne_sense and resilience are handled outside the fight engine
       default:
         break;
     }

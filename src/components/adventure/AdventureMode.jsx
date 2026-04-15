@@ -1,10 +1,14 @@
 import { useState, useCallback } from 'react';
 import {
   createNewRun, loadRun, clearRun, saveRun,
-  moveToTile, completeTile,
+  moveToTile, completeTile, applyReward,
 } from '../../adventure/adventureState.js';
 import { buildAdventureGameState } from '../../adventure/adventureFight.js';
+import {
+  generateFightReward, generateTreasure, generateShopOfferings,
+} from '../../adventure/encounterRewards.js';
 import DungeonMap from './DungeonMap.jsx';
+import RewardScreen from './RewardScreen.jsx';
 import App from '../../App.jsx';
 
 const FACTION_INFO = {
@@ -35,6 +39,12 @@ export default function AdventureMode({ onBack }) {
   // ── Fight state ──────────────────────────────────────────────────────────
   // adventureContext: { initialState, aiDepth, row, col, tileType } | null
   const [fightCtx, setFightCtx] = useState(null);
+
+  // ── Reward state ─────────────────────────────────────────────────────────
+  // Generated reward data for current reward screen
+  const [fightReward, setFightReward]     = useState(null);  // fight reward offer
+  const [tileReward, setTileReward]       = useState(null);  // treasure/rest/shop reward
+  const [shopOfferings, setShopOfferings] = useState(null);  // shop items
 
   function handleStartNewRun(faction) {
     const newRun = createNewRun(faction);
@@ -82,8 +92,23 @@ export default function AdventureMode({ onBack }) {
       const { initialState, aiDepth } = buildAdventureGameState(newRun, row, col, tileType);
       setFightCtx({ initialState, aiDepth, row, col, tileType });
       setPhase('fight');
+    } else if (tile.completed) {
+      // Already completed — just move, no event
+    } else if (tileType === 'rest') {
+      // Rest: calculate heal immediately so it can be shown, apply on confirm
+      const healAmt = Math.max(5, Math.ceil(newRun.maxChampionHP * 0.25));
+      setTileReward({ healAmount: healAmt });
+      setPhase(`rest:${row}:${col}`);
+    } else if (tileType === 'treasure') {
+      const treasure = generateTreasure(newRun);
+      setTileReward(treasure);
+      setPhase(`treasure:${row}:${col}`);
+    } else if (tileType === 'shop') {
+      const offerings = generateShopOfferings(newRun);
+      setShopOfferings(offerings);
+      setPhase(`shop:${row}:${col}`);
     } else {
-      // Non-fight tile placeholder
+      // Mysterious event placeholder
       setPhase(`tile_event:${row}:${col}`);
     }
   }
@@ -96,13 +121,20 @@ export default function AdventureMode({ onBack }) {
     if (didWin) {
       // Carry over remaining champion HP from the fight
       const remainingHP = finalGameState?.champions?.[0]?.hp ?? run.championHP;
-      let newRun = { ...run, championHP: Math.max(1, remainingHP) };
+      let hp = Math.max(1, remainingHP);
+      // Resilience: restore 2 HP after every fight victory
+      if (run.blessings?.includes('resilience')) {
+        hp = Math.min(run.maxChampionHP, hp + 2);
+      }
+      let newRun = { ...run, championHP: hp };
       // Mark tile as completed, increment roomsCleared
       newRun = completeTile(newRun, fightCtx.row, fightCtx.col, { result: 'win' });
       setRun(newRun);
+      // Generate fight reward
+      const reward = generateFightReward(newRun, fightCtx.tileType);
+      setFightReward(reward);
       setFightCtx(null);
-      // Reward screen placeholder (Prompt 3 will wire in actual rewards)
-      setPhase(`fight_won:${fightCtx.row}:${fightCtx.col}`);
+      setPhase(`fight_reward:${fightCtx.row}:${fightCtx.col}`);
     } else {
       // Player lost — end the adventure run
       clearRun();
@@ -124,13 +156,40 @@ export default function AdventureMode({ onBack }) {
     setPhase('map');
   }
 
-  function handleFightWonContinue() {
-    setPhase('map');
-  }
-
   function handleRunSummaryDone() {
     setRun(null);
     setPhase('champion_select');
+  }
+
+  /**
+   * Apply an array of { type, value } rewards to the current run state,
+   * complete the tile at (row, col) if provided, then return to map.
+   */
+  function handleRewardsDone(rewards, row, col) {
+    let newRun = run;
+    for (const reward of rewards) {
+      newRun = applyReward(newRun, reward);
+    }
+    if (row !== undefined && col !== undefined) {
+      newRun = completeTile(newRun, row, col);
+    }
+    setRun(newRun);
+    setFightReward(null);
+    setTileReward(null);
+    setShopOfferings(null);
+    setPhase('map');
+  }
+
+  /**
+   * Use a health potion during the map phase.
+   */
+  function handleUsePotion() {
+    if (!run || run.potions <= 0) return;
+    const newHP = Math.min(run.maxChampionHP, run.championHP + 5);
+    const newRun = { ...run, championHP: newHP, potions: run.potions - 1 };
+    setRun(newRun);
+    // Persist immediately
+    saveRun(newRun);
   }
 
   // ── Phase rendering ───────────────────────────────────────────────────────
@@ -151,6 +210,7 @@ export default function AdventureMode({ onBack }) {
       <MapScreen
         run={run}
         onTileClick={handleTileClick}
+        onUsePotion={handleUsePotion}
         onAbandon={handleAbandon}
         onBack={onBack}
       />
@@ -167,17 +227,72 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
-  if (phase.startsWith('fight_won:')) {
+  // Fight reward screen
+  if (phase.startsWith('fight_reward:') && fightReward) {
     const [, rowStr, colStr] = phase.split(':');
     const row = parseInt(rowStr, 10);
     const col = parseInt(colStr, 10);
     const tileType = run?.dungeonLayout[row]?.[col]?.type ?? 'fight';
     return (
-      <FightWonScreen
+      <RewardScreen
+        mode="fight"
         run={run}
+        rewardData={fightReward}
         tileType={tileType}
-        onContinue={handleFightWonContinue}
-        onAbandon={handleAbandon}
+        onDone={rewards => handleRewardsDone(rewards)}
+      />
+    );
+  }
+
+  // Rest site screen
+  if (phase.startsWith('rest:') && tileReward) {
+    const [, rowStr, colStr] = phase.split(':');
+    const row = parseInt(rowStr, 10);
+    const col = parseInt(colStr, 10);
+    const healAmount = tileReward.healAmount;
+    return (
+      <RewardScreen
+        mode="rest"
+        run={run}
+        restHealAmount={healAmount}
+        onDone={() => {
+          // Apply HP healing then complete tile
+          const healed = applyReward(run, { type: 'hp', value: healAmount });
+          const completed = completeTile(healed, row, col);
+          setRun(completed);
+          setTileReward(null);
+          setPhase('map');
+        }}
+      />
+    );
+  }
+
+  // Treasure screen
+  if (phase.startsWith('treasure:') && tileReward) {
+    const [, rowStr, colStr] = phase.split(':');
+    const row = parseInt(rowStr, 10);
+    const col = parseInt(colStr, 10);
+    return (
+      <RewardScreen
+        mode="treasure"
+        run={run}
+        rewardData={tileReward}
+        onDone={rewards => handleRewardsDone(rewards, row, col)}
+      />
+    );
+  }
+
+  // Shop screen
+  if (phase.startsWith('shop:') && shopOfferings) {
+    const [, rowStr, colStr] = phase.split(':');
+    const row = parseInt(rowStr, 10);
+    const col = parseInt(colStr, 10);
+    return (
+      <RewardScreen
+        mode="shop"
+        run={run}
+        shopItems={shopOfferings}
+        onDone={rewards => handleRewardsDone(rewards, row, col)}
       />
     );
   }
@@ -191,7 +306,7 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
-  // Non-fight tile event (shop, treasure, rest, event — placeholder)
+  // Mysterious event placeholder
   if (phase.startsWith('tile_event:')) {
     const [, rowStr, colStr] = phase.split(':');
     const row = parseInt(rowStr, 10);
@@ -335,7 +450,7 @@ function ChampionSelect({ savedRun, onSelect, onContinue, onBack }) {
 
 // ── Map Screen ────────────────────────────────────────────────────────────────
 
-function MapScreen({ run, onTileClick, onAbandon, onBack }) {
+function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const faction = FACTION_INFO[run.championFaction] ?? FACTION_INFO.light;
   const currentTileType = run.dungeonLayout[run.currentTile.row]?.[run.currentTile.col]?.type ?? 'start';
@@ -408,6 +523,54 @@ function MapScreen({ run, onTileClick, onAbandon, onBack }) {
         )}
       </div>
 
+      {/* Blessings display */}
+      {run.blessings && run.blessings.length > 0 && (
+        <div style={{
+          width: '100%',
+          maxWidth: '500px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+        }}>
+          {run.blessings.map(b => (
+            <div key={b} style={{
+              background: '#0a1200',
+              border: '1px solid #4ade8040',
+              borderRadius: '4px',
+              padding: '3px 8px',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '9px',
+              color: '#80e860',
+              letterSpacing: '0.05em',
+            }}>
+              ✦ {b.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Use Potion button */}
+      {run.potions > 0 && (
+        <button
+          onClick={onUsePotion}
+          disabled={run.championHP >= run.maxChampionHP}
+          style={{
+            background: run.championHP >= run.maxChampionHP ? '#1a1a2a' : 'linear-gradient(135deg, #0a1a3a, #1a4a8a)',
+            color: run.championHP >= run.maxChampionHP ? '#3a3a5a' : '#60a0ff',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '12px',
+            fontWeight: 600,
+            border: `1px solid ${run.championHP >= run.maxChampionHP ? '#2a2a3a' : '#60a0ff60'}`,
+            borderRadius: '4px',
+            padding: '8px 20px',
+            cursor: run.championHP >= run.maxChampionHP ? 'not-allowed' : 'pointer',
+            letterSpacing: '0.05em',
+          }}
+        >
+          🧪 Use Potion (+5 HP) · {run.potions}/{3}
+        </button>
+      )}
+
       {/* Abandon button */}
       {confirmAbandon ? (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -424,79 +587,7 @@ function MapScreen({ run, onTileClick, onAbandon, onBack }) {
   );
 }
 
-// ── Fight Won (reward placeholder — Prompt 3 will wire actual rewards) ────────
 
-function FightWonScreen({ run, tileType, onContinue, onAbandon }) {
-  const isBoss = tileType === 'boss';
-  const isElite = tileType === 'elite_fight';
-
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      gap: '20px',
-      color: '#f9fafb',
-    }}>
-      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', color: '#C9A84C', letterSpacing: '0.12em' }}>
-        {isBoss ? 'BOSS DEFEATED' : isElite ? 'ELITE VANQUISHED' : 'VICTORY'}
-      </div>
-      <div style={{
-        fontFamily: "'Crimson Text', serif",
-        fontStyle: 'italic',
-        fontSize: '15px',
-        color: '#a0a0c0',
-        textAlign: 'center',
-        maxWidth: '300px',
-        lineHeight: 1.6,
-      }}>
-        {isBoss
-          ? 'The dungeon lord falls. A new dungeon loop begins.'
-          : 'You stand victorious. Choose your reward.'}
-      </div>
-
-      {/* HP remaining */}
-      <div style={{
-        background: '#0d0d18',
-        border: '1px solid #2a2a3a',
-        borderRadius: '6px',
-        padding: '10px 20px',
-        display: 'flex',
-        gap: '24px',
-      }}>
-        <StatPill label="HP" value={`${run.championHP}/${run.maxChampionHP}`} color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'} />
-        <StatPill label="Rooms" value={run.roomsCleared} color="#a0a0c0" />
-        <StatPill label="Cards" value={run.deck.length} color="#c084fc" />
-      </div>
-
-      <div style={{ fontSize: '12px', color: '#4a4a6a', fontFamily: "'Crimson Text', serif" }}>
-        (Rewards coming soon)
-      </div>
-
-      <button
-        onClick={onContinue}
-        style={{
-          background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-          color: '#0a0a0f',
-          fontFamily: "'Cinzel', serif",
-          fontSize: '13px',
-          fontWeight: 600,
-          border: 'none',
-          borderRadius: '4px',
-          padding: '12px 32px',
-          cursor: 'pointer',
-          letterSpacing: '0.06em',
-        }}
-      >
-        Continue
-      </button>
-    </div>
-  );
-}
 
 // ── Run Summary (shown on death/loss) ─────────────────────────────────────────
 

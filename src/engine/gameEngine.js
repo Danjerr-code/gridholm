@@ -40,15 +40,20 @@ export function getChampionAtkBuff(state, champion) {
 
 // Returns total SPD bonus granted to a champion from championSpdBuff modifiers.
 export function getChampionSpdBuff(state, champion) {
-  if (!state.activeModifiers) return 0;
   let buff = 0;
-  for (const mod of state.activeModifiers) {
-    if (mod.type !== 'championSpdBuff') continue;
-    if (mod.playerIndex !== champion.owner) continue;
-    const src = state.units.find(u => u.uid === mod.unitUid);
-    if (!src) continue;
-    const dist = Math.abs(src.row - champion.row) + Math.abs(src.col - champion.col);
-    if (dist <= (mod.range || 0)) buff += (mod.amount || 0);
+  if (state.activeModifiers) {
+    for (const mod of state.activeModifiers) {
+      if (mod.type !== 'championSpdBuff') continue;
+      if (mod.playerIndex !== champion.owner) continue;
+      const src = state.units.find(u => u.uid === mod.unitUid);
+      if (!src) continue;
+      const dist = Math.abs(src.row - champion.row) + Math.abs(src.col - champion.col);
+      if (dist <= (mod.range || 0)) buff += (mod.amount || 0);
+    }
+  }
+  // Adventure Swift Advance: direct SPD buff to player champion for first 3 turns
+  if (state.adventureSwiftAdvanceTurns > 0 && champion.owner === 0) {
+    buff += 1;
   }
   return buff;
 }
@@ -1213,6 +1218,15 @@ export function fireOnSummonTriggers(unit, state) {
       addLog(state, `Loop ${lc} scaling: ${liveUnit.name} gains +${lc}/+${lc}.`);
     }
   }
+
+  // Adventure Aggressive Posture: buff player units by +1 ATK on summon
+  if (state.adventurePlayerAtkBonus > 0 && unit.owner === 0 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
+    const bonus = state.adventurePlayerAtkBonus;
+    const liveUnit = state.units.find(u => u.uid === unit.uid);
+    if (liveUnit) {
+      liveUnit.atk = (liveUnit.atk || 0) + bonus;
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -1575,6 +1589,11 @@ function doBeginTurnPhase(state) {
   // Adventure elite bonus: AI starts its first turn with extra mana
   if (state.adventureEliteBonus?.extraMana && state.activePlayer === 1 && p.turnCount === 1) {
     p.resources = Math.min(p.resources + state.adventureEliteBonus.extraMana, 10);
+  }
+
+  // Adventure Swift Advance: decrement the turn counter for player 0 (buff is checked in getChampionSpdBuff)
+  if (state.adventureSwiftAdvanceTurns > 0 && state.activePlayer === 0) {
+    state.adventureSwiftAdvanceTurns -= 1;
   }
 
   p.maxResourcesThisTurn = p.resources;

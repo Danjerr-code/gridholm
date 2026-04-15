@@ -133,14 +133,18 @@ export function createNewRun(championFaction) {
 }
 
 /**
- * Move the player to a tile and reveal adjacent tiles.
+ * Move the player to a tile and reveal tiles around the new position.
+ * Throne Sense blessing expands reveal radius from 1 to 2.
  * @param {Object} state
  * @param {number} row
  * @param {number} col
  * @returns {Object} new state
  */
 export function moveToTile(state, row, col) {
-  const newRevealedTiles = _revealAround(row, col, state.revealedTiles);
+  const hasTroneSense = state.blessings?.includes('throne_sense');
+  const newRevealedTiles = hasTroneSense
+    ? _revealRadius(row, col, 2, state.revealedTiles)
+    : _revealAround(row, col, state.revealedTiles);
   const newState = {
     ...state,
     currentTile: { row, col },
@@ -176,7 +180,22 @@ export function applyReward(state, reward) {
       break;
     case 'blessing':
       newState = { ...newState, blessings: [...newState.blessings, reward.value] };
+      // Throne Sense: immediately reveal tiles within radius 2 of current position
+      if (reward.value === 'throne_sense') {
+        const { row, col } = newState.currentTile;
+        newState = { ...newState, revealedTiles: _revealRadius(row, col, 2, newState.revealedTiles) };
+      }
       break;
+    case 'remove_card': {
+      // Remove first occurrence of reward.value (card ID) from the deck
+      const idx = newState.deck.indexOf(reward.value);
+      if (idx !== -1) {
+        const newDeck = [...newState.deck];
+        newDeck.splice(idx, 1);
+        newState = { ...newState, deck: newDeck };
+      }
+      break;
+    }
     case 'curse':
       newState = { ...newState, curses: [...newState.curses, reward.value] };
       break;
@@ -293,13 +312,26 @@ export function clearRun() {
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
 function _revealAround(row, col, existingRevealed) {
-  const toReveal = [
-    { row, col },
-    { row: row - 1, col },
-    { row: row + 1, col },
-    { row, col: col - 1 },
-    { row, col: col + 1 },
-  ].filter(t => t.row >= 0 && t.row < 5 && t.col >= 0 && t.col < 5);
+  return _revealRadius(row, col, 1, existingRevealed);
+}
+
+/**
+ * Reveal all tiles within `radius` Manhattan distance of (row, col).
+ * Radius 1 = the 4 orthogonal neighbors + self.
+ * Radius 2 = all tiles in a 5×5 diamond (capped to the 5×5 grid).
+ */
+function _revealRadius(row, col, radius, existingRevealed) {
+  const toReveal = [];
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      if (Math.abs(dr) + Math.abs(dc) > radius) continue;
+      const r = row + dr;
+      const c = col + dc;
+      if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+        toReveal.push({ row: r, col: c });
+      }
+    }
+  }
 
   const result = [...existingRevealed];
   for (const tile of toReveal) {
