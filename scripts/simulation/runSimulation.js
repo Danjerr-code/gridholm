@@ -22,7 +22,6 @@ import { createGame, applyAction, isGameOver, getGameStats, getLegalActions } fr
 import { chooseAction } from './simAI.js';
 import { chooseActionMinimax } from './minimaxAI.js';
 import { chooseActionMCTS } from './mctsAI.js';
-import { WEIGHTS } from './boardEval.js';
 
 // ── CLI argument parsing ──────────────────────────────────────────────────────
 
@@ -40,7 +39,6 @@ function parseArgs(argv) {
       case '--depth-rest': args.depthRest  = parseInt(argv[++i], 10); break;
       case '--sims':       args.sims       = parseInt(argv[++i], 10); break;
       case '--timeout':    args.timeout    = parseInt(argv[++i], 10); break;
-      case '--no-profiles': args.noProfiles = true; break;
     }
   }
   return args;
@@ -229,8 +227,6 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
   const minimaxDepthRest = opts.depthRest; // undefined = no selective deepening
   const mctsSimulations = opts.sims ?? 10000;
   const mctsTimeoutMs   = opts.timeout ?? 100;
-  const noProfiles      = opts.noProfiles ?? false; // bypass faction weight profiles when true
-
   let state = createGame(p1Deck, p2Deck);
   const tracker = initGameTracker();
 
@@ -271,7 +267,6 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
         depth: minimaxDepth,
         ...(minimaxDepthTop  != null ? { depthTop:  minimaxDepthTop  } : {}),
         ...(minimaxDepthRest != null ? { depthRest: minimaxDepthRest } : {}),
-        ...(noProfiles ? { weights: WEIGHTS } : {}),
       });
       minimaxTotalMs += performance.now() - t0;
     } else if (useMCTS) {
@@ -467,8 +462,8 @@ const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 
 const args = parseArgs(process.argv);
-const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout, noProfiles } = args;
-const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout, noProfiles };
+const { p1: p1Deck, p2: p2Deck, games: totalGames, output, ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout } = args;
+const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSims, timeout: mctsTimeout };
 
 console.log(`Running ${totalGames} game(s): ${p1Deck} vs ${p2Deck} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeout}ms` : ''}]`);
 

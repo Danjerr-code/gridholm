@@ -59,83 +59,24 @@ export const WEIGHTS = {
   enemyThreatValue:          4,  // sum of threatValue ratings for enemy combat units (applied negatively)
   trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
   highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
-  throneControlValue:       10,  // bonus for friendly champion on/near throne (Mystic overrides to 20)
+  throneControlValue:       15,  // bonus for friendly champion on/near throne (Mystic overrides to 20; raised 10→15)
   tradeEfficiency:           5,  // bonus for favorable trades: kills defender while surviving
   tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
 };
 
 /**
  * Faction-specific weight profiles.
- * Each profile overrides select keys from WEIGHTS to reflect that faction's
- * win condition. The gameLength penalty start turn is stored separately.
+ * All factions use base WEIGHTS. Only one targeted override remains:
+ * Mystic gets throneControlValue: 20 (2× base) because throne control
+ * is a confirmed decisive factor for Mystic matchup draw rate.
+ * All other faction differentiation comes from applyPhaseModifiers and
+ * computeGameLengthPenalty below.
  */
 export const FACTION_WEIGHTS = {
-  /**
-   * Primal — aggressive rush, converge on the champion, play wide fast.
-   * Low survivability concern, high attack pressure, short game preferred.
-   */
-  primal: {
-    ...WEIGHTS,
-    championHPDiff:           12,   // very aggressive about life lead
-    unitsThreateningChampion: 25,   // converge on enemy champion
-    championHP:                3,   // willing to take damage
-    cardsInHand:               2,   // play everything, low hand value
-    unitCountDiff:             5,
-    totalATKOnBoard:           6,
-    healingValue:              0,
-    // gameLengthPenaltyStart: 8 (handled in computeGameLengthPenalty)
-  },
-
-  /**
-   * Mystic — board pressure and card advantage, no HP hoarding.
-   * championHP and championHPDiff match WEIGHTS base (no HP-preservation bonus).
-   * healingValue=0: healing provides real defensive value but is not eval-incentivized.
-   * Urgency ramp begins at turn 14 (lowered from 20) to reduce passive stalls.
-   */
-  mystic: {
-    ...WEIGHTS,
-    championHP:                5,   // WEIGHTS base — no HP hoarding bonus
-    unitCountDiff:            10,   // maintain board presence
-    cardsInHand:               8,   // high — card advantage matters
-    championHPDiff:            8,   // WEIGHTS base — reward HP lead, not absolute HP
-    unitsThreateningChampion: 14,   // raised 8→14: more mid-game champion pressure
-    healingValue:              0,   // removed: passive HP reward eliminated
-    opponentChampionLowHP:    45,   // raised 30→45: stronger finishing commitment
-    throneControlValue:       20,   // 2× base: sustain on throne is core Mystic strategy
-    // gameLengthPenaltyStart: 14 (handled in computeGameLengthPenalty)
-  },
-
-  /**
-   * Light — formation play, Aura synergies, durable board.
-   * Rewards clustering, durability, and formation pressure.
-   */
-  light: {
-    ...WEIGHTS,
-    unitsAdjacentToAlly:      10,   // very high — formation matters
-    championHP:                7,   // durable champion
-    unitCountDiff:             8,   // maintain board
-    totalHPOnBoard:            5,   // durability of units matters
-    unitsThreateningChampion: 10,   // apply formation pressure
-    cardsInHand:               4,
-    healingValue:              0,
-    // gameLengthPenaltyStart: 10 (default)
-  },
-
-  /**
-   * Dark — card advantage, information asymmetry, HP as a resource.
-   * Hidden units, hand size, and converting advantage into kills.
-   */
-  dark: {
-    ...WEIGHTS,
-    cardsInHand:               7,   // card advantage matters
-    hiddenUnits:               8,   // information asymmetry
-    championHPDiff:            6,   // willing to trade HP for advantage
-    championHP:                4,   // HP is a resource, not precious
-    unitCountDiff:             5,
-    unitsThreateningChampion: 12,   // convert advantage into kills
-    healingValue:              0,
-    // gameLengthPenaltyStart: 10 (default)
-  },
+  primal: { ...WEIGHTS },
+  mystic: { ...WEIGHTS, throneControlValue: 20 },  // only override supported by data
+  light:  { ...WEIGHTS },
+  dark:   { ...WEIGHTS },
 };
 
 // ── Phase system ──────────────────────────────────────────────────────────────
