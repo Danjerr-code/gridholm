@@ -821,12 +821,16 @@ function fireEndTurnTriggers(state, playerIdx) {
     }
   });
 
-  // 6. Throne damage: deal 2 damage to opponent champion (3 if enhancedThrone boss rule;
-  //    +1 per active Crown of Dominion omen owned by the throne-holder)
+  // 6. Throne damage: deal 2 damage to opponent champion, +1 per bossPassive with
+  //    effect='throneBonus' (applies to both players), +1 per active Crown of Dominion
+  //    omen owned by the throne-holder.
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - playerIdx;
     const crownOfDominion = state.units.filter(u => u.owner === playerIdx && u.id === 'crown_of_dominion' && !u.hidden).length;
-    const baseDamage = (state.enhancedThrone ? 3 : 2) + crownOfDominion;
+    const thronePassiveBonus = (state.bossPassives || []).reduce(
+      (sum, p) => sum + (p.effect === 'throneBonus' ? p.value : 0), 0
+    );
+    const baseDamage = 2 + thronePassiveBonus + crownOfDominion;
     const maxDamage = Math.max(0, state.champions[oppIdx].hp - 1);
     const actualDamage = Math.min(baseDamage, maxDamage);
     if (actualDamage > 0) {

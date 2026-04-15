@@ -148,7 +148,12 @@ export default function AdventureMode({ onBack }) {
       // Build adventure fight context
       const { initialState, aiDepth } = buildAdventureGameState(newRun, row, col, tileType);
       setFightCtx({ initialState, aiDepth, row, col, tileType });
-      setPhase('fight');
+      // Show boss passive intro before the fight when passives are present
+      if (tileType === 'boss' && initialState.bossPassives && initialState.bossPassives.length > 0) {
+        setPhase('boss_intro');
+      } else {
+        setPhase('fight');
+      }
     } else if (tile.completed) {
       // Already completed — just move, no event
     } else if (tileType === 'rest') {
@@ -303,6 +308,15 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
+  if (phase === 'boss_intro' && fightCtx) {
+    return (
+      <BossPassiveIntro
+        bossPassives={fightCtx.initialState.bossPassives}
+        onBegin={() => setPhase('fight')}
+      />
+    );
+  }
+
   if (phase === 'fight' && fightCtx) {
     return (
       <App
@@ -406,6 +420,72 @@ export default function AdventureMode({ onBack }) {
   }
 
   return null;
+}
+
+// ── Boss Passive Intro ────────────────────────────────────────────────────────
+
+function BossPassiveIntro({ bossPassives, onBegin }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0005',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 16px',
+      gap: '24px',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.15em', marginBottom: '8px' }}>
+          BOSS ENCOUNTER
+        </div>
+        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f9fafb', margin: 0 }}>
+          The Enthroned
+        </h2>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9a7a40', letterSpacing: '0.1em', marginBottom: '10px', textAlign: 'center' }}>
+          BOSS PASSIVE
+        </div>
+        {(bossPassives || []).map(p => (
+          <div key={p.id} style={{
+            background: 'linear-gradient(135deg, #1a1000, #120800)',
+            border: '1px solid #C9A84C60',
+            borderRadius: '6px',
+            padding: '16px 20px',
+            marginBottom: '10px',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', marginBottom: '6px' }}>
+              {p.name}
+            </div>
+            <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '15px', color: '#c0b090', lineHeight: 1.5 }}>
+              {p.description}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={onBegin}
+        style={{
+          background: 'linear-gradient(135deg, #3a0a00, #6a1500)',
+          color: '#f0c060',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '13px',
+          fontWeight: 600,
+          border: '1px solid #C9A84C80',
+          borderRadius: '4px',
+          padding: '12px 36px',
+          cursor: 'pointer',
+          letterSpacing: '0.1em',
+        }}
+      >
+        Begin Fight
+      </button>
+    </div>
+  );
 }
 
 // ── Champion Selection ────────────────────────────────────────────────────────

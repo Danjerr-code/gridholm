@@ -190,8 +190,16 @@ export function getBossDefinition(bossId, loopCount = 0) {
         { row: 4, col: 1, active: true },
         { row: 4, col: 3, active: true },
       ],
-      // Enhanced throne: deals 3 damage instead of 2 at end of turn
-      uniqueRules: ['enhanced_throne'],
+      // Boss passives — applied at fight start; each entry describes a passive effect.
+      bossPassives: [
+        {
+          id:          'decree_of_the_crown',
+          name:        'Decree of the Crown',
+          description: 'Controlling the Throne deals +1 damage.',
+          effect:      'throneBonus',
+          value:       1,
+        },
+      ],
     };
   }
 

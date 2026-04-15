@@ -260,9 +260,9 @@ export function buildAdventureGameState(run, row, col, tileType) {
       state.switchTiles = bossDef.switchTiles.map(s => ({ ...s }));
     }
 
-    // Enhanced throne: 3 damage instead of 2
-    if (bossDef.uniqueRules.includes('enhanced_throne')) {
-      state.enhancedThrone = true;
+    // Apply boss passives to state so the engine can read them generically.
+    if (bossDef.bossPassives && bossDef.bossPassives.length > 0) {
+      state.bossPassives = [...bossDef.bossPassives];
     }
 
     // Flag for AI evaluation: heavily weight staying on the throne
