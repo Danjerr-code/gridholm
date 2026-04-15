@@ -15,7 +15,8 @@ import RewardScreen from './RewardScreen.jsx';
 import EventScreen from './EventScreen.jsx';
 import RunSummary from './RunSummary.jsx';
 import App from '../../App.jsx';
-import { supabase, getGuestId } from '../../supabase.js';
+import { supabase, getGuestId, getCardImageUrl } from '../../supabase.js';
+import { CHAMPIONS } from '../../engine/champions.js';
 
 const FACTION_INFO = {
   light:  { label: 'Light',  color: '#e8d8a0', bg: '#1a1600', border: '#C9A84C60', desc: 'Steadfast defenders and holy warriors.' },
@@ -467,36 +468,55 @@ function ChampionSelect({ savedRun, onSelect, onContinue, onBack }) {
         maxWidth: '400px',
         width: '100%',
       }}>
-        {Object.entries(FACTION_INFO).map(([factionKey, info]) => (
-          <button
-            key={factionKey}
-            onClick={() => onSelect(factionKey)}
-            style={{
-              background: info.bg,
-              border: `1px solid ${info.border}`,
-              borderRadius: '6px',
-              padding: '16px 12px',
-              cursor: 'pointer',
-              textAlign: 'center',
-              transition: 'box-shadow 150ms ease, transform 150ms ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.boxShadow = `0 0 14px ${info.border}`;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.boxShadow = 'none';
-              e.currentTarget.style.transform = 'none';
-            }}
-          >
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 600, color: info.color, letterSpacing: '0.08em', marginBottom: '6px' }}>
-              {info.label}
-            </div>
-            <div style={{ fontSize: '11px', color: '#6a6a8a', lineHeight: 1.4 }}>
-              {info.desc}
-            </div>
-          </button>
-        ))}
+        {Object.entries(FACTION_INFO).map(([factionKey, info]) => {
+          const champImage = CHAMPIONS[factionKey]?.image;
+          const champImageUrl = champImage ? getCardImageUrl(champImage) : null;
+          return (
+            <button
+              key={factionKey}
+              onClick={() => onSelect(factionKey)}
+              style={{
+                background: info.bg,
+                border: `1px solid ${info.border}`,
+                borderRadius: '6px',
+                padding: '0',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'box-shadow 150ms ease, transform 150ms ease',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = `0 0 14px ${info.border}`;
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'none';
+              }}
+            >
+              {champImageUrl && (
+                <div style={{ height: '90px', flexShrink: 0, overflow: 'hidden' }}>
+                  <img
+                    src={champImageUrl}
+                    alt={CHAMPIONS[factionKey]?.name ?? info.label}
+                    onError={e => { e.target.style.display = 'none'; }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              )}
+              <div style={{ padding: '12px 12px 14px' }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 600, color: info.color, letterSpacing: '0.08em', marginBottom: '6px' }}>
+                  {info.label}
+                </div>
+                <div style={{ fontSize: '11px', color: '#6a6a8a', lineHeight: 1.4 }}>
+                  {info.desc}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <button
