@@ -3179,6 +3179,20 @@ export function triggerUnitAction(state, unitUid) {
   }
 
   if (unit.id === 'bloodaltar') {
+    const altarAdj = cardinalNeighbors(unit.row, unit.col);
+    const hasAdjacentFriendly = s.units.some(u =>
+      u.owner === s.activePlayer &&
+      u.uid !== unit.uid &&
+      !u.isRelic &&
+      !u.isOmen &&
+      altarAdj.some(([r, c]) => u.row === r && u.col === c)
+    );
+    if (!hasAdjacentFriendly) {
+      // No valid targets — refund command cost and leave unit ready
+      unit.moved = false;
+      s.players[s.activePlayer].commandsUsed = Math.max(0, (s.players[s.activePlayer].commandsUsed ?? 1) - actionCmdCost);
+      return s;
+    }
     s.pendingSpell = { cardUid: unit.uid, effect: 'bloodaltar_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
     return s;
   }

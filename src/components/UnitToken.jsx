@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { getEffectiveAtk, getEffectiveHp, getEffectiveMaxHp, getEffectiveSpd, getPackBonus, isAuraBuffed, isAuraDebuffed } from '../engine/statUtils.js';
-import { getCommandLimit } from '../engine/gameEngine.js';
+import { getCommandLimit, cardinalNeighbors } from '../engine/gameEngine.js';
 import { getCardImageUrl } from '../supabase.js';
 import useLongPress from '../hooks/useLongPress.js';
 import { rulesTitle } from '../utils/rulesText.jsx';
@@ -228,7 +228,18 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   // Action pill: show on any unit/relic with an Action ability.
   // Orange when the action is currently usable; grey otherwise (including all opponent units).
   const hasAction = !!unit.action;
-  const actionAvailable = isMyUnit && isMyTurn && !unit.summoned && !unit.skipNextAction && !unit.moved && commandsUsed < commandLimit;
+  const bloodAltarHasTarget = unit.id !== 'bloodaltar' || (() => {
+    if (!state) return false;
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    return state.units.some(u =>
+      u.owner === unit.owner &&
+      u.uid !== unit.uid &&
+      !u.isRelic &&
+      !u.isOmen &&
+      adj.some(([r, c]) => u.row === r && u.col === c)
+    );
+  })();
+  const actionAvailable = isMyUnit && isMyTurn && !unit.summoned && !unit.skipNextAction && !unit.moved && commandsUsed < commandLimit && bloodAltarHasTarget;
 
   // Long-press inspect on mobile
   const longPress = useLongPress(() => {

@@ -96,7 +96,7 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay' } = {}) 
   const [pendingApproach, setPendingApproach] = useState(null);
 
   // Units whose action needs a target (routes through pendingSpell / resolveSpell)
-  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus', 'rootsongcommander']);
+  const TARGETED_ACTION_UNITS = new Set(['battlepriestunit', 'woodlandguard', 'packrunner', 'elfarcher', 'clockworkmanimus', 'rootsongcommander', 'bloodaltar']);
   const [inspectedItem, setInspectedItem] = useState(null);
 
   // True while the AI is computing its turn (shows "Thinking..." in UI)
