@@ -41,6 +41,8 @@ import { getCardRating } from './cardThreatRatings.js';
 
 const THRONE_ROW = 2;
 const THRONE_COL = 2;
+const BOARD_SIZE = 5;
+const adjDirs = [[-1,0],[1,0],[0,-1],[0,1]];
 
 const NO_TARGET_SPELLS = new Set([
   'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
@@ -379,6 +381,9 @@ export const WEIGHTS = {
   enemyThreatValue:          4,
   trappedAllyPenalty:        5,
   highValueUnitActivity:     3,
+  throneControlValue:       15,
+  tradeEfficiency:           5,
+  tileDenial:                6,
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
@@ -482,6 +487,78 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     }
   }
 
+  // tradeEfficiency: reward favorable trades available this turn.
+  let tradeEfficiencyValue = 0;
+  for (const attacker of myCombatUnits) {
+    for (const defender of oppCombatUnits) {
+      const dist = manhattan([attacker.row, attacker.col], [defender.row, defender.col]);
+      if (dist > (attacker.spd ?? 1)) continue;
+      if ((attacker.atk ?? 0) >= (defender.hp ?? 1)) {
+        const defenderThreat = getCardRating(defender.id, 'threat', defender.cost ?? 4);
+        if ((defender.atk ?? 0) < (attacker.hp ?? 1)) {
+          tradeEfficiencyValue += defenderThreat;
+        } else {
+          const attackerAlly = getCardRating(attacker.id, 'ally', attacker.cost ?? 4);
+          tradeEfficiencyValue += defenderThreat - attackerAlly;
+        }
+      }
+    }
+  }
+
+  // tileDenial: count friendly units adjacent to enemy champion (each blocks a summon tile).
+  const adjToOppChamp = adjDirs
+    .map(([dr, dc]) => [oppChamp.row + dr, oppChamp.col + dc])
+    .filter(([r, c]) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE);
+
+  const tileDenialCount = adjToOppChamp.filter(([r, c]) =>
+    myUnits.some(u => u.row === r && u.col === c)
+  ).length;
+
+  // championSurroundPressure: reward positions where friendly units adjacent to enemy champion
+  // threaten a kill. Kill-threat × 15 (lethal) or × 8 (>half HP); pin-bonus when ≥2 adjacent.
+  const adjFriendlyUnits = myUnits.filter(u =>
+    adjToOppChamp.some(([r, c]) => u.row === r && u.col === c)
+  );
+  const adjATKSum = adjFriendlyUnits.reduce((s, u) => s + (u.atk ?? 0), 0);
+  const netKillPressure = adjATKSum - oppChamp.hp;
+
+  let killThreatScore = 0;
+  if (netKillPressure > 0) {
+    killThreatScore = netKillPressure * 15;
+  } else if (adjATKSum > oppChamp.hp / 2) {
+    killThreatScore = adjATKSum * 8;
+  }
+
+  let pinBonus = 0;
+  if (adjFriendlyUnits.length >= 2) {
+    const emptyAdjTiles = adjToOppChamp.filter(([r, c]) =>
+      !gameState.units.some(u => u.row === r && u.col === c) &&
+      !(gameState.champions[0].row === r && gameState.champions[0].col === c) &&
+      !(gameState.champions[1].row === r && gameState.champions[1].col === c)
+    ).length;
+    pinBonus = (adjToOppChamp.length - emptyAdjTiles) * 4;
+  }
+
+  const championSurroundPressure = killThreatScore + pinBonus;
+
+  // throneControlValue: champion-specific throne positioning bonus.
+  // 1.0 if champion on throne; 0.4 if champion adjacent to empty throne.
+  let throneControlValue = 0;
+  if (myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL) {
+    throneControlValue = 1.0;
+  } else {
+    const throneOccupied =
+      gameState.units.some(u => u.row === THRONE_ROW && u.col === THRONE_COL) ||
+      (gameState.champions[0].row === THRONE_ROW && gameState.champions[0].col === THRONE_COL) ||
+      (gameState.champions[1].row === THRONE_ROW && gameState.champions[1].col === THRONE_COL);
+    const champAdjacentToThrone = adjDirs.some(
+      ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
+    );
+    if (champAdjacentToThrone && !throneOccupied) {
+      throneControlValue = 0.4;
+    }
+  }
+
   return (
     championHP               * weights.championHP               +
     championHPDiff           * weights.championHPDiff           +
@@ -501,7 +578,11 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     allyCardValue            * weights.allyCardValue            +
     enemyThreatValue         * weights.enemyThreatValue         +
     trappedAllyPenaltyValue                                     +
-    highValueIdlePenalty
+    highValueIdlePenalty                                        +
+    championSurroundPressure                                    +
+    throneControlValue       * (weights.throneControlValue ?? 15) +
+    tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
+    tileDenialCount          * (weights.tileDenial ?? 6)
   );
 }
 
