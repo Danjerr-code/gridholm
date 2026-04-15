@@ -806,11 +806,12 @@ function fireEndTurnTriggers(state, playerIdx) {
     }
   });
 
-  // 6. Throne damage: deal 2 damage to opponent champion (cannot reduce below 1 HP)
+  // 6. Throne damage: deal 2 damage to opponent champion (3 if enhancedThrone boss rule)
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - playerIdx;
+    const baseDamage = state.enhancedThrone ? 3 : 2;
     const maxDamage = Math.max(0, state.champions[oppIdx].hp - 1);
-    const actualDamage = Math.min(2, maxDamage);
+    const actualDamage = Math.min(baseDamage, maxDamage);
     if (actualDamage > 0) {
       state.champions[oppIdx].hp -= actualDamage;
       addLog(state, `${p.name}'s champion controls the Throne! ${state.players[oppIdx].name}'s champion takes ${actualDamage} damage.`);

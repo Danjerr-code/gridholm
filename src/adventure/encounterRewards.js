@@ -126,12 +126,17 @@ export function generateFightReward(state, tileType) {
   let cardOffers;
   let blessingOffers = [];
 
-  if (isElite || isBoss) {
+  if (isBoss) {
     gold = _randInt(20, 25);
-    // Guaranteed 3 rare cards
     const rarePool = _buildCardPool(faction, 'rare');
     cardOffers = _dedup(_pickN(rarePool, 3));
-    // 2 blessing choices
+    // Boss: guaranteed 3 blessing choices
+    blessingOffers = _pickBlessings(state.blessings, 3);
+  } else if (isElite) {
+    gold = _randInt(20, 25);
+    const rarePool = _buildCardPool(faction, 'rare');
+    cardOffers = _dedup(_pickN(rarePool, 3));
+    // Elite: 2 blessing choices
     blessingOffers = _pickBlessings(state.blessings, 2);
   } else {
     gold = _randInt(10, 15);
@@ -146,7 +151,7 @@ export function generateFightReward(state, tileType) {
   }
 
   return {
-    type: isElite || isBoss ? 'elite' : 'normal',
+    type: isBoss ? 'boss' : isElite ? 'elite' : 'normal',
     gold,
     cardOffers,
     blessingOffers,

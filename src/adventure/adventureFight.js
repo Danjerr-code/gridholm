@@ -11,6 +11,7 @@ import { generateAIDeck } from '../draft/aiDrafter.js';
 import { createInitialState, autoAdvancePhase } from '../engine/gameEngine.js';
 import { CARD_DB } from '../engine/cards.js';
 import { registerUnit, registerModifiers } from '../engine/triggerRegistry.js';
+import { getBossDefinition } from './bossDefinitions.js';
 
 // Maps adventure faction names to game engine deck IDs
 export const FACTION_TO_DECK_ID = {
@@ -21,15 +22,6 @@ export const FACTION_TO_DECK_ID = {
 };
 
 const ALL_FACTIONS = ['light', 'primal', 'mystic', 'dark'];
-
-// 25-card placeholder boss deck — neutral mix across all factions
-const BOSS_DECK_IDS = [
-  'militia', 'militia', 'footsoldier', 'squire', 'knight',
-  'boar', 'wolf', 'wolf', 'razorclaw', 'tuskling',
-  'elfscout', 'woodlandguard', 'verdantarcher', 'elfranger',
-  'imp', 'imp', 'spiteling', 'dreadknight', 'shadowstalker',
-  'smite', 'ironshield', 'ambush', 'pounce', 'glimpse', 'pestilence',
-];
 
 // ── Difficulty helpers ────────────────────────────────────────────────────────
 
@@ -180,9 +172,10 @@ export function buildAdventureGameState(run, row, col, tileType) {
   let aiDepth;
 
   if (isBoss) {
-    aiCardIds        = [...BOSS_DECK_IDS];
-    aiPrimaryFaction = 'light'; // mixed boss deck, labeled light for champion selection
-    aiDepth          = 2;
+    const bossDef    = getBossDefinition('the_enthroned', run.loopCount);
+    aiCardIds        = [...bossDef.deck];
+    aiPrimaryFaction = 'light'; // mixed boss deck — label 'light' for champion selection
+    aiDepth          = bossDef.aiDepth;
   } else {
     const difficulty = getTileDifficulty(row, col);
     const deckSize   = getEnemyDeckSize(difficulty);
@@ -231,6 +224,42 @@ export function buildAdventureGameState(run, row, col, tileType) {
       // Consumed in doBeginTurnPhase when it's the AI's first turn
       state.adventureEliteBonus = { extraMana: mod.amount };
     }
+  }
+
+  // ── Boss setup ────────────────────────────────────────────────────────────
+  if (isBoss) {
+    const bossDef = getBossDefinition('the_enthroned', run.loopCount);
+
+    // Override boss champion HP and place at the Throne tile (2,2)
+    state.champions[1].hp    = bossDef.championHP;
+    state.champions[1].maxHp = bossDef.championHP;
+    state.champions[1].row   = 2;
+    state.champions[1].col   = 2;
+
+    // Place pre-defined starting units
+    for (const { base, row: uRow, col: uCol } of bossDef.startingUnits) {
+      // Skip if tile is occupied
+      if (state.units.some(u => u.row === uRow && u.col === uCol)) continue;
+
+      const unit = {
+        ...base,
+        uid: `${base.id}_${uRow}_${uCol}_${Math.random().toString(36).slice(2)}`,
+        owner: 1,
+        row: uRow,
+        col: uCol,
+      };
+      state.units.push(unit);
+      registerUnit(unit, state);
+      registerModifiers(unit, state);
+    }
+
+    // Enhanced throne: 3 damage instead of 2
+    if (bossDef.uniqueRules.includes('enhanced_throne')) {
+      state.enhancedThrone = true;
+    }
+
+    // Flag for AI evaluation: heavily weight staying on the throne
+    state.adventureBossFight = true;
   }
 
   return {

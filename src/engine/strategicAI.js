@@ -580,7 +580,7 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     trappedAllyPenaltyValue                                     +
     highValueIdlePenalty                                        +
     championSurroundPressure                                    +
-    throneControlValue       * (weights.throneControlValue ?? 15) +
+    throneControlValue       * (gameState.adventureBossFight ? 50 : (weights.throneControlValue ?? 15)) +
     tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
     tileDenialCount          * (weights.tileDenial ?? 6)
   );

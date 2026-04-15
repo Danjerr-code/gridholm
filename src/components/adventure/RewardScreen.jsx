@@ -255,14 +255,15 @@ function FightRewardView({ rewardData, tileType, onDone }) {
   const [cardSkipped, setCardSkipped]          = useState(false);
   const [blessingSkipped, setBlessingSkipped]  = useState(false);
 
+  const isBoss  = rewardData.type === 'boss' || tileType === 'boss';
   const isElite = rewardData.type === 'elite';
-  const isBoss  = tileType === 'boss';
+  const hasBlessings = isBoss || isElite;
 
   const title = isBoss ? 'BOSS DEFEATED' : isElite ? 'ELITE VANQUISHED' : 'VICTORY';
 
-  const cardChosen    = cardSkipped    || selectedCard    !== null;
-  const blessingChosen = !isElite || blessingSkipped || selectedBlessing !== null;
-  const canContinue   = cardChosen && blessingChosen;
+  const cardChosen     = cardSkipped    || selectedCard    !== null;
+  const blessingChosen = !hasBlessings  || blessingSkipped || selectedBlessing !== null;
+  const canContinue    = cardChosen && blessingChosen;
 
   function handleContinue() {
     const rewards = [{ type: 'gold', value: rewardData.gold }];
@@ -313,8 +314,8 @@ function FightRewardView({ rewardData, tileType, onDone }) {
         </div>
       )}
 
-      {/* Blessing choices — elite/boss only */}
-      {isElite && rewardData.blessingOffers.length > 0 && (
+      {/* Blessing choices — elite/boss */}
+      {hasBlessings && rewardData.blessingOffers.length > 0 && (
         <div style={sectionBox}>
           <SectionTitle>Choose a Blessing {blessingSkipped ? '(skipped)' : ''}</SectionTitle>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -330,7 +331,7 @@ function FightRewardView({ rewardData, tileType, onDone }) {
               />
             ))}
           </div>
-          {!blessingSkipped && (
+          {!isBoss && !blessingSkipped && (
             <div style={{ marginTop: '10px', textAlign: 'right' }}>
               <SecondaryBtn onClick={() => { setSelectedBlessing(null); setBlessingSkipped(true); }}>
                 Skip Blessing

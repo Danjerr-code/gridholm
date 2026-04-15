@@ -9,7 +9,9 @@ import {
 } from '../../adventure/encounterRewards.js';
 import DungeonMap from './DungeonMap.jsx';
 import RewardScreen from './RewardScreen.jsx';
+import RunSummary from './RunSummary.jsx';
 import App from '../../App.jsx';
+import { supabase, getGuestId } from '../../supabase.js';
 
 const FACTION_INFO = {
   light:  { label: 'Light',  color: '#e8d8a0', bg: '#1a1600', border: '#C9A84C60', desc: 'Steadfast defenders and holy warriors.' },
@@ -46,6 +48,33 @@ export default function AdventureMode({ onBack }) {
   const [tileReward, setTileReward]       = useState(null);  // treasure/rest/shop reward
   const [shopOfferings, setShopOfferings] = useState(null);  // shop items
 
+  function saveAdventureRunResult(completedRun) {
+    if (!completedRun) return;
+    const guestId = getGuestId();
+    supabase.from('match_replays').insert({
+      game_mode: 'adventure_run',
+      p1_faction: completedRun.championFaction ?? null,
+      p2_faction: null,
+      p1_deck: completedRun.deck ?? [],
+      p2_deck: [],
+      winner: null,
+      total_turns: completedRun.roomsCleared ?? 0,
+      state_history: [],
+      final_state: {
+        loopCount: completedRun.loopCount ?? 0,
+        roomsCleared: completedRun.roomsCleared ?? 0,
+        bossDefeated: completedRun.bossDefeated ?? false,
+        blessings: completedRun.blessings ?? [],
+        curses: completedRun.curses ?? [],
+        deck: completedRun.deck ?? [],
+        gold: completedRun.gold ?? 0,
+        guestId,
+      },
+    }).then(({ error }) => {
+      if (error) console.warn('[Adventure] Replay insert failed:', error.message);
+    });
+  }
+
   function handleStartNewRun(faction) {
     const newRun = createNewRun(faction);
     setRun(newRun);
@@ -76,6 +105,7 @@ export default function AdventureMode({ onBack }) {
         // Player dies from Plagued — end run immediately
         const dyingRun = { ...run, championHP: 0 };
         clearRun();
+        saveAdventureRunResult(dyingRun);
         setRun(dyingRun);
         setPhase('run_summary');
         return;
@@ -138,6 +168,7 @@ export default function AdventureMode({ onBack }) {
     } else {
       // Player lost — end the adventure run
       clearRun();
+      saveAdventureRunResult(run);
       setFightCtx(null);
       setPhase('run_summary');
     }
@@ -299,9 +330,10 @@ export default function AdventureMode({ onBack }) {
 
   if (phase === 'run_summary') {
     return (
-      <RunSummaryScreen
+      <RunSummary
         run={run}
-        onDone={handleRunSummaryDone}
+        onPlayAgain={handleRunSummaryDone}
+        onMainMenu={onBack}
       />
     );
   }
@@ -589,96 +621,6 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
 
 
 
-// ── Run Summary (shown on death/loss) ─────────────────────────────────────────
-
-function RunSummaryScreen({ run, onDone }) {
-  const faction = FACTION_INFO[run?.championFaction ?? 'light'] ?? FACTION_INFO.light;
-
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      gap: '20px',
-      color: '#f9fafb',
-    }}>
-      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f87171', letterSpacing: '0.12em' }}>
-        RUN ENDED
-      </div>
-      <div style={{
-        fontFamily: "'Crimson Text', serif",
-        fontStyle: 'italic',
-        fontSize: '15px',
-        color: '#a0a0c0',
-        textAlign: 'center',
-        maxWidth: '300px',
-        lineHeight: 1.6,
-      }}>
-        Your {faction.label} champion has fallen.
-      </div>
-
-      {run && (
-        <div style={{
-          background: '#0d0d18',
-          border: '1px solid #2a2a3a',
-          borderRadius: '8px',
-          padding: '16px 24px',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-          maxWidth: '320px',
-          width: '100%',
-        }}>
-          <SummaryRow label="Rooms Cleared" value={run.roomsCleared} />
-          <SummaryRow label="Loops"         value={run.loopCount} />
-          <SummaryRow label="Cards in Deck" value={run.deck.length} />
-          <SummaryRow label="Blessings"     value={run.blessings?.length ?? 0} />
-        </div>
-      )}
-
-      {/* Free pack reward for run completion */}
-      <div style={{
-        background: '#100a1a',
-        border: '1px solid #A855F760',
-        borderRadius: '6px',
-        padding: '12px 20px',
-        textAlign: 'center',
-        maxWidth: '260px',
-        width: '100%',
-      }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#c084fc', letterSpacing: '0.08em', marginBottom: '4px' }}>
-          FREE PACK REWARD
-        </div>
-        <div style={{ fontSize: '12px', color: '#6a6a8a', fontFamily: "'Crimson Text', serif" }}>
-          Claim your pack in the Pack Opening screen.
-        </div>
-      </div>
-
-      <button
-        onClick={onDone}
-        style={{
-          background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-          color: '#0a0a0f',
-          fontFamily: "'Cinzel', serif",
-          fontSize: '13px',
-          fontWeight: 600,
-          border: 'none',
-          borderRadius: '4px',
-          padding: '12px 32px',
-          cursor: 'pointer',
-          letterSpacing: '0.06em',
-        }}
-      >
-        New Run
-      </button>
-    </div>
-  );
-}
-
 // ── Tile Event Screen (non-fight tiles — placeholder) ─────────────────────────
 
 function TileEventScreen({ run, tileType, row, col, onContinue, onAbandon }) {
@@ -753,19 +695,6 @@ function StatPill({ label, value, color }) {
         {label}
       </div>
       <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 600, color }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.08em' }}>
-        {label.toUpperCase()}
-      </div>
-      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '16px', fontWeight: 600, color: '#C9A84C' }}>
         {value}
       </div>
     </div>
