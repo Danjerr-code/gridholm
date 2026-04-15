@@ -101,6 +101,7 @@ export function createNewRun(championFaction, startingDeck) {
     currentTile: startTile,
     revealedTiles,
     completedTiles: [startTile],
+    movementPath: [startTile],
     dungeonLayout,
     fightHistory: [],
     bossDefeated: false,
@@ -128,6 +129,7 @@ export function moveToTile(state, row, col) {
     ...state,
     currentTile: { row, col },
     revealedTiles: newRevealedTiles,
+    movementPath: [...(state.movementPath ?? [state.currentTile]), { row, col }],
     tilesMoved: (state.tilesMoved ?? 0) + 1,
   };
   return saveRun(newState), newState;
@@ -217,6 +219,7 @@ export function completeTile(state, row, col, fightResult = null) {
   let bossDefeated = state.bossDefeated;
   let tilesMoved = state.tilesMoved ?? 0;
   let cumulativeChampionHPBonus = state.cumulativeChampionHPBonus ?? 0;
+  let movementPath = state.movementPath ?? [];
 
   if (isBoss) {
     loopCount = state.loopCount + 1;
@@ -235,6 +238,7 @@ export function completeTile(state, row, col, fightResult = null) {
     }
     revealedTiles = _revealAround(startTile.row, startTile.col, []);
     completedTiles = [startTile];
+    movementPath = [startTile];
     bossDefeated = true;
     // Accumulate HP bonus earned this dungeon, then reset tile counter
     cumulativeChampionHPBonus += Math.floor(tilesMoved / 5);
@@ -247,6 +251,7 @@ export function completeTile(state, row, col, fightResult = null) {
     seed,
     completedTiles,
     revealedTiles,
+    movementPath,
     fightHistory,
     bossDefeated,
     loopCount,
