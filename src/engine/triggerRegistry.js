@@ -251,8 +251,11 @@ function resolveEffect(effectId, listener, context, state) {
     case 'dealOneToEnemyChampion': {
       const enemyIdx = 1 - playerIndex;
       const enemyChamp = state.champions[enemyIdx];
-      enemyChamp.hp -= 1;
-      addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: deals 1 damage to enemy champion (${enemyChamp.hp} HP remaining).`);
+      const dmgCtx = { attackerPlayerIndex: playerIndex, damage: 1 };
+      fireTrigger('onNonCombatChampionDamage', dmgCtx, state);
+      const total = 1 + (dmgCtx.extraDamage || 0);
+      enemyChamp.hp -= total;
+      addLog(state, `${listenerUnit ? listenerUnit.name : 'Trigger'}: deals ${total} damage to enemy champion (${enemyChamp.hp} HP remaining).`);
       checkWinner(state);
       break;
     }
@@ -713,4 +716,17 @@ export function resetTurnTriggers(state) {
       listener.firedThisTurn = false;
     }
   }
+}
+
+// Apply non-combat damage to the enemy champion, firing onNonCombatChampionDamage
+// so that Spite Channeler (and any future listeners) can add bonus damage.
+// Returns the total damage actually dealt.
+export function dealNonCombatDamageToEnemyChampion(state, attackerPlayerIndex, baseAmount) {
+  const ctx = { attackerPlayerIndex, damage: baseAmount };
+  fireTrigger('onNonCombatChampionDamage', ctx, state);
+  const total = baseAmount + (ctx.extraDamage || 0);
+  const enemyChamp = state.champions[1 - attackerPlayerIndex];
+  enemyChamp.hp -= total;
+  checkWinner(state);
+  return total;
 }

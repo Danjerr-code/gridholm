@@ -10,7 +10,7 @@ import {
   drawCard,
 } from './gameEngine.js';
 import { getEffectiveAtk, getTerrainHpModifier } from './statUtils.js';
-import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger } from './triggerRegistry.js';
+import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger, dealNonCombatDamageToEnemyChampion } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -328,8 +328,8 @@ export const SPELL_REGISTRY = {
     // Target may be a combat unit or the enemy champion (no uid)
     if (!target.uid) {
       // Enemy champion target
-      target.hp -= dmg;
-      addLog(state, `Spirit Bolt: deals ${dmg} damage to ${state.players[target.owner].name}'s champion.`);
+      const total = dealNonCombatDamageToEnemyChampion(state, caster, dmg);
+      addLog(state, `Spirit Bolt: deals ${total} damage to ${state.players[target.owner].name}'s champion.`);
     } else {
       addLog(state, `Spirit Bolt: deals ${dmg} damage to ${target.name}.`);
       applyDamageToUnit(state, target, dmg, 'Spirit Bolt');

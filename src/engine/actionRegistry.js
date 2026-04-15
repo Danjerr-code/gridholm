@@ -1,5 +1,5 @@
 import { destroyUnit, restoreHP, addLog, applyDamageToUnit, manhattan, drawCard } from './gameEngine.js';
-import { fireTrigger } from './triggerRegistry.js';
+import { fireTrigger, dealNonCombatDamageToEnemyChampion } from './triggerRegistry.js';
 import { DECKS, CARD_DB } from './cards.js';
 
 function unitTypes(u) {
@@ -100,9 +100,8 @@ export const ACTION_REGISTRY = {
   },
 
   siegemound: (unit, state) => {
-    const enemyChamp = state.champions[1 - unit.owner];
-    enemyChamp.hp -= 2;
-    addLog(state, `Siege Mound: enemy champion takes 2 damage (${enemyChamp.hp} HP).`);
+    const total = dealNonCombatDamageToEnemyChampion(state, unit.owner, 2);
+    addLog(state, `Siege Mound: enemy champion takes ${total} damage (${state.champions[1 - unit.owner].hp} HP).`);
     return state;
   },
 
@@ -148,9 +147,14 @@ export const ACTION_REGISTRY = {
       c += dc;
     }
     for (const ch of lineChamps) {
-      ch.hp -= 2;
-      const side = ch.owner === unit.owner ? 'friendly' : 'enemy';
-      addLog(state, `Vorn, Thundercaller: ${side} champion struck for 2 damage (${ch.hp} HP).`);
+      const isEnemy = ch.owner !== unit.owner;
+      if (isEnemy) {
+        const total = dealNonCombatDamageToEnemyChampion(state, unit.owner, 2);
+        addLog(state, `Vorn, Thundercaller: enemy champion struck for ${total} damage (${ch.hp} HP).`);
+      } else {
+        ch.hp -= 2;
+        addLog(state, `Vorn, Thundercaller: friendly champion struck for 2 damage (${ch.hp} HP).`);
+      }
     }
     for (const t of lineUnits) {
       addLog(state, `Vorn, Thundercaller: ${t.name} struck for 2 damage.`);
@@ -185,9 +189,14 @@ export const ACTION_REGISTRY = {
       }
       const champHit = state.champions.find(ch => ch.row === r && ch.col === c);
       if (champHit) {
-        champHit.hp -= 1;
-        const side = champHit.owner === unit.owner ? 'friendly' : 'enemy';
-        addLog(state, `Mana Cannon: ${side} champion struck for 1 damage (${champHit.hp} HP).`);
+        const isEnemy = champHit.owner !== unit.owner;
+        if (isEnemy) {
+          const total = dealNonCombatDamageToEnemyChampion(state, unit.owner, 1);
+          addLog(state, `Mana Cannon: enemy champion struck for ${total} damage (${champHit.hp} HP).`);
+        } else {
+          champHit.hp -= 1;
+          addLog(state, `Mana Cannon: friendly champion struck for 1 damage (${champHit.hp} HP).`);
+        }
         break;
       }
       r += dr;
