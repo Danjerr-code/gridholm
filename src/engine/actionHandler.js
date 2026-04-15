@@ -88,8 +88,11 @@ export function handleUnitMove(state, unitUid, row, col) {
       const [ar, ac] = tiles[0];
       return { needsApproach: false, state: executeApproachAndAttack(state, unitUid, ar, ac, row, col) };
     } else {
-      // No approach tiles available — highlight check should prevent this path, but guard anyway.
-      return { needsApproach: false, state };
+      // No approach tiles available.
+      // Flying units attack from their current tile — delegate to moveUnit which handles this.
+      // Non-flying units cannot reach the target; abort (highlight check should prevent this).
+      if (!unit.flying) return { needsApproach: false, state };
+      return { needsApproach: false, state: moveUnit(state, unitUid, row, col) };
     }
   }
 
