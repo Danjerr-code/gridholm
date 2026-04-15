@@ -45,6 +45,7 @@ export function useMultiplayerGame(gameId) {
         (payload) => {
           setSession(prev => {
             const incoming = payload.new;
+            console.log('[Realtime] game_sessions UPDATE — status=' + incoming.status + ', p1_deck=' + (incoming.player1_deck ?? 'null') + ', p2_deck=' + (incoming.player2_deck ?? 'null') + ', game_state=' + (incoming.game_state != null ? 'set' : 'null'));
             // Log is stripped from Supabase writes — carry forward local log so
             // the passive player retains visibility into their accumulated log.
             let gameState = incoming.game_state;
@@ -234,16 +235,22 @@ export function useMultiplayerGame(gameId) {
   }, [session?.active_player, session?.status, guestId]);
 
   // Player 1 retry: if both decks are selected but game_state hasn't appeared
-  // within 5 seconds (e.g. Player 1's first selectDeck write happened before
-  // Player 2 had chosen), Player 1 re-generates and writes the initial state.
+  // within 5 seconds, Player 1 re-generates and writes the initial state.
+  // The timer fires as soon as Player 1's own deck is confirmed written —
+  // the Supabase re-fetch inside the timer will find Player 2's deck even
+  // when the Realtime listener missed the Player 2 deck-selection update.
   useEffect(() => {
     if (!session || !supabase) return;
     const isP1 = session.player1_id === guestId;
     if (!isP1) return;
     if (session.status !== 'deck_select') return;
-    if (!session.player1_deck || !session.player2_deck) return;
+    if (!session.player1_deck) return; // my deck not confirmed yet
 
-    console.log('[DeckSelect] Both decks set; scheduling Player 1 retry in 5s if game has not started');
+    if (session.player2_deck) {
+      console.log('[DeckSelect] Both decks set in React state; scheduling Player 1 retry in 5s if game has not started');
+    } else {
+      console.log('[DeckSelect] My deck written; scheduling 5s re-fetch in case Realtime missed P2 deck selection');
+    }
 
     retryTimerRef.current = setTimeout(async () => {
       const { data: latest, error: fetchError } = await supabase
@@ -256,9 +263,17 @@ export function useMultiplayerGame(gameId) {
         console.error('[DeckSelect] Retry fetch failed:', fetchError);
         return;
       }
-      if (!latest || latest.status === 'active') return;
+      if (!latest) return;
+      if (latest.status === 'active') {
+        console.log('[DeckSelect] Retry: game already active — no action needed');
+        return;
+      }
+      if (!latest.player1_deck || !latest.player2_deck) {
+        console.log('[DeckSelect] Retry: P2 deck not yet present in Supabase — still waiting for deck selection');
+        return;
+      }
 
-      console.log('[DeckSelect] Retry: generating initial game state (Player 1)');
+      console.log('[DeckSelect] Retry: both decks confirmed in Supabase — generating initial game state (Player 1)');
       const firstPlayerGuestId = latest.active_player || latest.player1_id;
       const isSwapped = firstPlayerGuestId === latest.player2_id;
       // Prefer JSONB spec columns (host_deck/guest_deck) for correct round-trip; fall back to text.
@@ -293,7 +308,7 @@ export function useMultiplayerGame(gameId) {
       if (retryError) {
         console.error('[DeckSelect] Retry write failed:', retryError);
       } else {
-        console.log('[DeckSelect] Retry succeeded');
+        console.log('[DeckSelect] Retry succeeded — game_state written, status=active, active_player=' + firstPlayerGuestId);
       }
     }, 5000);
 
@@ -340,8 +355,9 @@ export function useMultiplayerGame(gameId) {
     if (isP1) {
       // Prefer the JSONB spec (host_deck/guest_deck) for accurate round-trip; fall back to text field.
       const p2Deck = deckSpecToId(session.guest_deck) ?? session.player2_deck;
+      console.log('[DeckSelect] Player 1 selecting deck — p1Deck=' + deckId + ', p2Deck=' + (p2Deck ?? 'null'));
       if (p2Deck) {
-        console.log('[DeckSelect] Both decks selected — Player 1 generating initial game state');
+        console.log('[DeckSelect] Both decks confirmed in React state — Player 1 generating initial game state');
         // session.active_player during deck_select holds the intended first player
         // (player1_id for game 1, swapped for rematches).
         const firstPlayerGuestId = session.active_player || session.player1_id;
@@ -368,12 +384,14 @@ export function useMultiplayerGame(gameId) {
         // Track who goes first (guest ID) so rematches can alternate correctly
         initialState.firstPlayerId = firstPlayerGuestId;
 
+        console.log('[DeckSelect] Initial game state created — phase=' + initialState.phase + ', game_state non-null=' + (initialState != null) + ', firstPlayer=' + firstPlayerGuestId);
         updatePayload.game_state = initialState;
         updatePayload.status = 'active';
         updatePayload.active_player = firstPlayerGuestId;
       }
     }
 
+    console.log('[DeckSelect] Writing to Supabase — status=' + (updatePayload.status ?? 'deck_select') + ', game_state=' + (updatePayload.game_state != null ? 'set' : 'null'));
     const { data: updated, error: updateError } = await supabase
       .from('game_sessions')
       .update(updatePayload)
