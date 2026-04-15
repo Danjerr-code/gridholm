@@ -60,6 +60,8 @@ export const WEIGHTS = {
   trappedAllyPenalty:        5,  // penalty per 10 allyValue points when a friendly unit is caged
   highValueUnitActivity:     3,  // penalty for idle high-value (allyValue >= 7) friendly units
   throneControlValue:       10,  // bonus for friendly champion on/near throne (Mystic overrides to 20)
+  tradeEfficiency:           5,  // bonus for favorable trades: kills defender while surviving
+  tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
 };
 
 /**
@@ -480,12 +482,50 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // tradeEfficiency: reward favorable trades available this turn.
+  // For each friendly combat unit that can reach an enemy unit (dist <= spd):
+  //   - If attacker.atk >= defender.hp (kills defender):
+  //     - If attacker survives (defender.atk < attacker.hp): add threatRating(defender)
+  //     - If attacker also dies (defender.atk >= attacker.hp): add threatRating(defender) - allyRating(attacker)
+  // Scaled by the tradeEfficiency weight.
+  let tradeEfficiencyValue = 0;
+  for (const attacker of myCombatUnits) {
+    for (const defender of oppCombatUnits) {
+      const dist = manhattan([attacker.row, attacker.col], [defender.row, defender.col]);
+      if (dist > (attacker.spd ?? 1)) continue;
+      if ((attacker.atk ?? 0) >= (defender.hp ?? 1)) {
+        // Attacker kills defender
+        const defenderThreat = getCardRating(defender.id, 'threat', defender.cost ?? 4);
+        if ((defender.atk ?? 0) < (attacker.hp ?? 1)) {
+          // Attacker survives — pure win trade
+          tradeEfficiencyValue += defenderThreat;
+        } else {
+          // Attacker also dies — even trade: net value
+          const attackerAlly = getCardRating(attacker.id, 'ally', attacker.cost ?? 4);
+          tradeEfficiencyValue += defenderThreat - attackerAlly;
+        }
+      }
+    }
+  }
+
   // championSurroundPressure: reward positions where friendly units adjacent to enemy champion
   // threaten a kill. Two components:
   //   1. Kill-threat: (sumATK - oppHP) × 15 if positive (lethal); × 8 if >half HP covered.
   //   2. Pin-bonus: (occupiedAdjTiles) × 4 when ≥2 friendly units adjacent (limits summoning).
   const BOARD_SIZE = 5;
   const adjDirs = [[-1,0],[1,0],[0,-1],[0,1]];
+
+  // tileDenial: score positional choking of enemy champion by counting friendly units
+  // adjacent to the enemy champion. Each such unit blocks a potential summon tile.
+  // Only friendly units count — enemy units adjacent to their own champion do not deny.
+  // Independent from championSurroundPressure (which scores ATK kill-threat).
+  const adjToOppChampForDenial = adjDirs
+    .map(([dr, dc]) => [oppChamp.row + dr, oppChamp.col + dc])
+    .filter(([r, c]) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE);
+
+  const tileDenialCount = adjToOppChampForDenial.filter(([r, c]) =>
+    myUnits.some(u => u.row === r && u.col === c)
+  ).length;
   const adjToOppChamp = adjDirs
     .map(([dr, dc]) => [oppChamp.row + dr, oppChamp.col + dc])
     .filter(([r, c]) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE);
@@ -567,7 +607,9 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     trappedAllyPenaltyValue                               +
     highValueIdlePenalty                                  +
     championSurroundPressure                              +
-    throneControlValue        * (w.throneControlValue ?? 10);
+    throneControlValue        * (w.throneControlValue ?? 10) +
+    tradeEfficiencyValue      * (w.tradeEfficiency ?? 5)  +
+    tileDenialCount           * (w.tileDenial ?? 6);
 
   return score;
 }

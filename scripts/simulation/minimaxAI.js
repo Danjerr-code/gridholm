@@ -34,8 +34,9 @@ const THRONE_COL = 2;
  */
 // Max non-endTurn candidates retained after priority sort — keeps the tree tractable.
 // Depth counts endTurns, not individual actions, so branching explodes within a turn;
-// 4 candidates keeps the worst-case tree under ~50k nodes for depth=2.
-const MAX_CANDIDATES = 4;
+// 6 candidates raises the search pool to include spells, unit actions, and summons
+// alongside combat moves, at the cost of modestly higher compute (~2.25× tree vs 4).
+const MAX_CANDIDATES = 6;
 
 function actionPriority(action, state, enemyIdx, enemyChamp) {
   if (action.type === 'move') {
