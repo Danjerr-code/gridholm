@@ -142,3 +142,52 @@ Proposed: `healingValue 5→0`, `championHP 10→5`, `championHPDiff 3→8`. Awa
 ### Recommendation Status
 - Evolved weights: DO NOT DEPLOY — would worsen production draw rate
 - Next steps pending board direction: co-evolution, mechanics fix, turn limit, or draw penalty
+
+## Current Active Flags — 2026-04-15b (boardCentrality + throneControlValue 25/30, minimax d=2, 1200 games)
+
+### Overall DR: 37.9% — NEW ALL-TIME BEST (commit 9bff7e2, −12.0pp from 49.9%)
+- boardCentrality (weight 4) + throneControlValue base 15→25, Mystic 20→30
+- Largest single-run improvement in project history
+
+### 🚨 CRITICAL: Human vs Elf — 76.0% DR (−5pp vs 81.0%)
+### ⚠️ Elf vs Demon — 56.0% DR (−21.5pp vs 77.5% — massive improvement)
+### ⚠️ Beast vs Elf — 54.0% DR (−11pp vs 65.0%)
+### ✅ Human vs Demon — 27.0% DR (−19.5pp, first below 30% for this matchup)
+### ✅ Beast vs Demon — 11.5% DR (−10.5pp)
+### ✅ Human vs Beast — 3.0% DR (healthiest matchup ever)
+### ✅ No faction above 60% WR threshold
+
+### Root Cause Summary (Elf draws)
+- Human vs Elf remains the last critical structural problem (76% DR)
+- Board centrality helped all other matchups enormously but Elf sustain still dominates vs Human
+- Elf vs Demon improved dramatically (77.5% → 56%) — centrality pulling Demon into closing positions
+
+## LOG-1464 Throne Anchor — 2026-04-15 — BLOCKED (commit bd8e3e2)
+### Validation gate failed — awaiting CEO direction
+
+- throneAnchor weight=15 added; summon +5/priority boost when on throne; pcdWeight ×0.5 on throne
+- Validation gate "T3 throne by turn 3" is physically impossible (champions start at dist=4, speed=1)
+- Actual anchor behavior: 3/7 champions that reached throne stayed 5+ turns (43% stay rate)
+- Root issue: championMove priority=15 below summon/cast in minimax tree — champion doesn't head to throne early
+- Decision needed: Option A (run matrix as-is) or Option B (add throne-approach priority boost first)
+
+---
+
+## Prior Active Flags — 2026-04-15 (LOG-1335 + LOG-1436, minimax d=2, simplified profiles, 1200 games)
+
+### Overall DR: 49.9% — New All-Time Best (commit 11c2d85)
+- Beats 53.4% no-profiles experiment and 51.4% LOG-1426 baseline
+
+### 🚨 CRITICAL: Human vs Elf — 81.0% DR
+### 🚨 CRITICAL: Elf vs Demon — 77.5% DR
+### 🚨 CRITICAL: Beast vs Elf — 65.0% DR
+### ⚠️ Human vs Demon — 46.5% DR
+### ✅ Beast vs Demon — 22.0% DR
+### ✅ Human vs Beast — 7.5% DR
+### ✅ No faction above 60% WR threshold
+
+### Root Cause Summary (Elf draws — confirmed exhausted all AI levers)
+- healingValue=0, championHP reduced, all profile overrides removed — no improvement
+- Deeper search (d=3/d=4) confirmed non-fix via depth test
+- Move ordering + selective deepening + killer heuristic did not fix draws
+- Fix requires game mechanics investigation (card pool reduction, draw rule, or turn limit)

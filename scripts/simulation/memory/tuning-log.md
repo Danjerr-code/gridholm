@@ -295,3 +295,71 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
   - Combined: 85.0% DR — above 60% gate, no full matrix
 - **Conclusion**: All Mystic eval levers exhausted. Draw pattern is structural (healing card count).
   Mystic profile now essentially identical to base WEIGHTS. Awaiting board direction on card pool or mechanics.
+
+## Entry 25 — 2026-04-14 (LOG-1436) — Search improvements: move ordering + selective deepening + killer heuristic
+- **Action**: Three search quality improvements committed to minimaxAI.js.
+  - Move ordering (commit 0b53a12): candidates sorted by 4-term heuristic before each node (championHP×5 + unitCountDiff×8 + projectedChampionDamage×20 + championSurroundPressure); high-value moves first improves alpha-beta cutoffs
+  - Selective deepening (commit c9a38d0): top 3 candidates at depthTop=3, rest at depthRest=1; --depth-top and --depth-rest CLI flags exposed
+  - Killer heuristic (commit 9400c99): stores ≤2 killer moves per depth that caused beta cutoffs; promoted to front of candidate list at sibling nodes
+- **Note**: These are search quality improvements, not eval changes. No direct DR impact testable in isolation.
+
+## Entry 26 — 2026-04-15 (LOG-1335 + LOG-1436) — Remove faction profiles, raise base throne value, validate
+- **Action**: Board-directed LOG-1335 changes committed to boardEval.js + runSimulation.js + runMatrix.js.
+  - Removed all FACTION_WEIGHTS overrides except Mystic `throneControlValue: 20`
+  - Raised base `WEIGHTS.throneControlValue` 10 → 15
+  - Removed `--no-profiles` flag permanently
+- **Commit**: 11c2d85
+- **Full matrix result** (1200 games, minimax d=2): **49.9% overall DR** — new all-time best
+  - Human vs Beast: 7.5% DR ✅
+  - Human vs Elf: 81.0% DR 🚨
+  - Human vs Demon: 46.5% DR ⚠️
+  - Beast vs Elf: 65.0% DR 🚨
+  - Beast vs Demon: 22.0% DR ✅
+  - Elf vs Demon: 77.5% DR 🚨
+- **Comparison**: 51.4% (LOG-1426) → 49.9% (−1.5pp). Also beats 53.4% no-profiles experiment.
+- **Note**: Matrix includes LOG-1436 search improvements; contributions not isolated.
+- **P1 win rate**: 21.1% (P2 advantage persists)
+- **Top cards**: razorfang (+17.5%), dreadshade (+16.4%), ironthorns (+13.5%), elfranger (+13.8%)
+- **Status**: LOG-1335 and LOG-1436 marked done. Elf structural draw problem unresolved. Awaiting new direction.
+
+## Entry 27 — 2026-04-15 (LOG-1436 reopened) — Board Centrality + Throne Control
+- **Action**: Two eval changes to boardEval.js (commit 9bff7e2).
+  - `boardCentrality` (weight 4): new term, sums `(4 - manhattanDistToCenter)` for all friendly pieces minus all enemy pieces. Center=4pts, adjacent=3, dist2=2, dist3=1, corner=0.
+  - `throneControlValue` base 15 → 25; Mystic override 20 → 30
+  - Unit-on-throne bonus: +0.5 factor when any friendly unit (not just champion) occupies Throne
+  - Champion-toward-center gradient: `+(4 - champDistToCenter) * 0.3` when no friendly piece on Throne
+- **Targeted test** (20 games: 10 HvB, 10 MvD): DR=55.0%, Throne controlled by t5 in 65% of games → GATE PASSED
+  - Human vs Beast: 20% DR, 100% throne control by t5 (centrality gradient confirmed working)
+  - Mystic vs Demon: 90% DR, 30% throne control by t5 (late t5 engagement — pieces reach throne by t10)
+- **Full matrix result** (1200 games, minimax d=2): **37.9% overall DR** — NEW ALL-TIME BEST
+  - Human vs Beast: 3.0% DR ✅
+  - Human vs Elf: 76.0% DR 🚨 (−5pp from 81%)
+  - Human vs Demon: 27.0% DR ✅ (−19.5pp — first below 30%)
+  - Beast vs Elf: 54.0% DR ⚠️ (−11pp from 65%)
+  - Beast vs Demon: 11.5% DR ✅ (−10.5pp)
+  - Elf vs Demon: 56.0% DR ⚠️ (−21.5pp — largest per-matchup improvement ever)
+- **Comparison**: 49.9% → 37.9% (−12.0pp). Largest single-run improvement in project history.
+- **Key insight**: Board centrality pulls ALL pieces toward center, creating convergence pressure that actually results in decisive outcomes. Previous approach (throneControlValue alone) only pulled champions; adding units + the gradient creates zone pressure.
+
+## Entry 28 — 2026-04-15 (LOG-1464) — Throne Anchor Incentive [VALIDATION FAILED]
+- **Action**: Three eval/scoring changes (commit bd8e3e2).
+  - `throneAnchor` weight=15 in boardEval: +15 eval bonus when champion is on throne. Separate from throneControlValue.
+  - simAI `championMove` penalty: if champion on throne and move takes it off, score -= 12 (-throneAnchor * 0.8)
+  - minimaxAI `championMove` penalty: off-throne move priority 15→3 when champion is on throne
+  - simAI `summon` bonus: +5 when champion is on throne (Change 2)
+  - minimaxAI `summon` priority: 20→25 when champion is on throne
+  - boardEval `projectedChampionDamage` weight: halved (×0.5) when champion is on throne (Change 3)
+- **Validation gate**: >70% reach throne by turn 3 AND >50% stay 5+ consecutive turns
+- **Validation result**: FAILED — throne by T3: 0/40 = 0.0%, stay 5+: 3/40 = 7.5%
+- **Root cause of failure**: Gate is wrong. Champions start at (0,0)/(4,4), distance=4 from throne, speed=1.
+  Physically impossible to reach throne by turn 3 (min 4 moves needed).
+  Prior "65% by t5" metric counted ANY piece on throne (units + champion). This test counted champion only.
+- **Actual behavior (corrected metric)**: Among the 7 champion-throne-reaches in 40 slots:
+  - 3/7 (43%) stayed 5+ consecutive turns → throneAnchor IS working for staying
+  - Game 4 (Elf): stayed 17 consecutive turns (entire game after reaching throne at turn 10)
+  - Game 2 (Elf): stayed 6 consecutive turns
+  - Game 5 (Human): stayed 6 consecutive turns
+- **Root issue for low reach rate**: championMove priority=15 in minimaxAI is below summon (20+),
+  unitAction (25), cast (40). Champion rarely enters minimax tree early game. Needs priority boost
+  for moves toward throne in early turns to improve reach rate.
+- **Status**: BLOCKED — awaiting CEO guidance on whether to run full matrix or add throne-approach priority boost.
