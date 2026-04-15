@@ -106,6 +106,8 @@ export function createNewRun(championFaction, startingDeck) {
     bossDefeated: false,
     loopCount: 0,
     roomsCleared: 0,
+    tilesMoved: 0,
+    cumulativeChampionHPBonus: 0,
   };
 }
 
@@ -126,6 +128,7 @@ export function moveToTile(state, row, col) {
     ...state,
     currentTile: { row, col },
     revealedTiles: newRevealedTiles,
+    tilesMoved: (state.tilesMoved ?? 0) + 1,
   };
   return saveRun(newState), newState;
 }
@@ -212,6 +215,8 @@ export function completeTile(state, row, col, fightResult = null) {
   let revealedTiles = state.revealedTiles;
   let completedTiles = [...state.completedTiles, { row, col }];
   let bossDefeated = state.bossDefeated;
+  let tilesMoved = state.tilesMoved ?? 0;
+  let cumulativeChampionHPBonus = state.cumulativeChampionHPBonus ?? 0;
 
   if (isBoss) {
     loopCount = state.loopCount + 1;
@@ -231,6 +236,9 @@ export function completeTile(state, row, col, fightResult = null) {
     revealedTiles = _revealAround(startTile.row, startTile.col, []);
     completedTiles = [startTile];
     bossDefeated = true;
+    // Accumulate HP bonus earned this dungeon, then reset tile counter
+    cumulativeChampionHPBonus += Math.floor(tilesMoved / 5);
+    tilesMoved = 0;
   }
 
   const newState = {
@@ -243,6 +251,8 @@ export function completeTile(state, row, col, fightResult = null) {
     bossDefeated,
     loopCount,
     roomsCleared: state.roomsCleared + 1,
+    tilesMoved,
+    cumulativeChampionHPBonus,
   };
 
   saveRun(newState);

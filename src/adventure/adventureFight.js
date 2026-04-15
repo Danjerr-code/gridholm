@@ -262,6 +262,18 @@ export function buildAdventureGameState(run, row, col, tileType) {
     state.adventureBossFight = true;
   }
 
+  // ── Tile movement HP penalty ──────────────────────────────────────────────
+  // Enemy champion gains HP based on cumulative movement across all dungeons
+  // plus the live penalty for the current dungeon's tile count so far.
+  const tilesMoved = run.tilesMoved ?? 0;
+  const cumulativeBonus = run.cumulativeChampionHPBonus ?? 0;
+  const livePenalty = Math.floor(tilesMoved / 5);
+  const totalBonus = cumulativeBonus + livePenalty;
+  if (totalBonus > 0) {
+    state.champions[1].hp    += totalBonus;
+    state.champions[1].maxHp += totalBonus;
+  }
+
   return {
     initialState: autoAdvancePhase(state),
     aiDepth,

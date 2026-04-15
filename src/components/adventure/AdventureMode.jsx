@@ -540,10 +540,19 @@ function ChampionSelect({ savedRun, onSelect, onContinue, onBack }) {
 
 // ── Map Screen ────────────────────────────────────────────────────────────────
 
+function getStepsColor(tilesMoved) {
+  if (tilesMoved >= 15) return '#f87171'; // red
+  if (tilesMoved >= 10) return '#fb923c'; // orange
+  if (tilesMoved >= 5)  return '#facc15'; // yellow
+  return '#f9fafb';                       // white
+}
+
 function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const faction = FACTION_INFO[run.championFaction] ?? FACTION_INFO.light;
   const currentTileType = run.dungeonLayout[run.currentTile.row]?.[run.currentTile.col]?.type ?? 'start';
+  const tilesMoved = run.tilesMoved ?? 0;
+  const livePenalty = Math.floor(tilesMoved / 5);
 
   return (
     <div style={{
@@ -592,7 +601,22 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         <StatPill label="Potions" value={`${run.potions}/3`}   color="#60a0ff" />
         <StatPill label="Rooms"   value={run.roomsCleared}     color="#a0a0c0" />
         <StatPill label="Cards"   value={run.deck.length}      color="#c084fc" />
+        <StatPill label="Steps"   value={tilesMoved}           color={getStepsColor(tilesMoved)} />
       </div>
+      {livePenalty > 0 && (
+        <div style={{
+          width: '100%',
+          maxWidth: '500px',
+          textAlign: 'right',
+          fontFamily: "'Crimson Text', serif",
+          fontStyle: 'italic',
+          fontSize: '11px',
+          color: '#f87171',
+          marginTop: '-8px',
+        }}>
+          Enemy Champion +{livePenalty} HP
+        </div>
+      )}
 
       {/* Dungeon Map */}
       <DungeonMap
