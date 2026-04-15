@@ -87,15 +87,6 @@ function actionPriority(action, state, enemyIdx, enemyChamp) {
         !(action.row === THRONE_ROW && action.col === THRONE_COL)) {
       return 3; // penalized: below summon (20/25), unit action (25), cast (40)
     }
-    // Early approach boost (Option B): turns 1-6, champion not on throne,
-    // moving toward throne → priority 30 (above summon 20-25, draws early attention).
-    // After turn 6 or when moving away: default 15.
-    const turn = state.turn ?? 0;
-    if (turn <= 6 && !(myChamp2.row === THRONE_ROW && myChamp2.col === THRONE_COL)) {
-      const curDistToThrone = manhattan([myChamp2.row, myChamp2.col], [THRONE_ROW, THRONE_COL]);
-      const newDistToThrone = manhattan([action.row, action.col], [THRONE_ROW, THRONE_COL]);
-      if (newDistToThrone < curDistToThrone) return 30;
-    }
     return 15;
   }
 
