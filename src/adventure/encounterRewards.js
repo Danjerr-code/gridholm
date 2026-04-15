@@ -3,6 +3,8 @@
  *
  * Exports:
  *   BLESSINGS_POOL               — all 7 blessings available in the run
+ *   FACTION_BLESSINGS            — faction-specific blessings (offered only to matching faction)
+ *   FACTION_CURSES               — faction-specific curses (applied only to matching faction)
  *   generateFightReward(state, tileType) → { type, gold, cardOffers, blessingOffers }
  *   generateTreasure(state)              → { treasureType, gold?, cardOffers?, blessingOffers? }
  *   generateShopOfferings(state)         → [{ itemType, ... }]
@@ -47,6 +49,66 @@ export const BLESSINGS_POOL = [
     id: 'resilience',
     name: 'Resilience',
     desc: 'Restore 2 champion HP after each fight victory.',
+  },
+];
+
+// ── Faction blessing pool ──────────────────────────────────────────────────────
+
+// Faction blessings are only offered to players of the matching faction.
+export const FACTION_BLESSINGS = [
+  {
+    id: 'shield_of_faith',
+    name: 'Shield of Faith',
+    faction: 'light',
+    desc: 'Your champion takes 1 less damage from all sources (minimum 1).',
+  },
+  {
+    id: 'virulent',
+    name: 'Virulent',
+    faction: 'primal',
+    desc: 'All your units apply 1 Poison when they deal combat damage.',
+  },
+  {
+    id: 'arcane_flow',
+    name: 'Arcane Flow',
+    faction: 'mystic',
+    desc: 'When you cast a spell, reveal cards from the top of your deck until you find one with less cost. You may play it for free this turn.',
+  },
+  {
+    id: 'blood_tithe',
+    name: 'Blood Tithe',
+    faction: 'dark',
+    desc: 'Restore 3 HP after each fight victory.',
+  },
+];
+
+// ── Faction curse pool ─────────────────────────────────────────────────────────
+
+// Faction curses are only applied to players of the matching faction.
+export const FACTION_CURSES = [
+  {
+    id: 'broken_formation',
+    name: 'Broken Formation',
+    faction: 'light',
+    desc: 'Your aura effects have 1 less range (minimum 0).',
+  },
+  {
+    id: 'exhaustion',
+    name: 'Exhaustion',
+    faction: 'primal',
+    desc: 'Your units have -1 ATK (minimum 0).',
+  },
+  {
+    id: 'withered_roots',
+    name: 'Withered Roots',
+    faction: 'mystic',
+    desc: 'Your healing effects restore 1 less HP (minimum 0).',
+  },
+  {
+    id: 'marked_for_death',
+    name: 'Marked for Death',
+    faction: 'dark',
+    desc: 'Your champion takes 1 additional damage from all sources.',
   },
 ];
 

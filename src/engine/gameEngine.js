@@ -62,12 +62,17 @@ export function getChampionSpdBuff(state, champion) {
 // Only applies to spell-type cards. Minimum cost is 1.
 export function getEffectiveSpellCost(state, card) {
   if (card.type !== 'spell') return card.cost;
-  if (!state.activeModifiers) return card.cost;
   let reduction = 0;
-  for (const mod of state.activeModifiers) {
-    if (mod.type !== 'spellCostReduction') continue;
-    if (mod.playerIndex !== state.activePlayer) continue;
-    reduction += (mod.amount || 0);
+  if (state.activeModifiers) {
+    for (const mod of state.activeModifiers) {
+      if (mod.type === 'spellCostReduction' && mod.playerIndex === state.activePlayer) {
+        reduction += (mod.amount || 0);
+      }
+      // Spell Weaver: reduce cost by spellsCastThisTurn while on board
+      if (mod.type === 'spellWeaverCostReduction' && mod.playerIndex === state.activePlayer) {
+        reduction += state.players[state.activePlayer]?.spellsCastThisTurn || 0;
+      }
+    }
   }
   return Math.max(1, card.cost - reduction);
 }
@@ -251,6 +256,16 @@ export function restoreHP(target, amount, state, source = 'effect') {
     holder = state.champions[idx];
   } else {
     holder = target;
+  }
+  // Verdant Blade: block healing on flagged units
+  if (holder && holder.healingBlocked) {
+    addLog(state, `${holder.name || 'Target'} cannot be healed (Verdant Blade).`);
+    return 0;
+  }
+  // withered_roots curse: reduce all heals by 1 (minimum 0)
+  if (state.adventureCurses?.includes('withered_roots')) {
+    amount = Math.max(0, amount - 1);
+    if (amount === 0) return 0;
   }
   // Lifedrinker Stag: apply the highest restoreHPMultiplier belonging to the active player
   if (state.activeModifiers) {
@@ -1013,6 +1028,24 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
     liveAttacker.oathOfValorActive = false;
   }
 
+  // 9. Verdant Blade: when this unit attacks, the target cannot be healed until owner's next turn.
+  if (liveAttacker && liveAttacker.id === 'verdant_blade' && !defenderIsChampion) {
+    const liveDefender = state.units.find(u => u.uid === defender.uid);
+    if (liveDefender) {
+      liveDefender.healingBlocked = true;
+      liveDefender.healingBlockedByPlayer = liveAttacker.owner;
+      addLog(state, `Verdant Blade: ${liveDefender.name} cannot be healed until next turn.`);
+    }
+  }
+
+  // Virulent blessing: all friendly units apply 1 Poison on combat damage.
+  if (state.adventureVirulent && liveAttacker && !defenderIsChampion) {
+    const liveDefender = state.units.find(u => u.uid === defender.uid);
+    if (liveDefender) {
+      applyPoison(state, liveDefender, 1);
+    }
+  }
+
   // Declarative trigger registry: fire onChampionDamageDealt when a unit attacks the enemy champion
   if (defenderIsChampion) {
     const liveAtt = state.units.find(u => u.uid === attacker.uid);
@@ -1370,8 +1403,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
-      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, spellsCastThisTurn: 0, spellsCastThisGame: 0, lastSpellCast: null, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, spellsCastThisTurn: 0, spellsCastThisGame: 0, lastSpellCast: null, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: getDeckChampionAttr(p1DeckId) },
@@ -1693,6 +1726,10 @@ function doBeginTurnPhase(state) {
   // Reset hpPaidThisTurn (tracked for Cursed Resilience omen)
   p.hpPaidThisTurn = 0;
 
+  // Reset per-turn spell tracking (spellsCastThisGame never resets)
+  p.spellsCastThisTurn = 0;
+  p.lastSpellCast = null;
+
   // Reset commands for new turn
   p.commandsUsed = 0;
 
@@ -1719,9 +1756,18 @@ function doBeginTurnPhase(state) {
         if (u.id === 'ironqueen') u.ironQueenActionsUsed = 0;
         // Clear Oath of Valor active flag
         u.oathOfValorActive = false;
+
       }
     }
   });
+
+  // Clear Verdant Blade healing blocks applied by the active player (flag expires at their turn start)
+  for (const u of state.units) {
+    if (u.healingBlocked && u.healingBlockedByPlayer === state.activePlayer) {
+      u.healingBlocked = false;
+      u.healingBlockedByPlayer = undefined;
+    }
+  }
 
   // Track champion position at turn start (used by Lucern resummon)
   const _startChamp = state.champions[state.activePlayer];
@@ -1876,6 +1922,10 @@ export function moveChampion(state, row, col) {
           champIncomingDmg = Math.min(champIncomingDmg, 2);
         }
       }
+      // shield_of_faith blessing: champion takes 1 less damage (min 1)
+      if (s.adventureShieldOfFaith) champIncomingDmg = Math.max(1, champIncomingDmg - 1);
+      // marked_for_death curse: champion takes 1 extra damage
+      if (s.adventureCurses?.includes('marked_for_death')) champIncomingDmg += 1;
       champ.hp -= champIncomingDmg;
       s.players[s.activePlayer].championTookDamage = true;
       addLog(s, `${enemyUnit.name} counterattacks champion for ${champIncomingDmg} damage.`);
@@ -2633,6 +2683,10 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     sendToGraveOrBanish(s, s.activePlayer, card);
     resolvedSpellCard = card;
     s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+    s.players[s.activePlayer].spellsCastThisTurn = (s.players[s.activePlayer].spellsCastThisTurn ?? 0) + 1;
+    s.players[s.activePlayer].spellsCastThisGame = (s.players[s.activePlayer].spellsCastThisGame ?? 0) + 1;
+    // Track last spell cast this turn for echo_spell (store effect + target uid for echo)
+    s.players[s.activePlayer].lastSpellCast = { effect: card.effect, targetUid: targetUnitUid || null };
     if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
   }
 
@@ -2959,6 +3013,40 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Arcane Barrage (deals spells-cast-this-game damage to target) ──
+  else if (effect === 'arcane_barrage') {
+    if (target && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'arcane_barrage', [target]);
+      checkWinner(s);
+    }
+  }
+  // ── Echo Spell (re-cast last spell this turn with same target) ──
+  else if (effect === 'echo_spell') {
+    const last = s.players[s.activePlayer].lastSpellCast;
+    if (last && last.effect && last.effect !== 'echo_spell') {
+      const echoTarget = last.targetUid
+        ? (s.units.find(u => u.uid === last.targetUid) || (last.targetUid.startsWith('champion') ? s.champions[parseInt(last.targetUid.replace('champion', ''), 10)] : null))
+        : null;
+      addLog(s, `Echo Spell: echoing ${last.effect}${echoTarget ? ' on ' + (echoTarget.name || 'champion') : ''}.`);
+      s = _dispatchSpell(s, s.activePlayer, last.effect, echoTarget ? [echoTarget] : []);
+      checkWinner(s);
+    } else {
+      addLog(s, `Echo Spell: fizzled — no spell was cast this turn.`);
+    }
+  }
+  // ── Dominate (gain control of enemy unit with ATK ≤ 3) ──
+  else if (effect === 'dominate') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'dominate', [target]);
+    }
+  }
+  // ── Moonfire (deal 4 damage to unit or champion) ──
+  else if (effect === 'moonfire') {
+    if (target) {
+      s = _dispatchSpell(s, s.activePlayer, 'moonfire', [target]);
+      checkWinner(s);
+    }
+  }
   // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
   // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
@@ -2990,6 +3078,27 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
   // (paid without a real card) are excluded.
   if (resolvedSpellCard && !s.pendingSpell) {
     fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card: resolvedSpellCard }, s);
+  }
+
+  // Arcane Flow blessing: after casting a spell from hand (not echo/multi-step continuation),
+  // reveal cards from top of deck until finding one with less cost. Add it to hand at cost 0.
+  if (!isPaid && resolvedSpellCard && s.adventureArcaneFlow && !s.pendingSpell) {
+    const ap = s.activePlayer;
+    const spellCost = resolvedSpellCard.cost;
+    const pDeck = s.players[ap].deck;
+    let foundIdx = -1;
+    for (let i = 0; i < pDeck.length; i++) {
+      if ((pDeck[i].cost ?? 0) < spellCost) {
+        foundIdx = i;
+        break;
+      }
+    }
+    if (foundIdx !== -1) {
+      const [freeCard] = pDeck.splice(foundIdx, 1);
+      const freeCardCopy = { ...freeCard, uid: `${freeCard.id}_arcaneflow_${Math.random().toString(36).slice(2)}`, cost: 0 };
+      s.players[ap].hand.push(freeCardCopy);
+      addLog(s, `Arcane Flow: revealed ${freeCard.name} — added to hand for free.`);
+    }
   }
 
   // Azulon spell echo: if spellEchoActive was set before this spell and we just completed a
@@ -3099,6 +3208,40 @@ export function resolveDeckPeek(state, selectedCardUid) {
   p.deck.unshift(...topCards);
   p.deck.unshift(selected);
   addLog(s, `Arcane Lens: ${selected.name} placed on top of deck.`);
+  return s;
+}
+
+// ── Timeworn Sage: 3-card peek — put 1 in hand, 1 on top, 1 on bottom ────
+// handCardUid: card to add to hand (must be one of the 3 peeked cards)
+// topCardUid:  card to keep on top of deck (the remaining one goes to bottom)
+export function resolveTimewornSage(state, handCardUid, topCardUid) {
+  const s = cloneState(state);
+  const pending = s.pendingDeckPeek;
+  if (!pending || pending.reason !== 'timeworn_sage') return s;
+  s.pendingDeckPeek = null;
+  const p = s.players[s.activePlayer];
+  const peekCards = p.deck.splice(0, pending.cards.length);
+  const handIdx = peekCards.findIndex(c => c.uid === handCardUid);
+  if (handIdx === -1) {
+    // No valid selection — put all back on top in original order
+    p.deck.unshift(...peekCards);
+    addLog(s, `Timeworn Sage: no selection — cards returned to deck.`);
+    return s;
+  }
+  const [handCard] = peekCards.splice(handIdx, 1);
+  p.hand.push(handCard);
+  addLog(s, `Timeworn Sage: ${handCard.name} added to hand.`);
+  // Of remaining cards, put topCardUid on top, other on bottom
+  const topIdx = peekCards.findIndex(c => c.uid === topCardUid);
+  if (topIdx !== -1) {
+    const [topCard] = peekCards.splice(topIdx, 1);
+    p.deck.push(...peekCards); // other goes to bottom
+    p.deck.unshift(topCard);   // top goes on top
+    addLog(s, `Timeworn Sage: ${topCard.name} placed on top of deck.`);
+  } else {
+    // No top selection — just return remaining in order
+    p.deck.unshift(...peekCards);
+  }
   return s;
 }
 
@@ -3350,6 +3493,22 @@ export function triggerUnitAction(state, unitUid) {
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
     return result;
+  }
+
+  // Timeworn Sage: peek top 3 cards, player picks 1 for hand, 1 for top, 1 for bottom.
+  if (unit.id === 'timeworn_sage') {
+    const p = s.players[s.activePlayer];
+    const top3 = p.deck.slice(0, 3);
+    if (top3.length === 0) {
+      addLog(s, `Timeworn Sage: deck is empty — action has no effect.`);
+      return s;
+    }
+    s.pendingDeckPeek = { reason: 'timeworn_sage', playerIdx: s.activePlayer, cards: top3 };
+    addLog(s, `Timeworn Sage: choose which card to put in your hand.`);
+    const actorAfter = s.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    return s;
   }
 
   // Target-needing actions — use pendingSpell for UI target collection,
@@ -3860,6 +4019,10 @@ export function moveUnit(state, unitUid, row, col) {
       applyDamageToUnit(s, unit, thornDmg, 'Iron Thorns');
       enemyChamp.thornShield = null;
     }
+    // shield_of_faith blessing (for the defending champion's player)
+    if (s.adventureShieldOfFaith && enemyChamp.owner === 0) champDmg = Math.max(1, champDmg - 1);
+    // marked_for_death curse (for the defending champion's player)
+    if (s.adventureCurses?.includes('marked_for_death') && enemyChamp.owner === 0) champDmg += 1;
     enemyChamp.hp -= champDmg;
     addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
 
@@ -4532,6 +4695,29 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden
       ).map(u => u.uid);
 
+    // Arcane Barrage: any enemy unit (not hidden, not omen, not spell-immune)
+    case 'arcane_barrage':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Dominate: enemy unit with ATK ≤ 3 (not relic, not omen, not hidden)
+    case 'dominate':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden &&
+        !u.cannotBeTargetedBySpells && !u.spellImmune &&
+        getEffectiveAtk(state, u) <= 3
+      ).map(u => u.uid);
+
+    // Moonfire: any unit or enemy champion
+    case 'moonfire': {
+      const unitTargets = state.units.filter(u =>
+        !u.hidden && !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+      const enemyChampUid = 'champion' + (1 - state.activePlayer);
+      return [...unitTargets, enemyChampUid];
+    }
+
     // Toll of Shadows: multi-step caster sacrifice
     // step 0 = sacrifice a friendly combat unit; step 1 = sacrifice omen; step 2 = sacrifice relic
     // step 3 (discard) is handled via pendingHandSelect, not pendingSpell targets
@@ -4739,6 +4925,19 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'shadow_mend':
       return true; // champion always exists
+
+    case 'arcane_barrage':
+      return enemyUnits.some(u => !u.isOmen);
+
+    case 'dominate':
+      return enemyUnits.some(u => !u.isRelic && !u.isOmen && !u.hidden && getEffectiveAtk(state, u) <= 3);
+
+    case 'moonfire':
+      return true; // enemy champion always valid target
+
+    case 'echo_spell':
+      // Valid if a non-echo spell was cast this turn
+      return !!(state.players[playerIndex]?.lastSpellCast?.effect);
 
     default:
       return true;

@@ -137,11 +137,33 @@ function applyBlessings(state, blessings) {
         state.adventureSwiftAdvanceTurns = 3;
         break;
 
-      // throne_sense and resilience are handled outside the fight engine
+      // shield_of_faith: champion takes 1 less damage (stored as flag for engine checks)
+      case 'shield_of_faith':
+        state.adventureShieldOfFaith = true;
+        break;
+
+      // virulent: friendly units apply 1 Poison on combat damage (stored as flag)
+      case 'virulent':
+        state.adventureVirulent = true;
+        break;
+
+      // arcane_flow: after casting a spell, reveal deck until finding a cheaper card (stored as flag)
+      case 'arcane_flow':
+        state.adventureArcaneFlow = true;
+        break;
+
+      // throne_sense, resilience, and blood_tithe are handled outside the fight engine
       default:
         break;
     }
   }
+}
+
+// ── Curse application ─────────────────────────────────────────────────────────
+
+function applyCurses(state, curses) {
+  if (!curses || curses.length === 0) return;
+  state.adventureCurses = [...(state.adventureCurses || []), ...curses];
 }
 
 // ── Main builder ──────────────────────────────────────────────────────────────
@@ -203,6 +225,9 @@ export function buildAdventureGameState(run, row, col, tileType) {
 
   // ── Apply active blessings ───────────────────────────────────────────────
   applyBlessings(state, run.blessings);
+
+  // ── Apply active curses ──────────────────────────────────────────────────
+  applyCurses(state, run.curses);
 
   // ── Loop scaling: store loop count so engine can buff enemy units on summon
   if (run.loopCount > 0) {

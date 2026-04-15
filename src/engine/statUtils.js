@@ -122,7 +122,12 @@ export function getEffectiveAtk(state, unit, combatTile = null) {
   const packBonus = getPackBonus(state, unit);
   const terrainMod = getTerrainAtkModifier(state, unit);
   const modBonus = getConditionalStatBonus(state, unit).atk;
-  return Math.max(0, base + sbBonus + packBonus + terrainMod + modBonus);
+  let total = Math.max(0, base + sbBonus + packBonus + terrainMod + modBonus);
+  // exhaustion curse: player 0's units have -1 ATK (minimum 0)
+  if (state?.adventureCurses?.includes('exhaustion') && unit.owner === 0 && !unit.isRelic && !unit.isOmen) {
+    total = Math.max(0, total - 1);
+  }
+  return total;
 }
 
 // Returns effective HP for display (current HP after damage counters + terrain bonus + conditional modifier).

@@ -135,14 +135,21 @@ export function getAuraRangeBonus(state, unitUid) {
 // Returns the total aura range bonus granted to all friendly aura sources owned by playerIndex.
 // Used by statUtils to expand friendly aura ranges when Exiled Guardian (or similar) is in play.
 export function getFriendlyAuraRangeBonus(state, playerIndex) {
-  if (!state.activeModifiers) return 0;
-  return state.activeModifiers
-    .filter(m => {
-      if (m.type !== 'auraRangeBuff' || m.playerIndex !== playerIndex) return false;
-      const src = state.units.find(u => u.uid === m.unitUid);
-      return !src?.hidden;
-    })
-    .reduce((sum, m) => sum + (m.amount || 0), 0);
+  let bonus = 0;
+  if (state.activeModifiers) {
+    bonus = state.activeModifiers
+      .filter(m => {
+        if (m.type !== 'auraRangeBuff' || m.playerIndex !== playerIndex) return false;
+        const src = state.units.find(u => u.uid === m.unitUid);
+        return !src?.hidden;
+      })
+      .reduce((sum, m) => sum + (m.amount || 0), 0);
+  }
+  // broken_formation curse: player 0's aura ranges reduced by 1 (minimum 0 net)
+  if (state.adventureCurses?.includes('broken_formation') && playerIndex === 0) {
+    bonus -= 1;
+  }
+  return bonus;
 }
 
 // Returns the SPD bonus from zoneSpdBuff modifiers for a unit.
@@ -771,6 +778,43 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'arcaneCascadePing': {
+      // Arcane Cascade: whenever owner casts a spell, deal 1 damage to a random enemy unit.
+      if (!listenerUnit) break;
+      // Only fires when a spell is played by the same player
+      if (context?.card?.type !== 'spell') break;
+      const enemies = state.units.filter(u => u.owner !== playerIndex && !u.isOmen && !u.hidden);
+      if (enemies.length === 0) break;
+      const pingTarget = enemies[Math.floor(Math.random() * enemies.length)];
+      applyDamageToUnit(state, pingTarget, 1, 'Arcane Cascade');
+      addLog(state, `Arcane Cascade: deals 1 damage to ${pingTarget.name}.`);
+      break;
+    }
+
+    case 'reflectingPoolCopy': {
+      // Reflecting Pool: whenever opponent casts a spell, add a cost-0 copy to owner's hand.
+      if (!listenerUnit) break;
+      // Fires for the owner of the omen — context.playerIndex is the caster.
+      // We want to fire when the OPPONENT casts (i.e. context.playerIndex !== listener.playerIndex)
+      if (context?.card?.type !== 'spell') break;
+      if (context?.playerIndex === playerIndex) break; // skip own spell casts
+      const copiedCard = { ...context.card, cost: 0, uid: `${context.card.id}_echo_${Math.random().toString(36).slice(2)}` };
+      state.players[playerIndex].hand.push(copiedCard);
+      addLog(state, `Reflecting Pool: copied ${context.card.name} into hand (costs 0).`);
+      break;
+    }
+
+    case 'manaSurgeBonus': {
+      // Mana Surge: at the start of your turn, gain +1 mana for each spell in your grave.
+      if (!listenerUnit) break;
+      const grave = state.players[playerIndex]?.grave || [];
+      const spellCount = grave.filter(c => c.type === 'spell').length;
+      if (spellCount <= 0) break;
+      state.players[playerIndex].resources = Math.min(10, (state.players[playerIndex].resources || 0) + spellCount);
+      addLog(state, `Mana Surge: grants ${spellCount} mana (${spellCount} spell(s) in grave).`);
+      break;
+    }
+
     default:
       break;
   }
@@ -929,8 +973,12 @@ export function resetTurnTriggers(state) {
 export function dealNonCombatDamageToEnemyChampion(state, attackerPlayerIndex, baseAmount) {
   const ctx = { attackerPlayerIndex, damage: baseAmount };
   fireTrigger('onNonCombatChampionDamage', ctx, state);
-  const total = baseAmount + (ctx.extraDamage || 0);
+  let total = baseAmount + (ctx.extraDamage || 0);
   const enemyChamp = state.champions[1 - attackerPlayerIndex];
+  // shield_of_faith blessing: player 0's champion takes 1 less non-combat damage (min 1)
+  if (state.adventureShieldOfFaith && enemyChamp.owner === 0) total = Math.max(1, total - 1);
+  // marked_for_death curse: player 0's champion takes 1 extra damage
+  if (state.adventureCurses?.includes('marked_for_death') && enemyChamp.owner === 0) total += 1;
   enemyChamp.hp -= total;
   checkWinner(state);
   return total;

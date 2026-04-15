@@ -1124,6 +1124,57 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  // ── MYSTIC ADVENTURE-ONLY SPELLS ──────────────────────────────────────────
+
+  arcane_barrage: (state, caster, targets) => {
+    // Deal 1 damage to target unit for each spell cast this game by the caster.
+    const target = targets[0];
+    if (!target) return state;
+    const spells = state.players[caster].spellsCastThisGame || 0;
+    if (spells === 0) {
+      addLog(state, `Arcane Barrage: no spells cast this game — deals 0 damage.`);
+      return state;
+    }
+    applyDamageToUnit(state, target, spells, 'Arcane Barrage');
+    addLog(state, `Arcane Barrage: deals ${spells} damage (${spells} spell(s) cast).`);
+    return state;
+  },
+
+  echo_spell: (state, caster) => {
+    // Echo Spell is handled in the gameEngine resolveSpell directly (needs full context).
+    // This resolver is a no-op placeholder; the real logic lives in resolveSpell.
+    addLog(state, `Echo Spell: fizzled — no valid last spell to echo.`);
+    return state;
+  },
+
+  dominate: (state, caster, targets) => {
+    // Gain permanent control of target enemy unit with 3 or less ATK.
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    if (getEffectiveAtk(state, target) > 3) {
+      addLog(state, `Dominate: ${target.name} has more than 3 ATK — cannot be dominated.`);
+      return state;
+    }
+    target.owner = caster;
+    addLog(state, `Dominate: ${target.name} is now under your control!`);
+    return state;
+  },
+
+  moonfire: (state, caster, targets) => {
+    // Deal 4 damage to target unit or champion.
+    // Champions have no `uid`; units always have one.
+    const target = targets[0];
+    if (!target) return state;
+    if (!target.uid) {
+      // Champion target
+      target.hp -= 4;
+      addLog(state, `Moonfire: deals 4 damage to champion (${target.hp} HP remaining).`);
+    } else {
+      applyDamageToUnit(state, target, 4, 'Moonfire');
+    }
+    return state;
+  },
+
 };
 
 // ==========================================
