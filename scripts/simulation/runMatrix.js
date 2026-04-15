@@ -30,11 +30,13 @@ function parseArgs(argv) {
   const args = { games: 500, ai: 'minimax', depth: 2, sims: 10000, timeout: 100 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--games':   args.games   = parseInt(argv[++i], 10); break;
-      case '--ai':      args.ai      = argv[++i]; break;
-      case '--depth':   args.depth   = parseInt(argv[++i], 10); break;
-      case '--sims':    args.sims    = parseInt(argv[++i], 10); break;
-      case '--timeout':     args.timeout    = parseInt(argv[++i], 10); break;
+      case '--games':      args.games      = parseInt(argv[++i], 10); break;
+      case '--ai':         args.ai         = argv[++i]; break;
+      case '--depth':      args.depth      = parseInt(argv[++i], 10); break;
+      case '--depth-top':  args.depthTop   = parseInt(argv[++i], 10); break;
+      case '--depth-rest': args.depthRest  = parseInt(argv[++i], 10); break;
+      case '--sims':       args.sims       = parseInt(argv[++i], 10); break;
+      case '--timeout':    args.timeout    = parseInt(argv[++i], 10); break;
       case '--no-profiles': args.noProfiles = true; break;
     }
   }
@@ -73,13 +75,15 @@ function runMatchup(p1Faction, p2Faction, gamesPerDir, globalGameId, opts = {}) 
   };
 }
 
-const { games: gamesPerDir, ai: aiMode, depth: minimaxDepth, sims: mctsSimulations, timeout: mctsTimeoutMs, noProfiles } = parseArgs(process.argv);
-const gameOpts = { ai: aiMode, depth: minimaxDepth, sims: mctsSimulations, timeout: mctsTimeoutMs, noProfiles };
+const { games: gamesPerDir, ai: aiMode, depth: minimaxDepth, depthTop: minimaxDepthTop, depthRest: minimaxDepthRest, sims: mctsSimulations, timeout: mctsTimeoutMs, noProfiles } = parseArgs(process.argv);
+const gameOpts = { ai: aiMode, depth: minimaxDepth, depthTop: minimaxDepthTop, depthRest: minimaxDepthRest, sims: mctsSimulations, timeout: mctsTimeoutMs, noProfiles };
 
 const totalMatchups   = PAIRS.length * 2; // each pair × 2 directions
 const totalGamesAll   = totalMatchups * gamesPerDir;
 
-console.log(`Running matchup matrix: ${FACTIONS.join(', ')} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeoutMs}ms` : ''}${noProfiles ? ' --no-profiles' : ''}]`);
+const selectiveDeepStr = (minimaxDepthTop != null || minimaxDepthRest != null)
+  ? ` depthTop=${minimaxDepthTop ?? 3} depthRest=${minimaxDepthRest ?? 1}` : '';
+console.log(`Running matchup matrix: ${FACTIONS.join(', ')} [ai=${aiMode}${aiMode === 'minimax' ? ` depth=${minimaxDepth}${selectiveDeepStr}` : ''}${aiMode === 'mcts' ? ` timeout=${mctsTimeoutMs}ms` : ''}${noProfiles ? ' --no-profiles' : ''}]`);
 console.log(`${PAIRS.length} pairs × 2 directions × ${gamesPerDir} games = ${totalGamesAll} total games\n`);
 
 // matchupData[p1][p2] = { p1Wins, p2Wins, draws, avgTurns, gamesRun }

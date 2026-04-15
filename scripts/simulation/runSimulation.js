@@ -30,14 +30,16 @@ function parseArgs(argv) {
   const args = { p1: 'human', p2: 'beast', games: 100, output: 'results.json', ai: 'minimax', depth: 2, sims: 10000, timeout: 100 };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--p1':      args.p1      = argv[++i]; break;
-      case '--p2':      args.p2      = argv[++i]; break;
-      case '--games':   args.games   = parseInt(argv[++i], 10); break;
-      case '--output':  args.output  = argv[++i]; break;
-      case '--ai':      args.ai      = argv[++i]; break;
-      case '--depth':   args.depth   = parseInt(argv[++i], 10); break;
-      case '--sims':    args.sims    = parseInt(argv[++i], 10); break;
-      case '--timeout':     args.timeout    = parseInt(argv[++i], 10); break;
+      case '--p1':         args.p1         = argv[++i]; break;
+      case '--p2':         args.p2         = argv[++i]; break;
+      case '--games':      args.games      = parseInt(argv[++i], 10); break;
+      case '--output':     args.output     = argv[++i]; break;
+      case '--ai':         args.ai         = argv[++i]; break;
+      case '--depth':      args.depth      = parseInt(argv[++i], 10); break;
+      case '--depth-top':  args.depthTop   = parseInt(argv[++i], 10); break;
+      case '--depth-rest': args.depthRest  = parseInt(argv[++i], 10); break;
+      case '--sims':       args.sims       = parseInt(argv[++i], 10); break;
+      case '--timeout':    args.timeout    = parseInt(argv[++i], 10); break;
       case '--no-profiles': args.noProfiles = true; break;
     }
   }
@@ -220,9 +222,11 @@ const MAX_ACTIONS_GAME  = 500;
 const MAX_ACTIONS_PER_TURN = 80;
 
 export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
-  const useMinimaxAI = opts.ai === 'minimax';
+  const useMinimaxAI    = opts.ai === 'minimax';
   const useMCTS         = opts.ai === 'mcts';
   const minimaxDepth    = opts.depth ?? 2;
+  const minimaxDepthTop  = opts.depthTop;  // undefined = no selective deepening
+  const minimaxDepthRest = opts.depthRest; // undefined = no selective deepening
   const mctsSimulations = opts.sims ?? 10000;
   const mctsTimeoutMs   = opts.timeout ?? 100;
   const noProfiles      = opts.noProfiles ?? false; // bypass faction weight profiles when true
@@ -265,6 +269,8 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
       const t0 = performance.now();
       action = chooseActionMinimax(state, commandsUsedThisTurn, {
         depth: minimaxDepth,
+        ...(minimaxDepthTop  != null ? { depthTop:  minimaxDepthTop  } : {}),
+        ...(minimaxDepthRest != null ? { depthRest: minimaxDepthRest } : {}),
         ...(noProfiles ? { weights: WEIGHTS } : {}),
       });
       minimaxTotalMs += performance.now() - t0;
