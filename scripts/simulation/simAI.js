@@ -176,11 +176,6 @@ function scoreAction(action, state) {
       );
       if (adjacentToAura) score += 10;
 
-      // Throne anchor (Change 2): when champion is on throne, prioritize summons.
-      // Human pattern: stay on throne and summon units to do the fighting.
-      const myChamp = state.champions[ap];
-      if (myChamp.row === THRONE[0] && myChamp.col === THRONE[1]) score += 5;
-
       return score;
     }
 
@@ -283,13 +278,6 @@ function scoreAction(action, state) {
       const champ = state.champions[ap];
       const { row: tr, col: tc } = action;
 
-      const champOnThrone  = champ.row === THRONE[0] && champ.col === THRONE[1];
-      const targetIsThrone = tr === THRONE[0] && tc === THRONE[1];
-      // Throne anchor penalty (Change 1): penalize moving champion off throne.
-      // -throneAnchor * 0.8 = -(15 * 0.8) = -12. Champion can still leave for high-value
-      // actions (lethal attacks score >1000) but casual repositioning is penalized.
-      const throneAnchorPenalty = (champOnThrone && !targetIsThrone) ? -12 : 0;
-
       // Moving away from adjacent enemy units takes priority
       const adjEnemies = state.units.filter(u =>
         u.owner === enemyIdx &&
@@ -299,7 +287,7 @@ function scoreAction(action, state) {
         const newAdjEnemies = adjEnemies.filter(u =>
           manhattan([tr, tc], [u.row, u.col]) === 1
         );
-        if (newAdjEnemies.length < adjEnemies.length) return 25 + throneAnchorPenalty;
+        if (newAdjEnemies.length < adjEnemies.length) return 25;
       }
 
       // Moving toward Throne
@@ -307,7 +295,7 @@ function scoreAction(action, state) {
       const newDistToThrone = manhattan([tr, tc], THRONE);
       if (newDistToThrone < curDistToThrone) return 8;
 
-      return 1 + throneAnchorPenalty;
+      return 1;
     }
 
     case 'unitAction': {
