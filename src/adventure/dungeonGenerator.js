@@ -120,13 +120,27 @@ export function generateDungeon(seed) {
   const startTile = validEdges[0];
   layout[startTile.row][startTile.col].type = 'start';
 
-  // 3. Place 4–6 walls, ensuring path from start to boss stays open
+  // 3. Pick gate tile — one of the 4 tiles adjacent to center; this is the
+  //    only tile from which the player can enter the boss room.
+  const adjacentToCenter = [
+    { row: 1, col: 2 },
+    { row: 3, col: 2 },
+    { row: 2, col: 1 },
+    { row: 2, col: 3 },
+  ];
+  rng.shuffle(adjacentToCenter);
+  const gateTile = adjacentToCenter[0];
+
+  // 4. Place 4–6 walls, ensuring path from start to gate tile stays open.
+  //    The gate tile is protected from becoming a wall.
   const wallCount = 4 + rng.nextInt(3); // 4, 5, or 6
   let wallsPlaced = 0;
   const candidateWalls = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
-      if (layout[r][c].type === 'empty') candidateWalls.push({ row: r, col: c });
+      if (layout[r][c].type !== 'empty') continue;
+      if (r === gateTile.row && c === gateTile.col) continue; // protect gate tile
+      candidateWalls.push({ row: r, col: c });
     }
   }
   rng.shuffle(candidateWalls);
@@ -134,15 +148,15 @@ export function generateDungeon(seed) {
   for (const candidate of candidateWalls) {
     if (wallsPlaced >= wallCount) break;
     layout[candidate.row][candidate.col].type = 'wall';
-    if (!isConnected(layout, startTile, { row: 2, col: 2 })) {
-      // Would block path — remove
+    if (!isConnected(layout, startTile, gateTile)) {
+      // Would block path to gate — remove
       layout[candidate.row][candidate.col].type = 'empty';
     } else {
       wallsPlaced++;
     }
   }
 
-  // 4. Assign remaining empty tiles
+  // 5. Assign remaining empty tiles
   const emptyTiles = [];
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
@@ -154,7 +168,7 @@ export function generateDungeon(seed) {
     tile.type = randomTileType(rng);
   }
 
-  // 5. Ensure at least 1 rest and 1 shop tile
+  // 6. Ensure at least 1 rest and 1 shop tile
   const hasRest = emptyTiles.some(t => t.type === 'rest');
   const hasShop = emptyTiles.some(t => t.type === 'shop');
 
@@ -166,6 +180,9 @@ export function generateDungeon(seed) {
     const fightTile = emptyTiles.find(t => t.type === 'fight');
     if (fightTile) fightTile.type = 'shop';
   }
+
+  // 7. Mark gate tile — single entrance to the boss room
+  layout[gateTile.row][gateTile.col].isGate = true;
 
   return layout;
 }

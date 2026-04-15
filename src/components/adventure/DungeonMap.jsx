@@ -65,8 +65,28 @@ function isAdjacent(tile, currentTile) {
 export default function DungeonMap({ state, onTileClick }) {
   const { dungeonLayout, revealedTiles, completedTiles, currentTile } = state;
 
+  // Determine whether the boss room is currently locked (player not on gate tile)
+  const gateTile = useMemo(() => {
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (dungeonLayout[r][c].isGate) return { row: r, col: c };
+      }
+    }
+    return null;
+  }, [dungeonLayout]);
+
+  const bossLocked = !gateTile || currentTile.row !== gateTile.row || currentTile.col !== gateTile.col;
+
   // Pre-compute movable tiles (adjacent, revealed, non-wall, non-current, non-completed)
   const movableTiles = useMemo(() => {
+    // Find the gate tile — only tile that grants access to boss (2,2)
+    let gateTile = null;
+    outer: for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (dungeonLayout[r][c].isGate) { gateTile = { row: r, col: c }; break outer; }
+      }
+    }
+
     const result = [];
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < 5; c++) {
@@ -75,6 +95,10 @@ export default function DungeonMap({ state, onTileClick }) {
         if (isCurrentTile(tile, currentTile)) continue;
         if (!isAdjacent(tile, currentTile)) continue;
         if (!isTileRevealed(tile, revealedTiles)) continue;
+        // Boss tile only reachable from the single gate tile
+        if (tile.type === 'boss') {
+          if (!gateTile || currentTile.row !== gateTile.row || currentTile.col !== gateTile.col) continue;
+        }
         result.push({ row: r, col: c });
       }
     }
@@ -100,6 +124,8 @@ export default function DungeonMap({ state, onTileClick }) {
             const current = isCurrentTile(tile, currentTile);
             const movable = movableTiles.some(t => t.row === r && t.col === c);
 
+            const locked = tile.type === 'boss' && bossLocked;
+
             return (
               <TileCell
                 key={c}
@@ -108,6 +134,7 @@ export default function DungeonMap({ state, onTileClick }) {
                 completed={completed}
                 current={current}
                 movable={movable}
+                locked={locked}
                 onClick={movable ? () => onTileClick(r, c) : undefined}
               />
             );
@@ -118,7 +145,7 @@ export default function DungeonMap({ state, onTileClick }) {
   );
 }
 
-function TileCell({ tile, revealed, completed, current, movable, onClick }) {
+function TileCell({ tile, revealed, completed, current, movable, locked, onClick }) {
   if (!revealed) {
     // Hidden tile
     return (
@@ -156,11 +183,14 @@ function TileCell({ tile, revealed, completed, current, movable, onClick }) {
   const accentColor = TILE_COLORS[tile.type] ?? '#6a6a8a';
   const icon = TILE_ICONS[tile.type];
   const label = TILE_LABELS[tile.type] ?? tile.type;
+  const isGate = tile.isGate;
 
-  let borderColor = current ? '#C9A84C' : movable ? accentColor : '#2a2a3a';
-  let borderWidth = current ? '2px' : movable ? '1px' : '1px';
+  let borderColor = current ? '#C9A84C' : isGate ? '#e07818' : movable ? accentColor : '#2a2a3a';
+  let borderWidth = current || isGate ? '2px' : movable ? '1px' : '1px';
   let boxShadow = current
     ? '0 0 12px #C9A84C80'
+    : isGate
+    ? '0 0 8px #e0781860'
     : movable
     ? `0 0 8px ${accentColor}60`
     : 'none';
@@ -216,6 +246,19 @@ function TileCell({ tile, revealed, completed, current, movable, onClick }) {
         {label}
       </div>
 
+      {/* Gate tile indicator — door icon in top-left corner */}
+      {isGate && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          left: '3px',
+          fontSize: '10px',
+          lineHeight: 1,
+        }}>
+          🚪
+        </div>
+      )}
+
       {/* Completed checkmark overlay */}
       {completed && !current && (
         <div style={{
@@ -227,6 +270,20 @@ function TileCell({ tile, revealed, completed, current, movable, onClick }) {
           lineHeight: 1,
         }}>
           ✓
+        </div>
+      )}
+
+      {/* Boss locked indicator — shown when boss room is not yet accessible */}
+      {locked && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '4px',
+          fontSize: '10px',
+          lineHeight: 1,
+          opacity: 0.7,
+        }}>
+          🔒
         </div>
       )}
 
