@@ -24,8 +24,8 @@
 //   auraRangeBuff          — increases all friendly aura ranges (player-wide)
 // ============================================
 
-import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner, drawCard, manhattan } from './gameEngine.js';
-import { CARD_DB } from './cards.js';
+import { addLog, restoreHP, applyDamageToUnit, destroyUnit, cardinalNeighbors, checkWinner, drawCard, manhattan, applyPoison } from './gameEngine.js';
+import { CARD_DB, TOKENS } from './cards.js';
 
 export const TRIGGER_EVENTS = [
   'onEnemyUnitDeath',
@@ -185,6 +185,14 @@ export function getConditionalStatBonus(state, unit) {
       if (mod.stat === 'atk') atk += count;
       if (mod.stat === 'hp') hp += count;
       if (mod.stat === 'both' || mod.stat === 'atkAndHp') { atk += count; hp += count; }
+      continue;
+    }
+    if (mod.scaling === 'championDamageTaken') {
+      const champ = state.champions?.[unit.owner];
+      const damageTaken = champ ? Math.max(0, (champ.maxHp || 0) - (champ.hp || 0)) : 0;
+      if (mod.stat === 'atk') atk += damageTaken;
+      if (mod.stat === 'hp') hp += damageTaken;
+      if (mod.stat === 'both' || mod.stat === 'atkAndHp') { atk += damageTaken; hp += damageTaken; }
       continue;
     }
     let condMet = false;
@@ -587,6 +595,89 @@ function resolveEffect(effectId, listener, context, state) {
         ally.turnAtkBonus = (ally.turnAtkBonus || 0) + 1;
       }
       addLog(state, `Royal Guard bolsters nearby allies. ${buffed.map(u => u.name).join(', ')} gain +1 ATK this turn.`);
+      break;
+    }
+
+    case 'scavengerGrow': {
+      // Scavenger: gain +1/+1 when an enemy unit dies.
+      if (!listenerUnit) break;
+      listenerUnit.atk += 1;
+      listenerUnit.hp += 1;
+      listenerUnit.maxHp += 1;
+      addLog(state, `${listenerUnit.name} scavenges the kill! Now ${listenerUnit.atk}/${listenerUnit.hp}.`);
+      break;
+    }
+
+    case 'denMotherSummonCub': {
+      // Den Mother: when a friendly unit with cost 2 or less is destroyed, summon a 1/1 Cub adjacent.
+      if (!listenerUnit) break;
+      const dead = context?.dyingUnit;
+      if (!dead || (dead.cost ?? 0) > 2) break;
+      const adj = cardinalNeighbors(listenerUnit.row, listenerUnit.col).filter(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (adj.length === 0) {
+        addLog(state, `Den Mother: no open adjacent tiles — Cub cannot be summoned.`);
+        break;
+      }
+      const [tr, tc] = adj[Math.floor(Math.random() * adj.length)];
+      const cub = {
+        ...TOKENS.cub,
+        owner: playerIndex,
+        row: tr,
+        col: tc,
+        summoned: true,
+        moved: false,
+        maxHp: TOKENS.cub.hp,
+        atkBonus: 0,
+        shield: 0,
+        speedBonus: 0,
+        turnAtkBonus: 0,
+        poison: 0,
+        hidden: false,
+        uid: `token_cub_${Math.random().toString(36).slice(2)}`,
+      };
+      state.units.push(cub);
+      addLog(state, `Den Mother summons a Cub at (${tr},${tc}).`);
+      break;
+    }
+
+    case 'carrionFeederDraw': {
+      // Carrion Feeder: draw a card when a poisoned enemy unit dies.
+      if (!listenerUnit) break;
+      const dead = context?.dyingUnit;
+      if (!dead || (dead.poison ?? 0) <= 0) break;
+      const p = state.players[playerIndex];
+      const drawn = drawCard(state, playerIndex);
+      if (drawn) {
+        p.hand.push(drawn);
+        addLog(state, `${listenerUnit.name}: ${dead.name} was poisoned — draw a card.`);
+      } else {
+        addLog(state, `${listenerUnit.name}: ${dead.name} was poisoned — deck empty.`);
+      }
+      break;
+    }
+
+    case 'survivorsHideRestore': {
+      // Survivor's Hide: at start of turn, restore 1 HP to champion per friendly Primal unit.
+      const primalCount = state.units.filter(
+        u => u.owner === playerIndex && u.attribute === 'primal' && !u.isRelic && !u.isOmen && !u.hidden
+      ).length;
+      if (primalCount <= 0) break;
+      const champ = state.champions[playerIndex];
+      const healed = restoreHP(champ, primalCount, state);
+      if (healed > 0) addLog(state, `Survivor's Hide: ${primalCount} Primal unit(s) on board — restore ${healed} HP to champion.`);
+      break;
+    }
+
+    case 'festeringWoundsPoison': {
+      // Festering Wounds: at end of turn, all poisoned enemy units gain +1 Poison.
+      const enemies = state.units.filter(u => u.owner !== playerIndex && (u.poison ?? 0) > 0);
+      for (const enemy of enemies) {
+        applyPoison(state, enemy, 1);
+      }
+      if (enemies.length > 0) addLog(state, `Festering Wounds festers — ${enemies.length} poisoned unit(s) gain +1 Poison.`);
       break;
     }
 

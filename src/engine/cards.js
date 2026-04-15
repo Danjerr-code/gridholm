@@ -272,6 +272,21 @@ export const CARD_DB = {
 
   // Relic
   crown_of_dominion:    { id: 'crown_of_dominion', rarity: 'legendary', name: 'Crown of Dominion', type: 'relic', cost: 3, atk: 0, hp: 4, spd: 0, isRelic: true, unitType: [], attribute: 'neutral', rules: 'While this relic is on the board, the Throne tile deals +1 bonus damage at the end of each turn.', legendary: false, bossOnly: true, image: null },
+
+  // ── Primal Adventure-Only Cards ────────────────────────────────────────────
+  // These cards appear only in adventure mode card offers. adventureOnly: true
+  // excludes them from draft pools, pack generation, and the collection view.
+
+  viper:            { id: 'viper',            rarity: 'rare', name: 'Viper',            type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, poison: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'Poison 1.', image: null },
+  venomfang:        { id: 'venomfang',        rarity: 'rare', name: 'Venomfang',        type: 'unit',  cost: 3, atk: 2, hp: 3, spd: 1, poison: 2, unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'Poison 2.', image: null },
+  scavenger:        { id: 'scavenger',        rarity: 'rare', name: 'Scavenger',        type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1,            unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'When an enemy unit dies, gain +1/+1.', triggers: [{ event: 'onEnemyUnitDeath', effect: 'scavengerGrow', selfTrigger: false }], image: null },
+  den_mother:       { id: 'den_mother',       rarity: 'rare', name: 'Den Mother',       type: 'unit',  cost: 4, atk: 2, hp: 5, spd: 1,            unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'When a friendly unit with cost 2 or less is destroyed, summon a 1/1 Cub in an adjacent tile.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'denMotherSummonCub', selfTrigger: false }], image: null },
+  cornered_beast:   { id: 'cornered_beast',   rarity: 'rare', name: 'Cornered Beast',   type: 'unit',  cost: 3, atk: 2, hp: 3, spd: 1,            unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'This unit gains +1 ATK for each point of damage your champion has taken.', modifier: [{ type: 'conditionalStatBuff', stat: 'atk', scaling: 'championDamageTaken' }], image: null },
+  carrion_feeder:   { id: 'carrion_feeder',   rarity: 'rare', name: 'Carrion Feeder',   type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1,            unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'When a poisoned enemy unit dies, draw a card.', triggers: [{ event: 'onEnemyUnitDeath', effect: 'carrionFeederDraw', selfTrigger: false }], image: null },
+  survivors_hide:   { id: 'survivors_hide',   rarity: 'rare', name: "Survivor's Hide",  type: 'omen',  cost: 2, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'primal', adventureOnly: true, rules: 'At the start of your turn, restore 1 HP to your champion for each friendly Primal unit on the board.', triggers: [{ event: 'onBeginTurn', effect: 'survivorsHideRestore' }], image: null },
+  plague_swarm:     { id: 'plague_swarm',     rarity: 'rare', name: 'Plague Swarm',     type: 'spell', cost: 2, effect: 'plague_swarm',    unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'All poisoned enemy units gain +1 Poison.', image: null },
+  toxic_spray:      { id: 'toxic_spray',      rarity: 'rare', name: 'Toxic Spray',      type: 'spell', cost: 2, effect: 'toxic_spray',     unitType: [UNIT_TYPES.BEAST], attribute: 'primal', adventureOnly: true, rules: 'Give all enemy units adjacent to target unit Poison 1.', image: null },
+  festering_wounds: { id: 'festering_wounds', rarity: 'rare', name: 'Festering Wounds', type: 'omen',  cost: 3, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'primal', adventureOnly: true, rules: 'At the end of your turn, all poisoned enemy units gain +1 Poison.', triggers: [{ event: 'onEndTurn', effect: 'festeringWoundsPoison' }], image: null },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────
@@ -290,6 +305,20 @@ export const TOKENS = {
     rules: 'When this unit is destroyed, restore 1 HP to your champion.',
     isToken: true,
     image: 'sapling-token.webp',
+  },
+  cub: {
+    id: 'token_cub', rarity: 'common',
+    name: 'Cub',
+    type: 'unit',
+    unitType: [UNIT_TYPES.BEAST],
+    attribute: 'primal',
+    cost: 1,
+    atk: 1,
+    hp: 1,
+    spd: 1,
+    rules: '',
+    isToken: true,
+    image: null,
   },
 };
 

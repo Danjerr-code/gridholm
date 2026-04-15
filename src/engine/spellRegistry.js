@@ -8,6 +8,7 @@ import {
   cardinalNeighbors,
   fireOnSummonTriggers,
   drawCard,
+  applyPoison,
 } from './gameEngine.js';
 import { getEffectiveAtk, getTerrainHpModifier } from './statUtils.js';
 import { fireTrigger, unregisterUnit, unregisterModifiers, registerUnit, registerModifiers, registerDynamicTrigger, dealNonCombatDamageToEnemyChampion } from './triggerRegistry.js';
@@ -906,6 +907,45 @@ export const SPELL_REGISTRY = {
       placed++;
     }
     addLog(state, `Consecrated Ground: Hallowed Ground placed on ${placed} tiles around the Throne.`);
+    return state;
+  },
+
+  // ==========================================
+  // PRIMAL ADVENTURE-ONLY SPELLS
+  // ==========================================
+
+  plague_swarm: (state, caster) => {
+    // All poisoned enemy units gain +1 Poison.
+    const targets = state.units.filter(u => u.owner !== caster && (u.poison ?? 0) > 0);
+    for (const u of targets) {
+      applyPoison(state, u, 1);
+    }
+    if (targets.length === 0) {
+      addLog(state, `Plague Swarm: no poisoned enemies.`);
+    } else {
+      addLog(state, `Plague Swarm: ${targets.length} poisoned unit(s) gain +1 Poison.`);
+    }
+    return state;
+  },
+
+  toxic_spray: (state, caster, targets) => {
+    // Give all enemy units adjacent to target unit Poison 1.
+    const target = targets[0];
+    if (!target) return state;
+    const adjTiles = cardinalNeighbors(target.row, target.col);
+    const adjacentEnemies = state.units.filter(u =>
+      u.owner !== caster &&
+      !u.isRelic && !u.isOmen && !u.hidden &&
+      adjTiles.some(([r, c]) => u.row === r && u.col === c)
+    );
+    for (const u of adjacentEnemies) {
+      applyPoison(state, u, 1);
+    }
+    if (adjacentEnemies.length === 0) {
+      addLog(state, `Toxic Spray on ${target.name}: no adjacent enemies.`);
+    } else {
+      addLog(state, `Toxic Spray: ${adjacentEnemies.length} adjacent unit(s) poisoned.`);
+    }
     return state;
   },
 
