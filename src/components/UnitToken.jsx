@@ -314,6 +314,12 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   // Omen: glowing rune circle with turns remaining countdown
   if (isOmen) {
+    // Temporal Rift command counter: show bonus command availability (1 = available, 0 = spent)
+    const isTemporalRift = unit.id === 'temporalrift';
+    const ownerCmdsUsed = state?.players?.[unit.owner]?.commandsUsed ?? 0;
+    const ownerCmdLimit = getCommandLimit(state, unit.owner);
+    const bonusCmdAvail = ownerCmdsUsed < ownerCmdLimit;
+
     const omenGlowColor = unit.attribute === 'dark'
       ? { ring: '#a855f7', glow: 'rgba(168,85,247,0.6)', bg: '#1a0a2e', badge: '#6d28d9' }
       : unit.attribute === 'mystic'
@@ -404,6 +410,25 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           zIndex: 2,
           letterSpacing: '0.05em',
         }}>OMEN</div>
+        {/* Temporal Rift: bonus command counter — 1 = available, 0 = spent */}
+        {isTemporalRift && state && (
+          <div style={{
+            position: 'absolute',
+            top: '14px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: bonusCmdAvail ? '#0e7490' : '#374151',
+            color: bonusCmdAvail ? '#67e8f9' : '#6b7280',
+            fontSize: '8px',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 700,
+            padding: '1px 4px',
+            borderRadius: '99px',
+            whiteSpace: 'nowrap',
+            zIndex: 3,
+            lineHeight: 1.4,
+          }} title={bonusCmdAvail ? 'Bonus command available' : 'Bonus command spent'}>⌘{bonusCmdAvail ? 1 : 0}</div>
+        )}
         {showFlash && <div className="unit-damage-flash-overlay" />}
         {showBuff && <div className="unit-buff-shimmer-overlay" />}
       </div>
