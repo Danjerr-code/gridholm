@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import {
   createNewRun, loadRun, clearRun, saveRun,
   moveToTile, completeTile, applyReward,
+  FACTION_CURATED_CARDS,
 } from '../../adventure/adventureState.js';
+import AdventureDraftScreen from './AdventureDraftScreen.jsx';
 import { buildAdventureGameState } from '../../adventure/adventureFight.js';
 import {
   generateFightReward, generateTreasure, generateShopOfferings,
@@ -37,6 +39,8 @@ export default function AdventureMode({ onBack }) {
   const savedRun = loadRun();
   const [phase, setPhase] = useState(savedRun ? 'map' : 'champion_select');
   const [run, setRun] = useState(savedRun);
+  // Holds the selected faction between champion_select and draft phases
+  const [pendingFaction, setPendingFaction] = useState(null);
 
   // ── Fight state ──────────────────────────────────────────────────────────
   // adventureContext: { initialState, aiDepth, row, col, tileType } | null
@@ -76,7 +80,17 @@ export default function AdventureMode({ onBack }) {
   }
 
   function handleStartNewRun(faction) {
-    const newRun = createNewRun(faction);
+    // Store faction and go to the draft phase; run is created after draft completes
+    setPendingFaction(faction);
+    setPhase('draft');
+  }
+
+  function handleDraftComplete(draftedIds) {
+    // Combine 12 curated cards + 8 drafted cards into the 20-card starting deck
+    const curated = FACTION_CURATED_CARDS[pendingFaction] ?? FACTION_CURATED_CARDS.light;
+    const startingDeck = [...curated, ...draftedIds];
+    const newRun = createNewRun(pendingFaction, startingDeck);
+    setPendingFaction(null);
     setRun(newRun);
     setPhase('map');
   }
@@ -89,6 +103,7 @@ export default function AdventureMode({ onBack }) {
     clearRun();
     setRun(null);
     setFightCtx(null);
+    setPendingFaction(null);
     setPhase('champion_select');
   }
 
@@ -232,6 +247,19 @@ export default function AdventureMode({ onBack }) {
         onSelect={handleStartNewRun}
         onContinue={handleContinue}
         onBack={onBack}
+      />
+    );
+  }
+
+  if (phase === 'draft' && pendingFaction) {
+    return (
+      <AdventureDraftScreen
+        faction={pendingFaction}
+        onDraftComplete={handleDraftComplete}
+        onBack={() => {
+          setPendingFaction(null);
+          setPhase('champion_select');
+        }}
       />
     );
   }

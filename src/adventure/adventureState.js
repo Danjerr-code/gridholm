@@ -2,95 +2,70 @@ import { generateDungeon } from './dungeonGenerator.js';
 
 const STORAGE_KEY = 'gridholm_adventure_run';
 
-// Starting decks (20 cards) per faction
-const FACTION_STARTER_DECKS = {
+/**
+ * 12 curated common cards per faction for the adventure starting deck.
+ * These are combined with 8 drafted cards to form a 20-card starting deck.
+ */
+export const FACTION_CURATED_CARDS = {
   light: [
     'militia', 'militia',
-    'footsoldier',
     'squire',
-    'crossbowman',
     'shieldwall',
-    'sergeant',
-    'knight',
-    'standardbearer',
-    'sentinel',
-    'warlord',
-    'battlepriestunit',
-    'paladin',
-    'captain',
+    'knight', 'knight',
+    'crossbowman',
     'smite', 'smite',
     'ironshield',
-    'forgeweapon',
-    'crusade',
     'standfirm',
+    'forgeweapon',
   ],
   primal: [
-    'boar',
-    'swiftpaw',
+    'boar', 'boar',
     'wolf', 'wolf',
+    'swiftpaw',
     'razorclaw',
-    'wildborne',
     'tuskling',
-    'eagerbeaver',
-    'stalker',
-    'packrunner',
-    'rockhorn', 'rockhorn',
-    'plaguehog',
-    'sabretooth',
-    'ambush',
+    'crushingblow',
+    'animus',
     'packhowl',
     'pounce',
-    'savagegrowth',
-    'animus',
     'gore',
   ],
   mystic: [
     'elfscout',
     'seedling',
     'woodlandguard',
-    'sylvancourier',
     'whisper', 'whisper',
     'verdantarcher',
-    'elfelder',
-    'thornweave',
-    'elfranger',
-    'elfarcher',
-    'canopysentinel',
-    'cascadesage',
+    'sylvancourier',
     'glimpse',
     'moonleaf',
     'bloom',
     'ancientspring',
-    'overgrowth',
-    'petrify',
-    'recall',
+    'glitteringgift',
   ],
   dark: [
     'imp', 'imp',
     'spiteling',
-    'dreadknight',
     'chaospawn',
     'hellhound',
-    'brutedemon',
-    'shadowstalker', 'shadowstalker',
-    'shadowfiend', 'shadowfiend',
-    'veilfiend',
-    'dreadshade', 'dreadshade',
+    'dreadknight',
+    'shadowstalker',
     'agonizingsymphony',
     'pestilence',
     'bloodoffering',
     'pactofruin',
-    'devour',
-    'souldrain',
+    'darksentence',
   ],
 };
 
 /**
  * Create a fresh adventure run for the given champion faction.
  * @param {string} championFaction - 'light' | 'primal' | 'mystic' | 'dark'
+ * @param {string[]} [startingDeck] - 20-card deck (12 curated + 8 drafted). Falls back to
+ *   the curated 12 if omitted (e.g. for legacy saved runs that predate the draft flow).
  * @returns {Object} initial run state
  */
-export function createNewRun(championFaction) {
+export function createNewRun(championFaction, startingDeck) {
   const seed = Math.floor(Math.random() * 2 ** 32);
   const dungeonLayout = generateDungeon(seed);
 
@@ -109,7 +84,9 @@ export function createNewRun(championFaction) {
   // Reveal start tile and adjacent tiles
   const revealedTiles = _revealAround(startTile.row, startTile.col, []);
 
-  const deck = [...(FACTION_STARTER_DECKS[championFaction] ?? FACTION_STARTER_DECKS.light)];
+  const deck = startingDeck
+    ? [...startingDeck]
+    : [...(FACTION_CURATED_CARDS[championFaction] ?? FACTION_CURATED_CARDS.light)];
 
   return {
     seed,
