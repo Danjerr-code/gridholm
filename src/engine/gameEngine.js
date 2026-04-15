@@ -568,6 +568,25 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
+  // Dynamic self-death triggers (e.g. Glittering Gift death-draw).
+  // Fired here because unregisterUnit clears state.triggerListeners before fireTrigger runs.
+  // registerDynamicTrigger mirrors these onto unit.triggers so we can detect them here.
+  if (!unit.isRelic && !unit.isOmen && Array.isArray(unit.triggers)) {
+    for (const t of unit.triggers) {
+      if (t.event === 'onFriendlyUnitDeath' && t.selfTrigger && t.dynamic) {
+        if (t.effect === 'drawOneCard') {
+          const drawn = drawCard(state, unit.owner);
+          if (drawn) {
+            state.players[unit.owner].hand.push(drawn);
+            addLog(state, `${unit.name}: death-draw triggers — drew ${drawn.name}.`);
+          } else {
+            addLog(state, `${unit.name}: death-draw triggers — deck is empty.`);
+          }
+        }
+      }
+    }
+  }
+
   // Declarative trigger registry: fire onEnemyUnitDeath and onFriendlyUnitDeath
   if (!unit.isRelic && !unit.isOmen) {
     const deathCtx = { dyingUnit: unit, dyingPlayerIndex: unit.owner, triggeringUid: unit.uid };

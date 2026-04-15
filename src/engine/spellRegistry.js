@@ -763,6 +763,7 @@ export const SPELL_REGISTRY = {
     target.atk += 1;
     target.hp += 1;
     target.maxHp += 1;
+    target.glitteringGift = true;
     registerDynamicTrigger(target.uid, { event: 'onFriendlyUnitDeath', effect: 'drawOneCard', selfTrigger: true }, state);
     addLog(state, `Glittering Gift enchants ${target.name}.`);
     return state;

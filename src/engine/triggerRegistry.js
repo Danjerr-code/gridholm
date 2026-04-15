@@ -51,6 +51,8 @@ export function createTriggerListeners() {
 
 // Dynamically register a single trigger on an already-placed unit.
 // Use this when a spell or effect grants a new trigger to an existing unit.
+// The trigger is stored both in state.triggerListeners (for normal events) AND on
+// unit.triggers (so destroyUnit can fire self-death triggers before unregistering).
 export function registerDynamicTrigger(unitUid, trigger, state) {
   const unit = state.units.find(u => u.uid === unitUid);
   if (!unit) return;
@@ -65,6 +67,10 @@ export function registerDynamicTrigger(unitUid, trigger, state) {
     preventRetrigger: trigger.preventRetrigger || false,
     firedThisTurn: false,
   });
+  // Mirror onto unit.triggers so destroyUnit can detect and fire self-death triggers
+  // before unregisterUnit clears state.triggerListeners.
+  if (!Array.isArray(unit.triggers)) unit.triggers = [];
+  unit.triggers.push({ ...trigger, dynamic: true });
 }
 
 // Called when any unit enters the board (summon, respawn, etc.).

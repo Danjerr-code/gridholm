@@ -90,6 +90,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const isRooted = !!unit.rooted;
   const hasShield = (unit.shield ?? 0) > 0;
   const isSpellImmune = !!unit.spellImmune;
+  const hasGlitteringGift = !!unit.glitteringGift;
 
   // Fortitude glow: unit is a friendly combat unit owned by a light/ascended player (Valorian)
   // and is within 2 manhattan tiles of their champion.
@@ -645,6 +646,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     {isStunned && <div className="status-overlay-stunned" style={{ borderRadius: tokenBorderRadius }} />}
     {(hasShield || hasFortitudeGlow) && <div className="status-overlay-shield" style={{ borderRadius: tokenBorderRadius }} />}
     {isSpellImmune && <div className="status-overlay-spellimmune" style={{ borderRadius: tokenBorderRadius }} />}
+    {hasGlitteringGift && <div className="status-overlay-glittering-gift" />}
     {/* Legendary CSS ring — outside inner token to escape overflow:hidden */}
     {isLegendary && !isRelic && (
       <>

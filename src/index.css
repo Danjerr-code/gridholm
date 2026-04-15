@@ -623,3 +623,36 @@ button, input, .card-name, .card-stats, .card-rules,
   pointer-events: none;
   box-shadow: 0 0 10px 4px rgba(255,215,0,0.5);
 }
+
+@keyframes glittering-gift-sparkle {
+  0%   { opacity: 0.5; transform: translate(-50%, -50%) rotate(0deg); }
+  50%  { opacity: 0.85; transform: translate(-50%, -50%) rotate(180deg); }
+  100% { opacity: 0.5; transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.status-overlay-glittering-gift {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 130%;
+  height: 130%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(250, 240, 120, 0.55) 8%,
+    transparent 16%,
+    rgba(180, 255, 220, 0.4) 30%,
+    transparent 38%,
+    rgba(250, 240, 120, 0.45) 54%,
+    transparent 62%,
+    rgba(180, 255, 220, 0.35) 76%,
+    transparent 84%,
+    transparent 100%
+  );
+  mask: radial-gradient(circle at center, transparent 38%, black 41%, black 49%, transparent 52%);
+  -webkit-mask: radial-gradient(circle at center, transparent 38%, black 41%, black 49%, transparent 52%);
+  animation: glittering-gift-sparkle 3s linear infinite;
+}
