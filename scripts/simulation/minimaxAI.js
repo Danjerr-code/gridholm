@@ -21,6 +21,7 @@ import { evaluateBoard } from './boardEval.js';
 import { chooseAction } from './simAI.js';
 import { manhattan } from '../../src/engine/gameEngine.js';
 import { shouldHoldCard, shouldHoldChampionAbility } from './cardHoldLogic.js';
+import { getCardRating } from '../../src/engine/cardThreatRatings.js';
 
 // Throne tile: center of the 5×5 board.
 const THRONE_ROW = 2;
@@ -309,6 +310,29 @@ function filterActions(actions, state, commandsUsed) {
   return [...primarySlice, ...heldSlice, { type: 'endTurn' }];
 }
 
+// ── Capture Detection ─────────────────────────────────────────────────────────
+
+/**
+ * Returns true if the action is a capture (attacks an enemy unit or champion).
+ * Used to separate captures from quiet moves for history heuristic and quiescence.
+ */
+function isCapture(action, state) {
+  const ap        = state.activePlayer;
+  const enemyIdx  = 1 - ap;
+  const enemyChamp = state.champions[enemyIdx];
+
+  if (action.type === 'move') {
+    const [tr, tc] = action.targetTile;
+    if (enemyChamp.row === tr && enemyChamp.col === tc) return true;
+    return state.units.some(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+  }
+  if (action.type === 'championMove') {
+    if (enemyChamp.row === action.row && enemyChamp.col === action.col) return true;
+    return state.units.some(u => u.owner === enemyIdx && u.row === action.row && u.col === action.col);
+  }
+  return false;
+}
+
 // ── Move Ordering Heuristic ───────────────────────────────────────────────────
 
 /**
@@ -570,6 +594,282 @@ function ttStore(tt, hash, depth, score, flag, action) {
   tt.set(hash, { depth, score, flag, action });
 }
 
+// ── History Heuristic ─────────────────────────────────────────────────────────
+
+/**
+ * History table: 25×25 for tile-to-tile moves (row*5+col, 0-24),
+ * plus a per-action-type table for non-tile actions.
+ * Reset at the start of each root decision.
+ */
+const HISTORY_ACTION_KEYS = ['cast', 'summon', 'championMove', 'championAbility', 'unitAction', 'endTurn'];
+const HISTORY_ACTION_IDX  = Object.fromEntries(HISTORY_ACTION_KEYS.map((k, i) => [k, i]));
+
+function makeHistoryTables() {
+  return {
+    tileMoves: Array.from({ length: 25 }, () => new Float64Array(25)),
+    types:     new Float64Array(HISTORY_ACTION_KEYS.length),
+  };
+}
+
+/**
+ * Stockfish gravity update: h += bonus - h * |bonus| / 16384.
+ * Keeps values bounded; prevents saturation.
+ */
+function _historyApply(arr, idx, bonus) {
+  arr[idx] = arr[idx] + bonus - arr[idx] * Math.abs(bonus) / 16384;
+}
+
+function historyScore(history, action, state) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (unit) {
+      const from = unit.row * 5 + unit.col;
+      const to   = action.targetTile[0] * 5 + action.targetTile[1];
+      return history.tileMoves[from][to];
+    }
+  }
+  if (action.type === 'championMove') {
+    const ap    = state.activePlayer;
+    const champ = state.champions[ap];
+    const from  = champ.row * 5 + champ.col;
+    const to    = action.row  * 5 + action.col;
+    return history.tileMoves[from][to];
+  }
+  const idx = HISTORY_ACTION_IDX[action.type] ?? 0;
+  return history.types[idx];
+}
+
+function historyRecord(history, action, state, bonus) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (unit) {
+      const from = unit.row * 5 + unit.col;
+      const to   = action.targetTile[0] * 5 + action.targetTile[1];
+      _historyApply(history.tileMoves[from], to, bonus);
+      return;
+    }
+  }
+  if (action.type === 'championMove') {
+    const ap    = state.activePlayer;
+    const champ = state.champions[ap];
+    const from  = champ.row * 5 + champ.col;
+    const to    = action.row  * 5 + action.col;
+    _historyApply(history.tileMoves[from], to, bonus);
+    return;
+  }
+  const idx = HISTORY_ACTION_IDX[action.type] ?? 0;
+  _historyApply(history.types, idx, bonus);
+}
+
+// ── Quiescence Search ─────────────────────────────────────────────────────────
+
+const Q_MAX_DEPTH    = 12;  // cap at 12 plies to prevent explosion
+const Q_DELTA_MARGIN = 200; // safety margin for delta pruning
+
+/**
+ * Generate capture-only move candidates for quiescence search.
+ * Includes:
+ *   - Unit attacks that kill an enemy unit (ATK >= enemy HP)
+ *   - Any unit attack on the enemy champion
+ *   - Champion attacks that kill an enemy unit (ATK >= enemy HP)
+ *   - Any champion attack on the enemy champion
+ *
+ * Sorted by MVV-LVA: highest (victimThreat - attackerAlly*0.1) first.
+ */
+function generateCaptures(state, ap) {
+  const enemyIdx   = 1 - ap;
+  const myChamp    = state.champions[ap];
+  const enemyChamp = state.champions[enemyIdx];
+  const captures   = [];
+  const dirs       = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+  for (const unit of state.units) {
+    if (unit.owner !== ap) continue;
+    if (unit.isRelic || unit.isOmen) continue;
+    const atk = unit.atk ?? 0;
+
+    for (const [dr, dc] of dirs) {
+      const tr = unit.row + dr;
+      const tc = unit.col + dc;
+      if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
+
+      // Any attack on enemy champion (always loud)
+      if (enemyChamp.row === tr && enemyChamp.col === tc) {
+        captures.push({
+          type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+          _victimThreat: 300,
+          _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4),
+        });
+        continue;
+      }
+
+      // Kill-eligible attack on enemy unit
+      const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+      if (enemy && atk >= (enemy.hp ?? 0)) {
+        captures.push({
+          type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+          _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
+          _attackerAlly: getCardRating(unit.id,  'ally',   unit.cost  ?? 4),
+        });
+      }
+    }
+  }
+
+  // Champion attacks
+  const champAtk = myChamp.atk ?? 0;
+  for (const [dr, dc] of dirs) {
+    const tr = myChamp.row + dr;
+    const tc = myChamp.col + dc;
+    if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
+
+    if (enemyChamp.row === tr && enemyChamp.col === tc) {
+      captures.push({ type: 'championMove', row: tr, col: tc, _victimThreat: 300, _attackerAlly: 0 });
+      continue;
+    }
+
+    const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+    if (enemy && champAtk >= (enemy.hp ?? 0)) {
+      captures.push({
+        type: 'championMove', row: tr, col: tc,
+        _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
+        _attackerAlly: 0,
+      });
+    }
+  }
+
+  // Sort MVV-LVA: highest (victim - attacker*0.1) first
+  captures.sort((a, b) =>
+    (b._victimThreat - b._attackerAlly * 0.1) - (a._victimThreat - a._attackerAlly * 0.1)
+  );
+  return captures;
+}
+
+/**
+ * Quiescence search: resolves tactical positions at leaf nodes by exploring
+ * capture-only moves until a quiet position is reached.
+ *
+ * Stand-pat is used as a lower bound (for the active player). Delta pruning
+ * skips captures that cannot possibly raise alpha. Depth cap prevents explosion.
+ *
+ * Stored in the TT at depth=0; main-search entries (depth>0) always replace them.
+ *
+ * @param {object}  state      - game state
+ * @param {number}  alpha      - alpha bound
+ * @param {number}  beta       - beta bound
+ * @param {number}  qdepth     - remaining quiescence depth
+ * @param {boolean} maximizing - same perspective as the leaf node that called us
+ * @param {string}  playerId   - root player ('p1'|'p2')
+ * @param {object}  weights    - eval weight overrides
+ * @param {Map}     tt         - transposition table
+ * @param {object}  stats      - mutable stats; increments stats.qNodes
+ * @param {object}  deadline   - { time: number } from the parent minimax search; abort if exceeded
+ * @returns {{ score: number }}
+ */
+function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weights, tt, stats, deadline) {
+  stats.qNodes = (stats.qNodes ?? 0) + 1;
+
+  // Time-budget guard: if the main search deadline has passed, return static eval immediately
+  if (deadline && performance.now() > deadline.time) {
+    return { score: scoreState(state, playerId, weights) };
+  }
+
+  const { over } = isGameOver(state);
+  if (over) return { score: scoreState(state, playerId, weights) };
+
+  // TT lookup — quiescence entries stored at depth=0
+  const hash     = getStateHash(state, 0);
+  const ttResult = ttLookup(tt, hash, 0, alpha, beta);
+  if (ttResult !== null && ttResult.score !== null) {
+    return { score: ttResult.score };
+  }
+
+  const staticEval = scoreState(state, playerId, weights);
+
+  if (maximizing) {
+    // Stand-pat: if static position is already good enough, cut immediately
+    if (staticEval >= beta) {
+      ttStore(tt, hash, 0, staticEval, TT_LOWER, null);
+      return { score: staticEval };
+    }
+    if (staticEval > alpha) alpha = staticEval;
+
+    if (qdepth <= 0) {
+      ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
+      return { score: staticEval };
+    }
+
+    const ap       = state.activePlayer;
+    const captures = generateCaptures(state, ap);
+    if (captures.length === 0) {
+      ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
+      return { score: staticEval };
+    }
+
+    let best = staticEval;
+    for (const cap of captures) {
+      // Delta pruning: skip captures that cannot possibly raise alpha
+      if (cap._victimThreat < 300) { // always search champion attacks
+        if (staticEval + cap._victimThreat + Q_DELTA_MARGIN < alpha) continue;
+      }
+
+      const ns     = applyAction(state, cap);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, weights, tt, stats, deadline);
+
+      if (result.score > best) best = result.score;
+      if (result.score > alpha) alpha = result.score;
+      if (alpha >= beta) {
+        ttStore(tt, hash, 0, best, TT_LOWER, null);
+        return { score: best };
+      }
+    }
+
+    const flag = best > staticEval ? TT_EXACT : TT_UPPER;
+    ttStore(tt, hash, 0, best, flag, null);
+    return { score: best };
+
+  } else {
+    // Minimizer stand-pat
+    if (staticEval <= alpha) {
+      ttStore(tt, hash, 0, staticEval, TT_UPPER, null);
+      return { score: staticEval };
+    }
+    if (staticEval < beta) beta = staticEval;
+
+    if (qdepth <= 0) {
+      ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
+      return { score: staticEval };
+    }
+
+    const ap       = state.activePlayer;
+    const captures = generateCaptures(state, ap);
+    if (captures.length === 0) {
+      ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
+      return { score: staticEval };
+    }
+
+    let best = staticEval;
+    for (const cap of captures) {
+      if (cap._victimThreat < 300) {
+        if (staticEval - cap._victimThreat - Q_DELTA_MARGIN > beta) continue;
+      }
+
+      const ns     = applyAction(state, cap);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, weights, tt, stats, deadline);
+
+      if (result.score < best) best = result.score;
+      if (result.score < beta) beta = result.score;
+      if (alpha >= beta) {
+        ttStore(tt, hash, 0, best, TT_UPPER, null);
+        return { score: best };
+      }
+    }
+
+    const flag = best < staticEval ? TT_EXACT : TT_LOWER;
+    ttStore(tt, hash, 0, best, flag, null);
+    return { score: best };
+  }
+}
+
 // ── Minimax ───────────────────────────────────────────────────────────────────
 
 // Bonus applied to positions where the searching player wins — ensures the AI
@@ -587,23 +887,29 @@ function scoreState(gameState, playerId, weights) {
 
 /**
  * Minimax search with alpha-beta pruning, move ordering, killer heuristic,
- * and transposition table.
+ * transposition table, history heuristic, quiescence search at leaf nodes,
+ * and Principal Variation Search (PVS).
  *
  * Depth semantics: depth decrements by 1 on EVERY action (not just endTurn).
- * This prevents the tree from exploding when a player takes many sequential
- * actions per turn (summons, moves, spells). Perspective (maximizing/minimizing)
- * still only flips on endTurn, matching the two-player game structure.
- * At depth 0 the position is evaluated and returned immediately.
+ * Perspective (maximizing/minimizing) flips only on endTurn, matching the
+ * two-player game structure. At depth 0, quiescenceSearch is called to resolve
+ * tactical positions before returning the leaf score.
  *
  * Move ordering (highest-priority to lowest):
  *   1. TT best action — move found best at a previous search of this position
  *   2. Killer moves   — moves that caused cutoffs at this depth in sibling nodes
- *   3. Heuristic sort — quickEvalOrder (lightweight 4-term eval)
+ *   3. Captures       — sorted by quickEvalOrder (proxy for MVV-LVA)
+ *   4. Quiet moves    — sorted by history score (descending)
+ *   5. endTurn        — always last
  *
- * Transposition table: positions are hashed with Zobrist. Results are stored
- * with exact/lower/upper bound flags and reused across iterations of iterative
- * deepening. Actions from TT entries are used for move ordering even when the
- * stored score cannot be directly applied.
+ * PVS: the first child at each node is searched with the full (alpha, beta)
+ * window. All subsequent children use a null window (alpha, alpha+1 for max;
+ * beta-1, beta for min). If the null-window search indicates the child may
+ * improve the bound, a full-window re-search is performed.
+ *
+ * History heuristic: quiet moves that cause beta cutoffs are recorded in the
+ * history table (bonus = depth²). All quiet moves tried before the cutoff
+ * receive a malus (−depth²). The gravity formula prevents saturation.
  *
  * @param {object}  gameState        - current game state
  * @param {number}  depth            - remaining action-depth to search
@@ -616,50 +922,81 @@ function scoreState(gameState, playerId, weights) {
  * @param {object}  deadline         - { time: number } abort threshold (performance.now() ms)
  * @param {object}  killers          - killer move table: { [depth]: encoded[] }
  * @param {Map}     tt               - transposition table (shared across ID iterations)
- * @param {object}  stats            - mutable stats: { ttLookups, ttHits }
+ * @param {object}  history          - history heuristic tables (shared across ID iterations)
+ * @param {object}  stats            - mutable stats: { ttLookups, ttHits, qNodes }
  * @returns {{ score: number, action: object|null, timedOut?: true }}
  */
-function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, weights, deadline, killers, tt, stats) {
+function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, weights, deadline, killers, tt, history, stats) {
   // Timeout check: abort and signal with a sentinel value
   if (performance.now() > deadline.time) {
     return { score: scoreState(gameState, playerId, weights), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over || depth === 0) {
+
+  // At depth 0 (or game over): call quiescence instead of bare static eval
+  if (over) {
     return { score: scoreState(gameState, playerId, weights), action: null };
+  }
+  if (depth === 0) {
+    const qResult = quiescenceSearch(
+      gameState, alpha, beta, Q_MAX_DEPTH,
+      maximizingPlayer, playerId, weights, tt, stats, deadline
+    );
+    return { score: qResult.score, action: null };
   }
 
   // ── Transposition table lookup ────────────────────────────────────────────
-  const hash      = getStateHash(gameState, commandsUsed);
-  const ttResult  = ttLookup(tt, hash, depth, alpha, beta);
+  const hash     = getStateHash(gameState, commandsUsed);
+  const ttResult = ttLookup(tt, hash, depth, alpha, beta);
   stats.ttLookups++;
 
   if (ttResult !== null && ttResult.score !== null) {
-    // Exact score or applicable bound — can return directly.
     stats.ttHits++;
     return { score: ttResult.score, action: ttResult.action };
   }
 
-  // TT action for move ordering (may be null if no TT entry exists).
   const ttBestAction = ttResult?.action ?? null;
 
   const rawActions = getLegalActions(gameState);
-  const filtered = filterActions(rawActions, gameState, commandsUsed);
+  const filtered   = filterActions(rawActions, gameState, commandsUsed);
 
   if (filtered.length === 0) {
     return { score: scoreState(gameState, playerId, weights), action: null };
   }
 
-  // ── Move ordering (priority: TT best → killers → heuristic) ──────────────
+  // ── Move ordering (TT best → killers → captures → quiet-by-history) ───────
   const orderingPlayer = gameState.activePlayer === 0 ? 'p1' : 'p2';
-  const { sorted: heuristic } = orderActions(filtered, gameState, orderingPlayer);
 
-  // Apply killers first (bumps them above heuristic sort).
-  const afterKillers = applyKillers(heuristic, killers, depth);
+  // Separate endTurns, captures, quiet moves
+  const endTurnActions = filtered.filter(a => a.type === 'endTurn');
+  const nonEndTurn     = filtered.filter(a => a.type !== 'endTurn');
+  const captureActions = nonEndTurn.filter(a =>  isCapture(a, gameState));
+  const quietActions   = nonEndTurn.filter(a => !isCapture(a, gameState));
 
-  // Promote TT best action to absolute front (above killers).
-  let actions = afterKillers;
+  // Sort captures by quickEvalOrder (descending)
+  const capScores = new Map();
+  for (const a of captureActions) {
+    capScores.set(a, quickEvalOrder(applyAction(gameState, a), orderingPlayer));
+  }
+  captureActions.sort((a, b) => (capScores.get(b) ?? 0) - (capScores.get(a) ?? 0));
+
+  // Sort quiet moves by history score (descending); break ties with quickEvalOrder
+  const quietScores = new Map();
+  for (const a of quietActions) {
+    const h = historyScore(history, a, gameState);
+    const q = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
+    quietScores.set(a, h * 10 + q); // history dominates; quickEval breaks ties
+  }
+  quietActions.sort((a, b) => (quietScores.get(b) ?? 0) - (quietScores.get(a) ?? 0));
+
+  // Merge: captures first, then quiet, then endTurn
+  let actions = [...captureActions, ...quietActions, ...endTurnActions];
+
+  // Apply killers (promotes to front of the merged list, before captures)
+  actions = applyKillers(actions, killers, depth);
+
+  // Promote TT best action to absolute front
   if (ttBestAction) {
     const idx = actions.findIndex(a => matchesKiller(a, ttBestAction));
     if (idx > 0) {
@@ -668,26 +1005,45 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
   }
 
   const originalAlpha = alpha;
+  const histBonus     = depth * depth; // history update magnitude
 
   if (maximizingPlayer) {
-    let best = { score: -Infinity, action: null };
+    let best        = { score: -Infinity, action: null };
+    let firstChild  = true;
+    const triedQuiet = []; // quiet moves tried before a cutoff (for history malus)
 
     for (const action of actions) {
-      const newState = applyAction(gameState, action);
+      const newState  = applyAction(gameState, action);
       const isEndTurn = action.type === 'endTurn';
 
-      // Depth decrements on every action; perspective flips only on endTurn.
       const nextDepth        = depth - 1;
       const nextMaximizing   = isEndTurn ? false : true;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(
-        newState, nextDepth, alpha, beta,
-        nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, stats
-      );
+      let result;
+      if (firstChild) {
+        // First child: full window search
+        result = minimax(
+          newState, nextDepth, alpha, beta,
+          nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+        );
+        firstChild = false;
+      } else {
+        // PVS: null-window search first
+        result = minimax(
+          newState, nextDepth, alpha, alpha + 1,
+          nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+        );
+        // Re-search with full window if null window indicates this might be best
+        if (!result.timedOut && result.score > alpha && result.score < beta) {
+          result = minimax(
+            newState, nextDepth, alpha, beta,
+            nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+          );
+        }
+      }
 
       if (result.timedOut) {
-        // Propagate timeout signal without replacing a valid best
         if (best.action === null) {
           best = { score: result.score, action: action, timedOut: true };
         }
@@ -698,36 +1054,62 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         best = { score: result.score, action: action };
       }
       alpha = Math.max(alpha, result.score);
+
       if (beta <= alpha) {
-        recordKiller(killers, depth, action); // beta cutoff — record killer
-        // Lower bound: true value >= best.score (we stopped searching early)
+        recordKiller(killers, depth, action);
+        // History: bonus for the cutoff move (if quiet), malus for earlier tried quiets
+        if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+          historyRecord(history, action, gameState, histBonus);
+          for (const q of triedQuiet) historyRecord(history, q, gameState, -histBonus);
+        }
         ttStore(tt, hash, depth, best.score, TT_LOWER, best.action);
         return best;
       }
+
+      // Track quiet moves tried before any potential cutoff
+      if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+        triedQuiet.push(action);
+      }
     }
 
-    // All actions searched without cutoff — determine bound type.
-    // EXACT if best improved over originalAlpha; UPPER if nothing beat alpha.
     const flag = best.score > originalAlpha ? TT_EXACT : TT_UPPER;
     ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
 
   } else {
-    let best = { score: Infinity, action: null };
+    let best         = { score: Infinity, action: null };
     const originalBeta = beta;
+    let firstChild   = true;
+    const triedQuiet = [];
 
     for (const action of actions) {
-      const newState = applyAction(gameState, action);
+      const newState  = applyAction(gameState, action);
       const isEndTurn = action.type === 'endTurn';
 
       const nextDepth        = depth - 1;
       const nextMaximizing   = isEndTurn ? true : false;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(
-        newState, nextDepth, alpha, beta,
-        nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, stats
-      );
+      let result;
+      if (firstChild) {
+        result = minimax(
+          newState, nextDepth, alpha, beta,
+          nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+        );
+        firstChild = false;
+      } else {
+        // PVS null window for minimizer: (beta-1, beta)
+        result = minimax(
+          newState, nextDepth, beta - 1, beta,
+          nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+        );
+        if (!result.timedOut && result.score < beta && result.score > alpha) {
+          result = minimax(
+            newState, nextDepth, alpha, beta,
+            nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats
+          );
+        }
+      }
 
       if (result.timedOut) {
         if (best.action === null) {
@@ -740,16 +1122,22 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         best = { score: result.score, action: action };
       }
       beta = Math.min(beta, result.score);
+
       if (beta <= alpha) {
-        recordKiller(killers, depth, action); // alpha cutoff — record killer
-        // Upper bound: true value <= best.score (we stopped searching early)
+        recordKiller(killers, depth, action);
+        if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+          historyRecord(history, action, gameState, histBonus);
+          for (const q of triedQuiet) historyRecord(history, q, gameState, -histBonus);
+        }
         ttStore(tt, hash, depth, best.score, TT_UPPER, best.action);
         return best;
       }
+
+      if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+        triedQuiet.push(action);
+      }
     }
 
-    // All actions searched without cutoff.
-    // EXACT if best improved on originalBeta; LOWER if nothing beat beta.
     const flag = best.score < originalBeta ? TT_EXACT : TT_LOWER;
     ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
@@ -759,19 +1147,18 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Choose the best action using minimax with alpha-beta pruning and iterative deepening.
- *
- * Replaces the prior fixed-depth / selective-deepening approach with iterative
- * deepening (ID): search all candidates at depth 1, then depth 2, then depth 3,
- * and so on until the time budget (default 800ms) is exhausted. The best move
- * from the deepest completed iteration is returned.
+ * Choose the best action using minimax with iterative deepening and full Tier-1
+ * search improvements: TT, killer heuristic, history heuristic, quiescence
+ * search at leaf nodes, and Principal Variation Search.
  *
  * Search improvements stacked:
- *   1. Move ordering — TT best action first, then killer moves, then heuristic sort.
+ *   1. Move ordering  — captures first (quickEval), then quiet by history score.
  *   2. Killer heuristic — moves that caused cutoffs tried first at sibling nodes.
- *   3. Transposition table — Zobrist-hashed positions, fresh per decision,
- *      shared across ID iterations (depth-N seeds move ordering for depth-(N+1)).
- *   4. Iterative deepening — time-budgeted loop; incomplete final iteration discarded.
+ *   3. Transposition table — Zobrist-hashed, fresh per decision, shared across ID.
+ *   4. History heuristic — quiet-move beta-cutoff bonus/malus; Stockfish gravity.
+ *   5. Quiescence search — resolves tactical captures at leaf nodes (cap 12 plies).
+ *   6. PVS — first child full window; rest null-window with conditional re-search.
+ *   7. Iterative deepening — time-budgeted; incomplete final iteration discarded.
  *
  * @param {object}  gameState    - current game state
  * @param {number}  commandsUsed - move actions already taken this turn (0–3)
@@ -779,19 +1166,18 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
  *   timeBudget - per-decision time limit in ms (default 800)
  *   depth      - max depth cap for iterative deepening (default 20)
  *   weights    - explicit weight overrides for evaluateBoard (null = auto-detect faction)
- *   stats      - optional mutable accumulator: { ttLookups, ttHits, depthSum, ttSizeSum, decisions }
+ *   stats      - optional mutable accumulator: { ttLookups, ttHits, depthSum, ttSizeSum, qNodesSum, decisions }
  * @returns {object} action object to apply
  */
 export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
-  const timeBudget = options.timeBudget ?? 800; // ms per AI decision
-  const maxDepth   = options.depth      ?? 20;  // safety cap; time budget governs in practice
+  const timeBudget = options.timeBudget ?? 800;
+  const maxDepth   = options.depth      ?? 20;
   const weights    = options.weights    ?? undefined;
 
   const ap       = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
 
   // ── Pre-check: lethal detection ─────────────────────────────────────────────
-  // If any legal action wins the game immediately, take it without running minimax.
   const enemyIdx   = 1 - ap;
   const enemyChamp = gameState.champions[enemyIdx];
   const preActions = getLegalActions(gameState);
@@ -836,30 +1222,28 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
     }
   }
 
-  // Fresh TT and killers per AI decision.
-  // TT is shared across iterative deepening iterations so depth-N results seed
-  // move ordering for depth-(N+1).
-  const tt      = new Map();
-  const killers = {};
-  const localStats = { ttLookups: 0, ttHits: 0 };
+  // Fresh TT, killers, and history per AI decision.
+  // TT and history are shared across ID iterations so depth-N results seed depth-(N+1).
+  const tt         = new Map();
+  const killers    = {};
+  const history    = makeHistoryTables();
+  const localStats = { ttLookups: 0, ttHits: 0, qNodes: 0 };
 
-  // ── Iterative deepening search ────────────────────────────────────────────────
+  // ── Iterative deepening search ─────────────────────────────────────────────
   const deadline = { time: performance.now() + timeBudget };
 
-  let bestAction    = null;
-  let depthReached  = 0;
+  let bestAction   = null;
+  let depthReached = 0;
 
   for (let depth = 1; depth <= maxDepth; depth++) {
     if (performance.now() >= deadline.time) break;
 
     const result = minimax(
       gameState, depth, -Infinity, Infinity,
-      true, playerId, commandsUsed, weights, deadline, killers, tt, localStats
+      true, playerId, commandsUsed, weights, deadline, killers, tt, history, localStats
     );
 
     if (result.timedOut) {
-      // Incomplete iteration — keep the best from the last complete iteration.
-      // If we have no best yet (depth=1 timed out), use this partial result.
       if (bestAction === null && result.action !== null) {
         bestAction   = result.action;
         depthReached = depth;
@@ -877,6 +1261,7 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
   if (options.stats) {
     options.stats.ttLookups   = (options.stats.ttLookups   ?? 0) + localStats.ttLookups;
     options.stats.ttHits      = (options.stats.ttHits      ?? 0) + localStats.ttHits;
+    options.stats.qNodesSum   = (options.stats.qNodesSum   ?? 0) + localStats.qNodes;
     options.stats.depthSum    = (options.stats.depthSum    ?? 0) + depthReached;
     options.stats.ttSizeSum   = (options.stats.ttSizeSum   ?? 0) + tt.size;
     options.stats.decisions   = (options.stats.decisions   ?? 0) + 1;
