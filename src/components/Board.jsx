@@ -393,12 +393,14 @@ export default function Board({
     }
   }
 
-  // Enemy-occupied tiles that are valid move targets (show red)
+  // Enemy-occupied tiles that are valid move targets (show red).
+  // Own Amethyst Crystal is also attackable by its owner — include it in attack highlights.
   const enemyMoveSet = new Set(
     unitMoveTiles
       .filter(([r, c]) =>
         units.some(u => u.owner !== activePlayer && u.row === r && u.col === c) ||
-        champions.some(ch => ch.owner !== activePlayer && ch.row === r && ch.col === c)
+        champions.some(ch => ch.owner !== activePlayer && ch.row === r && ch.col === c) ||
+        units.some(u => u.id === 'amethystcrystal' && u.owner === activePlayer && u.row === r && u.col === c)
       )
       .map(([r, c]) => `${r},${c}`)
   );
@@ -508,8 +510,9 @@ export default function Board({
       return;
     }
     if (phase === 'action') {
-      // Enemy unit on a valid move tile — treat as move-to (combat)
-      if (selectMode === 'unit_move' && unit.owner !== activePlayer) {
+      // Enemy unit or own Amethyst Crystal on a valid move tile — treat as move-to (combat)
+      const isOwnCrystal = unit.id === 'amethystcrystal' && unit.owner === activePlayer;
+      if (selectMode === 'unit_move' && (unit.owner !== activePlayer || isOwnCrystal)) {
         const key = `${unit.row},${unit.col}`;
         if (unitMoveSet.has(key)) {
           handlers.handleMoveUnit(unit.row, unit.col);
