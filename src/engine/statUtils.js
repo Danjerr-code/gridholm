@@ -27,7 +27,9 @@ export function getAuraAtkBonus(state, unit, combatTile = null) {
     if (!other.aura || other.aura.stat !== 'atk' || other.aura.target === 'enemy') continue;
     if (other.aura.target === 'friendlybeast' && !unitTypes(unit).includes('Beast')) continue;
     const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
-    if (manhattan([other.row, other.col], [unit.row, unit.col]) <= other.aura.range + rangeBonus) {
+    const anchorRow = other.aura.champAnchor ? state.champions[other.owner].row : other.row;
+    const anchorCol = other.aura.champAnchor ? state.champions[other.owner].col : other.col;
+    if (manhattan([anchorRow, anchorCol], [unit.row, unit.col]) <= other.aura.range + rangeBonus) {
       bonus += other.aura.value;
     }
   }
@@ -154,7 +156,9 @@ export function getFriendlyAuraBonus(state, unit) {
     if (other.owner !== unit.owner || other.uid === unit.uid || other.hidden) continue;
     if (!other.aura || (other.aura.target !== 'friendly' && other.aura.target !== 'friendlybeast')) continue;
     if (other.aura.target === 'friendlybeast' && !unitTypes(unit).includes('Beast')) continue;
-    const dist = manhattan([other.row, other.col], [unit.row, unit.col]);
+    const anchorRow = other.aura.champAnchor ? state.champions[other.owner].row : other.row;
+    const anchorCol = other.aura.champAnchor ? state.champions[other.owner].col : other.col;
+    const dist = manhattan([anchorRow, anchorCol], [unit.row, unit.col]);
     const rangeBonus = getFriendlyAuraRangeBonus(state, other.owner);
     if (dist > other.aura.range + rangeBonus) continue;
     if (other.aura.stat === 'atk') bonus.atk += other.aura.value;

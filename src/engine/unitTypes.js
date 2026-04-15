@@ -32,4 +32,5 @@ export const UNIT_TYPES = {
   SNAKE: 'Snake',
   NEUTRAL: 'Neutral',
   CONSTRUCT: 'Construct',
+  GUARD: 'Guard',
 };

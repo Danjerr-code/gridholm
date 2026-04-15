@@ -572,6 +572,24 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'royalGuardBuff': {
+      // Royal Guard: at the start of each turn, all adjacent friendly combat units gain +1 ATK until end of turn.
+      if (!listenerUnit) break;
+      const adj = cardinalNeighbors(listenerUnit.row, listenerUnit.col);
+      const buffed = state.units.filter(u =>
+        u.owner === playerIndex &&
+        !u.isRelic && !u.isOmen && !u.hidden &&
+        u.uid !== listenerUnit.uid &&
+        adj.some(([r, c]) => u.row === r && u.col === c)
+      );
+      if (buffed.length === 0) break;
+      for (const ally of buffed) {
+        ally.turnAtkBonus = (ally.turnAtkBonus || 0) + 1;
+      }
+      addLog(state, `Royal Guard bolsters nearby allies. ${buffed.map(u => u.name).join(', ')} gain +1 ATK this turn.`);
+      break;
+    }
+
     default:
       break;
   }

@@ -532,9 +532,10 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
       {/* Status badges top center */}
       <div style={{ position: 'absolute', top: 1, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', gap: 2 }}>
         {unit.summoned && <SmallPill label="S" bg="#78716c" color="#e7e5e4" title="Summoning sickness" />}
-        {unit.moved && <SmallPill label="✓" bg="#374151" color="#9ca3af" title="Already moved" />}
+        {unit.moved && !unit.dormant && <SmallPill label="✓" bg="#374151" color="#9ca3af" title="Already moved" />}
         {unit.skipNextAction && <SmallPill label="Stunned" bg="#44403c" color="#fbbf24" title="Stunned — cannot move or use Action abilities this turn" />}
         {unit.rooted && <SmallPill label="Rooted" bg="#1e3a1e" color="#86efac" title="Rooted — cannot move this turn, can still use Action abilities and fight" />}
+        {unit.dormant && <SmallPill label={`💤${unit.dormantCounter ?? 1}`} bg="#1e1b4b" color="#a5b4fc" title={`Dormant — awakens in ${unit.dormantCounter ?? 1} turn(s)`} />}
       </div>
 
       {/* Hidden badge (own hidden unit) — top center above status */}

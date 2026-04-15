@@ -16,12 +16,12 @@ const ADVENTURE_DRAFT_PICKS = 8; // 1 special first pick + 7 standard picks
  */
 function generateAdventureFirstPack(faction) {
   const legendaries = Object.values(CARD_DB).filter(card =>
-    card.legendary && !card.isToken && !card.token && !card.isChampion &&
+    card.legendary && !card.isToken && !card.token && !card.isChampion && !card.bossOnly &&
     (card.attribute === faction || card.attribute === 'neutral')
   );
   const rares = Object.values(CARD_DB).filter(card =>
     card.rarity === 'rare' && !card.legendary &&
-    !card.isToken && !card.token && !card.isChampion &&
+    !card.isToken && !card.token && !card.isChampion && !card.bossOnly &&
     (card.attribute === faction || card.attribute === 'neutral')
   );
   const shuffledLegs = shuffle([...legendaries]);

@@ -78,6 +78,7 @@ function _buildCardPool(faction, rarity) {
   return Object.values(CARD_DB).filter(card => {
     if (card.isToken || card.token || card.isChampion) return false;
     if (card.legendary) return false;
+    if (card.bossOnly) return false;
     if (rarity && card.rarity !== rarity) return false;
     return card.attribute === faction || card.attribute === 'neutral';
   });

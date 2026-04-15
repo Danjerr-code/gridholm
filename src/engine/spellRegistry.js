@@ -834,6 +834,81 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  // ==========================================
+  // BOSS-ONLY SPELLS (The Enthroned)
+  // ==========================================
+
+  // Royal Decree: give all friendly units +2 ATK until end of turn.
+  royal_decree: (state, caster) => {
+    const allies = state.units.filter(u => u.owner === caster && !u.isRelic && !u.isOmen && !u.hidden);
+    for (const ally of allies) {
+      ally.turnAtkBonus = (ally.turnAtkBonus || 0) + 2;
+    }
+    addLog(state, `Royal Decree: all friendly units gain +2 ATK this turn.`);
+    return state;
+  },
+
+  // Fortify the Crown: all friendly units within 2 tiles of your champion gain +3 HP permanently.
+  fortify_the_crown: (state, caster) => {
+    const champ = state.champions[caster];
+    const allies = state.units.filter(u =>
+      u.owner === caster && !u.isRelic && !u.isOmen && !u.hidden &&
+      manhattan([champ.row, champ.col], [u.row, u.col]) <= 2
+    );
+    for (const ally of allies) {
+      ally.hp += 3;
+      ally.maxHp += 3;
+    }
+    if (allies.length > 0) {
+      addLog(state, `Fortify the Crown: ${allies.map(u => u.name).join(', ')} gain +3 HP.`);
+    } else {
+      addLog(state, `Fortify the Crown: no friendly units in range.`);
+    }
+    return state;
+  },
+
+  // Throne's Judgment: deal damage to target unit equal to friendly units adjacent to your champion.
+  thrones_judgment: (state, caster, targets) => {
+    const target = targets[0];
+    if (!target) return state;
+    const champ = state.champions[caster];
+    const adjFriendly = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+      state.units.some(u => u.owner === caster && u.row === r && u.col === c && !u.isRelic && !u.isOmen)
+    ).length;
+    const dmg = adjFriendly;
+    if (dmg <= 0) {
+      addLog(state, `Throne's Judgment: no friendly units adjacent to champion — deals 0 damage.`);
+      return state;
+    }
+    addLog(state, `Throne's Judgment: deals ${dmg} damage to ${target.name}.`);
+    applyDamageToUnit(state, target, dmg, "Throne's Judgment");
+    return state;
+  },
+
+  // Consecrated Ground: place Hallowed Ground on all 8 tiles surrounding the Throne at (2,2).
+  // Hallowed Ground: friendly units on this tile restore 1 HP at the start of their turn.
+  consecrated_ground: (state) => {
+    if (!state.terrainGrid) {
+      state.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
+    }
+    const surroundingTiles = [
+      [1, 1], [1, 2], [1, 3],
+      [2, 1],         [2, 3],
+      [3, 1], [3, 2], [3, 3],
+    ];
+    let placed = 0;
+    for (const [r, c] of surroundingTiles) {
+      state.terrainGrid[r][c] = {
+        id: 'hallowed',
+        ownerName: 'Consecrated Ground',
+        onTurnStart: { heal: 1 },
+      };
+      placed++;
+    }
+    addLog(state, `Consecrated Ground: Hallowed Ground placed on ${placed} tiles around the Throne.`);
+    return state;
+  },
+
 };
 
 // ==========================================

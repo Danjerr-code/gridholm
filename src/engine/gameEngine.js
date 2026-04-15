@@ -709,6 +709,21 @@ function fireBeginTurnTriggers(state, playerIdx) {
     }
   }
 
+  // Dormant unit countdown: decrement at the start of their owner's turn.
+  // When counter reaches 0, remove dormant status and let the unit act this turn.
+  const dormantUnits = state.units.filter(u => u.owner === playerIdx && u.dormant);
+  for (const du of dormantUnits) {
+    du.dormantCounter = (du.dormantCounter ?? 1) - 1;
+    if (du.dormantCounter <= 0) {
+      du.dormant = false;
+      delete du.dormantCounter;
+      du.moved = false; // unit can act the turn it awakens
+      addLog(state, `${du.name} awakens!`);
+    } else {
+      addLog(state, `${du.name} is dormant — awakens in ${du.dormantCounter} turn(s).`);
+    }
+  }
+
   // Declarative onBeginTurn triggers (e.g. Bloodmoon)
   fireTrigger('onBeginTurn', { playerIndex: playerIdx }, state);
 }
@@ -806,10 +821,12 @@ function fireEndTurnTriggers(state, playerIdx) {
     }
   });
 
-  // 6. Throne damage: deal 2 damage to opponent champion (3 if enhancedThrone boss rule)
+  // 6. Throne damage: deal 2 damage to opponent champion (3 if enhancedThrone boss rule;
+  //    +1 per active Crown of Dominion omen owned by the throne-holder)
   if (champ.row === 2 && champ.col === 2) {
     const oppIdx = 1 - playerIdx;
-    const baseDamage = state.enhancedThrone ? 3 : 2;
+    const crownOfDominion = state.units.filter(u => u.owner === playerIdx && u.id === 'crown_of_dominion' && !u.hidden).length;
+    const baseDamage = (state.enhancedThrone ? 3 : 2) + crownOfDominion;
     const maxDamage = Math.max(0, state.champions[oppIdx].hp - 1);
     const actualDamage = Math.min(baseDamage, maxDamage);
     if (actualDamage > 0) {
@@ -1208,6 +1225,15 @@ export function fireOnSummonTriggers(unit, state) {
     }
   }
 
+  // Herald of the Crown: restore 2 HP to champion if champion is on the Throne (2,2)
+  if (unit.id === 'herald_of_the_crown') {
+    const champ = state.champions[unit.owner];
+    if (champ && champ.row === 2 && champ.col === 2) {
+      const healed = restoreHP(champ, 2, state, 'herald_of_the_crown');
+      if (healed > 0) addLog(state, `Herald of the Crown: champion restores ${healed} HP from the Throne.`);
+    }
+  }
+
   // Adventure loop scaling: buff enemy units by +loopCount ATK/HP on summon
   if (state.adventureLoopCount > 0 && unit.owner === 1 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
     const lc = state.adventureLoopCount;
@@ -1316,6 +1342,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingChampionSaplingPlace: null, // { playerIdx, validTiles: [[r,c],...] } — Sapling Summon tile pick
     finalGambitActive: [false, false], // true when Final Gambit was chosen; player loses at end of their turn
     terrainGrid: Array.from({ length: 5 }, () => Array(5).fill(null)), // 5x5 terrain effect layer
+    switchTiles: [], // [{ row, col, active }] — boss fight switch mechanic
     archerShot: [],
     recalledThisTurn: [],
     graveAccessActive: [false, false],
@@ -1621,17 +1648,22 @@ function doBeginTurnPhase(state) {
 
   // Clear summoning sickness and per-turn bonuses for active player
   // Must run before begin-turn triggers so that units summoned by triggers retain their summoning sickness this turn.
+  // Dormant units skip the normal reset — their moved flag stays true so they cannot act.
   state.units.forEach(u => {
     if (u.owner === state.activePlayer) {
-      u.summoned = false;
-      u.moved = false;
-      u.speedBonus = 0;
-      u.turnAtkBonus = 0;
-      u.extraActionsRemaining = 0;
-      // Clear razorfang reset used flag
-      if (u.id === 'razorfang') u.razorfangResetUsed = false;
-      // Reset Iron Queen's per-turn action counter
-      if (u.id === 'ironqueen') u.ironQueenActionsUsed = 0;
+      if (u.dormant) {
+        u.moved = true; // dormant units cannot act; counter ticks in fireBeginTurnTriggers
+      } else {
+        u.summoned = false;
+        u.moved = false;
+        u.speedBonus = 0;
+        u.turnAtkBonus = 0;
+        u.extraActionsRemaining = 0;
+        // Clear razorfang reset used flag
+        if (u.id === 'razorfang') u.razorfangResetUsed = false;
+        // Reset Iron Queen's per-turn action counter
+        if (u.id === 'ironqueen') u.ironQueenActionsUsed = 0;
+      }
     }
   });
 
@@ -1797,6 +1829,8 @@ export function moveChampion(state, row, col) {
     if (enemyDestroyed) {
       champ.row = row;
       champ.col = col;
+      // Switch tile: fire if champion advanced onto active switch after defeating enemy
+      fireSwitchAt(s, row, col);
     }
     champ.moved = true;
     checkWinner(s);
@@ -1826,6 +1860,8 @@ export function moveChampion(state, row, col) {
       champ.col = col;
       champ.moved = true;
       addLog(s, `${getPlayer(s).name}'s champion moves to (${row},${col}).`);
+      // Switch tile: fire if champion stepped onto an active switch
+      fireSwitchAt(s, row, col);
       // Reveal hidden enemy units adjacent to champion's new position
       for (const [nr, nc] of cardinalNeighbors(row, col)) {
         const hiddenEnemy = s.units.find(u => u.owner !== s.activePlayer && u.row === nr && u.col === nc && u.hidden);
@@ -1936,6 +1972,8 @@ export function playCard(state, cardUid) {
       'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
       'ancientspring', 'verdantsurge', 'predatorsmark',
       'agonizingsymphony', 'pestilence', 'fatesledger', 'seconddawn',
+      // Boss-only no-target spells
+      'royal_decree', 'fortify_the_crown', 'consecrated_ground',
     ]);
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
@@ -2805,6 +2843,13 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
     }
   }
+  // ── Throne's Judgment ──
+  else if (effect === 'thrones_judgment') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'thrones_judgment', [target]);
+      checkWinner(s);
+    }
+  }
   // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
   // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
@@ -3297,6 +3342,43 @@ export function triggerUnitAction(state, unitUid) {
   return s;
 }
 
+// ── switch tile mechanic ────────────────────────────────────────────────────
+
+// Fires when any piece (unit or champion) enters an active switch tile.
+// Displaces the occupant of Throne (2,2) to a random open adjacent tile.
+// The switch is consumed (set to used) regardless of whether displacement succeeds.
+function fireSwitchAt(state, row, col) {
+  if (!state.switchTiles?.length) return;
+  const sw = state.switchTiles.find(s => s.active && s.row === row && s.col === col);
+  if (!sw) return;
+  sw.active = false; // consumed
+  addLog(state, `Switch activated at (${row},${col})!`);
+  const throneUnit  = state.units.find(u => u.row === 2 && u.col === 2);
+  const throneChamp = state.champions.find(c => c.row === 2 && c.col === 2);
+  if (!throneUnit && !throneChamp) {
+    addLog(state, `Throne is empty — switch consumed with no displacement.`);
+    return;
+  }
+  const adjTiles = cardinalNeighbors(2, 2).filter(([r, c]) =>
+    !state.units.some(u => u.row === r && u.col === c) &&
+    !state.champions.some(ch => ch.row === r && ch.col === c)
+  );
+  if (adjTiles.length === 0) {
+    addLog(state, `Switch fired — no open tile adjacent to Throne, displacement fails.`);
+    return;
+  }
+  const [nr, nc] = adjTiles[Math.floor(Math.random() * adjTiles.length)];
+  if (throneUnit) {
+    throneUnit.row = nr;
+    throneUnit.col = nc;
+    addLog(state, `${throneUnit.name} displaced from Throne to (${nr},${nc})!`);
+  } else if (throneChamp) {
+    throneChamp.row = nr;
+    throneChamp.col = nc;
+    addLog(state, `${state.players[throneChamp.owner].name}'s champion displaced from Throne to (${nr},${nc})!`);
+  }
+}
+
 // ── unit movement ──────────────────────────────────────────────────────────
 
 export function getUnitMoveTiles(state, unitUid) {
@@ -3307,6 +3389,7 @@ export function getUnitMoveTiles(state, unitUid) {
   // so Shadow Trap Hole, Dread Mirror, and any future hidden units with spd 0
   // can move 1 tile while hidden and revert to their base SPD on reveal.
   if (unit.isRelic || (unit.isOmen && !unit.hidden) || getEffectiveSpd(unit, state) === 0 || unit.rooted) return [];
+  if (unit.dormant) return [];
   if (unit.summoned || unit.moved) {
     return [];
   }
@@ -3328,6 +3411,13 @@ function reachableTiles(state, unit, speed) {
       const enemyUnit = state.units.find(u => u.owner !== unit.owner && u.row === nr && u.col === nc);
       const enemyChamp = state.champions.find(ch => ch.owner !== unit.owner && ch.row === nr && ch.col === nc);
       if (unit.canAttack === false && (enemyUnit || enemyChamp)) continue;
+      // Crown's Wrath: can only attack units adjacent to its own champion
+      if (unit.attackOnlyAdjacentToChampion && (enemyUnit || enemyChamp)) {
+        const ownChamp = state.champions.find(ch => ch.owner === unit.owner);
+        if (!ownChamp) continue;
+        const adjToChamp = cardinalNeighbors(ownChamp.row, ownChamp.col).some(([r, c]) => r === nr && c === nc);
+        if (!adjToChamp) continue;
+      }
       // For tiles at distance 2, check that at least one cardinal 2-step path has a
       // clear intermediate tile. Flying units bypass this check.
       if (dist === 2 && !unit.flying) {
@@ -3560,6 +3650,8 @@ export function moveUnit(state, unitUid, row, col) {
         if (defenderDestroyed && !stillAlive2.rooted && !advanceTileOccupied) {
           stillAlive2.row = row;
           stillAlive2.col = col;
+          // Switch tile: fire if unit advanced onto an active switch after defeating enemy
+          fireSwitchAt(s, row, col);
         }
         if (stillAlive2.id === 'ironqueen') {
           stillAlive2.ironQueenActionsUsed = (stillAlive2.ironQueenActionsUsed ?? 0) + 1;
@@ -3682,6 +3774,8 @@ export function moveUnit(state, unitUid, row, col) {
     // Terrain onOccupy: trigger when unit moves onto a terrain tile
     const movedUnit = s.units.find(u => u.uid === unitUid);
     if (movedUnit) fireTerrainOnOccupy(s, movedUnit, row, col);
+    // Switch tile: fire if unit stepped onto an active switch
+    fireSwitchAt(s, row, col);
     // onFriendlyCommand: fire for non-combat moves (movement costs a command)
     const unitAfterMove = s.units.find(u => u.uid === unitUid);
     if (unitAfterMove && unit.owner === s.activePlayer) {
@@ -3734,6 +3828,18 @@ export function executeApproachAndAttack(state, unitUid, approachRow, approachCo
 
 export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null) {
   let actualDmg = dmg;
+  // auraDamageReduction modifier: friendly adjacent unit reduces damage taken by amount
+  if (!unit.isRelic && !unit.isOmen && state.activeModifiers) {
+    for (const mod of state.activeModifiers) {
+      if (mod.type !== 'auraDamageReduction') continue;
+      if (mod.playerIndex !== unit.owner) continue;
+      const src = state.units.find(u => u.uid === mod.unitUid);
+      if (!src || src.hidden || src.uid === unit.uid) continue;
+      if (manhattan([src.row, src.col], [unit.row, unit.col]) <= (mod.range || 1)) {
+        actualDmg = Math.max(0, actualDmg - (mod.amount || 1));
+      }
+    }
+  }
   if (unit.shield > 0) {
     const absorbed = Math.min(unit.shield, dmg);
     unit.shield -= absorbed;
@@ -4220,6 +4326,13 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         !u.isOmen
       ).map(u => u.uid);
 
+    // Throne's Judgment: any enemy combat unit (not relic, not omen, not hidden, not spell-immune)
+    case 'thrones_judgment':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isRelic && !u.isOmen &&
+        !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+
     // Toll of Shadows: multi-step caster sacrifice
     // step 0 = sacrifice a friendly combat unit; step 1 = sacrifice omen; step 2 = sacrifice relic
     // step 3 (discard) is handled via pendingHandSelect, not pendingSpell targets
@@ -4385,6 +4498,9 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'seconddawn':
       return state.players[playerIndex].grave.some(u => u.type === 'unit' && !u.token);
+
+    case 'thrones_judgment':
+      return enemyUnits.some(u => !u.isRelic && !u.isOmen);
 
     default:
       return true;

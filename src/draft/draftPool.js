@@ -19,6 +19,7 @@ export function buildDraftPool(primaryFaction, secondaryFaction) {
     // Exclude champion tokens and non-playable cards
     if (card.isToken || card.token) return false;
     if (card.isChampion) return false;
+    if (card.bossOnly) return false;
     // Include all faction cards and neutral cards
     const attr = card.attribute;
     if (!attr) return false;
@@ -262,6 +263,7 @@ export function generateLegendaryPack(primaryFaction, secondaryFaction, excluded
   const legendaries = Object.values(CARD_DB).filter(card => {
     if (!card.legendary) return false;
     if (card.isToken || card.token) return false;
+    if (card.bossOnly) return false;
     if (excluded.has(card.id)) return false;
     const attr = card.attribute;
     return (

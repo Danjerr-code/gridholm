@@ -24,7 +24,7 @@ const FACTION_LABELS = {
 const RARITY_COLORS = { common: '#9CA3AF', rare: '#818CF8', legendary: '#F59E0B' };
 
 function getAllCards() {
-  return Object.values(CARD_DB).filter(c => !c.token);
+  return Object.values(CARD_DB).filter(c => !c.token && !c.bossOnly);
 }
 
 function groupByFaction(cards) {

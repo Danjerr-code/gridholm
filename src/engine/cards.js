@@ -250,6 +250,28 @@ export const CARD_DB = {
   enchanted_ground:{ id: 'enchanted_ground', rarity: 'common',name: 'Enchanted Ground', type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'mystic', rules: 'Mystic units within this terrain area have +1/+1.', terrainEffect: { id: 'enchanted', rarity: 'common', whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'mystic', combatOnly: true } }, image: 'enchantedground.webp' },
   cursed_ground:   { id: 'cursed_ground', rarity: 'common',   name: 'Cursed Ground',   type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'dark',   rules: 'Dark units within this terrain area have +1/+1.', terrainEffect: { id: 'cursed', rarity: 'common', whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'dark', combatOnly: true } }, image: 'cursedground.webp' },
   huntingground:   { id: 'huntingground', rarity: 'common',   name: 'Hunting Ground',  type: 'terrain', isTerrain: true, cost: 3, terrainRadius: 2, unitType: [], attribute: 'primal',  rules: 'Primal units within this terrain area have +1/+1.', terrainEffect: { id: 'huntingground', rarity: 'common', name: 'Hunting Ground', description: 'Primal units within this terrain area have +1/+1.', whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'primal', combatOnly: true } }, image: 'huntingground.webp' },
+
+  // ── Boss-Only Cards (The Enthroned) ────────────────────────────────────────
+  // These cards appear only in The Enthroned's deck. bossOnly: true excludes
+  // them from player draft pools, pack generation, and the collection view.
+
+  // Units
+  throne_sentinel:      { id: 'throne_sentinel', rarity: 'rare', name: 'Throne Sentinel', type: 'unit', cost: 3, atk: 3, hp: 6, spd: 0, unitType: [UNIT_TYPES.GUARD], attribute: 'neutral', rules: 'This unit cannot move.', bossOnly: true, image: null },
+  royal_guard:          { id: 'royal_guard', rarity: 'common', name: 'Royal Guard', type: 'unit', cost: 2, atk: 2, hp: 3, spd: 1, unitType: [UNIT_TYPES.GUARD], attribute: 'neutral', rules: 'At the start of each turn, adjacent friendly units gain +1 ATK until end of turn.', triggers: [{ event: 'onBeginTurn', effect: 'royalGuardBuff' }], bossOnly: true, image: null },
+  herald_of_the_crown:  { id: 'herald_of_the_crown', rarity: 'common', name: 'Herald of the Crown', type: 'unit', cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'neutral', rules: 'When summoned while your champion occupies the Throne tile (2,2), restore 2 HP to your champion.', bossOnly: true, image: null },
+  royal_banner:         { id: 'royal_banner', rarity: 'rare', name: 'Royal Banner', type: 'unit', cost: 3, atk: 1, hp: 3, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'neutral', rules: 'Aura 1: Friendly units within 1 tile of your champion have +1 ATK.', aura: { range: 1, stat: 'atk', value: 1, target: 'friendly', champAnchor: true }, bossOnly: true, image: null },
+
+  // Spells
+  royal_decree:         { id: 'royal_decree', rarity: 'rare', name: 'Royal Decree', type: 'spell', cost: 3, effect: 'royal_decree', unitType: [], attribute: 'neutral', rules: 'All friendly units gain +2 ATK until end of turn.', bossOnly: true, image: null },
+  fortify_the_crown:    { id: 'fortify_the_crown', rarity: 'common', name: 'Fortify the Crown', type: 'spell', cost: 3, effect: 'fortify_the_crown', unitType: [], attribute: 'neutral', rules: 'Friendly units within 2 tiles of your champion gain +3 HP.', bossOnly: true, image: null },
+  thrones_judgment:     { id: 'thrones_judgment', rarity: 'rare', name: "Throne's Judgment", type: 'spell', cost: 4, effect: 'thrones_judgment', unitType: [], attribute: 'neutral', rules: 'Deal damage to target enemy unit equal to the number of friendly units adjacent to your champion.', bossOnly: true, image: null },
+  consecrated_ground:   { id: 'consecrated_ground', rarity: 'rare', name: 'Consecrated Ground', type: 'spell', cost: 4, effect: 'consecrated_ground', unitType: [], attribute: 'neutral', rules: 'Place Hallowed Ground on all 8 tiles surrounding the Throne at (2,2). Friendly units on those tiles restore 1 HP at the start of their turn.', bossOnly: true, image: null },
+
+  // Omen
+  eternal_throne:       { id: 'eternal_throne', rarity: 'rare', name: 'Eternal Throne', type: 'omen', cost: 3, atk: 0, spd: 0, turnsRemaining: 3, isOmen: true, unitType: [], attribute: 'neutral', rules: 'At the start of each turn, restore 1 HP to all friendly units.', triggers: [{ event: 'onBeginTurn', effect: 'restoreOneHPToAllFriendly' }], bossOnly: true, image: null },
+
+  // Relic
+  crown_of_dominion:    { id: 'crown_of_dominion', rarity: 'legendary', name: 'Crown of Dominion', type: 'relic', cost: 3, atk: 0, hp: 4, spd: 0, isRelic: true, unitType: [], attribute: 'neutral', rules: 'While this relic is on the board, the Throne tile deals +1 bonus damage at the end of each turn.', legendary: false, bossOnly: true, image: null },
 };
 
 // ── Token Definitions ──────────────────────────────────────────────────────

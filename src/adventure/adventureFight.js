@@ -247,10 +247,17 @@ export function buildAdventureGameState(run, row, col, tileType) {
         owner: 1,
         row: uRow,
         col: uCol,
+        // Preserve dormant fields if present on the base definition
+        ...(base.dormant ? { dormant: true, dormantCounter: base.dormantCounter ?? 1 } : {}),
       };
       state.units.push(unit);
       registerUnit(unit, state);
       registerModifiers(unit, state);
+    }
+
+    // Apply boss switch tiles
+    if (bossDef.switchTiles && bossDef.switchTiles.length > 0) {
+      state.switchTiles = bossDef.switchTiles.map(s => ({ ...s }));
     }
 
     // Enhanced throne: 3 damage instead of 2

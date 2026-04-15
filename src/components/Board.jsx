@@ -638,6 +638,7 @@ export default function Board({
                 terrain={terrain}
                 terrainAnimActive={!!terrainAnimStates[key]}
                 isThroneShockwave={row === 2 && col === 2 && throneAnimActive}
+                isSwitchTile={!!(state.switchTiles?.some(s => s.active && s.row === row && s.col === col))}
                 isSelected={unit?.uid === selectedUnit}
                 isSpellTarget={isSpellTarget}
                 isChampionSpellTarget={isChampionSpellTarget}

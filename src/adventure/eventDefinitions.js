@@ -35,6 +35,7 @@ function _buildCardPool(faction, rarity) {
   return Object.values(CARD_DB).filter(card => {
     if (card.isToken || card.token || card.isChampion) return false;
     if (card.legendary) return false;
+    if (card.bossOnly) return false;
     if (rarity && card.rarity !== rarity) return false;
     return card.attribute === faction || card.attribute === 'neutral';
   });
@@ -234,7 +235,7 @@ const EVENTS = [
           const faction = state.championFaction ?? 'light';
           const pool = _rngShuffle(
             Object.values(CARD_DB).filter(c =>
-              !c.isToken && !c.token && !c.isChampion && !c.legendary &&
+              !c.isToken && !c.token && !c.isChampion && !c.legendary && !c.bossOnly &&
               (c.attribute === faction || c.attribute === 'neutral') &&
               (c.cost ?? 0) < highestCost
             ),

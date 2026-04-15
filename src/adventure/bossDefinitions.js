@@ -8,37 +8,44 @@
 
 // ── The Enthroned ─────────────────────────────────────────────────────────────
 
-// Curated 25-card deck mixing cards from all 4 factions (no legendaries)
+// 30-card deck: mix of all factions plus boss-only cards.
+// Boss-only cards are excluded from player draft pools and are marked bossOnly: true.
 const ENTHRONED_DECK = [
   // Light (6)
-  'militia',       // 1-cost rush
-  'squire',        // 2-cost durable
-  'knight',        // 3-cost solid
-  'warlord',       // 4-cost powerhouse
-  'smite',         // 3-cost removal
-  'ironshield',    // 2-cost protection
+  'militia',
+  'squire',
+  'knight',
+  'warlord',
+  'smite',
+  'ironshield',
   // Primal (6)
-  'boar',          // 1-cost rush
-  'wolf',          // 2-cost mobile
-  'razorclaw',     // 2-cost threat
-  'rockhorn',      // 4-cost rush
-  'ambush',        // 3-cost combat trick
-  'savagegrowth',  // 3-cost buff
-  // Mystic (7)
-  'elfscout',      // 1-cost mobile
-  'woodlandguard', // 2-cost utility
-  'verdantarcher', // 2-cost mobile
-  'elfranger',     // 4-cost flanker
-  'glimpse',       // 2-cost card advantage
-  'moonleaf',      // healing
-  'bloom',         // mystic aoe
-  // Dark (6)
-  'imp',           // 1-cost
-  'spiteling',     // 2-cost
-  'dreadknight',   // 3-cost
-  'shadowstalker', // 3-cost hidden
-  'pestilence',    // 4-cost debuff
-  'souldrain',     // drain spell
+  'boar',
+  'wolf',
+  'razorclaw',
+  'rockhorn',
+  'ambush',
+  'savagegrowth',
+  // Mystic (5)
+  'elfscout',
+  'woodlandguard',
+  'verdantarcher',
+  'glimpse',
+  'moonleaf',
+  // Dark (5)
+  'imp',
+  'spiteling',
+  'dreadknight',
+  'shadowstalker',
+  'souldrain',
+  // Boss-only cards (8)
+  'royal_guard',
+  'royal_guard',
+  'herald_of_the_crown',
+  'royal_banner',
+  'royal_decree',
+  'fortify_the_crown',
+  'thrones_judgment',
+  'consecrated_ground',
 ];
 
 /**
@@ -107,6 +114,40 @@ function throneArcherBase(loopScaling) {
   };
 }
 
+/**
+ * Dormant Court Knight — a dormant unit that awakens after 1 turn.
+ * Placed far from the boss; dormant=true blocks it from acting until it wakes.
+ * @param {number} loopScaling
+ * @returns {Object} base unit data
+ */
+function courtKnightBase(loopScaling) {
+  return {
+    id: 'court_knight',
+    name: 'Court Knight',
+    atk: 3 + loopScaling,
+    hp: 5 + loopScaling,
+    maxHp: 5 + loopScaling,
+    spd: 1,
+    type: 'unit',
+    attribute: 'neutral',
+    unitType: ['Knight', 'Guard'],
+    rules: 'Dormant 1 — awakens after 1 turn.',
+    cost: 3,
+    rarity: 'rare',
+    image: null,
+    isToken: false,
+    legendary: false,
+    rush: false,
+    atkBonus: 0,
+    shield: 0,
+    speedBonus: 0,
+    turnAtkBonus: 0,
+    hidden: false,
+    moved: false,
+    summoned: false,
+  };
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -125,16 +166,29 @@ export function getBossDefinition(bossId, loopCount = 0) {
       name:         'The Enthroned',
       championHP:   20 + ls * 5,
       faction:      'neutral',
-      deckSize:     25,
+      deckSize:     30,
       aiDepth:      2,
       deck:         [...ENTHRONED_DECK],
-      // Pre-placed units at fight start (owner = 1 = AI)
-      // Positions relative to boss champion at (2,2):
+      // Pre-placed units at fight start (owner = 1 = AI).
+      // dormant=true + dormantCounter=N means the unit cannot act until counter reaches 0.
       startingUnits: [
+        // Active guards flanking the boss champion at (2,2)
         { base: throneGuardBase(ls),  row: 1, col: 2 },
         { base: throneGuardBase(ls),  row: 3, col: 2 },
+        // Active archers to the sides of the throne
         { base: throneArcherBase(ls), row: 2, col: 1 },
         { base: throneArcherBase(ls), row: 2, col: 3 },
+        // Dormant Court Knights in the back rows — awaken after 1 turn
+        { base: { ...courtKnightBase(ls), dormant: true, dormantCounter: 1 }, row: 0, col: 2 },
+        { base: { ...courtKnightBase(ls), dormant: true, dormantCounter: 1 }, row: 4, col: 2 },
+      ],
+      // Switch tiles: stepping on any of these displaces the occupant of Throne (2,2).
+      // Placed at corners adjacent to the boss's patrol zone.
+      switchTiles: [
+        { row: 0, col: 1, active: true },
+        { row: 0, col: 3, active: true },
+        { row: 4, col: 1, active: true },
+        { row: 4, col: 3, active: true },
       ],
       // Enhanced throne: deals 3 damage instead of 2 at end of turn
       uniqueRules: ['enhanced_throne'],

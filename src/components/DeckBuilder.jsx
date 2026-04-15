@@ -985,6 +985,7 @@ function CardBrowser({ primaryAttr, secondaryAttr, deck, deckName, onDeckNameCha
   const legalCards = useMemo(() => {
     return Object.values(CARD_DB).filter(c => {
       if (c.token) return false;
+      if (c.bossOnly) return false;
       return c.attribute === primaryAttr || c.attribute === secondaryAttr || c.attribute === 'neutral';
     });
   }, [primaryAttr, secondaryAttr]);

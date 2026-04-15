@@ -37,6 +37,7 @@ export default function Cell({
   terrain,
   terrainAnimActive = false,
   isThroneShockwave = false,
+  isSwitchTile = false,
   unitAnimState,
   champAnimState,
   dyingUnits = [],
@@ -248,6 +249,24 @@ export default function Cell({
       {isCenter && !unit && !champion && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ color: 'rgba(150,80,20,0.6)', fontSize: '12px', fontWeight: 700 }}>
           ★
+        </div>
+      )}
+
+      {/* Switch tile overlay — glowing gold border + ⇄ icon when active */}
+      {isSwitchTile && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #f59e0b',
+            borderRadius: '4px',
+            boxShadow: 'inset 0 0 8px rgba(245,158,11,0.4), 0 0 10px rgba(245,158,11,0.35)',
+            zIndex: 1,
+          }}
+        />
+      )}
+      {isSwitchTile && !unit && !champion && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ color: 'rgba(245,158,11,0.7)', fontSize: '11px', fontWeight: 700, zIndex: 1 }}>
+          ⇄
         </div>
       )}
 
