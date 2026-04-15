@@ -388,11 +388,52 @@ export function chooseAction(gameState, commandsUsed = 0) {
 
 
 // ── Mulligan heuristic ────────────────────────────────────────────────────────
-// Returns the hand indices the AI wants to replace.
-// Mulligans any card costing more than 3 mana.
+// Curve-aware mulligan. Returns the hand indices the AI wants to replace.
+// Goals: ensure a playable card on turns 1–3, keep at most 1 spell.
 export function chooseMulligan(hand) {
-  return hand
+  const toMulligan = new Set();
+  const isUnit = card => card.type === 'unit';
+
+  // Rule 4: Always mulligan cards costing 5 or more.
+  hand.forEach((card, idx) => { if (card.cost >= 5) toMulligan.add(idx); });
+
+  // Rule 5: Mulligan cost-4 cards unless the hand already has cost 1, 2, AND 3.
+  const hasCost1 = hand.some(c => c.cost === 1);
+  const hasCost2 = hand.some(c => c.cost === 2);
+  const hasCost3 = hand.some(c => c.cost === 3);
+  if (!(hasCost1 && hasCost2 && hasCost3)) {
+    hand.forEach((card, idx) => { if (card.cost === 4) toMulligan.add(idx); });
+  }
+
+  // Classify original hand (used for rules 2 and 3).
+  const handUnits = hand.filter(c => isUnit(c));
+  const hasLowCostUnit = handUnits.some(c => c.cost <= 2);
+
+  if (handUnits.length === 0) {
+    // Rule 2: Zero units — mulligan all spells costing 3 or more.
+    hand.forEach((card, idx) => { if (!isUnit(card) && card.cost >= 3) toMulligan.add(idx); });
+  } else if (!hasLowCostUnit) {
+    // Rule 3: Has units but none at cost 1–2 — mulligan highest-cost kept cards
+    // in descending order until a cost 1–2 card is encountered.
+    const sortedKept = hand
+      .map((card, idx) => ({ card, idx }))
+      .filter(({ idx }) => !toMulligan.has(idx))
+      .sort((a, b) => b.card.cost - a.card.cost);
+    for (const { card, idx } of sortedKept) {
+      if (card.cost <= 2) break; // reached a low-cost card — stop
+      toMulligan.add(idx);
+    }
+  }
+
+  // Rule 7: Keep at most 1 spell; mulligan highest-cost extras.
+  const keptSpells = hand
     .map((card, idx) => ({ card, idx }))
-    .filter(({ card }) => card.cost > 3)
-    .map(({ idx }) => idx);
+    .filter(({ card, idx }) => !isUnit(card) && !toMulligan.has(idx))
+    .sort((a, b) => b.card.cost - a.card.cost);
+  for (let i = 0; i < keptSpells.length - 1; i++) toMulligan.add(keptSpells[i].idx);
+
+  // Rule 6: Never mulligan a cost-1 unit (override all other rules).
+  hand.forEach((card, idx) => { if (isUnit(card) && card.cost === 1) toMulligan.delete(idx); });
+
+  return [...toMulligan];
 }

@@ -127,7 +127,7 @@ async function main() {
   console.log(`\n=== Throne Anchor Validation — depth=${args.depth} ===\n`);
 
   let totalGames = 0;
-  let thronByT3  = 0;  // player-slots where champion reached throne by turn 3
+  let thronByT3  = 0;  // player-slots where champion reached throne by turn 4 (earliest possible with SPD 1)
   let stay5plus  = 0;  // player-slots where champion stayed 5+ consecutive turns
 
   for (const matchup of matchups) {
@@ -158,7 +158,7 @@ async function main() {
 
       totalGames++;
       for (const st of [p1, p2]) {
-        if (st.firstTurn !== null && st.firstTurn <= 3) thronByT3++;
+        if (st.firstTurn !== null && st.firstTurn <= 4) thronByT3++;
         if (st.maxConsecutive >= 5) stay5plus++;
       }
     }
@@ -171,7 +171,7 @@ async function main() {
 
   console.log('=== Summary ===');
   console.log(`Total games: ${totalGames} (${totalSlots} player slots)`);
-  console.log(`Throne by turn 3:        ${thronByT3}/${totalSlots} = ${pct3}%  (gate: >70%)`);
+  console.log(`Throne by turn 4:        ${thronByT3}/${totalSlots} = ${pct3}%  (gate: >70%)`);
   console.log(`Stayed 5+ consec turns:  ${stay5plus}/${totalSlots} = ${pct5}%  (gate: >50%)`);
   console.log('');
 
@@ -179,7 +179,7 @@ async function main() {
     console.log('✓ VALIDATION PASSED — proceed to full 1200-game matrix');
   } else {
     console.log('✗ VALIDATION FAILED — thresholds not met, do not run full matrix');
-    console.log(`  → Throne by t3: ${pct3}% (need >70%), Stay 5+: ${pct5}% (need >50%)`);
+    console.log(`  → Throne by t4: ${pct3}% (need >70%), Stay 5+: ${pct5}% (need >50%)`);
   }
 }
 

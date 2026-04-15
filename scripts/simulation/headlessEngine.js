@@ -41,6 +41,7 @@ import {
 } from '../../src/engine/gameEngine.js';
 
 import { ACTION_REGISTRY } from '../../src/engine/actionRegistry.js';
+import { chooseMulligan } from './simAI.js';
 
 // Standard deck IDs supported by the headless engine.
 // 'custom' is excluded — it requires localStorage.
@@ -75,11 +76,10 @@ export function createGame(deck1Id = 'human', deck2Id = 'beast') {
       `Unsupported deck ID. Use one of: ${[...VALID_DECK_IDS].join(', ')}`
     );
   }
-  // Both simulation players auto-keep their opening hand (no UI mulligan step).
-  // submitMulligan with empty arrays for both immediately transitions to begin-turn.
+  // Both simulation players apply the curve-aware mulligan algorithm before play starts.
   const s = createInitialState(deck1Id, deck2Id);
-  submitMulligan(s, 0, []);
-  submitMulligan(s, 1, []);
+  submitMulligan(s, 0, chooseMulligan(s.players[0].hand));
+  submitMulligan(s, 1, chooseMulligan(s.players[1].hand));
   return autoAdvancePhase(s);
 }
 
