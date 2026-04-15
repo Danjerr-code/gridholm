@@ -186,7 +186,7 @@ export const CARD_DB = {
 
   // Demon omens and dark spells (Batch 17)
   dreadmirror:     { id: 'dreadmirror', rarity: 'rare',     name: 'Dread Mirror',        type: 'omen',  cost: 4, atk: 0, spd: 0, turnsRemaining: 2, isOmen: true, hidden: true, unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Hidden On reveal: Deal damage to the revealing unit equal to its ATK. Whenever an enemy unit dies, restore 1 HP to your champion.', image: 'dreadmirror.webp' },
-  fatesledger:     { id: 'fatesledger', rarity: 'rare',     name: "Fate's Ledger",       type: 'spell', cost: 5, effect: 'fatesledger',     unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'You may play cards from your grave this turn.', image: 'fatesledger.webp' },
+  fatesledger:     { id: 'fatesledger', rarity: 'rare',     name: "Fate's Ledger",       type: 'spell', cost: 5, effect: 'fatesledger',     unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'You may play cards from your grave this turn. Any card that would enter your grave this turn is banished instead. Banish Fate\'s Ledger.', image: 'fatesledger.webp' },
   tollofshadows:   { id: 'tollofshadows', rarity: 'rare',   name: 'Toll of Shadows',     type: 'spell', cost: 6, effect: 'tollofshadows',   unitType: [UNIT_TYPES.DEMON], attribute: 'dark', rules: 'Each player sacrifices a unit, an omen, a relic, and discards a card.', image: 'tollofshadows.webp' },
 
   // Demon spells

@@ -292,6 +292,17 @@ export function getCommandLimit(state, playerIndex) {
 }
 
 // ── Unit destruction ────────────────────────────────────────────────────────
+// Routes a grave entry to banished (if banishToGrave is active for that player) or grave.
+function sendToGraveOrBanish(state, playerIndex, entry) {
+  if (state.banishToGrave?.[playerIndex]) {
+    if (!state.players[playerIndex].banished) state.players[playerIndex].banished = [];
+    state.players[playerIndex].banished.push(entry);
+  } else {
+    if (!state.players[playerIndex].grave) state.players[playerIndex].grave = [];
+    state.players[playerIndex].grave.push(entry);
+  }
+}
+
 // Single point of unit removal for the entire engine. Fires death triggers.
 export function destroyUnit(unit, state, source = 'combat', destroyingUids = new Set(), combatTile = null) {
   if (destroyingUids.has(unit.uid)) return state;
@@ -337,8 +348,7 @@ export function destroyUnit(unit, state, source = 'combat', destroyingUids = new
       isOmen: unit.isOmen || false,
       // permanent stat changes are captured via atk/maxHp above
     };
-    if (!state.players[unit.owner].grave) state.players[unit.owner].grave = [];
-    state.players[unit.owner].grave.push(graveEntry);
+    sendToGraveOrBanish(state, unit.owner, graveEntry);
   }
 
   // Track units destroyed stat for the opposing player (non-token, non-relic, non-omen)
@@ -1256,8 +1266,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     winner: null,
     pendingDiscard: false,
     players: [
-      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
-      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
+      { id: 0, name: 'Player 1', resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p1Hand, deck: p1Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p1Resonance, deckId: p1DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
+      { id: 1, name: 'AI',       resources: 0, maxResourcesThisTurn: 0, turnCount: 0, hand: p2Hand, deck: p2Deck, discard: [], grave: [], banished: [], hpRestoredThisTurn: 0, resonance: p2Resonance, deckId: p2DeckId, commandsUsed: 0, unitsPlayed: 0, spellsCast: 0, championDamageDealt: 0, championTookDamage: false, unitsDestroyed: 0, throneControlTurns: 0, throneControlStreak: 0, _throneStreakCurrent: 0, highCostCardsPlayed: 0 },
     ],
     champions: [
       { owner: 0, row: 0, col: 0, hp: 20, maxHp: 20, moved: false, attribute: getDeckChampionAttr(p1DeckId) },
@@ -1282,6 +1292,7 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     archerShot: [],
     recalledThisTurn: [],
     graveAccessActive: [false, false],
+    banishToGrave: [false, false],
     waddlesActive: [false, false],
     championAbilityUsed: [false, false],
     triggerListeners: createTriggerListeners(),
@@ -1841,7 +1852,7 @@ export function playCard(state, cardUid) {
       s.champions[s.activePlayer].moved = true;
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingGraveSelect = { reason: 'rebirth', playerIdx: s.activePlayer };
@@ -1853,7 +1864,7 @@ export function playCard(state, cardUid) {
     if (card.effect === 'glimpse') {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (p.deck.length === 0) {
         addLog(s, `Glimpse: deck is empty. Drawing a card.`);
@@ -1876,7 +1887,7 @@ export function playCard(state, cardUid) {
     if (NO_TARGET_SPELLS.has(card.effect)) {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s = _dispatchSpell(s, s.activePlayer, card.effect, []);
@@ -1903,7 +1914,7 @@ export function playCard(state, cardUid) {
       if (validTiles.length === 0) return s; // no valid tiles — cannot cast
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       s.pendingRelicPlace = { effect: 'amethystcache', playerIdx: s.activePlayer };
@@ -1921,7 +1932,7 @@ export function playCard(state, cardUid) {
       // Need to select a card to discard first
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
@@ -1934,7 +1945,7 @@ export function playCard(state, cardUid) {
     if (card.effect === 'tollofshadows') {
       p.resources -= effectiveCost;
       p.hand.splice(cardIdx, 1);
-      p.grave.push(card);
+      sendToGraveOrBanish(s, s.activePlayer, card);
       s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
       if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
       addLog(s, `${p.name} casts Toll of Shadows.`);
@@ -2472,7 +2483,7 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     if (p.resources < effectiveCost) return s;
     p.resources -= effectiveCost;
     p.hand.splice(cardIdx, 1);
-    p.grave.push(card);
+    sendToGraveOrBanish(s, s.activePlayer, card);
     resolvedSpellCard = card;
     s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
     if (card.cost >= 5) s.players[s.activePlayer].highCostCardsPlayed = (s.players[s.activePlayer].highCostCardsPlayed ?? 0) + 1;
@@ -3021,7 +3032,7 @@ export function castTerrainCard(state, cardUid, targetRow, targetCol) {
   if (p.resources < effectiveCost) return s;
   p.resources -= effectiveCost;
   p.hand.splice(cardIdx, 1);
-  p.grave.push(card);
+  sendToGraveOrBanish(s, s.activePlayer, card);
   s.pendingTerrainCast = null;
 
   const radius = card.terrainRadius ?? 0;
@@ -3804,6 +3815,7 @@ export function completeTurnAdvance(state, prevHistory = null) {
   s.players[s.activePlayer].spellEchoActive = false;
   if (s.pendingShadowVeil) s.pendingShadowVeil[s.activePlayer] = false;
   if (s.graveAccessActive) s.graveAccessActive[s.activePlayer] = false;
+  if (s.banishToGrave) s.banishToGrave[s.activePlayer] = false;
   if (s.championStunned) s.championStunned[s.activePlayer] = false;
   s.pendingLineBlast = null;
   s.pendingDirectionSelect = null;

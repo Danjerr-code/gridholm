@@ -667,11 +667,24 @@ export const SPELL_REGISTRY = {
   // DARK SPELLS (Batch 17)
   // ==========================================
 
-  // Fate's Ledger: allow playing cards from grave this turn
+  // Fate's Ledger: allow playing cards from grave this turn; all cards that would enter the
+  // caster's grave this turn are banished instead; Fate's Ledger itself is banished.
   fatesledger: (state, caster) => {
     if (!state.graveAccessActive) state.graveAccessActive = [false, false];
+    if (!state.banishToGrave) state.banishToGrave = [false, false];
     state.graveAccessActive[caster] = true;
-    addLog(state, `Fate's Ledger opens the grave.`);
+    state.banishToGrave[caster] = true;
+
+    // Fate's Ledger was pushed to the caster's grave before this handler ran — banish it now.
+    const p = state.players[caster];
+    if (!p.banished) p.banished = [];
+    const flIdx = p.grave ? p.grave.findIndex(c => c.id === 'fatesledger') : -1;
+    if (flIdx !== -1) {
+      const [fl] = p.grave.splice(flIdx, 1);
+      p.banished.push(fl);
+    }
+
+    addLog(state, `Fate's Ledger opens the grave. Cards entering the grave this turn are banished instead.`);
     return state;
   },
 

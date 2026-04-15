@@ -28,6 +28,7 @@ export function sanitizeGameState(state) {
         hand: Array.isArray(p.hand) ? p.hand : [],
         deck: Array.isArray(p.deck) ? p.deck : [],
         grave: Array.isArray(p.grave) ? p.grave : [],
+        banished: Array.isArray(p.banished) ? p.banished : [],
       };
     });
   }

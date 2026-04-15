@@ -210,6 +210,7 @@ export function buildTutorialState(scenario) {
   base.archerShot = [];
   base.recalledThisTurn = [];
   base.graveAccessActive = [false, false];
+  base.banishToGrave = [false, false];
   base.waddlesActive = [false, false];
   base.bloodlustTriggered = [0, 0];
   base.championStartTile = [null, null];
