@@ -25,6 +25,8 @@ import {
   triggerUnitAction,
   getUnitMoveTiles,
   moveUnit,
+  getApproachTiles,
+  executeApproachAndAttack,
   endTurn,
   getSpellTargets,
   getChampionAbilityTargets,
@@ -100,9 +102,28 @@ function getLegalActions(state) {
   }
 
   // 2. Unit moves
+  // For SPD 2+ attacks at distance 2 against an enemy, generate one action per approach tile
+  // so the AI can evaluate the best landing position (terrain/aura modifiers vary by tile).
   for (const unit of state.units.filter(u => u.owner === ap)) {
     for (const [row, col] of getUnitMoveTiles(state, unit.uid)) {
-      actions.push({ type: 'move', unitId: unit.uid, targetTile: [row, col] });
+      const dist = manhattan([unit.row, unit.col], [row, col]);
+      const isEnemyTarget =
+        state.units.some(u => u.owner !== ap && u.row === row && u.col === col) ||
+        state.champions.some(ch => ch.owner !== ap && ch.row === row && ch.col === col) ||
+        state.units.some(u => u.id === 'amethystcrystal' && u.owner === ap && u.row === row && u.col === col);
+      if (dist === 2 && isEnemyTarget) {
+        const approachTiles = getApproachTiles(state, unit, row, col);
+        if (approachTiles.length === 0) {
+          // Flying unit with no adjacent landing tile — moveUnit handles it (attacker stays put)
+          actions.push({ type: 'move', unitId: unit.uid, targetTile: [row, col] });
+        } else {
+          for (const [ar, ac] of approachTiles) {
+            actions.push({ type: 'move', unitId: unit.uid, targetTile: [row, col], approachTile: [ar, ac] });
+          }
+        }
+      } else {
+        actions.push({ type: 'move', unitId: unit.uid, targetTile: [row, col] });
+      }
     }
   }
 
@@ -259,6 +280,9 @@ export function applyAction(state, action) {
       return moveChampion(state, action.row, action.col);
 
     case 'move':
+      if (action.approachTile) {
+        return executeApproachAndAttack(state, action.unitId, action.approachTile[0], action.approachTile[1], action.targetTile[0], action.targetTile[1]);
+      }
       return moveUnit(state, action.unitId, action.targetTile[0], action.targetTile[1]);
 
     case 'summon': {
