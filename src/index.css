@@ -654,5 +654,5 @@ button, input, .card-name, .card-stats, .card-rules,
   );
   mask: radial-gradient(circle at center, transparent 38%, black 41%, black 49%, transparent 52%);
   -webkit-mask: radial-gradient(circle at center, transparent 38%, black 41%, black 49%, transparent 52%);
-  animation: glittering-gift-sparkle 3s linear infinite;
+  animation: glittering-gift-sparkle 9s linear infinite;
 }
