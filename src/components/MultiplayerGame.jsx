@@ -1499,11 +1499,17 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                   {phase === 'action' && selectedUnit && (
                     <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" fullWidth />
                   )}
-                  {phase === 'action' && (
+                  {phase === 'action' && !state.pendingHandSelect && (
                     <ActionBtn onClick={handleEndAction} label="End Turn →" variant="endphase" fullWidth />
+                  )}
+                  {phase === 'action' && state.pendingHandSelect && (
+                    <ActionBtn onClick={() => {}} label="End Turn →" variant="cancel" fullWidth style={{ opacity: 0.4, cursor: 'not-allowed' }} />
                   )}
                   {pendingDiscard && (
                     <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Discard a card to continue</span>
+                  )}
+                  {phase === 'action' && state.pendingHandSelect && (
+                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', fontWeight: 600 }}>Select a card first</span>
                   )}
                 </div>
               )}
@@ -1549,8 +1555,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
           {phase === 'action' && selectedUnit && (
             <ActionBtn onClick={clearSelection} label="Deselect" variant="cancel" style={{ minHeight: '44px', minWidth: '44px' }} />
           )}
-          {phase === 'action' && (
+          {phase === 'action' && !state.pendingHandSelect && (
             <ActionBtn onClick={handleEndAction} label="End Turn →" variant="endphase" style={{ minHeight: '44px', minWidth: '44px' }} />
+          )}
+          {phase === 'action' && state.pendingHandSelect && (
+            <ActionBtn onClick={() => {}} label="End Turn →" variant="cancel" style={{ minHeight: '44px', minWidth: '44px', opacity: 0.4, cursor: 'not-allowed' }} />
           )}
         </div>
       )}

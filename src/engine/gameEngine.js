@@ -3084,7 +3084,9 @@ export function endActionPhase(state) {
   const s = cloneState(state);
   // Block end-of-action phase while Nezzar's contract selection is pending
   if (s.pendingContractSelect) return s;
-  if (s.pendingHandSelect && typeof window !== 'undefined') console.log('[PactOfRuin] endActionPhase: clearing pendingHandSelect (was:', JSON.stringify(s.pendingHandSelect), ')');
+  // Block end-of-action phase while a hand selection requires resolution
+  // (e.g. Pact of Ruin discard, Toll of Shadows discard, Dark Bargain)
+  if (s.pendingHandSelect) return s;
   s.pendingSpell = null;
   s.pendingSummon = null;
   s.pendingHandSelect = null;
