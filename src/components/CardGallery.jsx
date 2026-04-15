@@ -31,7 +31,7 @@ const TYPE_SECTIONS = [
 ];
 
 function getGroupedByAttribute() {
-  const all = Object.values(CARD_DB).filter(c => !c.token && !c.bossOnly);
+  const all = Object.values(CARD_DB).filter(c => !c.token && !c.bossOnly && !c.adventureOnly);
   const byAttr = {};
   for (const section of ATTRIBUTE_SECTIONS) {
     byAttr[section.key] = [];

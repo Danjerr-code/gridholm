@@ -265,6 +265,7 @@ export function generateLegendaryPack(primaryFaction, secondaryFaction, excluded
     if (!card.legendary) return false;
     if (card.isToken || card.token) return false;
     if (card.bossOnly) return false;
+    if (card.adventureOnly) return false;
     if (excluded.has(card.id)) return false;
     const attr = card.attribute;
     return (

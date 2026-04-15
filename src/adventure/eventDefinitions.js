@@ -235,7 +235,7 @@ const EVENTS = [
           const faction = state.championFaction ?? 'light';
           const pool = _rngShuffle(
             Object.values(CARD_DB).filter(c =>
-              !c.isToken && !c.token && !c.isChampion && !c.legendary && !c.bossOnly &&
+              !c.isToken && !c.token && !c.isChampion && !c.legendary && !c.bossOnly && !c.adventureOnly &&
               (c.attribute === faction || c.attribute === 'neutral') &&
               (c.cost ?? 0) < highestCost
             ),
