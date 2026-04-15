@@ -690,6 +690,32 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
+  // Final Exchange: caster sacrifices a selected unit (step 0); opponent auto-sacrifices a random unit.
+  // The caster selection is handled via pendingSpell → resolveSpell in gameEngine.
+  // This resolver is called once with the caster's chosen target (step 0).
+  finalexchange: (state, caster, targets, options = {}) => {
+    const target = targets[0];
+    const castIdx = options.casterIdx ?? caster;
+    // Step 0: caster sacrifices chosen unit
+    if (target && !target.isRelic && !target.isOmen && target.owner === castIdx) {
+      addLog(state, `Final Exchange: ${state.players[castIdx].name} sacrifices ${target.name}.`);
+      fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...target }, sacrificingPlayerIndex: castIdx }, state);
+      destroyUnit(target, state, 'sacrifice');
+    }
+    // Opponent auto-sacrifices a random combat unit (if any)
+    const oppIdx = 1 - castIdx;
+    const oppUnits = state.units.filter(u => u.owner === oppIdx && !u.isRelic && !u.isOmen);
+    if (oppUnits.length > 0) {
+      const oppTarget = oppUnits[Math.floor(Math.random() * oppUnits.length)];
+      addLog(state, `Final Exchange: ${state.players[oppIdx].name} sacrifices ${oppTarget.name}.`);
+      fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...oppTarget }, sacrificingPlayerIndex: oppIdx }, state);
+      destroyUnit(oppTarget, state, 'sacrifice');
+    } else {
+      addLog(state, `Final Exchange: ${state.players[oppIdx].name} has no units to sacrifice.`);
+    }
+    return state;
+  },
+
   // Toll of Shadows: multi-step resolver — each step destroys one target
   // steps 0-3: casting player; steps 4-7: opponent
   // substep 0=sacrifice unit, 1=sacrifice omen, 2=sacrifice relic, 3=discard (handled in resolveSpell)

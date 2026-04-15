@@ -190,6 +190,39 @@ function updateWildbornAura(state) {
   }
 }
 
+// ── Shieldbearer Aura helpers ──────────────────────────────────────────────
+// Aura 1: friendly units within 1 tile gain +1 max HP and +1 current HP.
+// Tracked with unit.shieldbearerBuff (boolean) to prevent double-applying.
+
+function applyShieldbearerAura(unit, state) {
+  if (unit.shieldbearerBuff) return;
+  unit.shieldbearerBuff = true;
+  unit.maxHp += 1;
+  unit.hp += 1;
+  addLog(state, `Shieldbearer Aura: ${unit.name} gains +1 HP.`);
+}
+
+function removeShieldbearerAura(unit, state) {
+  if (!unit.shieldbearerBuff) return;
+  unit.shieldbearerBuff = false;
+  unit.maxHp = Math.max(1, unit.maxHp - 1);
+  unit.hp = Math.min(unit.hp, unit.maxHp);
+  if (unit.hp < 1) unit.hp = 1;
+  addLog(state, `Shieldbearer Aura: ${unit.name} loses +1 HP.`);
+}
+
+// Reconcile which friendly units have the Shieldbearer HP buff.
+// Called after any movement so entering/leaving range is handled automatically.
+function updateShieldbearerAura(state) {
+  for (const sb of state.units.filter(u => u.id === 'shieldbearer' && !u.hidden)) {
+    for (const friendly of state.units.filter(u => u.owner === sb.owner && u.uid !== sb.uid && !u.hidden)) {
+      const inRange = manhattan([sb.row, sb.col], [friendly.row, friendly.col]) <= (sb.aura?.range ?? 1);
+      if (inRange) applyShieldbearerAura(friendly, state);
+      else removeShieldbearerAura(friendly, state);
+    }
+  }
+}
+
 // ── Standard Bearer Aura helpers ───────────────────────────────────────────
 
 function applyStandardBearerAura(unit, state) {
@@ -457,6 +490,13 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
   if (unit.id === 'standardbearer') {
     for (const friendly of state.units.filter(u => u.owner === unit.owner && u.standardBearerBuff)) {
       removeStandardBearerAura(friendly, state);
+    }
+  }
+
+  // 8b. Shieldbearer: remove persistent +1 HP bonus from all buffed friendly units
+  if (unit.id === 'shieldbearer') {
+    for (const friendly of state.units.filter(u => u.owner === unit.owner && u.shieldbearerBuff)) {
+      removeShieldbearerAura(friendly, state);
     }
   }
 
@@ -1028,6 +1068,12 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
     liveAttacker.oathOfValorActive = false;
   }
 
+  // Reckless Charger: after this unit completes an attack, it becomes stunned next turn.
+  if (liveAttacker && liveAttacker.id === 'recklesscharger') {
+    liveAttacker.skipNextAction = true;
+    addLog(state, `Reckless Charger: stunned after attacking.`);
+  }
+
   // 9. Verdant Blade: when this unit attacks, the target cannot be healed until owner's next turn.
   if (liveAttacker && liveAttacker.id === 'verdant_blade' && !defenderIsChampion) {
     const liveDefender = state.units.find(u => u.uid === defender.uid);
@@ -1153,6 +1199,36 @@ export function fireOnSummonTriggers(unit, state) {
       }
     }
   }
+
+  // 7b. Shieldbearer summon: apply +1 HP aura to friendly units already in range,
+  //     and apply +1 HP bonus to this unit if a Shieldbearer is already on the board
+  const existingShb = state.units.find(u => u.id === 'shieldbearer' && u.owner === unit.owner && u.uid !== unit.uid && !u.hidden);
+  if (existingShb && manhattan([existingShb.row, existingShb.col], [unit.row, unit.col]) <= (existingShb.aura?.range ?? 1)) {
+    applyShieldbearerAura(unit, state);
+  }
+  if (unit.id === 'shieldbearer') {
+    for (const friendly of state.units.filter(u => u.owner === unit.owner && u.uid !== unit.uid && !u.hidden)) {
+      if (manhattan([unit.row, unit.col], [friendly.row, friendly.col]) <= (unit.aura?.range ?? 1)) {
+        applyShieldbearerAura(friendly, state);
+      }
+    }
+  }
+
+  // 7c. Drumhide: when summoned, reset champion's action so they may act again this turn
+  if (unit.id === 'drumhide') {
+    state.champions[unit.owner].moved = false;
+    addLog(state, `Drumhide: ${state.players[unit.owner].name}'s champion may take an additional action this turn.`);
+  }
+
+  // 7d. Veil Seer: when summoned, reveal the opponent's hand to the owner
+  if (unit.id === 'veilseer') {
+    state.pendingOpponentHandReveal = { playerIndex: unit.owner };
+    addLog(state, `Veil Seer: ${state.players[unit.owner].name} peeks at the opponent's hand.`);
+  }
+
+  // 7e. Hex Crawler: apply -1/-1 debuff to next unit opponent summons (mark owner's hexcrawlers)
+  // Handled inline in summonUnit: check if summoning player's opponent has a Hex Crawler on board.
+  // (No on-summon code needed here; the check is in summonUnit above onSummonEffects call.)
 
   // 8. Battle Standard omen: buff adjacent friendly combat units +1/+1 when summoned
   if (unit.id === 'battlestandard') {
@@ -1615,6 +1691,26 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
       addLog(state, `Gravefed Horror reveals. Feeds on ${count} fallen unit${count !== 1 ? 's' : ''}. +${count}/+${count}.`);
     } else {
       addLog(state, `Gravefed Horror reveals. No fallen units to feed on.`);
+    }
+  }
+  if (unit.id === 'dryadtrickster') {
+    // On reveal by combat: swap ATK and HP of the unit that moved into this tile (excludeUnit).
+    // On voluntary reveal (owner spends a command): prompt for target via pendingSpell.
+    if (excludeUnit) {
+      const liveRevealer = state.units.find(u => u.uid === excludeUnit.uid);
+      if (liveRevealer) {
+        const oldAtk = liveRevealer.atk;
+        const oldHp = liveRevealer.hp;
+        const oldMaxHp = liveRevealer.maxHp;
+        liveRevealer.atk = oldHp;
+        liveRevealer.hp = oldAtk;
+        liveRevealer.maxHp = Math.max(oldAtk, liveRevealer.maxHp);
+        addLog(state, `Dryad Trickster reveal: ${liveRevealer.name} ATK and HP swapped. Now ${liveRevealer.atk}/${liveRevealer.hp}.`);
+        if (liveRevealer.hp <= 0) destroyUnit(liveRevealer, state, 'dryadtrickster');
+      }
+    } else {
+      // Voluntary reveal — prompt for target on the board (any unit)
+      state.pendingSpell = { cardUid: unit.uid, effect: 'dryadtrickster_swap', playerIdx: unit.owner, step: 0, data: { sourceUid: unit.uid, paid: true } };
     }
   }
 }
@@ -2138,6 +2234,35 @@ export function playCard(state, cardUid) {
       return s;
     }
 
+    // Final Exchange: consume resources/card upfront, then prompt caster to select a unit to sacrifice.
+    // If caster has no units, skip caster step and auto-resolve opponent.
+    if (card.effect === 'finalexchange') {
+      p.resources -= effectiveCost;
+      p.hand.splice(cardIdx, 1);
+      sendToGraveOrBanish(s, s.activePlayer, card);
+      s.players[s.activePlayer].spellsCast = (s.players[s.activePlayer].spellsCast ?? 0) + 1;
+      addLog(s, `${p.name} casts Final Exchange.`);
+      fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card }, s);
+      const casterUnits = s.units.filter(u => u.owner === s.activePlayer && !u.isRelic && !u.isOmen);
+      if (casterUnits.length > 0) {
+        s.pendingSpell = { cardUid, effect: 'finalexchange', playerIdx: s.activePlayer, step: 0, data: { paid: true, casterIdx: s.activePlayer } };
+      } else {
+        // Caster has no units — skip caster step, auto-resolve opponent
+        addLog(s, `Final Exchange: ${p.name} has no units to sacrifice.`);
+        const oppIdx = 1 - s.activePlayer;
+        const oppUnits = s.units.filter(u => u.owner === oppIdx && !u.isRelic && !u.isOmen);
+        if (oppUnits.length > 0) {
+          const oppTarget = oppUnits[Math.floor(Math.random() * oppUnits.length)];
+          addLog(s, `Final Exchange: ${s.players[oppIdx].name} sacrifices ${oppTarget.name}.`);
+          fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...oppTarget }, sacrificingPlayerIndex: oppIdx }, s);
+          destroyUnit(oppTarget, s, 'sacrifice');
+        } else {
+          addLog(s, `Final Exchange: ${s.players[oppIdx].name} has no units to sacrifice.`);
+        }
+      }
+      return s;
+    }
+
     // Toll of Shadows: consume resources/card upfront and start sequential sacrifice chain
     if (card.effect === 'tollofshadows') {
       p.resources -= effectiveCost;
@@ -2244,6 +2369,18 @@ export function summonUnit(state, cardUid, row, col) {
     addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''} (Hidden)`, s.activePlayer);
   } else {
     addLog(s, `${p.name} summons ${card.name} at (${row},${col}).${card.rush ? ' Rush!' : ''}`);
+  }
+
+  // Hex Crawler curse: if the opponent has a Hex Crawler on board (not hidden), apply -1/-1 to this unit
+  if (!unit.isRelic && !unit.isOmen && !unit.hidden) {
+    const oppIdx = 1 - s.activePlayer;
+    const hexCrawler = s.units.find(u => u.owner === oppIdx && u.id === 'hexcrawler' && !u.hidden);
+    if (hexCrawler) {
+      unit.atk = Math.max(1, unit.atk - 1);
+      unit.hp = Math.max(1, unit.hp - 1);
+      unit.maxHp = Math.max(1, unit.maxHp - 1);
+      addLog(s, `Hex Crawler curses ${unit.name}. -1/-1.`);
+    }
   }
 
   // Register declarative triggers and static modifiers for this unit
@@ -3047,6 +3184,62 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Armourer action (Shield 1 to friendly within 1 tile) ──
+  else if (effect === 'armourer_action') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) {
+      s = _dispatchAction(unit, s, [target]);
+      const actorAfter = s.units.find(u => u.uid === unit.uid);
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    }
+  }
+  // ── Rayslinger action (stun adjacent unit) ──
+  else if (effect === 'rayslinger_action') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit && target) {
+      s = _dispatchAction(unit, s, [target]);
+      const actorAfter = s.units.find(u => u.uid === unit.uid);
+      fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+      fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, s);
+    }
+  }
+  // ── Null Herald action (sacrifice self, banish opponent's grave) ──
+  else if (effect === 'nullherald_action') {
+    const unit = s.units.find(u => u.uid === data.sourceUid);
+    if (unit) {
+      s = _dispatchAction(unit, s, []);
+      checkWinner(s);
+    }
+    s.pendingSpell = null;
+  }
+
+  // ── Final Exchange (caster selects a unit to sacrifice; opponent auto-sacrifices a random unit) ──
+  else if (effect === 'finalexchange') {
+    const castIdx = data.casterIdx ?? s.activePlayer;
+    s = _dispatchSpell(s, castIdx, 'finalexchange', [target], { casterIdx: castIdx });
+    checkWinner(s);
+    s.pendingSpell = null;
+  }
+
+  // ── Dryad Trickster voluntary reveal: owner selects a unit to swap ATK and HP ──
+  else if (effect === 'dryadtrickster_swap') {
+    if (target) {
+      const liveTarget = s.units.find(u => u.uid === target.uid);
+      if (liveTarget) {
+        const oldAtk = liveTarget.atk;
+        const oldHp = liveTarget.hp;
+        liveTarget.atk = oldHp;
+        liveTarget.hp = oldAtk;
+        liveTarget.maxHp = Math.max(oldAtk, liveTarget.maxHp);
+        addLog(s, `Dryad Trickster: ${liveTarget.name} ATK and HP swapped (${oldAtk}/${oldHp} → ${oldHp}/${oldAtk}).`);
+        if (liveTarget.hp <= 0) destroyUnit(liveTarget, s, 'dryadtrickster');
+        checkWinner(s);
+      }
+    }
+    s.pendingSpell = null;
+  }
+
   // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
   // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
@@ -3592,6 +3785,48 @@ export function triggerUnitAction(state, unitUid) {
     return result;
   }
 
+  // Armourer: Shield 1 to a friendly unit within 1 tile
+  if (unit.id === 'armourer') {
+    const armourerAdj = s.units.filter(u =>
+      u.owner === s.activePlayer &&
+      u.uid !== unit.uid &&
+      !u.isRelic &&
+      !u.isOmen &&
+      manhattan([unit.row, unit.col], [u.row, u.col]) <= 1
+    );
+    if (armourerAdj.length === 0) {
+      unit.moved = false;
+      s.players[s.activePlayer].commandsUsed = Math.max(0, (s.players[s.activePlayer].commandsUsed ?? 1) - actionCmdCost);
+      return s;
+    }
+    s.pendingSpell = { cardUid: unit.uid, effect: 'armourer_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    return s;
+  }
+
+  // Rayslinger: stun an adjacent unit next turn
+  if (unit.id === 'rayslinger') {
+    const rayslingerAdj = s.units.filter(u =>
+      !u.isOmen &&
+      manhattan([unit.row, unit.col], [u.row, u.col]) === 1
+    );
+    if (rayslingerAdj.length === 0) {
+      unit.moved = false;
+      s.players[s.activePlayer].commandsUsed = Math.max(0, (s.players[s.activePlayer].commandsUsed ?? 1) - actionCmdCost);
+      return s;
+    }
+    s.pendingSpell = { cardUid: unit.uid, effect: 'rayslinger_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
+    return s;
+  }
+
+  // Null Herald: sacrifice self, banish opponent's grave (untargeted — executes immediately)
+  if (unit.id === 'nullherald') {
+    const result = _dispatchAction(unit, s, []);
+    checkWinner(result);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: unit, triggeringUid: unit.uid }, result);
+    return result;
+  }
+
   // Clockwork Manimus: targeted 2-damage action
   if (unit.id === 'clockworkmanimus') {
     s.pendingSpell = { cardUid: unit.uid, effect: 'clockworkmanimus_action', playerIdx: s.activePlayer, step: 0, data: { sourceUid: unit.uid, paid: true } };
@@ -3600,6 +3835,15 @@ export function triggerUnitAction(state, unitUid) {
 
   // Fennwick: untargeted scry — reveals top card via pendingDeckPeek
   if (unit.id === 'fennwickthequiet') {
+    const result = _dispatchAction(unit, s, []);
+    const actorAfter = result.units.find(u => u.uid === unit.uid);
+    fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    fireTrigger('onFriendlyCommand', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
+    return result;
+  }
+
+  // Mana Sprite: untargeted — gain 1 mana this turn
+  if (unit.id === 'manasprite') {
     const result = _dispatchAction(unit, s, []);
     const actorAfter = result.units.find(u => u.uid === unit.uid);
     fireTrigger('onFriendlyAction', { playerIndex: unit.owner, actingUnit: actorAfter || unit, triggeringUid: unit.uid }, result);
@@ -3780,6 +4024,7 @@ export function moveUnit(state, unitUid, row, col) {
     }
     updateWildbornAura(s);
     updateStandardBearerAura(s);
+    updateShieldbearerAura(s);
     return s;
   }
 
@@ -3810,6 +4055,7 @@ export function moveUnit(state, unitUid, row, col) {
         if (liveTrap) liveTrap.moved = true;
         updateWildbornAura(s);
         updateStandardBearerAura(s);
+        updateShieldbearerAura(s);
         return s;
       }
       if (unit.id === 'veilfiend') {
@@ -3818,6 +4064,7 @@ export function moveUnit(state, unitUid, row, col) {
         if (liveUnit) liveUnit.moved = true;
         updateWildbornAura(s);
         updateStandardBearerAura(s);
+        updateShieldbearerAura(s);
         return s;
       }
       // Dread Shade: reveal fires +2 ATK bonus, then falls through to normal combat below
@@ -3841,6 +4088,7 @@ export function moveUnit(state, unitUid, row, col) {
       }
       updateWildbornAura(s);
       updateStandardBearerAura(s);
+      updateShieldbearerAura(s);
       return s;
     }
 
@@ -3866,6 +4114,7 @@ export function moveUnit(state, unitUid, row, col) {
       }
       updateWildbornAura(s);
       updateStandardBearerAura(s);
+      updateShieldbearerAura(s);
       return s;
     }
 
@@ -3985,6 +4234,7 @@ export function moveUnit(state, unitUid, row, col) {
         checkWinner(s);
         updateWildbornAura(s);
         updateStandardBearerAura(s);
+        updateShieldbearerAura(s);
         return s;
       }
       if (unit.id === 'veilfiend' || unit.id === 'dreadshade') {
@@ -3993,6 +4243,7 @@ export function moveUnit(state, unitUid, row, col) {
         if (liveUnit) liveUnit.moved = true;
         updateWildbornAura(s);
         updateStandardBearerAura(s);
+        updateShieldbearerAura(s);
         return s;
       }
     }
@@ -4085,6 +4336,7 @@ export function moveUnit(state, unitUid, row, col) {
 
   updateWildbornAura(s);
   updateStandardBearerAura(s);
+  updateShieldbearerAura(s);
   return s;
 }
 
@@ -4717,6 +4969,43 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
       const enemyChampUid = 'champion' + (1 - state.activePlayer);
       return [...unitTargets, enemyChampUid];
     }
+
+    // Armourer action: friendly combat unit within 1 tile of armourer (not self, not relic, not omen)
+    case 'armourer_action': {
+      const src = state.units.find(u => u.uid === (data.sourceUid || ''));
+      if (!src) return [];
+      return state.units.filter(u =>
+        u.owner === state.activePlayer &&
+        u.uid !== src.uid &&
+        !u.isRelic &&
+        !u.isOmen &&
+        manhattan([src.row, src.col], [u.row, u.col]) <= 1
+      ).map(u => u.uid);
+    }
+
+    // Rayslinger action: any adjacent unit (not omen)
+    case 'rayslinger_action': {
+      const src = state.units.find(u => u.uid === (data.sourceUid || ''));
+      if (!src) return [];
+      return state.units.filter(u =>
+        !u.isOmen &&
+        manhattan([src.row, src.col], [u.row, u.col]) === 1
+      ).map(u => u.uid);
+    }
+
+    // Null Herald action: untargeted — no targets needed (confirmation step)
+    case 'nullherald_action':
+      return [];
+
+    // Final Exchange: caster selects a friendly combat unit to sacrifice
+    case 'finalexchange': {
+      const cIdx = data.casterIdx ?? state.activePlayer;
+      return state.units.filter(u => u.owner === cIdx && !u.isRelic && !u.isOmen).map(u => u.uid);
+    }
+
+    // Dryad Trickster voluntary reveal: any unit on the board (not hidden, not omen)
+    case 'dryadtrickster_swap':
+      return state.units.filter(u => !u.hidden && !u.isOmen).map(u => u.uid);
 
     // Toll of Shadows: multi-step caster sacrifice
     // step 0 = sacrifice a friendly combat unit; step 1 = sacrifice omen; step 2 = sacrifice relic

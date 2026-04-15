@@ -1722,6 +1722,54 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         )
       )}
 
+      {/* Veil Seer — opponent hand reveal modal */}
+      {gameState?.pendingOpponentHandReveal && gameState.pendingOpponentHandReveal.playerIndex === myPlayerIndex && isActiveTurn && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.80)' }}
+        >
+          <div style={{
+            background: 'linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 100%)',
+            border: '1px solid #3a3a60',
+            borderRadius: '10px',
+            padding: '20px 24px',
+            maxWidth: '90vw',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '14px', textAlign: 'center' }}>
+              Veil Seer — Opponent&apos;s Hand
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
+              {(gameState.players[1 - myPlayerIndex]?.hand ?? []).map((card, i) => (
+                <Card key={card.uid ?? i} card={card} isPlayable={false} />
+              ))}
+              {(gameState.players[1 - myPlayerIndex]?.hand ?? []).length === 0 && (
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#8080a0' }}>Opponent&apos;s hand is empty.</div>
+              )}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={async () => {
+                  const next = { ...gameState, pendingOpponentHandReveal: null };
+                  await dispatch(next);
+                }}
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '12px',
+                  color: '#C9A84C',
+                  background: 'transparent',
+                  border: '1px solid #C9A84C',
+                  borderRadius: '4px',
+                  padding: '6px 18px',
+                  cursor: 'pointer',
+                }}
+              >Dismiss</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* My hand (face up) */}
       <div style={{
         flexShrink: 0,

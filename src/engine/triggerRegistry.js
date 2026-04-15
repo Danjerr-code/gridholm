@@ -804,6 +804,30 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'hollowofferingRestore': {
+      // Hollow Offering: when destroyed, owner's champion gains +2 HP (can exceed starting max, like Sister Siofra).
+      const champ = state.champions[playerIndex];
+      if (!champ) break;
+      champ.maxHp += 2;
+      champ.hp = Math.min(champ.maxHp, champ.hp + 2);
+      addLog(state, `Hollow Offering restores 2 HP to champion.`);
+      break;
+    }
+
+    case 'spellkeeperReturn': {
+      // Spellkeeper: after owner casts a spell, return that card to hand.
+      const card = context?.card;
+      if (!card || card.type !== 'spell') break;
+      // Only fires for the owner of the spellkeeper, not the opponent
+      if (context?.playerIndex !== playerIndex) break;
+      if (!listenerUnit) break;
+      const p = state.players[playerIndex];
+      const returnedCopy = { ...card, uid: `${card.id}_spellkeeper_${Math.random().toString(36).slice(2)}` };
+      p.hand.push(returnedCopy);
+      addLog(state, `Spellkeeper: ${card.name} returned to hand.`);
+      break;
+    }
+
     case 'manaSurgeBonus': {
       // Mana Surge: at the start of your turn, gain +1 mana for each spell in your grave.
       if (!listenerUnit) break;

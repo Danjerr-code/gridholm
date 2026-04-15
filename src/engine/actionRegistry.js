@@ -282,6 +282,57 @@ export const ACTION_REGISTRY = {
     return state;
   },
 
+  // targets[0]: a friendly unit within range 1 to receive Shield 1
+  armourer: (unit, state, targets) => {
+    const target = targets[0];
+    if (!target) {
+      addLog(state, `Armourer: no valid target selected.`);
+      return state;
+    }
+    if (manhattan([unit.row, unit.col], [target.row, target.col]) > 1) {
+      addLog(state, `Armourer: target is out of range.`);
+      return state;
+    }
+    target.shield = (target.shield || 0) + 1;
+    addLog(state, `Armourer: ${target.name} gains Shield 1.`);
+    return state;
+  },
+
+  // targets[0]: any adjacent unit (friendly or enemy)
+  rayslinger: (unit, state, targets) => {
+    const target = targets[0];
+    if (!target) {
+      addLog(state, `Rayslinger: no valid target selected.`);
+      return state;
+    }
+    if (manhattan([unit.row, unit.col], [target.row, target.col]) !== 1) {
+      addLog(state, `Rayslinger: target must be adjacent.`);
+      return state;
+    }
+    target.skipNextAction = true;
+    addLog(state, `Rayslinger: ${target.name} will be stunned next turn.`);
+    return state;
+  },
+
+  // No target needed — gain 1 mana this turn
+  manasprite: (unit, state) => {
+    state.players[unit.owner].resources = Math.min((state.players[unit.owner].resources || 0) + 1, 10);
+    addLog(state, `Mana Sprite: ${state.players[unit.owner].name} gains 1 temporary mana (${state.players[unit.owner].resources} total).`);
+    return state;
+  },
+
+  // No target needed — sacrifice self and banish opponent's grave
+  nullherald: (unit, state) => {
+    const oppIdx = 1 - unit.owner;
+    const banishedCount = state.players[oppIdx].grave.length;
+    state.players[oppIdx].banished.push(...state.players[oppIdx].grave);
+    state.players[oppIdx].grave = [];
+    addLog(state, `Null Herald sacrifices itself. Opponent's grave (${banishedCount} card${banishedCount !== 1 ? 's' : ''}) is banished.`);
+    fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...unit }, sacrificingPlayerIndex: unit.owner }, state);
+    destroyUnit(unit, state, 'sacrifice');
+    return state;
+  },
+
   ironqueen: (unit, state, targets) => {
     const dir = targets[0];
     if (!dir) {

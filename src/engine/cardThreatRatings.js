@@ -56,6 +56,21 @@ export const THREAT_RATINGS = {
   sapling:                { allyValue:  1, threatValue:  1 },
   spiteling:              { allyValue:  2, threatValue:  2 },
   imp:                    { allyValue:  2, threatValue:  2 },
+
+  // ── New base-set cards (batch: set completion) ────────────────────────────
+  armourer:               { allyValue:  3, threatValue:  2 },
+  rayslinger:             { allyValue:  4, threatValue:  4 },
+  shieldbearer:           { allyValue:  5, threatValue:  5 },
+  ashclaw:                { allyValue:  3, threatValue:  2 },
+  drumhide:               { allyValue:  4, threatValue:  3 },
+  recklesscharger:        { allyValue:  5, threatValue:  4 },
+  manasprite:             { allyValue:  3, threatValue:  2 },
+  spellkeeper:            { allyValue:  3, threatValue:  3 },
+  dryadtrickster:         { allyValue:  5, threatValue:  5 },
+  veilseer:               { allyValue:  3, threatValue:  2 },
+  hollowoffering:         { allyValue:  3, threatValue:  2 },
+  hexcrawler:             { allyValue:  5, threatValue:  5 },
+  nullherald:             { allyValue:  4, threatValue:  4 },
 };
 
 /**
