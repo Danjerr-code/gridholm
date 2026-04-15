@@ -4,6 +4,7 @@ import { CARD_DB } from '../../engine/cards.js';
 import { getCollection } from '../../packs/collection.js';
 import { getCardImageUrl } from '../../supabase.js';
 import { renderRules } from '../../utils/rulesText.jsx';
+import { AutoSizeText } from '../AutoSizeText.jsx';
 
 const FACTION_ORDER = ['light', 'primal', 'mystic', 'dark'];
 const FACTION_COLORS = {
@@ -124,10 +125,10 @@ function CardModal({ card, onClose }) {
 
         {/* Name + Cost */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>
+          <AutoSizeText maxFontSize={17} style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, color: card.legendary ? '#C9A84C' : '#ffffff', lineHeight: 1.2 }}>
             {card.legendary && <span style={{ color: '#C9A84C', marginRight: '4px' }}>♛</span>}
             {card.name}
-          </span>
+          </AutoSizeText>
           <span style={{
             background: '#C9A84C',
             color: '#0a0a0f',
@@ -262,16 +263,12 @@ function CollectionCard({ card, count, onClick }) {
         }}>{card.type?.toUpperCase()}</div>
       )}
       <div style={{ padding: '3px 5px' }}>
-        <div style={{
+        <AutoSizeText maxFontSize={10} style={{
           fontFamily: "'Cinzel', serif",
-          fontSize: 8,
           fontWeight: 600,
           color: owned ? rarityColor : '#3a3a5a',
           lineHeight: 1.2,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>{card.name}</div>
+        }}>{card.name}</AutoSizeText>
         <div style={{
           fontSize: 8,
           color: '#4a4a6a',

@@ -1,6 +1,7 @@
 import { generateLegendaryPack } from '../../draft/draftPool.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { getCardImageUrl } from '../../supabase.js';
+import { AutoSizeText } from '../AutoSizeText.jsx';
 
 const screen = {
   minHeight: '100vh',
@@ -100,10 +101,10 @@ function FullCard({ card, onClick }) {
       onMouseLeave={e => { e.currentTarget.style.borderColor = `${attrColor}66`; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3, flex: 1 }}>
+        <AutoSizeText maxFontSize={11} style={{ fontFamily: "'Cinzel', serif", fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3, flex: 1 }}>
           <span style={{ color: '#C9A84C', marginRight: 2 }}>♛</span>
           {card.name}
-        </span>
+        </AutoSizeText>
         <span style={{ background: '#C9A84C', color: '#0a0a14', fontFamily: "'Cinzel', serif", fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, flexShrink: 0, marginLeft: 4 }}>
           {card.cost}
         </span>

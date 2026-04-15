@@ -4,6 +4,7 @@ import { addCardsToCollection } from '../../packs/collection.js';
 import { getCardImageUrl } from '../../supabase.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { usePackCredits } from '../../packs/usePackCredits.js';
+import { AutoSizeText } from '../AutoSizeText.jsx';
 
 // ── Sound generation via Web Audio API ────────────────────────────────────────
 
@@ -323,16 +324,12 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
               }}>{card.type?.toUpperCase()}</div>
             )}
             <div style={{ padding: '4px 5px', flex: 1 }}>
-              <div style={{
+              <AutoSizeText maxFontSize={isLegendaryAndExpanded ? 11 : 9} style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: isLegendaryAndExpanded ? 11 : 9,
                 fontWeight: 600,
                 color: rarityColor,
                 lineHeight: 1.2,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>{card.name}</div>
+              }}>{card.name}</AutoSizeText>
               <div style={{
                 fontSize: 8,
                 color: '#6a6a8a',
@@ -412,14 +409,17 @@ function CardBack({ card, isFlipped, onFlip, isLast, isLegendaryCard, anticipate
           bottom: -36,
           left: '50%',
           transform: 'translateX(-50%)',
-          whiteSpace: 'nowrap',
-          fontFamily: "'Cinzel', serif",
-          fontSize: 14,
-          fontWeight: 700,
-          color: '#F59E0B',
-          textShadow: '0 0 12px #F59E0B',
-          letterSpacing: '0.08em',
-        }}>{card.name}</div>
+          width: '100%',
+          textAlign: 'center',
+        }}>
+          <AutoSizeText maxFontSize={14} style={{
+            fontFamily: "'Cinzel', serif",
+            fontWeight: 700,
+            color: '#F59E0B',
+            textShadow: '0 0 12px #F59E0B',
+            letterSpacing: '0.08em',
+          }}>{card.name}</AutoSizeText>
+        </div>
       )}
     </div>
   );

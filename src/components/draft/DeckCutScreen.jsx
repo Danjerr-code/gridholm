@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CARD_DB } from '../../engine/cards.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
+import { AutoSizeText } from '../AutoSizeText.jsx';
 
 const screen = {
   minHeight: '100vh',
@@ -101,11 +102,11 @@ function DeckCutRow({ card, isNew, isConfirming, onTap }) {
       }}
     >
       <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#C9A84C', minWidth: 18, textAlign: 'right' }}>{card.cost}</span>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, color: isNew ? '#4ade80' : '#e8e8f0', flex: 1 }}>
+      <AutoSizeText maxFontSize={11} style={{ fontFamily: "'Cinzel', serif", color: isNew ? '#4ade80' : '#e8e8f0', flex: 1 }}>
         {card.legendary && <span style={{ color: '#C9A84C', marginRight: 3 }}>♛</span>}
         {card.name}
         {isNew && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 6, fontFamily: "'Crimson Text', serif", fontStyle: 'italic' }}>NEW</span>}
-      </span>
+      </AutoSizeText>
       <span style={{ fontSize: 9, color: attrColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {card.type}
       </span>

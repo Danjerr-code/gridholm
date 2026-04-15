@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { CARD_DB } from '../../engine/cards.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { getCardImageUrl } from '../../supabase.js';
+import { AutoSizeText } from '../AutoSizeText.jsx';
 import { buildDraftPool, generatePack, generateLegendaryPack, getRandomFactions, assignRareSlots } from '../../draft/draftPool.js';
 import { CHAMPIONS } from '../../engine/champions.js';
 import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
@@ -346,10 +347,10 @@ function FullCard({ card, onClick }) {
     >
       {/* Cost badge + Name */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3, flex: 1 }}>
+        <AutoSizeText maxFontSize={11} style={{ fontFamily: "'Cinzel', serif", fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3, flex: 1 }}>
           {card.legendary && <span style={{ color: '#C9A84C', marginRight: 2 }}>♛</span>}
           {card.name}
-        </span>
+        </AutoSizeText>
         <span style={{ background: '#C9A84C', color: '#0a0a14', fontFamily: "'Cinzel', serif", fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, flexShrink: 0, marginLeft: 4 }}>
           {card.cost}
         </span>
@@ -413,10 +414,10 @@ function DeckListRow({ card }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid #1a1a2a' }}>
       <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#C9A84C', minWidth: 18, textAlign: 'right' }}>{card.cost}</span>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, color: '#e8e8f0', flex: 1 }}>
+      <AutoSizeText maxFontSize={11} style={{ fontFamily: "'Cinzel', serif", color: '#e8e8f0', flex: 1 }}>
         {card.legendary && <span style={{ color: '#C9A84C', marginRight: 3 }}>♛</span>}
         {card.name}
-      </span>
+      </AutoSizeText>
       <span style={{ fontSize: 9, color: attrColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {card.type}
       </span>

@@ -1,6 +1,7 @@
 import { getCardImageUrl } from '../supabase.js';
 import { ATTRIBUTES } from '../engine/attributes.js';
 import { renderRules, rulesTitle } from '../utils/rulesText.jsx';
+import { AutoSizeText } from './AutoSizeText.jsx';
 
 const FACTION_TEXT_COLORS = {
   Human: '#4a8abf',
@@ -56,10 +57,10 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
       <div className="md:hidden flex flex-col h-full">
         {/* Name + Cost row */}
         <div className="flex justify-between items-start mb-1" style={{ flexShrink: 0 }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}>
+          <AutoSizeText maxFontSize={10} style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2, flex: 1 }}>
             {card.legendary && <span style={{ color: '#C9A84C', marginRight: '2px' }}>♛</span>}
             {card.name}
-          </span>
+          </AutoSizeText>
           <span style={{
             background: '#C9A84C',
             color: '#0a0a14',
@@ -115,12 +116,10 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
       <div className="hidden md:flex md:flex-col md:h-full">
         {/* Name + Cost row */}
         <div className="flex items-start mb-1 gap-0.5">
-          <div
-            style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1 }}
-          >
+          <AutoSizeText maxFontSize={13} style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, color: '#e8e8f0', lineHeight: 1.2, flex: 1 }}>
             {card.legendary && <span style={{ color: '#C9A84C', marginRight: '2px' }}>♛</span>}
             {card.name}
-          </div>
+          </AutoSizeText>
           <span style={{
             background: '#C9A84C',
             color: '#0a0a14',
