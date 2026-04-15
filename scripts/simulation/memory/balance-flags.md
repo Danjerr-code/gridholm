@@ -58,6 +58,66 @@
 - ancientspring: -14.5pp, duskbloomtender: -14.5pp, bloom: -14.3pp
 - All Mystic core cards are deeply negative — structural card pool issue
 
+## Current Active Flags — 2026-04-14 (minimax d=2, new decks + Mystic eval, 1200 games)
+
+### 🚨 CRITICAL: Overall DR 64.2% (above 60% board threshold)
+- Baseline established with new deck compositions (commit a0e9fe4 + count fixes) and Mystic eval changes (commit 74266e3)
+- Mystic eval changes had negligible impact (+0.9pp from 63.3%)
+
+### 🚨 All Elf Matchups Broken (77.5–89.0% DR)
+- **Human vs Elf**: 87.0% DR (improved from 97.0% with Mystic eval changes, still critical)
+- **Beast vs Elf**: 77.5% DR
+- **Elf vs Demon**: 89.0% DR
+- Root cause: Elf healing stack (bloom, ancientspring, verdantsurge, glitteringgift, recall, overgrowth) creates near-unkillable sustain at minimax depth 2
+
+### 🚨 Human vs Demon: 70.0% DR
+- Secondary priority after Elf matchups
+- Demon Hidden mechanic + champion healing likely cause
+
+### ⚠️ Beast vs Demon: 39.0% DR
+- Above 30% gate, lower priority
+
+### ✅ Human vs Beast: 23.0% DR — HEALTHY
+
+### MCTS Approach: Failed
+- Best MCTS result: 85.8% DR (worse than minimax 63.3%)
+- attackChampionBias backfire: high bias causes healing faction rollouts to return 'loss' → passive play
+- Minimax depth 2 remains best available AI
+
+## Depth Test Finding — 2026-04-14
+
+**Deeper search does NOT fix Elf draws** (tested d=3 and d=4):
+- d=3 Human vs Elf: 80% DR (marginal vs 87% at d=2, within n=5 noise)
+- d=3 Elf vs Demon: 100% DR (WORSE than 89% at d=2)
+- d=4: systematic 5s-timeout → heuristic fallback → 100% DR
+
+Root cause: Mystic AI over-uses healing cards (negative win impact). Fix must be eval-level.
+Proposed: `healingValue 5→0`, `championHP 10→5`, `championHPDiff 3→8`. Awaiting approval.
+
+## Current Active Flags — 2026-04-14 (LOG-1426, minimax d=2, tradeEfficiency+tileDenial+MAX_CANDIDATES=6)
+
+### Overall DR: 51.4% — Largest single-run improvement, now below 56.1% baseline
+
+### 🚨 CRITICAL: Human vs Elf — 80.5% DR (persistent structural problem)
+- Improved −2.5pp from 83.0% but remains critical
+- No weight or search change has solved this — structural Elf healing issue
+
+### 🚨 Elf vs Demon — 74.0% DR (−3.5pp vs 77.5%)
+- Improved but still critical
+
+### 🚨 Beast vs Elf — 72.0% DR (+5.0pp REGRESSION vs 67.0%)
+- WORSE than baseline. Only regressing matchup in this run.
+- Hypothesis: MAX_CANDIDATES=6 lets Elf passive spells (cascadesage, glitteringgift) enter search tree more, sustaining against Beast aggression
+- tileDenial may perversely reward Elf for staying near Beast champion
+- Needs investigation: consider tileDenial phase gate or Mystic faction profile override
+
+### ⚠️ Human vs Demon — 51.5% DR (−9.0pp vs 60.5%)
+- First run below 60% — significant improvement, still elevated
+
+### ✅ Beast vs Demon — 19.5% DR (best ever, −14.5pp vs 34.0%)
+### ✅ Human vs Beast — 11.0% DR (very healthy, −3.5pp)
+### ✅ AI time — 825ms/game (under 2s threshold despite MAX_CANDIDATES=6)
+
 ## Resolved Flags
 - hexbloodwarlock (mystic_dark bridge): was -11.8pp mandatory, now +1.21pp optional — resolved by removing mandatory bridge inclusion (Step 2)
 

@@ -266,6 +266,23 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
 - **Conclusion**: Elf structural draw problem is NOT profile-related. Profiles provide marginal benefit to Elf specifically. Beast vs Demon and Human vs Demon improve without profiles.
 - **Status**: Reported. Awaiting board direction on next steps (card pool reduction or draw rule mechanics).
 
+## Entry 24 — 2026-04-14 (LOG-1426) — tradeEfficiency + tileDenial + MAX_CANDIDATES=6
+- **Action**: Three eval/search improvements committed together.
+  - `tradeEfficiency` (weight 5): scans attacker/defender pairs within move range; pure win trade (kills defender, survives) = +threatRating(defender); even trade (both die) = +threatRating − allyRating
+  - `tileDenial` (weight 6): counts friendly units adjacent to enemy champion — independent from championSurroundPressure which scores ATK kill-threat; this scores tile blocking/summon denial
+  - `MAX_CANDIDATES`: raised 4 → 6 in minimaxAI.js; enables spells (priority 40), unit actions (priority 25), summons (priority 20) to enter the tree alongside combat moves
+- **Commit**: b479083
+- **Full matrix result** (1200 games, minimax d=2): **51.4% overall DR** — largest single-run improvement
+  - Human vs Beast: 11.0% DR ✅ (−3.5pp vs 14.5%)
+  - Human vs Elf: 80.5% DR 🚨 (−2.5pp vs 83.0%)
+  - Human vs Demon: 51.5% DR ⚠️ (−9.0pp vs 60.5% — first below 60%)
+  - Beast vs Elf: 72.0% DR 🚨 (+5.0pp vs 67.0% — REGRESSION)
+  - Beast vs Demon: 19.5% DR ✅ (−14.5pp vs 34.0% — best ever)
+  - Elf vs Demon: 74.0% DR 🚨 (−3.5pp vs 77.5%)
+- **AI time**: 825ms/game (up from 556ms; +48%; well under 2s flag threshold)
+- **Beast vs Elf regression note**: Likely cause is that with 6 candidates, Elf passive spells (cascadesage, glitteringgift) now enter the search tree more consistently, sustaining board presence longer against Beast aggression. tileDenial may also reward Elf for positioning adjacent to Beast champion passively.
+- **Status**: Reported. Beast vs Elf regression flagged for CEO review.
+
 ## Entry 21 — 2026-04-14 (LOG-1335) — HP hoarding removal (healingValue→0, championHP→5, championHPDiff→8)
 - **Action**: Removed all Mystic HP hoarding bonuses. Set championHP and championHPDiff to WEIGHTS base values.
   - `healingValue`: 5 → 0
