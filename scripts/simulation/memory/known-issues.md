@@ -1,7 +1,7 @@
 # Known Issues — AI Capability State
 
-**Last updated**: 2026-04-12 after LOG-1203 Steps 1–4 complete.
-**Baseline commits**: `8ce9926` (Step 3 fix) + `5c6dfc9` (Mystic closing heuristic) + `27150eb` (remove opponent modeling).
+**Last updated**: 2026-04-15 after LOG-1465 curve-aware mulligan.
+**Baseline commits**: `8ce9926` (Step 3 fix) + `5c6dfc9` (Mystic closing heuristic) + `27150eb` (remove opponent modeling) + `d2829f9` (curve-aware mulligan).
 
 ---
 

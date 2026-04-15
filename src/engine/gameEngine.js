@@ -517,6 +517,20 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     }
   }
 
+  // Revenant: when destroyed, return to owner's hand with cost incremented by 1.
+  if (unit.id === 'revenant') {
+    const p = state.players[unit.owner];
+    const currentCost = unit.cost ?? (CARD_DB['revenant']?.cost || 3);
+    const newCost = currentCost + 1;
+    const handCard = {
+      ...CARD_DB['revenant'],
+      cost: newCost,
+      uid: `revenant_${Math.random().toString(36).slice(2)}`,
+    };
+    p.hand.push(handCard);
+    addLog(state, `Revenant: returns to hand (cost ${newCost}).`);
+  }
+
   // Lucern, Unbroken Vow: if destroyed on the Throne tile (2,2), schedule resummon
   if (unit.id === 'lucernunbrokenvow') {
     const [lr, lc] = combatTile || [unit.row, unit.col];
@@ -973,6 +987,31 @@ export function fireAttackTriggers(attacker, defender, state, killedDefender) {
   }
 
   // 5. (Hunger removed — replaced by Bloodlust passive in fireDeathTriggers)
+
+  // 6. Soul Leech: when this unit deals damage to any unit, restore that much HP to champion.
+  if (liveAttacker && liveAttacker.id === 'soul_leech' && !defenderIsChampion) {
+    const dmgDealt = liveAttacker.atk || 0;
+    if (dmgDealt > 0) {
+      const champ = state.champions[liveAttacker.owner];
+      const healed = restoreHP(champ, dmgDealt, state);
+      if (healed > 0) addLog(state, `Soul Leech: champion restores ${healed} HP.`);
+    }
+  }
+
+  // 7. Death's Embrace: when this unit destroys an enemy unit, restore 3 HP to champion.
+  if (liveAttacker && liveAttacker.id === 'deaths_embrace' && killedDefender && !defenderIsChampion) {
+    const champ = state.champions[liveAttacker.owner];
+    const healed = restoreHP(champ, 3, state);
+    if (healed > 0) addLog(state, `Death's Embrace: ${liveAttacker.name} devours the fallen — champion restores ${healed} HP.`);
+  }
+
+  // 8. Oath of Valor: if the buffed unit destroys an enemy unit this turn, restore 1 HP to champion.
+  if (liveAttacker && liveAttacker.oathOfValorActive && killedDefender && !defenderIsChampion) {
+    const champ = state.champions[liveAttacker.owner];
+    const healed = restoreHP(champ, 1, state);
+    if (healed > 0) addLog(state, `Oath of Valor: ${liveAttacker.name} destroyed an enemy — champion restores ${healed} HP.`);
+    liveAttacker.oathOfValorActive = false;
+  }
 
   // Declarative trigger registry: fire onChampionDamageDealt when a unit attacks the enemy champion
   if (defenderIsChampion) {
@@ -1651,6 +1690,9 @@ function doBeginTurnPhase(state) {
   // Reset hpRestoredThisTurn
   p.hpRestoredThisTurn = 0;
 
+  // Reset hpPaidThisTurn (tracked for Cursed Resilience omen)
+  p.hpPaidThisTurn = 0;
+
   // Reset commands for new turn
   p.commandsUsed = 0;
 
@@ -1675,6 +1717,8 @@ function doBeginTurnPhase(state) {
         if (u.id === 'razorfang') u.razorfangResetUsed = false;
         // Reset Iron Queen's per-turn action counter
         if (u.id === 'ironqueen') u.ironQueenActionsUsed = 0;
+        // Clear Oath of Valor active flag
+        u.oathOfValorActive = false;
       }
     }
   });
@@ -1821,7 +1865,7 @@ export function moveChampion(state, row, col) {
     const unitFortRed = getFortitudeReduction(s, enemyUnit);
     const effectiveChampAtk = unitFortRed > 0 && champAtk > 0 ? Math.max(1, champAtk - unitFortRed) : champAtk;
     if (unitFortRed > 0 && champAtk > 0) addLog(s, `Fortitude: ${enemyUnit.name} takes 1 less damage.`);
-    applyDamageToUnit(s, enemyUnit, effectiveChampAtk, 'Champion', combatTile);
+    applyDamageToUnit(s, enemyUnit, effectiveChampAtk, 'Champion', combatTile, true);
     // Apply enemy's pre-combat ATK to champion (simultaneous)
     if (enemyAtk > 0) {
       let champIncomingDmg = enemyAtk;
@@ -2862,6 +2906,59 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
       checkWinner(s);
     }
   }
+  // ── Repel (no target — auto-pushes all adjacent enemies) ──
+  else if (effect === 'repel') {
+    s = _dispatchSpell(s, s.activePlayer, 'repel', []);
+    checkWinner(s);
+  }
+  // ── Oath of Valor (target friendly unit) ──
+  else if (effect === 'oath_of_valor') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'oath_of_valor', [target]);
+    }
+  }
+  // ── Consecrating Strike (step 0: select friendly, step 1: resolve combat) ──
+  else if (effect === 'consecrating_strike') {
+    if (step === 0) {
+      if (target) {
+        s.pendingSpell = { cardUid, effect: 'consecrating_strike', playerIdx: s.activePlayer, step: 1, data: { attackerUid: target.uid, paid: true } };
+      }
+    } else {
+      const attacker = s.units.find(u => u.uid === data.attackerUid);
+      if (attacker && target) {
+        s = _dispatchSpell(s, s.activePlayer, 'consecrating_strike', [attacker, target], { step: 1 });
+        checkWinner(s);
+      }
+    }
+  }
+  // ── Divine Judgment (no target — destroys all units) ──
+  else if (effect === 'divine_judgment') {
+    s = _dispatchSpell(s, s.activePlayer, 'divine_judgment', []);
+    checkWinner(s);
+  }
+  // ── Drain Life (target enemy unit) ──
+  else if (effect === 'drain_life') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'drain_life', [target]);
+      checkWinner(s);
+    }
+  }
+  // ── Shadow Mend (no target) ──
+  else if (effect === 'shadow_mend') {
+    s = _dispatchSpell(s, s.activePlayer, 'shadow_mend', []);
+    checkWinner(s);
+  }
+  // ── Grave Harvest (no target) ──
+  else if (effect === 'grave_harvest') {
+    s = _dispatchSpell(s, s.activePlayer, 'grave_harvest', []);
+  }
+  // ── Void Siphon (target friendly unit) ──
+  else if (effect === 'void_siphon') {
+    if (target && !target.isRelic && !target.isOmen) {
+      s = _dispatchSpell(s, s.activePlayer, 'void_siphon', [target]);
+      checkWinner(s);
+    }
+  }
   // ── Toll of Shadows (sequential caster sacrifice chain with automatic opponent resolution) ──
   // steps 0=unit, 1=omen, 2=relic, 3=discard (caster only); opponent resolution is automatic
   else if (effect === 'tollofshadows') {
@@ -3645,7 +3742,7 @@ export function moveUnit(state, unitUid, row, col) {
     const enemyFortRed = getFortitudeReduction(s, enemyUnit);
     const effectiveAttackerAtk = enemyFortRed > 0 && attackerAtk > 0 ? Math.max(1, attackerAtk - enemyFortRed) : attackerAtk;
     if (enemyFortRed > 0 && attackerAtk > 0) addLog(s, `Fortitude: ${enemyUnit.name} takes 1 less damage.`);
-    applyDamageToUnit(s, enemyUnit, effectiveAttackerAtk, unit.name, combatTile);
+    applyDamageToUnit(s, enemyUnit, effectiveAttackerAtk, unit.name, combatTile, true);
 
     const stillAlive = s.units.find(u => u.uid === unitUid);
     if (stillAlive) {
@@ -3653,7 +3750,7 @@ export function moveUnit(state, unitUid, row, col) {
       const attackerFortRed = getFortitudeReduction(s, stillAlive);
       const effectiveDefenderAtk = attackerFortRed > 0 && defenderAtk > 0 ? Math.max(1, defenderAtk - attackerFortRed) : defenderAtk;
       if (attackerFortRed > 0 && defenderAtk > 0) addLog(s, `Fortitude: ${stillAlive.name} takes 1 less damage.`);
-      applyDamageToUnit(s, stillAlive, effectiveDefenderAtk, enemyUnit.name, combatTile);
+      applyDamageToUnit(s, stillAlive, effectiveDefenderAtk, enemyUnit.name, combatTile, true);
       const stillAlive2 = s.units.find(u => u.uid === unitUid);
       if (stillAlive2) {
         const defenderDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
@@ -3860,7 +3957,7 @@ export function applyPoison(state, unit, amount) {
   addLog(state, `${unit.name} is poisoned (${unit.poison} stack${unit.poison !== 1 ? 's' : ''}).`);
 }
 
-export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null) {
+export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null, isCombat = false) {
   let actualDmg = dmg;
   // auraDamageReduction modifier: friendly adjacent unit reduces damage taken by amount
   if (!unit.isRelic && !unit.isOmen && state.activeModifiers) {
@@ -3871,6 +3968,26 @@ export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = nul
       if (!src || src.hidden || src.uid === unit.uid) continue;
       if (manhattan([src.row, src.col], [unit.row, unit.col]) <= (mod.range || 1)) {
         actualDmg = Math.max(0, actualDmg - (mod.amount || 1));
+      }
+    }
+    // wardenOfLightAura: reduce non-combat damage to friendly units within range by 1
+    if (!isCombat && !unit.isRelic && !unit.isOmen) {
+      for (const mod of state.activeModifiers) {
+        if (mod.type !== 'wardenOfLightAura') continue;
+        if (mod.playerIndex !== unit.owner) continue;
+        const src = state.units.find(u => u.uid === mod.unitUid);
+        if (!src || src.hidden) continue;
+        if (manhattan([src.row, src.col], [unit.row, unit.col]) <= (mod.range || 2)) {
+          actualDmg = Math.max(0, actualDmg - 1);
+        }
+      }
+    }
+    // immortalBastion: damage cannot reduce a friendly unit's HP below 1
+    if (!unit.isRelic && !unit.isOmen) {
+      const hasBastion = state.activeModifiers.some(m => m.type === 'immortalBastion' && m.playerIndex === unit.owner);
+      if (hasBastion) {
+        const wouldBe = unit.hp - actualDmg;
+        if (wouldBe < 1) actualDmg = Math.max(0, unit.hp - 1);
       }
     }
   }
@@ -4098,6 +4215,20 @@ export function discardCard(state, cardUid) {
 export function checkWinner(state) {
   for (const champ of state.champions) {
     if (champ.hp <= 0) {
+      // Undying Pact: intercept lethal damage once per game
+      if (!state.undyingPactUsed && state.activeModifiers) {
+        const pactMod = state.activeModifiers.find(m => m.type === 'undyingPact' && m.playerIndex === champ.owner);
+        if (pactMod) {
+          const pactUnit = state.units.find(u => u.uid === pactMod.unitUid);
+          if (pactUnit) {
+            state.undyingPactUsed = true;
+            champ.hp = 1;
+            destroyUnit(pactUnit, state, 'undyingPact');
+            addLog(state, `Undying Pact: sacrificed — ${state.players[champ.owner].name}'s champion survives at 1 HP!`);
+            continue;
+          }
+        }
+      }
       const winner = state.players[1 - champ.owner];
       state.winner = winner.name;
       addLog(state, `Game over! ${winner.name} wins!`);
@@ -4367,6 +4498,40 @@ function _rawSpellTargets(state, effect, step = 0, data = {}) {
         !u.cannotBeTargetedBySpells && !u.spellImmune
       ).map(u => u.uid);
 
+    // Oath of Valor: friendly combat unit (not relic, not omen, not hidden)
+    case 'oath_of_valor':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Consecrating Strike step 0: friendly combat unit; step 1: enemy adjacent to the attacker
+    case 'consecrating_strike': {
+      if (step === 0) {
+        return state.units.filter(u =>
+          u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden
+        ).map(u => u.uid);
+      }
+      const attacker = data.attackerUid ? state.units.find(u => u.uid === data.attackerUid) : null;
+      if (!attacker) return [];
+      const adjTiles = cardinalNeighbors(attacker.row, attacker.col);
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.isOmen && !u.hidden &&
+        adjTiles.some(([r, c]) => u.row === r && u.col === c)
+      ).map(u => u.uid);
+    }
+
+    // Drain Life: any enemy unit (not omen, not hidden, not spell-immune)
+    case 'drain_life':
+      return state.units.filter(u =>
+        u.owner !== state.activePlayer && !u.hidden && !u.isOmen && !u.cannotBeTargetedBySpells && !u.spellImmune
+      ).map(u => u.uid);
+
+    // Void Siphon: friendly combat unit (not relic, not omen)
+    case 'void_siphon':
+      return state.units.filter(u =>
+        u.owner === state.activePlayer && !u.isRelic && !u.isOmen && !u.hidden
+      ).map(u => u.uid);
+
     // Toll of Shadows: multi-step caster sacrifice
     // step 0 = sacrifice a friendly combat unit; step 1 = sacrifice omen; step 2 = sacrifice relic
     // step 3 (discard) is handled via pendingHandSelect, not pendingSpell targets
@@ -4535,6 +4700,45 @@ export function hasValidTargets(card, state, playerIndex) {
 
     case 'thrones_judgment':
       return enemyUnits.some(u => !u.isRelic && !u.isOmen);
+
+    case 'oath_of_valor':
+      return friendlyUnits.some(u => !u.isRelic && !u.isOmen && !u.hidden);
+
+    case 'consecrating_strike': {
+      const friendlyCombat = friendlyUnits.filter(u => !u.isRelic && !u.isOmen && !u.hidden);
+      return friendlyCombat.some(friendly => {
+        const adj = cardinalNeighbors(friendly.row, friendly.col);
+        return state.units.some(u => u.owner !== playerIndex && !u.isOmen && !u.hidden && adj.some(([r, c]) => u.row === r && u.col === c));
+      });
+    }
+
+    case 'drain_life':
+      return enemyUnits.some(u => !u.isOmen) && (state.players[playerIndex].resources > 0);
+
+    case 'void_siphon':
+      return friendlyUnits.some(u => !u.isRelic && !u.isOmen && !u.hidden);
+
+    case 'grave_harvest':
+      return (state.players[playerIndex].grave || []).length > 0;
+
+    case 'repel': {
+      const champ = state.champions[playerIndex];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const r = champ.row + dr;
+          const c = champ.col + dc;
+          if (r >= 0 && r < 5 && c >= 0 && c < 5 && state.units.some(u => u.owner !== playerIndex && !u.isOmen && u.row === r && u.col === c)) return true;
+        }
+      }
+      return false;
+    }
+
+    case 'divine_judgment':
+      return state.units.length > 0;
+
+    case 'shadow_mend':
+      return true; // champion always exists
 
     default:
       return true;

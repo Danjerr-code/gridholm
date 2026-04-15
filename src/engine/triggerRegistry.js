@@ -681,6 +681,96 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
+    case 'shieldMaidenATKGain': {
+      // Shield Maiden: when this unit takes damage and survives, gain +1 ATK permanently.
+      if (!listenerUnit) break;
+      // Only fire when THIS unit took the damage (context.damagedUnit is the actual damaged unit).
+      if (context?.damagedUnit?.uid !== listener.unitUid) break;
+      if (listenerUnit.hp <= 0) break; // must survive
+      listenerUnit.atk += 1;
+      addLog(state, `Shield Maiden: survived damage — gains +1 ATK! Now ${listenerUnit.atk}/${listenerUnit.hp}.`);
+      break;
+    }
+
+    case 'squiresOathInherit': {
+      // Squire's Oath: when a friendly unit with 4+ ATK dies, inherit its ATK.
+      if (!listenerUnit) break;
+      const dead = context?.dyingUnit;
+      if (!dead) break;
+      const deadAtk = dead.atk || 0;
+      if (deadAtk < 4) break;
+      listenerUnit.atk = deadAtk;
+      addLog(state, `Squire's Oath: ${listenerUnit.name} inherits ${deadAtk} ATK from ${dead.name}!`);
+      break;
+    }
+
+    case 'eternalVigilSummon': {
+      // Eternal Vigil: at the start of your turn, summon a random unit from your grave adjacent to champion.
+      if (!listenerUnit) break;
+      const p = state.players[playerIndex];
+      const graveUnits = (p.grave || []).filter(c => c.type === 'unit' && !c.isRelic && !c.isOmen && !c.token && !c.isToken);
+      if (graveUnits.length === 0) break;
+      const champ = state.champions[playerIndex];
+      const adjTiles = cardinalNeighbors(champ.row, champ.col).filter(([r, c]) =>
+        !state.units.some(u => u.row === r && u.col === c) &&
+        !state.champions.some(ch => ch.row === r && ch.col === c)
+      );
+      if (adjTiles.length === 0) {
+        addLog(state, `Eternal Vigil: no adjacent tile available for summon.`);
+        break;
+      }
+      const graveEntry = graveUnits[Math.floor(Math.random() * graveUnits.length)];
+      const graveIdx = p.grave.findIndex(c => c.uid === graveEntry.uid);
+      if (graveIdx !== -1) p.grave.splice(graveIdx, 1);
+      const [tr, tc] = adjTiles[Math.floor(Math.random() * adjTiles.length)];
+      const baseCard = CARD_DB[graveEntry.id];
+      if (!baseCard) break;
+      const summoned = {
+        ...baseCard,
+        owner: playerIndex,
+        row: tr,
+        col: tc,
+        maxHp: baseCard.hp,
+        summoned: true,
+        moved: false,
+        atkBonus: 0,
+        shield: 0,
+        speedBonus: 0,
+        turnAtkBonus: 0,
+        hidden: false,
+        uid: `${baseCard.id}_${Math.random().toString(36).slice(2)}`,
+      };
+      state.units.push(summoned);
+      registerUnit(summoned, state);
+      registerModifiers(summoned, state);
+      addLog(state, `Eternal Vigil: ${summoned.name} rises from the grave at (${tr},${tc}).`);
+      break;
+    }
+
+    case 'abyssalFiendDiscard': {
+      // Abyssal Fiend: at end of your turn, discard a random card from hand.
+      if (!listenerUnit) break;
+      const p = state.players[playerIndex];
+      if (!p.hand || p.hand.length === 0) break;
+      const randIdx = Math.floor(Math.random() * p.hand.length);
+      const [discarded] = p.hand.splice(randIdx, 1);
+      if (!p.discard) p.discard = [];
+      p.discard.push(discarded);
+      addLog(state, `Abyssal Fiend: discards ${discarded.name}.`);
+      break;
+    }
+
+    case 'cursedResilienceRestore': {
+      // Cursed Resilience: at end of turn, restore 1 HP per HP-payment event this turn.
+      if (!listenerUnit) break;
+      const paymentEvents = state.players[playerIndex]?.hpPaidThisTurn || 0;
+      if (paymentEvents <= 0) break;
+      const champ = state.champions[playerIndex];
+      const healed = restoreHP(champ, paymentEvents, state);
+      if (healed > 0) addLog(state, `Cursed Resilience: restores ${healed} HP (${paymentEvents} HP payment(s) this turn).`);
+      break;
+    }
+
     default:
       break;
   }

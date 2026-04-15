@@ -363,3 +363,43 @@ The ability to coordinate champion attacks requires minimax (forward planning), 
   unitAction (25), cast (40). Champion rarely enters minimax tree early game. Needs priority boost
   for moves toward throne in early turns to improve reach rate.
 - **Status**: BLOCKED — awaiting CEO guidance on whether to run full matrix or add throne-approach priority boost.
+
+---
+
+## Entry 5 — 2026-04-15: Curve-Aware Mulligan Algorithm (LOG-1465)
+
+### Summary
+Replaced the `cost > 3 discard` mulligan in both simulation and live game AI with a curve-aware algorithm.
+
+### Files changed
+- `src/engine/strategicAI.js` — live game AI mulligan
+- `scripts/simulation/simAI.js` — simulation AI mulligan (same algorithm)
+- `scripts/simulation/headlessEngine.js` — now calls `chooseMulligan(hand)` instead of `[]`
+- `scripts/simulation/validateMulligan.js` — new validation script
+- `scripts/simulation/runThroneValidation.js` — fixed champion throne timing: <=3 → <=4
+
+### Algorithm rules
+1. Count units and spells separately
+2. Always mulligan cost 5+
+3. Mulligan cost 4 unless hand has cost 1, 2, AND 3
+4. If zero units: mulligan all spells costing 3+
+5. If units but none at cost 1–2: mulligan highest-cost kept cards until a cost 1–2 card is encountered
+6. Keep at most 1 spell; mulligan highest-cost extras
+7. Never mulligan a cost-1 unit (absolute override)
+
+### Validation results (100 games Mystic vs Light, depth=2)
+| Metric | Old Mulligan | New Mulligan | Delta |
+|---|---|---|---|
+| P1 (Mystic) turn-1 play rate | 20% | 30% | +10pp |
+| P2 (Light) turn-1 play rate | 70% | 77% | +7pp |
+| P1 avg units in hand | 2.02 | 2.33 | +0.31 |
+| P2 avg units in hand | 2.18 | 2.45 | +0.27 |
+
+### Throne timing correction
+- Prior code/docs said "champion reaches Throne by turn 3" — **incorrect**
+- Champions start at distance 4 from throne with SPD 1; earliest arrival is turn 4
+- Units can reach throne by turn 3 (faster due to starting position)
+- `runThroneValidation.js` threshold updated: `firstTurn <= 3` → `firstTurn <= 4`
+- Memory file tuning-log.md and balance-flags.md updated accordingly
+
+### Commit: d2829f9

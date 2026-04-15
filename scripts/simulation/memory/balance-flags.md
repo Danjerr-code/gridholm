@@ -166,7 +166,7 @@ Proposed: `healingValue 5→0`, `championHP 10→5`, `championHPDiff 3→8`. Awa
 ### Validation gate failed — awaiting CEO direction
 
 - throneAnchor weight=15 added; summon +5/priority boost when on throne; pcdWeight ×0.5 on throne
-- Validation gate "T3 throne by turn 3" is physically impossible (champions start at dist=4, speed=1)
+- Validation gate "T3 throne by turn 3" was physically impossible (champions start at dist=4, speed=1); CORRECTED to turn 4 in runThroneValidation.js (LOG-1465)
 - Actual anchor behavior: 3/7 champions that reached throne stayed 5+ turns (43% stay rate)
 - Root issue: championMove priority=15 below summon/cast in minimax tree — champion doesn't head to throne early
 - Decision needed: Option A (run matrix as-is) or Option B (add throne-approach priority boost first)

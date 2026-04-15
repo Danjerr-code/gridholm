@@ -414,6 +414,7 @@ export const SPELL_REGISTRY = {
   infernalpact: (state, caster) => {
     const champ = state.champions[caster];
     champ.hp -= 3;
+    state.players[caster].hpPaidThisTurn = (state.players[caster].hpPaidThisTurn || 0) + 1;
     addLog(state, `${state.players[caster].name} casts Infernal Pact. Champion takes 3 damage.`);
     state.units.forEach(u => {
       if (u.owner === caster) {
@@ -946,6 +947,180 @@ export const SPELL_REGISTRY = {
     } else {
       addLog(state, `Toxic Spray: ${adjacentEnemies.length} adjacent unit(s) poisoned.`);
     }
+    return state;
+  },
+
+  // ==========================================
+  // LIGHT ADVENTURE-ONLY SPELLS
+  // ==========================================
+
+  repel: (state, caster) => {
+    // Push all enemy pieces on the 8 tiles surrounding champion back 1 tile.
+    // If a piece cannot be pushed, it takes 2 damage instead.
+    const champ = state.champions[caster];
+    const surroundTiles = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const r = champ.row + dr;
+        const c = champ.col + dc;
+        if (r >= 0 && r < 5 && c >= 0 && c < 5) surroundTiles.push([r, c]);
+      }
+    }
+    const enemies = state.units.filter(u =>
+      u.owner !== caster &&
+      !u.isOmen &&
+      surroundTiles.some(([r, c]) => u.row === r && u.col === c)
+    );
+    let pushed = 0, damaged = 0;
+    for (const enemy of enemies) {
+      const dr = Math.sign(enemy.row - champ.row);
+      const dc = Math.sign(enemy.col - champ.col);
+      const tr = enemy.row + dr;
+      const tc = enemy.col + dc;
+      const inBounds = tr >= 0 && tr < 5 && tc >= 0 && tc < 5;
+      const isEmpty = inBounds &&
+        !state.units.some(u => u.row === tr && u.col === tc) &&
+        !state.champions.some(ch => ch.row === tr && ch.col === tc);
+      if (isEmpty) {
+        enemy.row = tr;
+        enemy.col = tc;
+        pushed++;
+      } else {
+        applyDamageToUnit(state, enemy, 2, 'Repel');
+        damaged++;
+      }
+    }
+    addLog(state, `Repel: ${pushed} enemy piece(s) pushed, ${damaged} dealt 2 damage.`);
+    return state;
+  },
+
+  oath_of_valor: (state, caster, targets) => {
+    // Target friendly unit gains +2 ATK this turn.
+    // A flag is set so fireAttackTriggers can restore 1 HP to champion on kill.
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    target.turnAtkBonus = (target.turnAtkBonus || 0) + 2;
+    target.oathOfValorActive = true;
+    addLog(state, `Oath of Valor: ${target.name} gains +2 ATK this turn. Restore 1 HP to champion if it destroys an enemy.`);
+    return state;
+  },
+
+  // consecrating_strike step 0 is a no-op (target selection handled by orchestrator).
+  // Step 1 resolves combat between the friendly attacker and the enemy defender.
+  consecrating_strike: (state, caster, targets, options = {}) => {
+    const step = options.step || 0;
+    if (step === 0) return state;
+    const attacker = targets[0];
+    const defender = targets[1];
+    if (!attacker || !defender) return state;
+    const attackerAtk = getEffectiveAtk(state, attacker);
+    const defenderAtk = getEffectiveAtk(state, defender);
+    const defRow = defender.row;
+    const defCol = defender.col;
+    addLog(state, `Consecrating Strike: ${attacker.name} attacks ${defender.name}!`);
+    applyDamageToUnit(state, defender, attackerAtk, attacker.name);
+    // Apply counter-attack only if attacker survived
+    const liveAttacker = state.units.find(u => u.uid === attacker.uid);
+    if (liveAttacker) applyDamageToUnit(state, liveAttacker, defenderAtk, defender.name);
+    // If defender was destroyed, place Hallowed Ground
+    const stillLive = state.units.find(u => u.uid === defender.uid);
+    if (!stillLive) {
+      if (!state.terrainGrid) state.terrainGrid = Array.from({ length: 5 }, () => Array(5).fill(null));
+      state.terrainGrid[defRow][defCol] = {
+        id: 'hallowed',
+        ownerName: 'Consecrating Strike',
+        whileOccupied: { atkBuff: 1, hpBuff: 1, attributeOnly: 'light', combatOnly: true },
+      };
+      addLog(state, `Consecrating Strike: Hallowed Ground placed at (${defRow},${defCol}).`);
+    }
+    return state;
+  },
+
+  divine_judgment: (state, caster) => {
+    // Skip champion's action this turn. Destroy all units on the board.
+    const champ = state.champions[caster];
+    champ.moved = true;
+    const allUnits = [...state.units];
+    for (const unit of allUnits) {
+      if (state.units.find(u => u.uid === unit.uid)) {
+        destroyUnit(unit, state, 'divine_judgment');
+      }
+    }
+    addLog(state, `Divine Judgment: all units destroyed!`);
+    return state;
+  },
+
+  // ==========================================
+  // DARK ADVENTURE-ONLY SPELLS
+  // ==========================================
+
+  drain_life: (state, caster, targets) => {
+    // Spend all remaining mana. Deal X damage to target unit. Restore X HP to champion.
+    const target = targets[0];
+    if (!target) return state;
+    const p = state.players[caster];
+    const X = p.resources || 0;
+    p.resources = 0;
+    addLog(state, `Drain Life: spends ${X} mana — deals ${X} damage to ${target.name}.`);
+    applyDamageToUnit(state, target, X, 'Drain Life');
+    const champ = state.champions[caster];
+    const healed = restoreHP(champ, X, state);
+    if (healed > 0) addLog(state, `Drain Life: champion restores ${healed} HP.`);
+    return state;
+  },
+
+  shadow_mend: (state, caster) => {
+    // Restore 2 HP to champion. A random friendly unit takes 2 damage.
+    const champ = state.champions[caster];
+    const healed = restoreHP(champ, 2, state);
+    if (healed > 0) addLog(state, `Shadow Mend: champion restores ${healed} HP.`);
+    const friendlies = state.units.filter(u => u.owner === caster && !u.isRelic && !u.isOmen && !u.hidden);
+    if (friendlies.length > 0) {
+      const target = friendlies[Math.floor(Math.random() * friendlies.length)];
+      addLog(state, `Shadow Mend: ${target.name} takes 2 damage.`);
+      applyDamageToUnit(state, target, 2, 'Shadow Mend');
+    } else {
+      addLog(state, `Shadow Mend: no friendly units to punish.`);
+    }
+    return state;
+  },
+
+  grave_harvest: (state, caster) => {
+    // Banish all cards in grave. Restore 1 HP to champion for each card banished.
+    const p = state.players[caster];
+    if (!p.banished) p.banished = [];
+    const count = (p.grave || []).length;
+    if (count === 0) {
+      addLog(state, `Grave Harvest: grave is empty — no HP restored.`);
+      return state;
+    }
+    p.banished.push(...p.grave);
+    p.grave = [];
+    const champ = state.champions[caster];
+    const healed = restoreHP(champ, count, state);
+    addLog(state, `Grave Harvest: banished ${count} card(s) — champion restores ${healed} HP.`);
+    return state;
+  },
+
+  void_siphon: (state, caster, targets) => {
+    // Destroy target friendly unit. Deal its ATK to all enemy units. Restore its HP to champion.
+    const target = targets[0];
+    if (!target || target.isRelic || target.isOmen) return state;
+    const unitAtk = getEffectiveAtk(state, target);
+    const unitHp = target.maxHp;
+    fireTrigger('onFriendlySacrifice', { sacrificedUnit: { ...target }, sacrificingPlayerIndex: target.owner }, state);
+    destroyUnit(target, state, 'sacrifice');
+    addLog(state, `Void Siphon: ${target.name} sacrificed — deals ${unitAtk} to all enemies, restores ${unitHp} HP.`);
+    const enemies = [...state.units.filter(u => u.owner !== caster && !u.isOmen)];
+    for (const enemy of enemies) {
+      if (state.units.find(u => u.uid === enemy.uid)) {
+        applyDamageToUnit(state, enemy, unitAtk, 'Void Siphon');
+      }
+    }
+    const champ = state.champions[caster];
+    const healed = restoreHP(champ, unitHp, state);
+    if (healed > 0) addLog(state, `Void Siphon: champion restores ${healed} HP.`);
     return state;
   },
 
