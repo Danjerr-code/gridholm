@@ -1696,16 +1696,12 @@ export function moveChampion(state, row, col) {
   const champ = s.champions[s.activePlayer];
 
   // Check for enemy omen on destination tile — champion destroys it and advances, same as moveUnit.
-  const enemyOmen = s.units.find(u => u.owner !== s.activePlayer && u.isOmen && u.row === row && u.col === col);
+  // Hidden omens are excluded here; they are handled in the enemyUnit block below so their
+  // on-reveal effects (e.g. Dread Mirror damage) fire before any omen-destroy logic.
+  const enemyOmen = s.units.find(u => u.owner !== s.activePlayer && u.isOmen && !u.hidden && u.row === row && u.col === col);
   if (enemyOmen) {
-    if (enemyOmen.id === 'dreadmirror' && enemyOmen.hidden) {
-      const result = handleDreadMirrorReveal(s, enemyOmen, champ, true);
-      checkWinner(s);
-      if (result === 'revealer_died') return s; // champion died — omen stays revealed
-    } else {
-      addLog(s, `${s.players[s.activePlayer].name}'s champion moves through ${enemyOmen.name}! The omen is destroyed.`);
-      destroyUnit(enemyOmen, s, 'omen_removed');
-    }
+    addLog(s, `${s.players[s.activePlayer].name}'s champion moves through ${enemyOmen.name}! The omen is destroyed.`);
+    destroyUnit(enemyOmen, s, 'omen_removed');
     champ.row = row;
     champ.col = col;
     champ.moved = true;
@@ -1716,6 +1712,19 @@ export function moveChampion(state, row, col) {
   const enemyUnit = s.units.find(u => u.owner !== s.activePlayer && u.row === row && u.col === col);
 
   if (enemyUnit) {
+    // Dread Mirror: hidden omen — reveal handler deals damage to champion equal to champion's ATK,
+    // then either destroys the omen (champion survived) or leaves it face-up (champion died).
+    if (enemyUnit.hidden && enemyUnit.id === 'dreadmirror') {
+      const result = handleDreadMirrorReveal(s, enemyUnit, champ, true);
+      checkWinner(s);
+      if (result === 'revealer_died') return s; // champion died — omen stays revealed
+      // omen_destroyed: champion survived, advance to tile
+      champ.row = row;
+      champ.col = col;
+      champ.moved = true;
+      checkWinner(s);
+      return s;
+    }
     // Reveal hidden enemy unit before champion combat
     if (enemyUnit.hidden) {
       revealUnit(s, enemyUnit);
@@ -3336,31 +3345,12 @@ export function moveUnit(state, unitUid, row, col) {
     s.players[s.activePlayer].commandsUsed = (s.players[s.activePlayer].commandsUsed ?? 0) + moveCmdCost;
   }
 
-  // Check for enemy omen on destination tile
-  const enemyOmen = s.units.find(u => u.owner !== unit.owner && u.isOmen && u.row === row && u.col === col);
+  // Check for enemy omen on destination tile. Hidden omens (e.g. Dread Mirror) are
+  // intentionally excluded here — they must go through the hidden-unit reveal path below
+  // so their on-reveal effects fire correctly before any omen-destroy logic.
+  const enemyOmen = s.units.find(u => u.owner !== unit.owner && u.isOmen && !u.hidden && u.row === row && u.col === col);
   if (enemyOmen) {
-    if (enemyOmen.id === 'dreadmirror' && enemyOmen.hidden) {
-      const result = handleDreadMirrorReveal(s, enemyOmen, unit, false);
-      if (result === 'revealer_died') return s; // unit died — omen stays revealed on board
-      // omen_destroyed: unit survived, place it on the tile
-      const uu = s.units.find(u => u.uid === unitUid);
-      if (uu) {
-        uu.row = row;
-        uu.col = col;
-        if (uu.id === 'ironqueen') {
-          uu.ironQueenActionsUsed = (uu.ironQueenActionsUsed ?? 0) + 1;
-          if (uu.ironQueenActionsUsed >= 2) uu.moved = true;
-        } else if ((uu.extraActionsRemaining ?? 0) > 0) {
-          uu.extraActionsRemaining--;
-        } else {
-          uu.moved = true;
-        }
-      }
-      updateWildbornAura(s);
-      updateStandardBearerAura(s);
-      return s;
-    }
-    // Normal omen: destroy it with no combat
+    // Normal visible omen: destroy it with no combat
     addLog(s, `${unit.name} moves through ${enemyOmen.name}! The omen is destroyed.`);
     destroyUnit(enemyOmen, s, 'omen_removed');
     const liveUnit = s.units.find(u => u.uid === unitUid);
@@ -3435,6 +3425,31 @@ export function moveUnit(state, unitUid, row, col) {
           liveUnit.extraActionsRemaining--;
         } else {
           liveUnit.moved = true;
+        }
+      }
+      updateWildbornAura(s);
+      updateStandardBearerAura(s);
+      return s;
+    }
+
+    // Dread Mirror: hidden omen — reveal handler deals damage equal to revealer's ATK back to the
+    // revealer, then either destroys the omen (revealer survived) or leaves it face-up (revealer died).
+    // This must run before the generic revealUnit call so the reveal-damage fires correctly.
+    if (wasHidden && enemyUnit.id === 'dreadmirror') {
+      const result = handleDreadMirrorReveal(s, enemyUnit, unit, false);
+      if (result === 'revealer_died') return s; // unit died — omen stays revealed on board
+      // omen_destroyed: unit survived, place it on the tile
+      const uu = s.units.find(u => u.uid === unitUid);
+      if (uu) {
+        uu.row = row;
+        uu.col = col;
+        if (uu.id === 'ironqueen') {
+          uu.ironQueenActionsUsed = (uu.ironQueenActionsUsed ?? 0) + 1;
+          if (uu.ironQueenActionsUsed >= 2) uu.moved = true;
+        } else if ((uu.extraActionsRemaining ?? 0) > 0) {
+          uu.extraActionsRemaining--;
+        } else {
+          uu.moved = true;
         }
       }
       updateWildbornAura(s);
