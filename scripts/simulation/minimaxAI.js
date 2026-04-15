@@ -26,6 +26,92 @@ import { shouldHoldCard, shouldHoldChampionAbility } from './cardHoldLogic.js';
 const THRONE_ROW = 2;
 const THRONE_COL = 2;
 
+// ── Zobrist Hashing ───────────────────────────────────────────────────────────
+
+/**
+ * Lazy Zobrist random-number table.
+ * Maps arbitrary string keys to stable 32-bit unsigned integers.
+ * Seeded with a fixed value so hashes are reproducible across runs.
+ */
+const _zobristTable = new Map();
+let   _zobristSeed  = 0x9e3779b9; // fixed seed — reproducible
+
+function _zobristRand() {
+  // xorshift32 — fast, good avalanche, sufficient for a 32-bit Zobrist table
+  _zobristSeed ^= _zobristSeed << 13;
+  _zobristSeed ^= _zobristSeed >> 17;
+  _zobristSeed ^= _zobristSeed << 5;
+  return _zobristSeed >>> 0; // unsigned 32-bit
+}
+
+function _zn(key) {
+  let v = _zobristTable.get(key);
+  if (v === undefined) { v = _zobristRand(); _zobristTable.set(key, v); }
+  return v;
+}
+
+/**
+ * Compute a 32-bit Zobrist hash for a game state + commandsUsed context.
+ *
+ * Components hashed:
+ *   - active player index
+ *   - turn number
+ *   - commandsUsed (affects which move actions are legal)
+ *   - each unit: stable instance uid × tile index × current HP
+ *   - each champion: player index × row × col × HP
+ *   - each player's resource count
+ *
+ * The hash is XOR-based: each component XORs in a random table number, so
+ * the order of units in the array does not affect the result.
+ *
+ * @param {object} state        - game state
+ * @param {number} commandsUsed - unit-move commands used this turn (0–3)
+ * @returns {number} 32-bit unsigned Zobrist hash
+ */
+function computeZobristHash(state, commandsUsed) {
+  let h = 0;
+
+  // Context components
+  h ^= _zn(`ap:${state.activePlayer}`);
+  h ^= _zn(`t:${state.turn ?? 0}`);
+  h ^= _zn(`cmd:${commandsUsed ?? 0}`);
+
+  // Units on board — uid is a stable instance ID for each unit across the game
+  for (const unit of state.units) {
+    h ^= _zn(`u:${unit.uid}:${unit.row * 5 + unit.col}:${Math.round(unit.hp ?? 0)}`);
+  }
+
+  // Champions — indexed by player (0=p1, 1=p2)
+  for (let i = 0; i < state.champions.length; i++) {
+    const c = state.champions[i];
+    h ^= _zn(`c:${i}:${c.row}:${c.col}:${Math.round(c.hp ?? 0)}`);
+  }
+
+  // Player resources (mana) — determines which spells/summons are affordable
+  for (let i = 0; i < state.players.length; i++) {
+    h ^= _zn(`r:${i}:${state.players[i].resources ?? 0}`);
+  }
+
+  return h >>> 0; // ensure unsigned 32-bit
+}
+
+/**
+ * Get the Zobrist hash for a state, caching the result on the state object.
+ * Since applyAction always returns a new state object, each unique state
+ * object computes its hash at most once.
+ *
+ * @param {object} state        - game state (may have _zh / _zhCmd cached)
+ * @param {number} commandsUsed - unit-move commands used this turn
+ * @returns {number} 32-bit unsigned Zobrist hash
+ */
+function getStateHash(state, commandsUsed) {
+  const cmd = commandsUsed ?? 0;
+  if (state._zh !== undefined && state._zhCmd === cmd) return state._zh;
+  state._zh    = computeZobristHash(state, cmd);
+  state._zhCmd = cmd;
+  return state._zh;
+}
+
 // Board dimensions
 const BOARD_SIZE = 5;
 
