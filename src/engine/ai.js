@@ -747,7 +747,8 @@ function runStrategicTurn(state) {
 
   while (!s.winner && actionCount < MAX_ACTIONS) {
     const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
-    const action = chooseActionStrategic(s, commandsUsed);
+    const aiDepth = s.adventureAIDepth ?? 2;
+    const action = chooseActionStrategic(s, commandsUsed, aiDepth);
     s = applyActionStrategic(s, action);
     actionCount++;
     if (action.type === 'endTurn') break;
@@ -764,7 +765,8 @@ function runStrategicTurnSteps(state) {
 
   while (!s.winner && actionCount < MAX_ACTIONS) {
     const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
-    const action = chooseActionStrategic(s, commandsUsed);
+    const aiDepth = s.adventureAIDepth ?? 2;
+    const action = chooseActionStrategic(s, commandsUsed, aiDepth);
     s = applyActionStrategic(s, action);
     steps.push(s);
     actionCount++;

@@ -79,8 +79,12 @@ function createStateWithAiLog(deckId, aiDeckId) {
   return { ...s, log: [...s.log, `AI is playing ${aiName} with ${aiChampDef.name}.`] };
 }
 
-export function useGameState({ deckId = 'human', gameMode = 'quickplay' } = {}) {
+export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrideInitialState = null } = {}) {
   const [state, setState] = useState(() => {
+    if (overrideInitialState) {
+      console.log(`[useGameState] Using override initial state (adventure mode)`);
+      return overrideInitialState;
+    }
     const aiDeckId = pickRandomAiDeck();
     console.log(`[useGameState] Initializing game | Player 1 deckId="${deckId}" | AI deckId="${aiDeckId}"`);
     return autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId));

@@ -28,7 +28,7 @@ const PHASE_GUIDANCE = {
   discard: 'You have too many cards. Click a card to discard.',
 };
 
-export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'human', isDraft = false } = {}) {
+export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'human', isDraft = false, adventureContext = null } = {}) {
   const {
     state,
     selectedCard,
@@ -50,7 +50,11 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     sacrificeTargetUids,
     selectedSacrificeUid,
     handlers,
-  } = useGameState({ deckId, gameMode: isDraft ? 'draft' : 'quickplay' });
+  } = useGameState({
+    deckId,
+    gameMode: adventureContext ? 'adventure' : isDraft ? 'draft' : 'quickplay',
+    overrideInitialState: adventureContext?.initialState ?? null,
+  });
 
   const isMobile = useIsMobile();
   const [logOpen, setLogOpen] = useState(false);
@@ -318,12 +322,12 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
             }}
             onClick={() => {
               const didWin = winner === p1.name;
-              if (onGameEnd) onGameEnd(didWin);
+              if (onGameEnd) onGameEnd(didWin, state);
               else if (onPlayAgain) onPlayAgain();
               else handlers.handleNewGame();
             }}
           >
-            Play Again
+            {adventureContext ? 'Continue' : 'Play Again'}
           </button>
           {state.stateHistory && state.stateHistory.length > 3 && (
             <button

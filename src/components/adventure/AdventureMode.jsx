@@ -1,6 +1,11 @@
-import { useState } from 'react';
-import { createNewRun, loadRun, clearRun, moveToTile, completeTile } from '../../adventure/adventureState.js';
+import { useState, useCallback } from 'react';
+import {
+  createNewRun, loadRun, clearRun, saveRun,
+  moveToTile, completeTile,
+} from '../../adventure/adventureState.js';
+import { buildAdventureGameState } from '../../adventure/adventureFight.js';
 import DungeonMap from './DungeonMap.jsx';
+import App from '../../App.jsx';
 
 const FACTION_INFO = {
   light:  { label: 'Light',  color: '#e8d8a0', bg: '#1a1600', border: '#C9A84C60', desc: 'Steadfast defenders and holy warriors.' },
@@ -20,10 +25,16 @@ const TILE_LABELS = {
   start:       'Starting Chamber',
 };
 
+const FIGHT_TILE_TYPES = new Set(['fight', 'elite_fight', 'boss']);
+
 export default function AdventureMode({ onBack }) {
   const savedRun = loadRun();
   const [phase, setPhase] = useState(savedRun ? 'map' : 'champion_select');
   const [run, setRun] = useState(savedRun);
+
+  // ── Fight state ──────────────────────────────────────────────────────────
+  // adventureContext: { initialState, aiDepth, row, col, tileType } | null
+  const [fightCtx, setFightCtx] = useState(null);
 
   function handleStartNewRun(faction) {
     const newRun = createNewRun(faction);
@@ -38,28 +49,91 @@ export default function AdventureMode({ onBack }) {
   function handleAbandon() {
     clearRun();
     setRun(null);
+    setFightCtx(null);
     setPhase('champion_select');
   }
 
   function handleTileClick(row, col) {
     if (!run) return;
     const tile = run.dungeonLayout[row][col];
-    const newRun = moveToTile(run, row, col);
+    if (!tile || tile.type === 'wall' || tile.type === 'start') return;
+
+    // Plagued curse: subtract 1 HP on each move
+    let newRun = run;
+    if (run.curses && run.curses.includes('plagued')) {
+      const newHP = run.championHP - 1;
+      if (newHP <= 0) {
+        // Player dies from Plagued — end run immediately
+        const dyingRun = { ...run, championHP: 0 };
+        clearRun();
+        setRun(dyingRun);
+        setPhase('run_summary');
+        return;
+      }
+      newRun = saveRun({ ...run, championHP: newHP });
+    }
+
+    newRun = moveToTile(newRun, row, col);
     setRun(newRun);
-    // Show tile event — for now just mark as visited
-    // (fight integration comes in later prompts)
-    setPhase(`tile_event:${row}:${col}`);
+
+    const tileType = tile.type;
+    if (FIGHT_TILE_TYPES.has(tileType) && !tile.completed) {
+      // Build adventure fight context
+      const { initialState, aiDepth } = buildAdventureGameState(newRun, row, col, tileType);
+      setFightCtx({ initialState, aiDepth, row, col, tileType });
+      setPhase('fight');
+    } else {
+      // Non-fight tile placeholder
+      setPhase(`tile_event:${row}:${col}`);
+    }
   }
 
-  function handleTileEventContinue(row, col, reward) {
+  // ── Fight result handling ────────────────────────────────────────────────
+
+  const handleFightEnd = useCallback((didWin, finalGameState) => {
+    if (!run || !fightCtx) return;
+
+    if (didWin) {
+      // Carry over remaining champion HP from the fight
+      const remainingHP = finalGameState?.champions?.[0]?.hp ?? run.championHP;
+      let newRun = { ...run, championHP: Math.max(1, remainingHP) };
+      // Mark tile as completed, increment roomsCleared
+      newRun = completeTile(newRun, fightCtx.row, fightCtx.col, { result: 'win' });
+      setRun(newRun);
+      setFightCtx(null);
+      // Reward screen placeholder (Prompt 3 will wire in actual rewards)
+      setPhase(`fight_won:${fightCtx.row}:${fightCtx.col}`);
+    } else {
+      // Player lost — end the adventure run
+      clearRun();
+      setFightCtx(null);
+      setPhase('run_summary');
+    }
+  }, [run, fightCtx]);
+
+  const handleFightQuit = useCallback(() => {
+    // Player abandoned the fight — return to map (run continues, tile not completed)
+    setFightCtx(null);
+    setPhase('map');
+  }, []);
+
+  function handleTileEventContinue(row, col) {
     if (!run) return;
-    let newRun = reward
-      ? { ...run }  // reward apply handled by applyReward
-      : run;
-    newRun = completeTile(newRun, row, col);
+    const newRun = completeTile(run, row, col);
     setRun(newRun);
     setPhase('map');
   }
+
+  function handleFightWonContinue() {
+    setPhase('map');
+  }
+
+  function handleRunSummaryDone() {
+    setRun(null);
+    setPhase('champion_select');
+  }
+
+  // ── Phase rendering ───────────────────────────────────────────────────────
 
   if (phase === 'champion_select') {
     return (
@@ -83,7 +157,41 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
-  // Tile event screen (placeholder — fight/shop/etc. to be wired in later prompts)
+  if (phase === 'fight' && fightCtx) {
+    return (
+      <App
+        adventureContext={fightCtx}
+        onBackToLobby={handleFightQuit}
+        onGameEnd={handleFightEnd}
+      />
+    );
+  }
+
+  if (phase.startsWith('fight_won:')) {
+    const [, rowStr, colStr] = phase.split(':');
+    const row = parseInt(rowStr, 10);
+    const col = parseInt(colStr, 10);
+    const tileType = run?.dungeonLayout[row]?.[col]?.type ?? 'fight';
+    return (
+      <FightWonScreen
+        run={run}
+        tileType={tileType}
+        onContinue={handleFightWonContinue}
+        onAbandon={handleAbandon}
+      />
+    );
+  }
+
+  if (phase === 'run_summary') {
+    return (
+      <RunSummaryScreen
+        run={run}
+        onDone={handleRunSummaryDone}
+      />
+    );
+  }
+
+  // Non-fight tile event (shop, treasure, rest, event — placeholder)
   if (phase.startsWith('tile_event:')) {
     const [, rowStr, colStr] = phase.split(':');
     const row = parseInt(rowStr, 10);
@@ -97,7 +205,7 @@ export default function AdventureMode({ onBack }) {
         tileType={tileType}
         row={row}
         col={col}
-        onContinue={() => handleTileEventContinue(row, col, null)}
+        onContinue={() => handleTileEventContinue(row, col)}
         onAbandon={handleAbandon}
       />
     );
@@ -270,20 +378,15 @@ function MapScreen({ run, onTileClick, onAbandon, onBack }) {
         borderRadius: '6px',
         padding: '10px 14px',
       }}>
-        {/* HP */}
         <StatPill
           label="HP"
           value={`${run.championHP}/${run.maxChampionHP}`}
           color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'}
         />
-        {/* Gold */}
-        <StatPill label="Gold" value={run.gold} color="#C9A84C" />
-        {/* Potions */}
-        <StatPill label="Potions" value={`${run.potions}/3`} color="#60a0ff" />
-        {/* Rooms */}
-        <StatPill label="Rooms" value={run.roomsCleared} color="#a0a0c0" />
-        {/* Deck */}
-        <StatPill label="Cards" value={run.deck.length} color="#c084fc" />
+        <StatPill label="Gold"    value={run.gold}             color="#C9A84C" />
+        <StatPill label="Potions" value={`${run.potions}/3`}   color="#60a0ff" />
+        <StatPill label="Rooms"   value={run.roomsCleared}     color="#a0a0c0" />
+        <StatPill label="Cards"   value={run.deck.length}      color="#c084fc" />
       </div>
 
       {/* Dungeon Map */}
@@ -321,17 +424,178 @@ function MapScreen({ run, onTileClick, onAbandon, onBack }) {
   );
 }
 
-// ── Tile Event (placeholder) ──────────────────────────────────────────────────
+// ── Fight Won (reward placeholder — Prompt 3 will wire actual rewards) ────────
+
+function FightWonScreen({ run, tileType, onContinue, onAbandon }) {
+  const isBoss = tileType === 'boss';
+  const isElite = tileType === 'elite_fight';
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      gap: '20px',
+      color: '#f9fafb',
+    }}>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '24px', color: '#C9A84C', letterSpacing: '0.12em' }}>
+        {isBoss ? 'BOSS DEFEATED' : isElite ? 'ELITE VANQUISHED' : 'VICTORY'}
+      </div>
+      <div style={{
+        fontFamily: "'Crimson Text', serif",
+        fontStyle: 'italic',
+        fontSize: '15px',
+        color: '#a0a0c0',
+        textAlign: 'center',
+        maxWidth: '300px',
+        lineHeight: 1.6,
+      }}>
+        {isBoss
+          ? 'The dungeon lord falls. A new dungeon loop begins.'
+          : 'You stand victorious. Choose your reward.'}
+      </div>
+
+      {/* HP remaining */}
+      <div style={{
+        background: '#0d0d18',
+        border: '1px solid #2a2a3a',
+        borderRadius: '6px',
+        padding: '10px 20px',
+        display: 'flex',
+        gap: '24px',
+      }}>
+        <StatPill label="HP" value={`${run.championHP}/${run.maxChampionHP}`} color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'} />
+        <StatPill label="Rooms" value={run.roomsCleared} color="#a0a0c0" />
+        <StatPill label="Cards" value={run.deck.length} color="#c084fc" />
+      </div>
+
+      <div style={{ fontSize: '12px', color: '#4a4a6a', fontFamily: "'Crimson Text', serif" }}>
+        (Rewards coming soon)
+      </div>
+
+      <button
+        onClick={onContinue}
+        style={{
+          background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+          color: '#0a0a0f',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '13px',
+          fontWeight: 600,
+          border: 'none',
+          borderRadius: '4px',
+          padding: '12px 32px',
+          cursor: 'pointer',
+          letterSpacing: '0.06em',
+        }}
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+
+// ── Run Summary (shown on death/loss) ─────────────────────────────────────────
+
+function RunSummaryScreen({ run, onDone }) {
+  const faction = FACTION_INFO[run?.championFaction ?? 'light'] ?? FACTION_INFO.light;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      gap: '20px',
+      color: '#f9fafb',
+    }}>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f87171', letterSpacing: '0.12em' }}>
+        RUN ENDED
+      </div>
+      <div style={{
+        fontFamily: "'Crimson Text', serif",
+        fontStyle: 'italic',
+        fontSize: '15px',
+        color: '#a0a0c0',
+        textAlign: 'center',
+        maxWidth: '300px',
+        lineHeight: 1.6,
+      }}>
+        Your {faction.label} champion has fallen.
+      </div>
+
+      {run && (
+        <div style={{
+          background: '#0d0d18',
+          border: '1px solid #2a2a3a',
+          borderRadius: '8px',
+          padding: '16px 24px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '12px',
+          maxWidth: '320px',
+          width: '100%',
+        }}>
+          <SummaryRow label="Rooms Cleared" value={run.roomsCleared} />
+          <SummaryRow label="Loops"         value={run.loopCount} />
+          <SummaryRow label="Cards in Deck" value={run.deck.length} />
+          <SummaryRow label="Blessings"     value={run.blessings?.length ?? 0} />
+        </div>
+      )}
+
+      {/* Free pack reward for run completion */}
+      <div style={{
+        background: '#100a1a',
+        border: '1px solid #A855F760',
+        borderRadius: '6px',
+        padding: '12px 20px',
+        textAlign: 'center',
+        maxWidth: '260px',
+        width: '100%',
+      }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#c084fc', letterSpacing: '0.08em', marginBottom: '4px' }}>
+          FREE PACK REWARD
+        </div>
+        <div style={{ fontSize: '12px', color: '#6a6a8a', fontFamily: "'Crimson Text', serif" }}>
+          Claim your pack in the Pack Opening screen.
+        </div>
+      </div>
+
+      <button
+        onClick={onDone}
+        style={{
+          background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
+          color: '#0a0a0f',
+          fontFamily: "'Cinzel', serif",
+          fontSize: '13px',
+          fontWeight: 600,
+          border: 'none',
+          borderRadius: '4px',
+          padding: '12px 32px',
+          cursor: 'pointer',
+          letterSpacing: '0.06em',
+        }}
+      >
+        New Run
+      </button>
+    </div>
+  );
+}
+
+// ── Tile Event Screen (non-fight tiles — placeholder) ─────────────────────────
 
 function TileEventScreen({ run, tileType, row, col, onContinue, onAbandon }) {
   const descriptions = {
-    fight:       'A group of enemies blocks your path. Prepare for battle!',
-    elite_fight: 'A powerful elite enemy awaits. This will be a tough fight.',
-    shop:        'A travelling merchant offers their wares.',
-    treasure:    'You discover a hidden cache of valuable items.',
-    rest:        'A quiet campfire. You may rest and recover HP.',
-    event:       'Something unusual catches your eye…',
-    boss:        'The dungeon lord awaits at the center of the keep.',
+    shop:     'A travelling merchant offers their wares.',
+    treasure: 'You discover a hidden cache of valuable items.',
+    rest:     'A quiet campfire. You may rest and recover HP.',
+    event:    'Something unusual catches your eye…',
   };
 
   return (
@@ -366,7 +630,7 @@ function TileEventScreen({ run, tileType, row, col, onContinue, onAbandon }) {
         {descriptions[tileType] ?? 'You enter the chamber.'}
       </div>
       <div style={{ fontSize: '12px', color: '#4a4a6a', fontFamily: "'Crimson Text', serif" }}>
-        (Full encounter system coming in a later update)
+        (Full encounter coming in a later update)
       </div>
       <button
         onClick={onContinue}
@@ -398,6 +662,19 @@ function StatPill({ label, value, color }) {
         {label}
       </div>
       <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 600, color }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', color: '#4a4a6a', letterSpacing: '0.08em' }}>
+        {label.toUpperCase()}
+      </div>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: '16px', fontWeight: 600, color: '#C9A84C' }}>
         {value}
       </div>
     </div>

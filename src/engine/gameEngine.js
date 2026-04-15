@@ -1201,6 +1201,18 @@ export function fireOnSummonTriggers(unit, state) {
       addLog(state, `Chains of Light: no valid enemy targets to stun.`);
     }
   }
+
+  // Adventure loop scaling: buff enemy units by +loopCount ATK/HP on summon
+  if (state.adventureLoopCount > 0 && unit.owner === 1 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
+    const lc = state.adventureLoopCount;
+    const liveUnit = state.units.find(u => u.uid === unit.uid);
+    if (liveUnit) {
+      liveUnit.atk    = (liveUnit.atk    || 0) + lc;
+      liveUnit.hp     = (liveUnit.hp     || 0) + lc;
+      liveUnit.maxHp  = (liveUnit.maxHp  || liveUnit.hp);
+      addLog(state, `Loop ${lc} scaling: ${liveUnit.name} gains +${lc}/+${lc}.`);
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -1559,6 +1571,12 @@ function doBeginTurnPhase(state) {
   p.turnCount = (p.turnCount || 0) + 1;
   const bonus = state.activePlayer !== state.firstPlayer ? 1 : 0;
   p.resources = Math.min(p.turnCount + bonus, 10);
+
+  // Adventure elite bonus: AI starts its first turn with extra mana
+  if (state.adventureEliteBonus?.extraMana && state.activePlayer === 1 && p.turnCount === 1) {
+    p.resources = Math.min(p.resources + state.adventureEliteBonus.extraMana, 10);
+  }
+
   p.maxResourcesThisTurn = p.resources;
 
   const publicDrawPart = skipDraw
