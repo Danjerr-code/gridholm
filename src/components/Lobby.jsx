@@ -8,7 +8,7 @@ import DeckSelect from './DeckSelect.jsx';
 import { loadDraftRun } from '../draft/draftRunState.js';
 import { loadRun as loadAdventureRun } from '../adventure/adventureState.js';
 import { getActiveChallenges, getChallengeProgress, ensureChallengeProgress } from '../challenges/challengeManager.js';
-import { getTotalPackCount } from '../packs/packGenerator.js';
+import { usePackCredits } from '../packs/usePackCredits.js';
 
 function generateGameId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -230,6 +230,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
   const [profileDecks, setProfileDecks] = useState(null);
   const dropdownRef = useRef(null);
   const { currentUser, signOut } = useAuth();
+  const { inventory: packInventory } = usePackCredits(currentUser);
 
   const [profileUsername, setProfileUsername] = useState(null);
   const [profileStats, setProfileStats] = useState(null); // { wins, losses }
@@ -651,7 +652,7 @@ export default function Lobby({ onNavigate, playMode, onModeSelect }) {
             {/* Row 3: Packs + Collection — secondary */}
             <div style={{ display: 'flex', gap: '8px' }}>
               {(() => {
-                const packCount = getTotalPackCount();
+                const packCount = Object.values(packInventory).reduce((sum, n) => sum + (n || 0), 0);
                 return (
                   <button
                     className="lobby-btn-muted"
