@@ -81,6 +81,12 @@ export function createNewRun(championFaction, startingDeck) {
     if (startTile) break;
   }
 
+  // Mark start tile as completed so it is passable after the player leaves
+  dungeonLayout[startTile.row][startTile.col] = {
+    ...dungeonLayout[startTile.row][startTile.col],
+    completed: true,
+  };
+
   // Reveal start tile and adjacent tiles
   const revealedTiles = _revealAround(startTile.row, startTile.col, []);
 
@@ -237,6 +243,11 @@ export function completeTile(state, row, col, fightResult = null) {
       }
       if (startTile) break;
     }
+    // Mark start tile as completed so it is passable after the player leaves
+    dungeonLayout[startTile.row][startTile.col] = {
+      ...dungeonLayout[startTile.row][startTile.col],
+      completed: true,
+    };
     currentTile = startTile;
     revealedTiles = _revealAround(startTile.row, startTile.col, []);
     completedTiles = [startTile];

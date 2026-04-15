@@ -124,7 +124,7 @@ export default function AdventureMode({ onBack }) {
   function handleTileClick(row, col) {
     if (!run) return;
     const tile = run.dungeonLayout[row][col];
-    if (!tile || tile.type === 'wall' || tile.type === 'start') return;
+    if (!tile || tile.type === 'wall') return;
 
     // Plagued curse: subtract 1 HP on each move
     let newRun = run;
