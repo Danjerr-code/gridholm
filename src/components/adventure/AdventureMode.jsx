@@ -9,8 +9,10 @@ import { buildAdventureGameState } from '../../adventure/adventureFight.js';
 import {
   generateFightReward, generateTreasure, generateShopOfferings,
 } from '../../adventure/encounterRewards.js';
+import { makeEventRng, getRandomEvent } from '../../adventure/eventDefinitions.js';
 import DungeonMap from './DungeonMap.jsx';
 import RewardScreen from './RewardScreen.jsx';
+import EventScreen from './EventScreen.jsx';
 import RunSummary from './RunSummary.jsx';
 import App from '../../App.jsx';
 import { supabase, getGuestId } from '../../supabase.js';
@@ -51,6 +53,7 @@ export default function AdventureMode({ onBack }) {
   const [fightReward, setFightReward]     = useState(null);  // fight reward offer
   const [tileReward, setTileReward]       = useState(null);  // treasure/rest/shop reward
   const [shopOfferings, setShopOfferings] = useState(null);  // shop items
+  const [tileEvent, setTileEvent]         = useState(null);  // { event, rng, row, col }
 
   function saveAdventureRunResult(completedRun) {
     if (!completedRun) return;
@@ -153,7 +156,10 @@ export default function AdventureMode({ onBack }) {
       setShopOfferings(offerings);
       setPhase(`shop:${row}:${col}`);
     } else {
-      // Mysterious event placeholder
+      // Mysterious event
+      const rng = makeEventRng(newRun.seed, row, col);
+      const event = getRandomEvent(rng);
+      setTileEvent({ event, rng, row, col });
       setPhase(`tile_event:${row}:${col}`);
     }
   }
@@ -195,10 +201,22 @@ export default function AdventureMode({ onBack }) {
     setPhase('map');
   }, []);
 
-  function handleTileEventContinue(row, col) {
-    if (!run) return;
-    const newRun = completeTile(run, row, col);
+  function handleEventDone(rewards, extras) {
+    if (!tileEvent) return;
+    let newRun = run;
+    for (const r of rewards) {
+      newRun = applyReward(newRun, r);
+    }
+    if (extras?.revealAll) {
+      const allTiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) allTiles.push({ row: r, col: c });
+      }
+      newRun = saveRun({ ...newRun, revealedTiles: allTiles });
+    }
+    newRun = completeTile(newRun, tileEvent.row, tileEvent.col);
     setRun(newRun);
+    setTileEvent(null);
     setPhase('map');
   }
 
@@ -366,22 +384,14 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
-  // Mysterious event placeholder
-  if (phase.startsWith('tile_event:')) {
-    const [, rowStr, colStr] = phase.split(':');
-    const row = parseInt(rowStr, 10);
-    const col = parseInt(colStr, 10);
-    const tile = run.dungeonLayout[row]?.[col];
-    const tileType = tile?.type ?? 'event';
-
+  // Mysterious event screen
+  if (phase.startsWith('tile_event:') && tileEvent) {
     return (
-      <TileEventScreen
+      <EventScreen
+        event={tileEvent.event}
+        rng={tileEvent.rng}
         run={run}
-        tileType={tileType}
-        row={row}
-        col={col}
-        onContinue={() => handleTileEventContinue(row, col)}
-        onAbandon={handleAbandon}
+        onDone={handleEventDone}
       />
     );
   }
@@ -647,72 +657,6 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   );
 }
 
-
-
-// ── Tile Event Screen (non-fight tiles — placeholder) ─────────────────────────
-
-function TileEventScreen({ run, tileType, row, col, onContinue, onAbandon }) {
-  const descriptions = {
-    shop:     'A travelling merchant offers their wares.',
-    treasure: 'You discover a hidden cache of valuable items.',
-    rest:     'A quiet campfire. You may rest and recover HP.',
-    event:    'Something unusual catches your eye…',
-  };
-
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      gap: '20px',
-      color: '#f9fafb',
-    }}>
-      <div style={{
-        fontFamily: "'Cinzel', serif",
-        fontSize: '22px',
-        color: '#C9A84C',
-        letterSpacing: '0.12em',
-      }}>
-        {TILE_LABELS[tileType] ?? tileType}
-      </div>
-      <div style={{
-        fontFamily: "'Crimson Text', serif",
-        fontStyle: 'italic',
-        fontSize: '15px',
-        color: '#a0a0c0',
-        textAlign: 'center',
-        maxWidth: '300px',
-        lineHeight: 1.6,
-      }}>
-        {descriptions[tileType] ?? 'You enter the chamber.'}
-      </div>
-      <div style={{ fontSize: '12px', color: '#4a4a6a', fontFamily: "'Crimson Text', serif" }}>
-        (Full encounter coming in a later update)
-      </div>
-      <button
-        onClick={onContinue}
-        style={{
-          background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
-          color: '#0a0a0f',
-          fontFamily: "'Cinzel', serif",
-          fontSize: '13px',
-          fontWeight: 600,
-          border: 'none',
-          borderRadius: '4px',
-          padding: '12px 32px',
-          cursor: 'pointer',
-          letterSpacing: '0.06em',
-        }}
-      >
-        Continue
-      </button>
-    </div>
-  );
-}
 
 // ── Shared mini-styles ────────────────────────────────────────────────────────
 
