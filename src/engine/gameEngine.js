@@ -1503,6 +1503,9 @@ function handleDreadMirrorReveal(state, revealedOmen, revealingUnit, isChampion)
     ? getChampionAtkBuff(state, revealingUnit)
     : getEffectiveAtk(state, revealingUnit);
 
+  // DIAGNOSTIC LOG 1
+  console.log(`DREAD MIRROR REVEAL: revealer=${revealingUnit.id ?? 'champion'}, revealer ATK=${revealerAtk}, revealer HP=${revealingUnit.hp}, dreadmirror owner=${revealedOmen.owner}, activePlayer=${state.activePlayer}`);
+
   if (revealerAtk > 0) {
     addLog(state, `Dread Mirror reflects ${revealerAtk} damage.`);
     if (isChampion) {
@@ -1518,6 +1521,9 @@ function handleDreadMirrorReveal(state, revealedOmen, revealingUnit, isChampion)
   const revealerDied = isChampion
     ? revealingUnit.hp <= 0
     : !state.units.find(u => u.uid === revealingUnit.uid);
+
+  // DIAGNOSTIC LOG 2
+  console.log(`DREAD MIRROR DAMAGE APPLIED: revealer HP after=${revealingUnit.hp}, revealer died=${revealerDied}`);
 
   if (revealerDied) {
     // Omen stays on the board, revealed, passive active, timer ticking from reveal

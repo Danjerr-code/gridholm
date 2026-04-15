@@ -53,6 +53,15 @@ export function useMultiplayerGame(gameId) {
             if (gameState && !gameState.log) {
               gameState = { ...gameState, log: prev?.game_state?.log ?? [] };
             }
+            // DIAGNOSTIC LOG 3: Dread Mirror state in incoming Supabase payload
+            if (gameState && Array.isArray(gameState.units)) {
+              const dm = gameState.units.find(u => u.id === 'dreadmirror');
+              if (dm) {
+                console.log(`DREAD MIRROR SUPABASE INCOMING: hidden=${dm.hidden}, hp=${dm.hp}, row=${dm.row}, col=${dm.col}, uid=${dm.uid}, inUnits=true`);
+              } else {
+                console.log('DREAD MIRROR SUPABASE INCOMING: not present in units array');
+              }
+            }
             return {
               ...incoming,
               game_state: sanitizeGameState(gameState),
