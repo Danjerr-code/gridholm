@@ -305,7 +305,13 @@ function scoreAction(action, state) {
       // Moving toward Throne
       const curDistToThrone = manhattan([champ.row, champ.col], THRONE);
       const newDistToThrone = manhattan([tr, tc], THRONE);
-      if (newDistToThrone < curDistToThrone) return 8;
+      if (newDistToThrone < curDistToThrone) {
+        // Early approach boost (Option B): turns 1-6, champion not on throne,
+        // moving toward throne scores 30 (above summons at 20-25).
+        const turn = state.turn ?? 0;
+        if (!champOnThrone && turn <= 6) return 30;
+        return 8;
+      }
 
       return 1 + throneAnchorPenalty;
     }
