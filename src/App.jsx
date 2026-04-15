@@ -12,6 +12,7 @@ import Log, { renderLogText, entryText } from './components/Log.jsx';
 import PhaseTracker from './components/PhaseTracker.jsx';
 import useIsMobile from './hooks/useIsMobile.js';
 import GameEndOverlay from './components/GameEndOverlay.jsx';
+import MatchReview from './components/MatchReview.jsx';
 import MulliganOverlay from './components/MulliganOverlay.jsx';
 import TurnBanner from './components/TurnBanner.jsx';
 import { isMuted, setMuted } from './audio.js';
@@ -57,6 +58,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const [graveViewerPlayer, setGraveViewerPlayer] = useState(null);
   const [contractModalMinimized, setContractModalMinimized] = useState(false);
   const [challengeToasts, setChallengeToasts] = useState([]);
+  const [showMatchReview, setShowMatchReview] = useState(false);
 
   // Reset minimize state whenever a new contract selection appears
   useEffect(() => {
@@ -275,6 +277,16 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     && phase === 'action'
     && isP1Turn;
 
+  // Match review screen — shown over everything when active
+  if (showMatchReview && state.stateHistory && state.stateHistory.length > 3) {
+    return (
+      <MatchReview
+        stateHistory={state.stateHistory}
+        onBack={() => setShowMatchReview(false)}
+      />
+    );
+  }
+
   return (
     <div className="h-screen overflow-hidden text-white p-2 flex flex-col gap-2" style={{ background: '#0a0a0f', paddingBottom: isMobile ? '72px' : '8px' }}>
       {/* Mulligan overlay — shown at the start of every game before play begins */}
@@ -313,6 +325,26 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           >
             Play Again
           </button>
+          {state.stateHistory && state.stateHistory.length > 3 && (
+            <button
+              style={{
+                background: 'transparent',
+                color: '#C9A84C',
+                fontFamily: "'Cinzel', serif",
+                fontSize: '13px',
+                fontWeight: 600,
+                border: '1px solid #C9A84C60',
+                borderRadius: '4px',
+                padding: '10px 24px',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+              onClick={() => setShowMatchReview(true)}
+            >
+              Review Match
+            </button>
+          )}
         </GameEndOverlay>
       )}
 
