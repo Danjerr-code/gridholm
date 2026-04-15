@@ -462,9 +462,17 @@ export function useMultiplayerGame(gameId) {
 
     // Guard: prevent writing game state during opponent's action phase turn.
     // During mulligan both players may submit independently, so the guard is skipped.
+    // The session phase check also covers the case where the second player's mulligan
+    // submission advances the phase to begin-turn: at that point newGameState.phase is
+    // no longer 'mulligan', but session.game_state.phase still is, so the write must
+    // be allowed through.
     // This also prevents any AI evaluation path from accidentally writing state on the
     // opponent's turn if such a path were ever wired into the multiplayer component.
-    if (newGameState.phase !== 'mulligan' && session.active_player !== guestId) {
+    if (
+      newGameState.phase !== 'mulligan' &&
+      session.game_state?.phase !== 'mulligan' &&
+      session.active_player !== guestId
+    ) {
       console.warn('[Multiplayer] dispatchAction skipped — not active player');
       return;
     }
