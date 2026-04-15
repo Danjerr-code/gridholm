@@ -66,6 +66,7 @@ function isGameOver(state) {
 // ── getLegalActions ───────────────────────────────────────────────────────────
 
 function getLegalActions(state) {
+  if (!state) return [];
   const actions = [];
   if (state.winner) return actions;
   if (state.phase !== 'action') return actions;
@@ -387,6 +388,7 @@ export const WEIGHTS = {
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
+  if (!gameState) return 0;
   const ap = playerId === 'p1' ? 0 : 1;
   const op = 1 - ap;
 
@@ -682,6 +684,10 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
     for (const action of actions) {
       const newState = applyAction(gameState, action);
+      if (!newState) {
+        console.warn('[strategicAI] applyAction returned null — skipping action:', action.type, action);
+        continue;
+      }
       const isEndTurn = action.type === 'endTurn';
       const nextDepth        = isEndTurn ? depth - 1 : depth;
       const nextMaximizing   = isEndTurn ? false : true;
@@ -705,6 +711,10 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
     for (const action of actions) {
       const newState = applyAction(gameState, action);
+      if (!newState) {
+        console.warn('[strategicAI] applyAction returned null — skipping action:', action.type, action);
+        continue;
+      }
       const isEndTurn = action.type === 'endTurn';
       const nextDepth        = isEndTurn ? depth - 1 : depth;
       const nextMaximizing   = isEndTurn ? true : false;
