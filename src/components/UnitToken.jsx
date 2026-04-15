@@ -325,7 +325,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   }
 
   // Omen: glowing rune circle with turns remaining countdown
-  if (isOmen) {
+  // Exception: Dread Mirror hidden and owned by current player should show friendly-hidden styling,
+  // not its omen appearance — fall through to the regular render path which handles isOwnHidden.
+  if (isOmen && !(unit.id === 'dreadmirror' && isOwnHidden)) {
     // Temporal Rift command counter: show bonus command availability (1 = available, 0 = spent)
     const isTemporalRift = unit.id === 'temporalrift';
     const ownerCmdsUsed = state?.players?.[unit.owner]?.commandsUsed ?? 0;
