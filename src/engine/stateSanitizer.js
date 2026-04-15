@@ -39,5 +39,13 @@ export function sanitizeGameState(state) {
     s.mulliganSelections = { 0: null, 1: null };
   }
 
+  // Unit counters: ensure poison is initialized to a number on every board unit.
+  if (s.units.length > 0) {
+    s.units = s.units.map(u => {
+      if (u.poison == null) return { ...u, poison: 0 };
+      return u;
+    });
+  }
+
   return s;
 }

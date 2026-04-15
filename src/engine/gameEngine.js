@@ -842,7 +842,15 @@ function fireEndTurnTriggers(state, playerIdx) {
     checkWinner(state);
   }
 
-  // 7. Omen countdown: decrement turnsRemaining for each revealed omen the active player controls.
+  // 7. Poison damage tick: units owned by the active player take damage equal to their poison stacks.
+  const poisonedUnits = state.units.filter(u => u.owner === playerIdx && (u.poison ?? 0) > 0 && !u.isOmen);
+  for (const u of poisonedUnits) {
+    if (!state.units.find(x => x.uid === u.uid)) continue; // may have died earlier this tick
+    addLog(state, `${u.name} takes ${u.poison} poison damage.`);
+    applyDamageToUnit(state, u, u.poison, 'poison');
+  }
+
+  // 8. Omen countdown: decrement turnsRemaining for each revealed omen the active player controls.
   //    Hidden omens (e.g. Dread Mirror) do not tick until revealed.
   //    Destroy omens that reach 0 (fires death triggers so any on-death effects resolve).
   const omensToTick = state.units.filter(u => u.owner === playerIdx && u.isOmen && !u.hidden);
@@ -3678,6 +3686,21 @@ export function moveUnit(state, unitUid, row, col) {
       addLog(s, `${survivingDefender.name}'s Iron Shield fades after combat.`);
       survivingDefender.shield = 0;
     }
+    // Poison on hit: if a unit has the poison keyword (from its card definition), apply that
+    // much poison to the surviving opponent after combat damage resolves.
+    // Only applies to unit vs unit (not champion) combat.
+    {
+      const attackerKeywordPoison = (CARD_DB[unit.id]?.poison ?? 0);
+      const defenderKeywordPoison = (CARD_DB[enemyUnit.id]?.poison ?? 0);
+      const postAttacker = s.units.find(u => u.uid === unitUid);
+      const postDefender = s.units.find(u => u.uid === enemyUnit.uid);
+      if (attackerKeywordPoison > 0 && postDefender) {
+        applyPoison(s, postDefender, attackerKeywordPoison);
+      }
+      if (defenderKeywordPoison > 0 && postAttacker) {
+        applyPoison(s, postAttacker, defenderKeywordPoison);
+      }
+    }
     // Fire attack triggers (Whisper, Crossbowman, Razorfang)
     const killedDefender = !s.units.find(u => u.uid === enemyUnit.uid);
     fireAttackTriggers(unit, enemyUnit, s, killedDefender);
@@ -3828,6 +3851,13 @@ export function executeApproachAndAttack(state, unitUid, approachRow, approachCo
 
   // Resolve combat from approach tile (unit is now adjacent to target)
   return moveUnit(s, unitUid, targetRow, targetCol);
+}
+
+// Apply poison stacks to a unit. Can be called from combat, spells, and effects.
+export function applyPoison(state, unit, amount) {
+  if (!unit || amount <= 0) return;
+  unit.poison = (unit.poison ?? 0) + amount;
+  addLog(state, `${unit.name} is poisoned (${unit.poison} stack${unit.poison !== 1 ? 's' : ''}).`);
 }
 
 export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = null) {

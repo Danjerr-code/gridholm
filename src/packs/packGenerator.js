@@ -14,7 +14,7 @@ const COLLECTION_KEY = 'gridholm_collection';
 
 // Build filtered card pools once (exclude tokens)
 function buildCardPools() {
-  const all = Object.values(CARD_DB).filter(c => !c.token && !c.bossOnly);
+  const all = Object.values(CARD_DB).filter(c => !c.token && !c.bossOnly && !c.adventureOnly);
   const byFaction = {};
   for (const faction of ['light', 'primal', 'mystic', 'dark']) {
     byFaction[faction] = all.filter(c => c.attribute === faction);

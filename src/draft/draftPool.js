@@ -20,6 +20,7 @@ export function buildDraftPool(primaryFaction, secondaryFaction) {
     if (card.isToken || card.token) return false;
     if (card.isChampion) return false;
     if (card.bossOnly) return false;
+    if (card.adventureOnly) return false;
     // Include all faction cards and neutral cards
     const attr = card.attribute;
     if (!attr) return false;

@@ -91,6 +91,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const hasShield = (unit.shield ?? 0) > 0;
   const isSpellImmune = !!unit.spellImmune;
   const hasGlitteringGift = !!unit.glitteringGift;
+  const poisonStacks = unit.poison ?? 0;
 
   // Fortitude glow: unit is a friendly combat unit owned by a light/ascended player (Valorian)
   // and is within 2 manhattan tiles of their champion.
@@ -626,6 +627,27 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           zIndex: 3,
           opacity: 0.85,
         }} title={actionAvailable ? 'Action available' : 'Action used or unavailable'}>Action</div>
+      )}
+
+      {/* Poison counter — top right, shown when unit has poison stacks */}
+      {poisonStacks > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '2px',
+          background: '#14532d',
+          color: '#4ADE80',
+          fontSize: '8px',
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 700,
+          padding: '1px 3px',
+          borderRadius: '99px',
+          whiteSpace: 'nowrap',
+          zIndex: 4,
+          lineHeight: 1.2,
+        }} title={`Poisoned: takes ${poisonStacks} damage at end of owner's turn`}>
+          ☠{poisonStacks}
+        </div>
       )}
 
       {/* HP pill (relics) or ATK/HP pill (units) — centered bottom */}
