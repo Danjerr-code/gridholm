@@ -49,7 +49,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     sacrificeTargetUids,
     selectedSacrificeUid,
     handlers,
-  } = useGameState({ deckId });
+  } = useGameState({ deckId, gameMode: isDraft ? 'draft' : 'quickplay' });
 
   const isMobile = useIsMobile();
   const [logOpen, setLogOpen] = useState(false);

@@ -26,6 +26,7 @@ export function useMultiplayerGame(gameId) {
   const retryTimerRef = useRef(null);
   const forfeitCalledRef = useRef(false);
   const winLossUpdatedRef = useRef(false); // guard against double win/loss update
+  const replayPersistedRef = useRef(false); // guard against duplicate replay inserts
   // Tracks own mulligan submission so the 5s fallback can retry if opponent's
   // write overwrote ours and the game is still stuck in mulligan phase.
   const [myMulliganSubmission, setMyMulliganSubmission] = useState(null);
@@ -220,6 +221,47 @@ export function useMultiplayerGame(gameId) {
     }
     updateRecord().catch(err => console.error('[WinLoss] Update failed:', err));
   }, [session?.status, session?.winner, currentUser, guestId]);
+
+  // Persist replay on multiplayer game completion.
+  // Only player1 inserts to avoid duplicate rows from both clients.
+  // Fire-and-forget: failures are logged but do not affect the player experience.
+  useEffect(() => {
+    if (!session || session.status !== 'complete' || !supabase) return;
+    if (!session.game_state || session.player1_id !== guestId) return;
+    if (replayPersistedRef.current) return;
+    replayPersistedRef.current = true;
+
+    const gs = session.game_state;
+    const p1 = gs.players?.[0];
+    const p2 = gs.players?.[1];
+
+    let winnerValue = 'draw';
+    if (gs.winner === p1?.name) winnerValue = 'p1';
+    else if (gs.winner === p2?.name) winnerValue = 'p2';
+
+    const getCardIds = (player) => [
+      ...(player?.hand || []),
+      ...(player?.deck || []),
+      ...(player?.discard || []),
+      ...(player?.grave || []),
+      ...(player?.banished || []),
+    ].map(c => c.id);
+
+    supabase.from('match_replays').insert({
+      game_session_id: gameId,
+      game_mode: 'multiplayer',
+      p1_faction: p1?.deckId ?? null,
+      p2_faction: p2?.deckId ?? null,
+      p1_deck: p1 ? getCardIds(p1) : [],
+      p2_deck: p2 ? getCardIds(p2) : [],
+      winner: winnerValue,
+      total_turns: gs.turn ?? 0,
+      state_history: null, // stateHistory is stripped during multiplayer sync
+      final_state: gs,
+    }).then(({ error }) => {
+      if (error) console.warn('[Replay] Multiplayer insert failed:', error.message);
+    });
+  }, [session?.status, gameId, guestId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Play a chime when active_player transitions to the local player.
   const prevActivePlayerRef = useRef(null);
@@ -622,6 +664,7 @@ export function useMultiplayerGame(gameId) {
 
     const freshGameState = createInitialState();
     winLossUpdatedRef.current = false; // allow win/loss tracking for the new game
+    replayPersistedRef.current = false; // allow replay insert for the new game
     const updateBody = {
       game_state: freshGameState,
       status: 'deck_select',

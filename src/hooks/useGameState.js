@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { supabase } from '../supabase.js';
 import {
   createInitialState,
   autoAdvancePhase,
@@ -78,7 +79,7 @@ function createStateWithAiLog(deckId, aiDeckId) {
   return { ...s, log: [...s.log, `AI is playing ${aiName} with ${aiChampDef.name}.`] };
 }
 
-export function useGameState({ deckId = 'human' } = {}) {
+export function useGameState({ deckId = 'human', gameMode = 'quickplay' } = {}) {
   const [state, setState] = useState(() => {
     const aiDeckId = pickRandomAiDeck();
     console.log(`[useGameState] Initializing game | Player 1 deckId="${deckId}" | AI deckId="${aiDeckId}"`);
@@ -177,6 +178,44 @@ export function useGameState({ deckId = 'human' } = {}) {
       playSfxWin();
     }
     prevWinnerRef.current = state.winner;
+  }, [state.winner]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist replay data on game completion (quickplay and draft only, not tutorial).
+  // Fire-and-forget: failures are logged but never surface to the player.
+  const replayPersistedRef = useRef(false);
+  useEffect(() => {
+    if (!state.winner || replayPersistedRef.current) return;
+    if (gameMode === 'tutorial') return;
+    if (!supabase) return;
+    replayPersistedRef.current = true;
+
+    const p1 = state.players[0];
+    const p2 = state.players[1];
+    const winnerValue = state.winner === p1.name ? 'p1' : state.winner === p2.name ? 'p2' : 'draw';
+
+    const getCardIds = (player) => [
+      ...(player.hand || []),
+      ...(player.deck || []),
+      ...(player.discard || []),
+      ...(player.grave || []),
+      ...(player.banished || []),
+    ].map(c => c.id);
+
+    const { stateHistory, ...finalState } = state;
+
+    supabase.from('match_replays').insert({
+      game_mode: gameMode,
+      p1_faction: p1.deckId ?? null,
+      p2_faction: p2.deckId ?? null,
+      p1_deck: getCardIds(p1),
+      p2_deck: getCardIds(p2),
+      winner: winnerValue,
+      total_turns: state.turn ?? 0,
+      state_history: stateHistory ?? [],
+      final_state: finalState,
+    }).then(({ error }) => {
+      if (error) console.warn('[Replay] Insert failed:', error.message);
+    });
   }, [state.winner]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyAndMaybeAI = useCallback((newState) => {
