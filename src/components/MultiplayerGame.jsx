@@ -1688,14 +1688,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '12px', textAlign: 'center' }}>
                 Glimpse — Top card of your deck
               </div>
-              {gameState.pendingDeckPeek.cards.map(card => (
-                <div key={card.uid} style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #141420 100%)', border: '1px solid #3a3a60', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px', textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', fontWeight: 600, color: '#e8e8f0', marginBottom: '4px' }}>{card.name}</div>
-                  <div style={{ fontSize: '10px', color: '#C9A84C' }}>Cost {card.cost}</div>
-                  {card.type === 'unit' && <div style={{ fontSize: '10px', color: '#8080a0' }}>{card.atk}/{card.hp}</div>}
-                  {card.rules && <div style={{ fontSize: '9px', color: '#6060a0', marginTop: '4px', lineHeight: 1.3 }}>{renderRules(card.rules)}</div>}
-                </div>
-              ))}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                {gameState.pendingDeckPeek.cards.map(card => (
+                  <Card key={card.uid} card={card} isPlayable={false} />
+                ))}
+              </div>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <button
                   onClick={() => handleGlimpseDecision(true)}
