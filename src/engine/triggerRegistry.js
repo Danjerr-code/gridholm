@@ -497,20 +497,19 @@ function resolveEffect(effectId, listener, context, state) {
       break;
     }
 
-    // TEMP: discardOrDie removed pending trigger resolution system fix (LOG-1152)
-    // case 'discardOrDie': {
-    //   // Clockwork Manimus: at end of turn, discard a card or the unit is destroyed.
-    //   if (!listenerUnit) break;
-    //   const p = state.players[listener.playerIndex];
-    //   if (!p.hand || p.hand.length === 0) {
-    //     addLog(state, `Clockwork Manimus: no cards in hand — destroyed!`);
-    //     destroyUnit(listenerUnit, state, 'discardOrDie');
-    //   } else {
-    //     addLog(state, `Clockwork Manimus: discard a card to keep it alive.`);
-    //     state.pendingHandSelect = { reason: 'discardOrDie', cardUid: listenerUnit.uid, data: { unitUid: listenerUnit.uid } };
-    //   }
-    //   break;
-    // }
+    case 'discardOrDie': {
+      // Clockwork Manimus: at end of turn, discard a card or the unit is destroyed.
+      if (!listenerUnit) break;
+      const p = state.players[playerIndex];
+      if (!p.hand || p.hand.length === 0) {
+        addLog(state, `Clockwork Manimus: no cards in hand — destroyed!`);
+        destroyUnit(listenerUnit, state, 'discardOrDie');
+      } else {
+        addLog(state, `Clockwork Manimus: discard a card to keep it alive.`);
+        state.pendingHandSelect = { reason: 'discardOrDie', cardUid: listenerUnit.uid, data: { unitUid: listenerUnit.uid } };
+      }
+      break;
+    }
 
     case 'negationcrystal_cancel': {
       // Negation Crystal: automatically destroy it and cancel the enemy action.

@@ -672,6 +672,20 @@ export function runAITurnSteps(state) {
   return runHeuristicTurnSteps(state);
 }
 
+// Auto-resolve any post-endTurn pending states for the heuristic AI.
+// Currently handles discardOrDie (Clockwork Manimus): discard lowest-cost card.
+function aiResolveEndTurn(s) {
+  if (s.pendingHandSelect?.reason === 'discardOrDie') {
+    const p = s.players[AI_PLAYER];
+    if (p.hand.length > 0) {
+      const lowestCost = p.hand.reduce((min, c) => c.cost < min.cost ? c : min, p.hand[0]);
+      return resolveHandSelect(s, lowestCost.uid);
+    }
+    s.pendingHandSelect = null;
+  }
+  return s;
+}
+
 function runHeuristicTurn(state) {
   let s = cloneState(state);
 
@@ -690,7 +704,7 @@ function runHeuristicTurn(state) {
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
     if (getAIDebug()) console.log('[HeuristicAI] → LETHAL: moving unit onto enemy champion');
-    return endTurn(endActionPhase(lethalState));
+    return aiResolveEndTurn(endTurn(endActionPhase(lethalState)));
   }
 
   const before = { champAbil: s.champions[AI_PLAYER].moved, unitCount: s.units.filter(u => u.owner === AI_PLAYER).length };
@@ -709,7 +723,7 @@ function runHeuristicTurn(state) {
   s = aiUnitMove(s);
 
   s = endActionPhase(s);
-  s = endTurn(s);
+  s = aiResolveEndTurn(endTurn(s));
   return s;
 }
 
@@ -725,7 +739,7 @@ function runHeuristicTurnSteps(state) {
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
     steps.push(lethalState);
-    steps.push(endTurn(endActionPhase(lethalState)));
+    steps.push(aiResolveEndTurn(endTurn(endActionPhase(lethalState))));
     return steps;
   }
 
@@ -735,7 +749,7 @@ function runHeuristicTurnSteps(state) {
   s = aiPlayNonCombatCards(s); steps.push(s);
   s = aiUnitMove(s); steps.push(s);
   s = endActionPhase(s);
-  s = endTurn(s);
+  s = aiResolveEndTurn(endTurn(s));
   steps.push(s);
   return steps;
 }
