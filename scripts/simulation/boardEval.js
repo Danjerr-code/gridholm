@@ -499,10 +499,12 @@ export function evaluateBoard(gameState, playerId, weights = null) {
 
   // throneControlValue: throne positioning bonus.
   // Components:
-  //   1. Champion on throne         → +1.0 factor
-  //   2. Friendly unit on throne    → +0.5 factor (denies tile, valuable even w/o 2-dmg trigger)
-  //   3. Champion adjacent to empty throne → +0.4 factor
-  //   4. Champion-toward-center gradient   → +(4 - distToCenter) * 0.3 when no friendly piece on throne
+  //   1. Champion on throne              → +1.0 factor
+  //   2. Friendly unit on throne         → +0.75 factor (increased from 0.5; preparation and denial value)
+  //   3. Denial bonus: unit on throne + enemy champion within 2 tiles → +1.0 extra (blocking approach)
+  //   4. Preparation bonus: unit on throne + own champion adjacent → +0.5 extra (champion takeover setup)
+  //   5. Champion adjacent to empty throne → +0.4 factor
+  //   6. Champion-toward-center gradient   → +(4 - distToCenter) * 0.3 when no friendly piece on throne
   const myChampOnThrone = myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL;
   const myUnitOnThrone  = myUnits.some(u => u.row === THRONE_ROW && u.col === THRONE_COL);
   const myPieceOnThrone = myChampOnThrone || myUnitOnThrone;
@@ -514,7 +516,21 @@ export function evaluateBoard(gameState, playerId, weights = null) {
   }
 
   if (myUnitOnThrone) {
-    throneControlValue += 0.5;
+    throneControlValue += 0.75;  // raised from 0.5
+
+    // Denial bonus: enemy champion within 2 tiles of throne — friendly unit blocks their advance
+    const oppChampDistToThrone = manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL]);
+    if (oppChampDistToThrone <= 2) {
+      throneControlValue += 1.0;
+    }
+
+    // Preparation bonus: own champion adjacent to throne — unit holds it while champion steps in next turn
+    const myChampAdjacentToThrone = adjDirs.some(
+      ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
+    );
+    if (myChampAdjacentToThrone) {
+      throneControlValue += 0.5;
+    }
   }
 
   if (!myChampOnThrone) {
