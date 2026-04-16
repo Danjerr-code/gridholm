@@ -1121,12 +1121,17 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
   }
   captureActions.sort((a, b) => (capScores.get(b) ?? 0) - (capScores.get(a) ?? 0));
 
-  // Sort quiet moves by history score (descending); break ties with quickEvalOrder
+  // Sort quiet moves by history score (descending); spell value + quickEvalOrder break ties.
+  // Spell value bonus ensures high-value quiet spells (crusade, martiallaw, petrify, etc.)
+  // are searched early enough that alpha-beta does not prune them before their scores register.
   const quietScores = new Map();
   for (const a of quietActions) {
     const h = historyScore(history, a, gameState);
     const q = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
-    quietScores.set(a, h * 10 + q); // history dominates; quickEval breaks ties
+    const sv = a.type === 'cast'
+      ? getSpellValue(a.cardUid, gameState, gameState.activePlayer) * 2
+      : 0;
+    quietScores.set(a, h * 10 + sv + q); // history dominates; spell value + quickEval break ties
   }
   quietActions.sort((a, b) => (quietScores.get(b) ?? 0) - (quietScores.get(a) ?? 0));
 

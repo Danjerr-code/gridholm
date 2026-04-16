@@ -2,788 +2,53 @@
   "results": [
     {
       "gameId": 1,
-      "p1Deck": "human",
-      "p2Deck": "elf",
+      "p1Deck": "elf",
+      "p2Deck": "demon",
       "winner": null,
-      "turns": 30,
+      "turns": 22,
       "p1FinalHP": 20,
-      "p2FinalHP": 20,
+      "p2FinalHP": 5,
       "cardsPlayed": {
         "p1": [
-          "shieldwall"
-        ],
-        "p2": [
-          "seedling"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "shieldwall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "militia": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "stoneguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "soulstone": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "captain": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "enchanted_ground": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "petrify": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "seedling": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "overgrowth": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ancientspring": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfranger": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfscout": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 28.798997999999997
-    },
-    {
-      "gameId": 2,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 13,
-      "p1FinalHP": 20,
-      "p2FinalHP": 20,
-      "cardsPlayed": {
-        "p1": [
-          "militia",
-          "stoneguard",
-          "battlepriestunit",
-          "standardbearer",
-          "standfirm",
-          "paladin",
-          "footsoldier"
-        ],
-        "p2": [
-          "moonveilmystic",
-          "woodlandguard",
           "whisper",
-          "rootsongcommander",
+          "glitteringgift",
+          "ancientspring",
+          "petrify",
+          "seedling",
+          "yggara",
+          "elfranger",
+          "woodlandguard",
+          "elfelder",
           "moonleaf",
-          "verdantsurge",
-          "verdantarcher",
-          "bloom"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "militia": {
-            "timesDrawn": 2,
-            "timesPlayed": 2,
-            "turnsInHand": 1,
-            "damageDealt": 3,
-            "damageAbsorbed": 5,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "stoneguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 4,
-            "damageDealt": 2,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "crusade": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "battlepriestunit": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 12,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "standardbearer": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "standfirm": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "paladin": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 2,
-            "damageAbsorbed": 1,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "smite": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "footsoldier": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          }
-        },
-        "p2": {
-          "moonveilmystic": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 3,
-            "damageAbsorbed": 2,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "woodlandguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 2,
-            "damageAbsorbed": 1,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "whisper": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "rootsongcommander": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "moonleaf": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "enchanted_ground": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "glimpse": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "verdantsurge": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "verdantarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 1,
-            "damageAbsorbed": 2,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "bloom": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 963.705244
-    },
-    {
-      "gameId": 3,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 14,
-      "p1FinalHP": 12,
-      "p2FinalHP": 15,
-      "cardsPlayed": {
-        "p1": [
-          "battlestandard",
-          "shieldwall",
-          "sentinel",
-          "crusade",
-          "battlepriestunit",
-          "militia",
-          "ironshield",
-          "ironthorns",
-          "sergeant"
-        ],
-        "p2": [
-          "entangle",
-          "woodlandguard",
-          "canopysentinel",
+          "elfscout",
           "rootsongcommander",
-          "thornweave",
-          "verdantarcher",
-          "whisper",
-          "cascadesage",
-          "moonleaf"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "battlestandard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 0,
-            "damageAbsorbed": null,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "shieldwall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 6,
-            "damageAbsorbed": 0,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "sentinel": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 2,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "martiallaw": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "crusade": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "battlepriestunit": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "militia": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 2,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironthorns": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "hallowed_ground": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "entangle": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 8,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "woodlandguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 2,
-            "damageDealt": null,
-            "damageAbsorbed": 1,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "canopysentinel": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 10,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "glimpse": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "rootsongcommander": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "thornweave": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "verdantarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 5,
-            "damageAbsorbed": 4,
-            "killCount": 2,
-            "survivedUntilEnd": false
-          },
-          "whisper": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "cascadesage": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "moonleaf": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "arcanelens": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 970.3198509999988
-    },
-    {
-      "gameId": 4,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 30,
-      "p1FinalHP": 20,
-      "p2FinalHP": 20,
-      "cardsPlayed": {
-        "p1": [
-          "waddles",
-          "militia"
+          "sylvancourier",
+          "manawell",
+          "moonveilmystic",
+          "bloom"
         ],
         "p2": [
-          "whisper",
-          "seedling"
+          "imp",
+          "bloodoffering",
+          "wanderingconstruct",
+          "darksentence",
+          "dreadknight",
+          "hellhound",
+          "devour",
+          "zmore",
+          "dreadshade",
+          "brutedemon",
+          "shadowstalker",
+          "infernalpact",
+          "vexishollowking"
         ]
       },
       "cardStats": {
         "p1": {
-          "martiallaw": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 2,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "paladin": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "militia": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "warlord": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "crusade": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "standardbearer": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "captain": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironthorns": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "manawell": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "petrify": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
           "whisper": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "moonveilmystic": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "glimpse": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "seedling": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "overgrowth": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "arcanelens": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
+            "turnsInHand": 2,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
@@ -791,238 +56,50 @@
           },
           "glitteringgift": {
             "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 30.88812199999984
-    },
-    {
-      "gameId": 5,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": "p2",
-      "turns": 22,
-      "p1FinalHP": -2,
-      "p2FinalHP": 19,
-      "cardsPlayed": {
-        "p1": [
-          "stoneguard",
-          "shieldwall",
-          "smite",
-          "standfirm",
-          "crusade",
-          "soulstone",
-          "ironshield",
-          "martiallaw",
-          "militia",
-          "sergeant"
-        ],
-        "p2": [
-          "thornweave",
-          "rootsongcommander",
-          "canopysentinel",
-          "ancientspring",
-          "whisper",
-          "yggara",
-          "petrify",
-          "elfscout",
-          "elfelder",
-          "overgrowth",
-          "verdantarcher",
-          "recall"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "stoneguard": {
-            "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 6,
-            "damageAbsorbed": 4,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "shieldwall": {
-            "timesDrawn": 2,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 4,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "smite": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 13,
+            "turnsInHand": 10,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
-          },
-          "standfirm": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "crusade": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "soulstone": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "martiallaw": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "militia": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 4,
-            "damageAbsorbed": 2,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "warlord": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "knight": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "squire": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "battlestandard": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "paladin": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "thornweave": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 4,
-            "damageDealt": 18,
-            "damageAbsorbed": 4,
-            "killCount": 2,
-            "survivedUntilEnd": true
-          },
-          "rootsongcommander": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 8,
-            "damageDealt": 7,
-            "damageAbsorbed": 2,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "canopysentinel": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 14,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
           },
           "ancientspring": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 12,
+            "turnsInHand": 8,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "whisper": {
-            "timesDrawn": 2,
-            "timesPlayed": 2,
-            "turnsInHand": 2,
-            "damageDealt": 3,
-            "damageAbsorbed": 6,
+          "petrify": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 10,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "cascadesage": {
+          "canopysentinel": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "seedling": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "glimpse": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1034,341 +111,31 @@
           "yggara": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 13,
+            "turnsInHand": 11,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "petrify": {
+          "elfranger": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
+            "turnsInHand": 4,
+            "damageDealt": 5,
+            "damageAbsorbed": 4,
+            "killCount": 1,
             "survivedUntilEnd": false
           },
-          "elfscout": {
+          "woodlandguard": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
+            "turnsInHand": 0,
+            "damageDealt": 12,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
           },
           "elfelder": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 4,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "overgrowth": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "verdantarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "recall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "glimpse": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "woodlandguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 373.2676160000019
-    },
-    {
-      "gameId": 6,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": "p2",
-      "turns": 23,
-      "p1FinalHP": -2,
-      "p2FinalHP": 20,
-      "cardsPlayed": {
-        "p1": [
-          "stoneguard",
-          "paladin",
-          "militia",
-          "standfirm",
-          "soulstone",
-          "ironthorns",
-          "waddles",
-          "ironshield",
-          "crossbowman",
-          "smite",
-          "battlepriestunit",
-          "sentinel",
-          "standardbearer"
-        ],
-        "p2": [
-          "elfarcher",
-          "sistersiofra",
-          "glitteringgift",
-          "moonveilmystic",
-          "woodlandguard",
-          "verdantarcher",
-          "arcanelens",
-          "moonleaf",
-          "rootsongcommander",
-          "thornweave",
-          "elfscout",
-          "verdantsurge",
-          "canopysentinel",
-          "elfranger"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "stoneguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 4,
-            "damageDealt": 3,
-            "damageAbsorbed": 4,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "paladin": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 10,
-            "damageDealt": 6,
-            "damageAbsorbed": 4,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "militia": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 0,
-            "damageDealt": 3,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "standfirm": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 6,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "soulstone": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironthorns": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 3,
-            "damageAbsorbed": 3,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 2,
-            "timesPlayed": 2,
-            "turnsInHand": 4,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "crossbowman": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "smite": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "battlepriestunit": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "sentinel": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "standardbearer": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          }
-        },
-        "p2": {
-          "glimpse": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 1,
-            "damageAbsorbed": 1,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "enchanted_ground": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sistersiofra": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 15,
-            "damageDealt": 1,
-            "damageAbsorbed": 3,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "glitteringgift": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "moonveilmystic": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 22,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "woodlandguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 2,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "verdantarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 4,
-            "damageAbsorbed": 3,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "arcanelens": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 3,
@@ -1380,7 +147,378 @@
           "moonleaf": {
             "timesDrawn": 1,
             "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
             "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "rootsongcommander": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "manawell": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "moonveilmystic": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "verdantarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        },
+        "p2": {
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloodoffering": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 13,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "wanderingconstruct": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 13,
+            "damageDealt": 6,
+            "damageAbsorbed": 4,
+            "killCount": 2,
+            "survivedUntilEnd": false
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadknight": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 2,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "hellhound": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "devour": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "zmore": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 5,
+            "damageAbsorbed": 4,
+            "killCount": 2,
+            "survivedUntilEnd": false
+          },
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "infernalpact": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "vexishollowking": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "agonizingsymphony": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      },
+      "minimaxMs": 348709.8004239993,
+      "minimaxStats": {
+        "avgDepth": 10.748,
+        "avgTtSize": 299.996,
+        "ttHitRate": 0.32936713461451095,
+        "avgQNodes": 592.514,
+        "decisions": 500
+      }
+    },
+    {
+      "gameId": 2,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 30,
+      "p1FinalHP": 15,
+      "p2FinalHP": 17,
+      "cardsPlayed": {
+        "p1": [
+          "woodlandguard",
+          "elfscout",
+          "bloom",
+          "verdantsurge",
+          "cascadesage",
+          "petrify",
+          "glitteringgift",
+          "verdantarcher",
+          "arcanelens",
+          "moonveilmystic",
+          "recall",
+          "rootsongcommander",
+          "thornweave",
+          "moonleaf",
+          "ancientspring",
+          "sylvancourier",
+          "overgrowth"
+        ],
+        "p2": [
+          "imp",
+          "smokebomb",
+          "veilfiend",
+          "shadowstalker",
+          "wanderingconstruct",
+          "dreadknight",
+          "darksentence",
+          "dreadshade",
+          "shadowfiend",
+          "brutedemon"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "woodlandguard": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 10,
+            "damageAbsorbed": 5,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 3,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "verdantsurge": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 15,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "cascadesage": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "petrify": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "glitteringgift": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "verdantarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "arcanelens": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "moonveilmystic": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 2,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "recall": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "yggara": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
@@ -1389,22 +527,204 @@
           "rootsongcommander": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 3,
-            "damageAbsorbed": 3,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
             "killCount": 0,
-            "survivedUntilEnd": false
+            "survivedUntilEnd": true
           },
           "thornweave": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 1,
+            "turnsInHand": 3,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "elfscout": {
+          "moonleaf": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "glimpse": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "ancientspring": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "manawell": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "overgrowth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "canopysentinel": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sistersiofra": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfelder": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        },
+        "p2": {
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 3,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "smokebomb": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "veilfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 6,
+            "damageDealt": 3,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 3,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "wanderingconstruct": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 10,
+            "damageDealt": 1,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "dreadknight": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 6,
+            "damageDealt": 2,
+            "damageAbsorbed": 4,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "agonizingsymphony": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 4,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "brutedemon": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1412,8 +732,146 @@
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
+          }
+        }
+      },
+      "minimaxMs": 41280.01345099986,
+      "minimaxStats": {
+        "avgDepth": 18.504273504273506,
+        "avgTtSize": 35.01709401709402,
+        "ttHitRate": 0.6595270521233131,
+        "avgQNodes": 338.6923076923077,
+        "decisions": 117
+      }
+    },
+    {
+      "gameId": 3,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 16,
+      "p1FinalHP": 15,
+      "p2FinalHP": 4,
+      "cardsPlayed": {
+        "p1": [
+          "arcanelens",
+          "elfranger",
+          "elfarcher",
+          "whisper",
+          "moonleaf",
+          "woodlandguard",
+          "overgrowth",
+          "seedling",
+          "entangle",
+          "canopysentinel"
+        ],
+        "p2": [
+          "hellhound",
+          "shadowstalker",
+          "imp",
+          "wanderingconstruct",
+          "darksentence",
+          "brutedemon",
+          "bloodaltar",
+          "shadowfiend",
+          "veilfiend",
+          "chaospawn",
+          "souldrain"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "arcanelens": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
           },
-          "verdantsurge": {
+          "elfranger": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 6,
+            "damageDealt": 20,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 12,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "whisper": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "manawell": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "moonleaf": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "woodlandguard": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 5,
+            "damageAbsorbed": 5,
+            "killCount": 2,
+            "survivedUntilEnd": false
+          },
+          "yggara": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "overgrowth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "seedling": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 3,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1430,8 +888,82 @@
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
+          }
+        },
+        "p2": {
+          "hellhound": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 12,
+            "damageAbsorbed": 0,
+            "killCount": 1,
+            "survivedUntilEnd": false
           },
-          "elfranger": {
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 3,
+            "damageAbsorbed": 3,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "wanderingconstruct": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "vexishollowking": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloodaltar": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "shadowfiend": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1440,7 +972,43 @@
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "seedling": {
+          "veilfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "chaospawn": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "cursed_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "souldrain": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadknight": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1451,70 +1019,934 @@
           }
         }
       },
-      "minimaxMs": 603.0981679999982
+      "minimaxMs": 94968.33041800017,
+      "minimaxStats": {
+        "avgDepth": 19.778,
+        "avgTtSize": 14.63,
+        "ttHitRate": 0.4098038087566883,
+        "avgQNodes": 91.004,
+        "decisions": 500
+      }
     },
     {
-      "gameId": 7,
-      "p1Deck": "human",
-      "p2Deck": "elf",
+      "gameId": 4,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
       "winner": null,
-      "turns": 14,
-      "p1FinalHP": 8,
-      "p2FinalHP": 19,
+      "turns": 17,
+      "p1FinalHP": 26,
+      "p2FinalHP": 6,
       "cardsPlayed": {
         "p1": [
-          "battlepriestunit",
-          "footsoldier",
-          "standfirm",
-          "crossbowman",
-          "soulstone",
-          "smite",
-          "shieldwall",
-          "ironshield"
+          "verdantarcher",
+          "woodlandguard",
+          "whisper",
+          "elfelder",
+          "thornweave",
+          "petrify",
+          "elfranger",
+          "sylvancourier",
+          "sistersiofra",
+          "recall",
+          "bloom",
+          "elfarcher",
+          "canopysentinel"
         ],
         "p2": [
-          "whisper",
-          "entangle",
-          "moonleaf",
-          "verdantsurge",
-          "seedling",
-          "elfranger",
-          "overgrowth",
-          "manawell",
-          "yggara",
-          "bloom"
+          "hellhound",
+          "imp",
+          "smokebomb",
+          "vexishollowking",
+          "shadowfiend",
+          "dreadshade",
+          "shadowtrap",
+          "dreadknight"
         ]
       },
       "cardStats": {
         "p1": {
-          "battlepriestunit": {
+          "verdantarcher": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 9,
-            "damageDealt": 3,
-            "damageAbsorbed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 18,
+            "damageAbsorbed": 5,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "woodlandguard": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 1,
+            "damageAbsorbed": 4,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "whisper": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 11,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "footsoldier": {
+          "elfelder": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 3,
+            "damageDealt": 3,
+            "damageAbsorbed": 5,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "thornweave": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "petrify": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfranger": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 3,
+            "damageAbsorbed": 4,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sistersiofra": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "arcanelens": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "recall": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "canopysentinel": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          }
+        },
+        "p2": {
+          "hellhound": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 3,
+            "timesPlayed": 3,
+            "turnsInHand": 2,
+            "damageDealt": 3,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "smokebomb": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 16,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "vexishollowking": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 16,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "shadowfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 10,
+            "damageAbsorbed": 4,
+            "killCount": 3,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 6,
+            "damageDealt": 5,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "shadowtrap": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 5,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadknight": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "veilfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      },
+      "minimaxMs": 197635.56430700095,
+      "minimaxStats": {
+        "avgDepth": 19.374,
+        "avgTtSize": 39.974,
+        "ttHitRate": 0.3593246370075478,
+        "avgQNodes": 152.086,
+        "decisions": 500
+      }
+    },
+    {
+      "gameId": 5,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 12,
+      "p1FinalHP": 20,
+      "p2FinalHP": 3,
+      "cardsPlayed": {
+        "p1": [
+          "elfscout",
+          "moonveilmystic",
+          "elfarcher",
+          "verdantarcher",
+          "whisper",
+          "bloom",
+          "arcanelens",
+          "glitteringgift",
+          "entangle"
+        ],
+        "p2": [
+          "shadowstalker",
+          "souldrain",
+          "imp",
+          "hellhound",
+          "darksentence",
+          "shadowfiend"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 7,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "moonveilmystic": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 6,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 12,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "verdantarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 14,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "whisper": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "arcanelens": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "glitteringgift": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfelder": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        },
+        "p2": {
+          "shadowstalker": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 6,
+            "damageDealt": 3,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "souldrain": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "cursed_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "hellhound": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "pestilence": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "agonizingsymphony": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          }
+        }
+      },
+      "minimaxMs": 138956.37308999943,
+      "minimaxStats": {
+        "avgDepth": 19.752,
+        "avgTtSize": 29.806,
+        "ttHitRate": 0.4385211975481404,
+        "avgQNodes": 83.59,
+        "decisions": 500
+      }
+    },
+    {
+      "gameId": 6,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 30,
+      "p1FinalHP": 20,
+      "p2FinalHP": 16,
+      "cardsPlayed": {
+        "p1": [
+          "arcanelens",
+          "sylvancourier",
+          "thornweave",
+          "woodlandguard",
+          "recall",
+          "sistersiofra",
+          "bloom",
+          "verdantarcher",
+          "verdantsurge",
+          "ancientspring",
+          "rootsongcommander",
+          "overgrowth"
+        ],
+        "p2": [
+          "wanderingconstruct",
+          "zmore",
+          "spiteling",
+          "devour",
+          "souldrain",
+          "dreadshade",
+          "imp"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "arcanelens": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "thornweave": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 13,
+            "damageDealt": 2,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "woodlandguard": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 5,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "recall": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sistersiofra": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 3,
+            "damageAbsorbed": 4,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "verdantarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "verdantsurge": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "ancientspring": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "rootsongcommander": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "moonleaf": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "overgrowth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "enchanted_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "canopysentinel": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "moonveilmystic": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "whisper": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "glimpse": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        },
+        "p2": {
+          "wanderingconstruct": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 10,
+            "damageDealt": 4,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "zmore": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 12,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "spiteling": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "devour": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 6,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "veilfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "souldrain": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 2,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "fleshtithe": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 2,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowfiend": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "agonizingsymphony": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      },
+      "minimaxMs": 11367.67154599959,
+      "minimaxStats": {
+        "avgDepth": 19.785714285714285,
+        "avgTtSize": 12.142857142857142,
+        "ttHitRate": 0.679453397879772,
+        "avgQNodes": 129,
+        "decisions": 84
+      }
+    },
+    {
+      "gameId": 7,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": "p1",
+      "turns": 12,
+      "p1FinalHP": 20,
+      "p2FinalHP": -1,
+      "cardsPlayed": {
+        "p1": [
+          "verdantarcher",
+          "elfscout",
+          "rootsongcommander",
+          "elfelder",
+          "elfranger",
+          "whisper"
+        ],
+        "p2": [
+          "smokebomb",
+          "darksentence",
+          "brutedemon",
+          "dreadshade",
+          "imp",
+          "shadowstalker",
+          "devour"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "verdantarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
             "damageDealt": 9,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "standfirm": {
+          "enchanted_ground": {
             "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "crossbowman": {
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 16,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "rootsongcommander": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 8,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "sistersiofra": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfelder": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 4,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "elfranger": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "whisper": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1523,61 +1955,7 @@
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "soulstone": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "smite": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 11,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "shieldwall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 4,
-            "damageAbsorbed": 5,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "hallowed_ground": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "aendor": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "warlord": {
+          "verdantsurge": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1588,40 +1966,415 @@
           }
         },
         "p2": {
-          "whisper": {
+          "smokebomb": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 2,
-            "damageDealt": 5,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "entangle": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 10,
+            "turnsInHand": 1,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "moonleaf": {
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "zmore": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 4,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 1,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "devour": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowtrap": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      },
+      "minimaxMs": 11505.552042000112,
+      "minimaxStats": {
+        "avgDepth": 19.24,
+        "avgTtSize": 40.82,
+        "ttHitRate": 0.6870142646335465,
+        "avgQNodes": 259.66,
+        "decisions": 50
+      }
+    },
+    {
+      "gameId": 8,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 9,
+      "p1FinalHP": 20,
+      "p2FinalHP": 16,
+      "cardsPlayed": {
+        "p1": [
+          "manawell",
+          "sylvancourier",
+          "elfscout",
+          "elfranger",
+          "recall",
+          "seedling",
+          "elfarcher",
+          "glitteringgift"
+        ],
+        "p2": [
+          "chaospawn",
+          "imp",
+          "dreadshade",
+          "shadowstalker"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "manawell": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 3,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 6,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": true
+          },
+          "elfranger": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "recall": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "seedling": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 4,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
-            "survivedUntilEnd": false
+            "survivedUntilEnd": true
           },
           "verdantsurge": {
             "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 8,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "glitteringgift": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        },
+        "p2": {
+          "chaospawn": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 5,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "cursed_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "dreadshade": {
+            "timesDrawn": 2,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
+            "damageDealt": 2,
+            "damageAbsorbed": 3,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "bloodoffering": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "hellhound": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          }
+        }
+      },
+      "minimaxMs": 65410.46010800148,
+      "minimaxStats": {
+        "avgDepth": 19.988,
+        "avgTtSize": 9.49,
+        "ttHitRate": 0.472898724517606,
+        "avgQNodes": 50.712,
+        "decisions": 500
+      }
+    },
+    {
+      "gameId": 9,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 21,
+      "p1FinalHP": 22,
+      "p2FinalHP": 12,
+      "cardsPlayed": {
+        "p1": [
+          "recall",
+          "elfelder",
+          "whisper",
+          "ancientspring",
+          "elfarcher",
+          "sylvancourier",
+          "seedling",
+          "elfranger",
+          "thornweave",
+          "cascadesage",
+          "sistersiofra",
+          "moonleaf",
+          "canopysentinel",
+          "glitteringgift",
+          "elfscout",
+          "overgrowth",
+          "moonveilmystic"
+        ],
+        "p2": [
+          "bloodoffering",
+          "spiteling",
+          "dreadshade",
+          "imp",
+          "darksentence",
+          "fleshtithe",
+          "brutedemon",
+          "souldrain",
+          "chaospawn",
+          "dreadknight",
+          "shadowstalker"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "recall": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfelder": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 2,
+            "damageAbsorbed": 1,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "whisper": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "ancientspring": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 13,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "sylvancourier": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 6,
+            "damageAbsorbed": 4,
+            "killCount": 2,
             "survivedUntilEnd": false
           },
           "seedling": {
@@ -1636,10 +2389,10 @@
           "elfranger": {
             "timesDrawn": 1,
             "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 4,
-            "damageAbsorbed": 2,
-            "killCount": 0,
+            "turnsInHand": 2,
+            "damageDealt": 5,
+            "damageAbsorbed": 5,
+            "killCount": 2,
             "survivedUntilEnd": false
           },
           "enchanted_ground": {
@@ -1651,16 +2404,16 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "overgrowth": {
+          "thornweave": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 7,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
-            "survivedUntilEnd": false
+            "survivedUntilEnd": true
           },
-          "manawell": {
+          "cascadesage": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1669,63 +2422,16 @@
             "killCount": 0,
             "survivedUntilEnd": true
           },
-          "yggara": {
+          "sistersiofra": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
+            "damageDealt": 5,
+            "damageAbsorbed": 2,
+            "killCount": 1,
             "survivedUntilEnd": true
           },
-          "bloom": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 1036.425665999995
-    },
-    {
-      "gameId": 8,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 9,
-      "p1FinalHP": 11,
-      "p2FinalHP": 18,
-      "cardsPlayed": {
-        "p1": [
-          "sentinel",
-          "standfirm",
-          "militia",
-          "crossbowman"
-        ],
-        "p2": [
-          "arcanelens",
-          "verdantarcher",
-          "woodlandguard",
-          "manawell",
-          "recall"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "sentinel": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 4,
-            "damageDealt": 1,
-            "damageAbsorbed": 3,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "standfirm": {
+          "moonleaf": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 2,
@@ -1734,7 +2440,7 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "battlepriestunit": {
+          "entangle": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1743,115 +2449,14 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "martiallaw": {
+          "canopysentinel": {
             "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "militia": {
-            "timesDrawn": 2,
-            "timesPlayed": 2,
+            "timesPlayed": 1,
             "turnsInHand": 4,
-            "damageDealt": 0,
+            "damageDealt": 5,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": true
-          },
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "crossbowman": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 2,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "sistersiofra": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "moonleaf": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "arcanelens": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "verdantarcher": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 10,
-            "damageAbsorbed": 1,
-            "killCount": 1,
-            "survivedUntilEnd": true
-          },
-          "woodlandguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 2,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "manawell": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "recall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
           },
           "glimpse": {
             "timesDrawn": 1,
@@ -1862,36 +2467,16 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "yggara": {
+          "glitteringgift": {
             "timesDrawn": 1,
-            "timesPlayed": 0,
+            "timesPlayed": 1,
             "turnsInHand": 0,
             "damageDealt": 0,
             "damageAbsorbed": 0,
             "killCount": 0,
             "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 2900.4732959999947
-    },
-    {
-      "gameId": 9,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 30,
-      "p1FinalHP": 20,
-      "p2FinalHP": 20,
-      "cardsPlayed": {
-        "p1": [],
-        "p2": [
-          "woodlandguard"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "knight": {
+          },
+          "petrify": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1900,7 +2485,7 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "standfirm": {
+          "manawell": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1909,54 +2494,7 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "crusade": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "soulstone": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "ironshield": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        },
-        "p2": {
-          "woodlandguard": {
+          "elfscout": {
             "timesDrawn": 1,
             "timesPlayed": 1,
             "turnsInHand": 1,
@@ -1965,6 +2503,209 @@
             "killCount": 0,
             "survivedUntilEnd": true
           },
+          "overgrowth": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "moonveilmystic": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          }
+        },
+        "p2": {
+          "bloodoffering": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "spiteling": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadshade": {
+            "timesDrawn": 2,
+            "timesPlayed": 1,
+            "turnsInHand": 10,
+            "damageDealt": 3,
+            "damageAbsorbed": 4,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "imp": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 2,
+            "damageDealt": 2,
+            "damageAbsorbed": 4,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "fleshtithe": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 7,
+            "damageDealt": 3,
+            "damageAbsorbed": 3,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 3,
+            "damageDealt": 5,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "souldrain": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "chaospawn": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadknight": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 2,
+            "damageAbsorbed": 2,
+            "killCount": 1,
+            "survivedUntilEnd": false
+          },
+          "pactofruin": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "cursed_ground": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "shadowstalker": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          }
+        }
+      },
+      "minimaxMs": 74414.74725300097,
+      "minimaxStats": {
+        "avgDepth": 19.496,
+        "avgTtSize": 11.442,
+        "ttHitRate": 0.5281806219267262,
+        "avgQNodes": 76,
+        "decisions": 500
+      }
+    },
+    {
+      "gameId": 10,
+      "p1Deck": "elf",
+      "p2Deck": "demon",
+      "winner": null,
+      "turns": 30,
+      "p1FinalHP": 20,
+      "p2FinalHP": 20,
+      "cardsPlayed": {
+        "p1": [
+          "seedling",
+          "elfscout",
+          "moonleaf",
+          "whisper",
+          "entangle",
+          "elfelder"
+        ],
+        "p2": [
+          "shadowstalker",
+          "brutedemon",
+          "spiteling",
+          "smokebomb",
+          "dreadknight",
+          "imp"
+        ]
+      },
+      "cardStats": {
+        "p1": {
+          "seedling": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "elfscout": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 2,
+            "damageDealt": 4,
+            "damageAbsorbed": 5,
+            "killCount": 2,
+            "survivedUntilEnd": false
+          },
+          "moonleaf": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 8,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
           "yggara": {
             "timesDrawn": 1,
             "timesPlayed": 0,
@@ -1974,7 +2715,61 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "petrify": {
+          "whisper": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 4,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "bloom": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "entangle": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfelder": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "glitteringgift": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "elfarcher": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "glimpse": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -1992,129 +2787,7 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "moonleaf": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "rootsongcommander": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "entangle": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          }
-        }
-      },
-      "minimaxMs": 19.300956999997652
-    },
-    {
-      "gameId": 10,
-      "p1Deck": "human",
-      "p2Deck": "elf",
-      "winner": null,
-      "turns": 8,
-      "p1FinalHP": 20,
-      "p2FinalHP": 20,
-      "cardsPlayed": {
-        "p1": [
-          "waddles",
-          "squire",
-          "battlestandard",
-          "smite",
-          "sergeant",
-          "shieldwall"
-        ],
-        "p2": [
-          "glitteringgift",
-          "elfscout",
-          "arcanelens",
-          "whisper",
-          "elfelder",
-          "manawell"
-        ]
-      },
-      "cardStats": {
-        "p1": {
-          "waddles": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "squire": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 2,
-            "damageAbsorbed": 4,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "battlestandard": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "smite": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 7,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "sergeant": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 4,
-            "damageAbsorbed": 2,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "stoneguard": {
-            "timesDrawn": 1,
-            "timesPlayed": 0,
-            "turnsInHand": 0,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "shieldwall": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 1,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "sentinel": {
+          "sylvancourier": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -2125,61 +2798,16 @@
           }
         },
         "p2": {
-          "glitteringgift": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 6,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": false
-          },
-          "elfscout": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 0,
-            "damageDealt": 4,
-            "damageAbsorbed": 2,
-            "killCount": 1,
-            "survivedUntilEnd": false
-          },
-          "arcanelens": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 6,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "whisper": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 2,
-            "damageDealt": 1,
-            "damageAbsorbed": 2,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "elfelder": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 3,
-            "damageDealt": 1,
-            "damageAbsorbed": 2,
+          "shadowstalker": {
+            "timesDrawn": 2,
+            "timesPlayed": 2,
+            "turnsInHand": 8,
+            "damageDealt": 3,
+            "damageAbsorbed": 3,
             "killCount": 1,
             "survivedUntilEnd": true
           },
-          "manawell": {
-            "timesDrawn": 1,
-            "timesPlayed": 1,
-            "turnsInHand": 5,
-            "damageDealt": 0,
-            "damageAbsorbed": 0,
-            "killCount": 0,
-            "survivedUntilEnd": true
-          },
-          "rootsongcommander": {
+          "agonizingsymphony": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -2188,7 +2816,88 @@
             "killCount": 0,
             "survivedUntilEnd": false
           },
-          "entangle": {
+          "brutedemon": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 5,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "spiteling": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 2,
+            "damageAbsorbed": 1,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "smokebomb": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 9,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "infernalpact": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "dreadknight": {
+            "timesDrawn": 1,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "imp": {
+            "timesDrawn": 2,
+            "timesPlayed": 1,
+            "turnsInHand": 1,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": true
+          },
+          "fleshtithe": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "wanderingconstruct": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "darksentence": {
+            "timesDrawn": 1,
+            "timesPlayed": 0,
+            "turnsInHand": 0,
+            "damageDealt": 0,
+            "damageAbsorbed": 0,
+            "killCount": 0,
+            "survivedUntilEnd": false
+          },
+          "bloodaltar": {
             "timesDrawn": 1,
             "timesPlayed": 0,
             "turnsInHand": 0,
@@ -2199,261 +2908,70 @@
           }
         }
       },
-      "minimaxMs": 1050.8097249999737
+      "minimaxMs": 16596.873668000335,
+      "minimaxStats": {
+        "avgDepth": 18.895522388059703,
+        "avgTtSize": 63.6865671641791,
+        "ttHitRate": 0.5876755142977096,
+        "avgQNodes": 128.97014925373134,
+        "decisions": 67
+      }
     }
   ],
   "cardAnalysis": {
-    "shieldwall": {
-      "playRate": 0.8333,
-      "avgTurnsInHand": 1,
-      "avgDamageDealt": 2.8,
-      "avgKills": 0.4,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "militia": {
+    "whisper": {
       "playRate": 0.8889,
-      "avgTurnsInHand": 0.88,
-      "avgDamageDealt": 1.33,
+      "avgTurnsInHand": 3.5,
+      "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0,
+      "winRateWhenPlayed": 0.1429,
       "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
+      "winRateImpact": 0.1429
     },
-    "stoneguard": {
-      "playRate": 0.6,
-      "avgTurnsInHand": 3.67,
-      "avgDamageDealt": 3.67,
-      "avgKills": 0.667,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "soulstone": {
-      "playRate": 0.6,
-      "avgTurnsInHand": 9,
+    "glitteringgift": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 3,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
+      "winRateWhenNotDrawn": 0.25,
+      "winRateImpact": -0.25
     },
-    "sergeant": {
-      "playRate": 0.4286,
-      "avgTurnsInHand": 2.33,
-      "avgDamageDealt": 2.67,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "captain": {
-      "playRate": 0,
-      "avgTurnsInHand": 0,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": null,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": null
-    },
-    "ironshield": {
-      "playRate": 0.7143,
-      "avgTurnsInHand": 2.6,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "waddles": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 2.67,
-      "avgDamageDealt": 1,
-      "avgKills": 0.333,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "enchanted_ground": {
-      "playRate": 0,
-      "avgTurnsInHand": 0,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": null,
-      "winRateWhenNotDrawn": 0.1667,
-      "winRateImpact": null
-    },
-    "petrify": {
-      "playRate": 0.25,
-      "avgTurnsInHand": 1,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 1,
-      "winRateWhenNotDrawn": 0.1667,
-      "winRateImpact": 0.8333
-    },
-    "seedling": {
-      "playRate": 0.75,
-      "avgTurnsInHand": 1.33,
+    "ancientspring": {
+      "playRate": 1,
+      "avgTurnsInHand": 7.75,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0.1667,
       "winRateImpact": -0.1667
     },
-    "overgrowth": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 3.5,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.1667,
-      "winRateImpact": 0.3333
-    },
-    "ancientspring": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 12,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 1,
-      "winRateWhenNotDrawn": 0.125,
-      "winRateImpact": 0.875
-    },
-    "elfranger": {
-      "playRate": 0.6667,
-      "avgTurnsInHand": 2,
-      "avgDamageDealt": 2,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.1429,
-      "winRateImpact": 0.3571
-    },
-    "elfscout": {
+    "petrify": {
       "playRate": 0.75,
-      "avgTurnsInHand": 1.33,
-      "avgDamageDealt": 1.33,
-      "avgKills": 0.333,
-      "winRateWhenPlayed": 0.6667,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.6667
-    },
-    "crusade": {
-      "playRate": 0.4,
-      "avgTurnsInHand": 7,
+      "avgTurnsInHand": 5.33,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "battlepriestunit": {
-      "playRate": 0.8,
-      "avgTurnsInHand": 8.25,
-      "avgDamageDealt": 0.75,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "standardbearer": {
-      "playRate": 0.6667,
-      "avgTurnsInHand": 3,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "standfirm": {
-      "playRate": 0.8333,
-      "avgTurnsInHand": 4.2,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "paladin": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 7.5,
-      "avgDamageDealt": 4,
-      "avgKills": 1,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "smite": {
-      "playRate": 0.8,
-      "avgTurnsInHand": 8,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "footsoldier": {
-      "playRate": 1,
-      "avgTurnsInHand": 2,
-      "avgDamageDealt": 4.5,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0
-    },
-    "moonveilmystic": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 5,
-      "avgDamageDealt": 12.5,
-      "avgKills": 0.5,
-      "winRateWhenPlayed": 0.5,
       "winRateWhenNotDrawn": 0.1667,
-      "winRateImpact": 0.3333
+      "winRateImpact": -0.1667
     },
-    "woodlandguard": {
-      "playRate": 0.8333,
-      "avgTurnsInHand": 2.4,
-      "avgDamageDealt": null,
-      "avgKills": 0.4,
-      "winRateWhenPlayed": 0.2,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.2
-    },
-    "whisper": {
-      "playRate": 1,
-      "avgTurnsInHand": 1.29,
-      "avgDamageDealt": 1.5,
+    "canopysentinel": {
+      "playRate": 0.5,
+      "avgTurnsInHand": 2,
+      "avgDamageDealt": 1.67,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.1667,
+      "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0.25,
-      "winRateImpact": -0.0833
+      "winRateImpact": -0.25
     },
-    "rootsongcommander": {
-      "playRate": 0.6667,
-      "avgTurnsInHand": 7.75,
-      "avgDamageDealt": 2.5,
-      "avgKills": 0.25,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.5
-    },
-    "moonleaf": {
-      "playRate": 0.6667,
-      "avgTurnsInHand": 2.75,
+    "seedling": {
+      "playRate": 1,
+      "avgTurnsInHand": 1.8,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.25,
-      "winRateWhenNotDrawn": 0.25,
-      "winRateImpact": 0
-    },
-    "elfarcher": {
-      "playRate": 0.3333,
-      "avgTurnsInHand": 9,
-      "avgDamageDealt": 1,
-      "avgKills": 1,
-      "winRateWhenPlayed": 1,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 1
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.2,
+      "winRateImpact": -0.2
     },
     "glimpse": {
       "playRate": 0,
@@ -2461,73 +2979,244 @@
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": null,
-      "winRateWhenNotDrawn": 0,
+      "winRateWhenNotDrawn": 0.2,
       "winRateImpact": null
     },
-    "verdantsurge": {
-      "playRate": 1,
-      "avgTurnsInHand": 3.33,
+    "yggara": {
+      "playRate": 0.25,
+      "avgTurnsInHand": 11,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.3333,
-      "winRateWhenNotDrawn": 0.1429,
-      "winRateImpact": 0.1905
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.1667,
+      "winRateImpact": -0.1667
     },
-    "verdantarcher": {
+    "elfranger": {
       "playRate": 1,
-      "avgTurnsInHand": 1,
-      "avgDamageDealt": 4,
-      "avgKills": 0.8,
-      "winRateWhenPlayed": 0.4,
+      "avgTurnsInHand": 3.83,
+      "avgDamageDealt": 5.5,
+      "avgKills": 0.5,
+      "winRateWhenPlayed": 0.1667,
       "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.4
+      "winRateImpact": 0.1667
     },
-    "bloom": {
+    "woodlandguard": {
       "playRate": 1,
-      "avgTurnsInHand": 1,
+      "avgTurnsInHand": 4.4,
+      "avgDamageDealt": 6.6,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.2,
+      "winRateImpact": -0.2
+    },
+    "elfelder": {
+      "playRate": 0.7143,
+      "avgTurnsInHand": 2.2,
+      "avgDamageDealt": 1.2,
+      "avgKills": 0.4,
+      "winRateWhenPlayed": 0.2,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0.2
+    },
+    "moonleaf": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 4.6,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0.25,
       "winRateImpact": -0.25
     },
-    "battlestandard": {
+    "elfscout": {
+      "playRate": 1,
+      "avgTurnsInHand": 1.43,
+      "avgDamageDealt": 5.43,
+      "avgKills": 0.857,
+      "winRateWhenPlayed": 0.1429,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0.1429
+    },
+    "rootsongcommander": {
+      "playRate": 1,
+      "avgTurnsInHand": 3.5,
+      "avgDamageDealt": 0.5,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0.25,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0.25
+    },
+    "sylvancourier": {
+      "playRate": 0.8571,
+      "avgTurnsInHand": 2.5,
+      "avgDamageDealt": 1.5,
+      "avgKills": 0.5,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.3333,
+      "winRateImpact": -0.3333
+    },
+    "manawell": {
+      "playRate": 0.4,
+      "avgTurnsInHand": 2.5,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.2,
+      "winRateImpact": -0.2
+    },
+    "moonveilmystic": {
       "playRate": 0.6667,
-      "avgTurnsInHand": 8,
+      "avgTurnsInHand": 3.5,
+      "avgDamageDealt": 0.5,
+      "avgKills": 0.25,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.25,
+      "winRateImpact": -0.25
+    },
+    "bloom": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 4.6,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.25,
+      "winRateImpact": -0.25
+    },
+    "verdantarcher": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 1.6,
+      "avgDamageDealt": 8.6,
+      "avgKills": 0.4,
+      "winRateWhenPlayed": 0.2,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0.2
+    },
+    "imp": {
+      "playRate": 0.8667,
+      "avgTurnsInHand": 0.77,
+      "avgDamageDealt": 1.4,
+      "avgKills": 0.1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": null,
+      "winRateImpact": null
+    },
+    "bloodoffering": {
+      "playRate": 0.6667,
+      "avgTurnsInHand": 8.5,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "sentinel": {
+    "wanderingconstruct": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 8.8,
+      "avgDamageDealt": 2.75,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "darksentence": {
+      "playRate": 0.8571,
+      "avgTurnsInHand": 5,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "dreadknight": {
+      "playRate": 0.8333,
+      "avgTurnsInHand": 2.8,
+      "avgDamageDealt": 1.2,
+      "avgKills": 0.4,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "hellhound": {
+      "playRate": 0.8,
+      "avgTurnsInHand": 6.25,
+      "avgDamageDealt": 3,
+      "avgKills": 0.25,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "devour": {
+      "playRate": 1,
+      "avgTurnsInHand": 2.67,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "zmore": {
+      "playRate": 0.6667,
+      "avgTurnsInHand": 8.5,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "pactofruin": {
+      "playRate": 0,
+      "avgTurnsInHand": 0,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": null,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": null
+    },
+    "dreadshade": {
       "playRate": 0.75,
-      "avgTurnsInHand": 3.33,
-      "avgDamageDealt": 1,
-      "avgKills": 0,
+      "avgTurnsInHand": 5.33,
+      "avgDamageDealt": 2.14,
+      "avgKills": 0.714,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "martiallaw": {
-      "playRate": 0.25,
-      "avgTurnsInHand": 9,
+    "brutedemon": {
+      "playRate": 0.8571,
+      "avgTurnsInHand": 4,
+      "avgDamageDealt": 1.5,
+      "avgKills": 0.167,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "shadowstalker": {
+      "playRate": 0.9091,
+      "avgTurnsInHand": 3.2,
+      "avgDamageDealt": 1.75,
+      "avgKills": 0.375,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "infernalpact": {
+      "playRate": 0.5,
+      "avgTurnsInHand": 1,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "ironthorns": {
+    "vexishollowking": {
       "playRate": 0.6667,
-      "avgTurnsInHand": 7,
+      "avgTurnsInHand": 9.5,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "hallowed_ground": {
+    "agonizingsymphony": {
       "playRate": 0,
       "avgTurnsInHand": 0,
       "avgDamageDealt": 0,
@@ -2537,35 +3226,26 @@
       "winRateImpact": null
     },
     "entangle": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 9,
+      "playRate": 0.4286,
+      "avgTurnsInHand": 1,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0.3333,
       "winRateImpact": -0.3333
     },
-    "canopysentinel": {
-      "playRate": 1,
-      "avgTurnsInHand": 8.33,
+    "verdantsurge": {
+      "playRate": 0.5,
+      "avgTurnsInHand": 11,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.6667,
+      "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.6667
-    },
-    "thornweave": {
-      "playRate": 1,
-      "avgTurnsInHand": 2,
-      "avgDamageDealt": 6,
-      "avgKills": 0.667,
-      "winRateWhenPlayed": 0.6667,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": 0.6667
+      "winRateImpact": 0
     },
     "cascadesage": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 5,
+      "playRate": 1,
+      "avgTurnsInHand": 6,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
@@ -2573,112 +3253,166 @@
       "winRateImpact": -0.125
     },
     "arcanelens": {
-      "playRate": 0.6,
-      "avgTurnsInHand": 4.67,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0.3333,
-      "winRateWhenNotDrawn": 0.2,
-      "winRateImpact": 0.1333
-    },
-    "warlord": {
-      "playRate": 0,
-      "avgTurnsInHand": 0,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": null,
-      "winRateWhenNotDrawn": 0,
-      "winRateImpact": null
-    },
-    "manawell": {
-      "playRate": 0.75,
-      "avgTurnsInHand": 3.67,
+      "playRate": 0.8,
+      "avgTurnsInHand": 2.25,
       "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
-      "winRateWhenNotDrawn": 0.3333,
-      "winRateImpact": -0.3333
+      "winRateWhenNotDrawn": 0.2,
+      "winRateImpact": -0.2
     },
-    "glitteringgift": {
-      "playRate": 0.6667,
-      "avgTurnsInHand": 8.5,
+    "recall": {
+      "playRate": 1,
+      "avgTurnsInHand": 1.4,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.1429,
-      "winRateImpact": 0.3571
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.2,
+      "winRateImpact": -0.2
     },
-    "knight": {
-      "playRate": 0,
-      "avgTurnsInHand": 0,
+    "thornweave": {
+      "playRate": 1,
+      "avgTurnsInHand": 8,
+      "avgDamageDealt": 0.5,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.1667,
+      "winRateImpact": -0.1667
+    },
+    "overgrowth": {
+      "playRate": 1,
+      "avgTurnsInHand": 0.75,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": null,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0.1667,
+      "winRateImpact": -0.1667
+    },
+    "sistersiofra": {
+      "playRate": 0.6,
+      "avgTurnsInHand": 4.33,
+      "avgDamageDealt": 2.67,
+      "avgKills": 0.333,
+      "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
-      "winRateImpact": null
+      "winRateImpact": 0
     },
-    "squire": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 1,
-      "avgDamageDealt": 2,
+    "smokebomb": {
+      "playRate": 1,
+      "avgTurnsInHand": 7,
+      "avgDamageDealt": 0,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "yggara": {
+    "veilfiend": {
       "playRate": 0.5,
-      "avgTurnsInHand": 7,
-      "avgDamageDealt": 0,
-      "avgKills": 0,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.1667,
-      "winRateImpact": 0.3333
-    },
-    "elfelder": {
-      "playRate": 1,
-      "avgTurnsInHand": 3.5,
-      "avgDamageDealt": 0.5,
+      "avgTurnsInHand": 4.5,
+      "avgDamageDealt": 1.5,
       "avgKills": 0.5,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.125,
-      "winRateImpact": 0.375
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
     },
-    "recall": {
-      "playRate": 1,
-      "avgTurnsInHand": 1,
+    "shadowfiend": {
+      "playRate": 0.8,
+      "avgTurnsInHand": 1.5,
+      "avgDamageDealt": 3.5,
+      "avgKills": 0.75,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "elfarcher": {
+      "playRate": 0.7143,
+      "avgTurnsInHand": 7.8,
+      "avgDamageDealt": 0.2,
+      "avgKills": 0.2,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "bloodaltar": {
+      "playRate": 0.5,
+      "avgTurnsInHand": 9,
       "avgDamageDealt": 0,
       "avgKills": 0,
-      "winRateWhenPlayed": 0.5,
-      "winRateWhenNotDrawn": 0.125,
-      "winRateImpact": 0.375
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
     },
-    "crossbowman": {
+    "chaospawn": {
       "playRate": 1,
+      "avgTurnsInHand": 2.25,
+      "avgDamageDealt": 1.33,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "cursed_ground": {
+      "playRate": 0,
+      "avgTurnsInHand": 0,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": null,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": null
+    },
+    "souldrain": {
+      "playRate": 1,
+      "avgTurnsInHand": 2.25,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "shadowtrap": {
+      "playRate": 0.5,
       "avgTurnsInHand": 3,
+      "avgDamageDealt": 5,
+      "avgKills": 1,
+      "winRateWhenPlayed": 0,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": 0
+    },
+    "pestilence": {
+      "playRate": 0,
+      "avgTurnsInHand": 0,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": null,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": null
+    },
+    "enchanted_ground": {
+      "playRate": 0,
+      "avgTurnsInHand": 0,
+      "avgDamageDealt": 0,
+      "avgKills": 0,
+      "winRateWhenPlayed": null,
+      "winRateWhenNotDrawn": 0,
+      "winRateImpact": null
+    },
+    "spiteling": {
+      "playRate": 1,
+      "avgTurnsInHand": 0.6,
       "avgDamageDealt": 0.67,
       "avgKills": 0,
       "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
       "winRateImpact": 0
     },
-    "sistersiofra": {
-      "playRate": 0.5,
-      "avgTurnsInHand": 15,
-      "avgDamageDealt": 1,
-      "avgKills": 1,
-      "winRateWhenPlayed": 1,
-      "winRateWhenNotDrawn": 0.125,
-      "winRateImpact": 0.875
-    },
-    "aendor": {
-      "playRate": 0,
-      "avgTurnsInHand": 0,
-      "avgDamageDealt": 0,
+    "fleshtithe": {
+      "playRate": 0.3333,
+      "avgTurnsInHand": 7,
+      "avgDamageDealt": 3,
       "avgKills": 0,
-      "winRateWhenPlayed": null,
+      "winRateWhenPlayed": 0,
       "winRateWhenNotDrawn": 0,
-      "winRateImpact": null
+      "winRateImpact": 0
     }
   }
 }
