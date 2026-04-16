@@ -23,31 +23,38 @@ export const FACTION_TO_DECK_ID = {
 
 const ALL_FACTIONS = ['light', 'primal', 'mystic', 'dark'];
 
-// ── Difficulty helpers ────────────────────────────────────────────────────────
+// ── Rooms-cleared difficulty tiers ────────────────────────────────────────────
 
-// Distance from the nearest edge of the 5×5 grid (0 = border, 1 = one in, 2 = center)
-function getEdgeDistance(row, col) {
-  return Math.min(row, col, 4 - row, 4 - col);
+/**
+ * Returns fight configuration based on rooms cleared so far.
+ * Elite fights add on top of this base; boss ignores it entirely.
+ *
+ * Brackets:
+ *   0–1  → Easy       (warmup, small underpowered deck)
+ *   2–3  → Moderate   (fair fight, similarly-sized deck)
+ *   4–5  → Challenging (AI plays smarter, bigger deck)
+ *   6–8  → Hard       (deck advantage, higher HP)
+ *   9+   → Deadly     (late dungeon — serious fight)
+ */
+function getFightTier(roomsCleared) {
+  if (roomsCleared <= 1) return { deckSize: 15, aiDepth: 1, championHP: 12, label: 'Easy' };
+  if (roomsCleared <= 3) return { deckSize: 20, aiDepth: 1, championHP: 15, label: 'Moderate' };
+  if (roomsCleared <= 5) return { deckSize: 24, aiDepth: 2, championHP: 15, label: 'Challenging' };
+  if (roomsCleared <= 8) return { deckSize: 28, aiDepth: 2, championHP: 18, label: 'Hard' };
+  return { deckSize: 30, aiDepth: 2, championHP: 20, label: 'Deadly' };
 }
 
-// Returns 'edge' | 'middle' | 'inner' based on tile position
-function getTileDifficulty(row, col) {
-  const d = getEdgeDistance(row, col);
-  if (d === 0) return 'edge';
-  if (d === 1) return 'middle';
-  return 'inner';
-}
-
-// Returns a random enemy deck size for the difficulty
-function getEnemyDeckSize(difficulty) {
-  if (difficulty === 'edge')   return 18 + Math.floor(Math.random() * 3); // 18-20
-  if (difficulty === 'middle') return 22 + Math.floor(Math.random() * 3); // 22-24
-  return 26 + Math.floor(Math.random() * 3);                               // 26-28
-}
-
-// Returns AI depth for the difficulty (1 for edge, 2 otherwise)
-export function getAIDepth(difficulty) {
-  return difficulty === 'edge' ? 1 : 2;
+/**
+ * Returns a human-readable difficulty label for a fight tile based on rooms cleared.
+ * Elite fights are prefixed with "Elite".
+ * @param {number} roomsCleared
+ * @param {string} tileType - 'fight' | 'elite_fight' | 'boss'
+ * @returns {string}
+ */
+export function getFightDifficultyLabel(roomsCleared, tileType) {
+  if (tileType === 'boss') return 'Boss';
+  const { label } = getFightTier(roomsCleared);
+  return tileType === 'elite_fight' ? `Elite · ${label}` : label;
 }
 
 // Pick two different random factions
@@ -172,10 +179,10 @@ function applyCurses(state, curses) {
  * Build a complete adventure game state for a fight, elite_fight, or boss tile.
  *
  * @param {Object} run       - adventure run state from adventureState.js
- * @param {number} row       - tile row (0-4)
- * @param {number} col       - tile col (0-4)
+ * @param {number} row       - tile row (0-4), kept for API compat
+ * @param {number} col       - tile col (0-4), kept for API compat
  * @param {string} tileType  - 'fight' | 'elite_fight' | 'boss'
- * @returns {{ initialState: Object, aiDepth: number }}
+ * @returns {{ initialState: Object, aiDepth: number, fightDifficultyLabel: string }}
  */
 export function buildAdventureGameState(run, row, col, tileType) {
   const isBoss  = tileType === 'boss';
@@ -192,22 +199,25 @@ export function buildAdventureGameState(run, row, col, tileType) {
   let aiCardIds;
   let aiPrimaryFaction;
   let aiDepth;
+  let fightDifficultyLabel;
 
   if (isBoss) {
     const bossDef    = getBossDefinition('the_enthroned', run.loopCount);
     aiCardIds        = [...bossDef.deck];
     aiPrimaryFaction = 'light'; // mixed boss deck — label 'light' for champion selection
     aiDepth          = bossDef.aiDepth;
+    fightDifficultyLabel = 'Boss';
   } else {
-    const difficulty = getTileDifficulty(row, col);
-    const deckSize   = getEnemyDeckSize(difficulty);
-    aiDepth          = getAIDepth(difficulty);
+    const roomsCleared = run.roomsCleared ?? 0;
+    const tier         = getFightTier(roomsCleared);
+    aiDepth            = tier.aiDepth;
+    fightDifficultyLabel = getFightDifficultyLabel(roomsCleared, tileType);
 
     const [f1, f2]   = pickTwoFactions();
     aiPrimaryFaction = f1;
     // generateAIDeck always returns 30 cards; slice to target size
     const fullDeck   = generateAIDeck(f1, f2, 0, aiDepth, []);
-    aiCardIds        = fullDeck.slice(0, deckSize);
+    aiCardIds        = fullDeck.slice(0, tier.deckSize);
   }
 
   const aiSpec = JSON.stringify({
@@ -236,6 +246,17 @@ export function buildAdventureGameState(run, row, col, tileType) {
 
   // ── AI depth: stored in state so the AI engine uses the right search depth
   state.adventureAIDepth = aiDepth;
+
+  // ── Enemy champion HP from rooms-cleared tier ─────────────────────────────
+  // Boss HP is set later in the boss block; only override for normal/elite fights.
+  if (!isBoss) {
+    const roomsCleared = run.roomsCleared ?? 0;
+    const tier = getFightTier(roomsCleared);
+    // Elite adds +3 HP on top of the base tier HP
+    const baseHP = tier.championHP + (isElite ? 3 : 0);
+    state.champions[1].hp    = baseHP;
+    state.champions[1].maxHp = baseHP;
+  }
 
   // ── Elite modifiers ──────────────────────────────────────────────────────
   if (isElite) {
@@ -309,5 +330,6 @@ export function buildAdventureGameState(run, row, col, tileType) {
   return {
     initialState: autoAdvancePhase(state),
     aiDepth,
+    fightDifficultyLabel,
   };
 }

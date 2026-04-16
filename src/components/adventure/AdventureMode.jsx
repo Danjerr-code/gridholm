@@ -148,8 +148,8 @@ export default function AdventureMode({ onBack }) {
     const tileType = tile.type;
     if (FIGHT_TILE_TYPES.has(tileType) && !tile.completed) {
       // Build adventure fight context
-      const { initialState, aiDepth } = buildAdventureGameState(newRun, row, col, tileType);
-      setFightCtx({ initialState, aiDepth, row, col, tileType });
+      const { initialState, aiDepth, fightDifficultyLabel } = buildAdventureGameState(newRun, row, col, tileType);
+      setFightCtx({ initialState, aiDepth, row, col, tileType, fightDifficultyLabel });
       // Show boss passive intro before the fight when passives are present
       if (tileType === 'boss' && initialState.bossPassives && initialState.bossPassives.length > 0) {
         setPhase('boss_intro');

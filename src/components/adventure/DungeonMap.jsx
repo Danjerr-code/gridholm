@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { getFightDifficultyLabel } from '../../adventure/adventureFight.js';
 
 // Unicode icons per tile type
 const TILE_ICONS = {
@@ -83,7 +84,7 @@ const PULSE_STYLE = `
  */
 export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE_SIZE }) {
   const gridTotal = GRID_PADDING * 2 + 5 * tileSize + 4 * TILE_GAP;
-  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath } = state;
+  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath, roomsCleared } = state;
 
   // Determine whether the boss room is currently locked (player not on gate tile)
   const gateTile = useMemo(() => {
@@ -199,6 +200,7 @@ export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE
                 dimmed={dimmed}
                 onClick={movable ? () => onTileClick(r, c) : undefined}
                 tileSize={tileSize}
+                roomsCleared={roomsCleared ?? 0}
               />
             );
           })}
@@ -208,7 +210,16 @@ export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE
   );
 }
 
-function TileCell({ tile, revealed, completed, current, movable, locked, dimmed, onClick, tileSize = DEFAULT_TILE_SIZE }) {
+// Color per difficulty label for the subtle badge on fight tiles
+const DIFFICULTY_COLORS = {
+  'Easy':        '#4ade80',
+  'Moderate':    '#facc15',
+  'Challenging': '#fb923c',
+  'Hard':        '#f87171',
+  'Deadly':      '#c084fc',
+};
+
+function TileCell({ tile, revealed, completed, current, movable, locked, dimmed, onClick, tileSize = DEFAULT_TILE_SIZE, roomsCleared = 0 }) {
   if (!revealed) {
     // Hidden tile
     return (
@@ -315,6 +326,35 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
       }}>
         {label}
       </div>
+
+      {/* Fight difficulty badge — shows expected difficulty based on rooms cleared */}
+      {(tile.type === 'fight' || tile.type === 'elite_fight') && !completed && (
+        (() => {
+          const diffLabel = getFightDifficultyLabel(roomsCleared, tile.type);
+          // Extract the base difficulty for coloring (strip "Elite · " prefix)
+          const baseLabel = diffLabel.replace(/^Elite · /, '');
+          const color = DIFFICULTY_COLORS[baseLabel] ?? '#9ca3af';
+          return (
+            <div style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '6px',
+              letterSpacing: '0.04em',
+              color,
+              marginTop: '1px',
+              textTransform: 'uppercase',
+              userSelect: 'none',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              maxWidth: `${tileSize - 4}px`,
+              textOverflow: 'ellipsis',
+              opacity: 0.85,
+            }}>
+              {diffLabel}
+            </div>
+          );
+        })()
+      )}
 
       {/* Boss name label — always visible so player knows the boss before reaching it */}
       {tile.type === 'boss' && (
