@@ -807,13 +807,17 @@ const Q_MAX_DEPTH    = 12;  // cap at 12 plies to prevent explosion
 const Q_DELTA_MARGIN = 200; // safety margin for delta pruning
 
 /**
- * Generate capture-only move candidates for quiescence search.
- * Includes:
- *   - Unit attacks that kill an enemy unit (ATK >= enemy HP)
- *   - Any unit attack on the enemy champion
- *   - Champion attacks that kill an enemy unit (ATK >= enemy HP)
- *   - Any champion attack on the enemy champion
+ * Generate capture-only move candidates for quiescence search (Option B: champion-focused).
+ * Includes only champion-critical moves:
+ *   1. Any unit attack on the enemy champion directly
+ *   2. Kill-eligible unit attack on an attacking enemy unit adjacent to the friendly champion (defensive)
+ *   3. Any champion attack on the enemy champion
  *
+ * Champion escape moves are excluded: they create mutual-escape cycles where both AIs
+ * perpetually retreat from danger, resulting in 100% draw rates. Static eval handles
+ * champion safety via championHP and lethalThreat weights.
+ *
+ * General unit-vs-unit trades are excluded — static eval handles those.
  * Sorted by MVV-LVA: highest (victimThreat - attackerAlly*0.1) first.
  */
 function generateCaptures(state, ap) {
@@ -833,7 +837,7 @@ function generateCaptures(state, ap) {
       const tc = unit.col + dc;
       if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
 
-      // Any attack on enemy champion (always loud)
+      // 1. Any unit attack on the enemy champion
       if (enemyChamp.row === tr && enemyChamp.col === tc) {
         captures.push({
           type: 'move', unitId: unit.uid, targetTile: [tr, tc],
@@ -843,37 +847,30 @@ function generateCaptures(state, ap) {
         continue;
       }
 
-      // Kill-eligible attack on enemy unit
-      const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+      // 2. Defensive: kill an attacking enemy unit adjacent to the friendly champion
+      const enemy = state.units.find(u => u.owner === enemyIdx && !u.isRelic && !u.isOmen && u.row === tr && u.col === tc);
       if (enemy && atk >= (enemy.hp ?? 0)) {
-        captures.push({
-          type: 'move', unitId: unit.uid, targetTile: [tr, tc],
-          _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
-          _attackerAlly: getCardRating(unit.id,  'ally',   unit.cost  ?? 4),
-        });
+        const threatsMyChamp = dirs.some(([ddr, ddc]) =>
+          myChamp.row + ddr === enemy.row && myChamp.col + ddc === enemy.col
+        );
+        if (threatsMyChamp) {
+          captures.push({
+            type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+            _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
+            _attackerAlly: getCardRating(unit.id,  'ally',   unit.cost  ?? 4),
+          });
+        }
       }
     }
   }
 
-  // Champion attacks
-  const champAtk = myChamp.atk ?? 0;
+  // 3. Champion attacks on enemy champion
   for (const [dr, dc] of dirs) {
     const tr = myChamp.row + dr;
     const tc = myChamp.col + dc;
     if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
-
     if (enemyChamp.row === tr && enemyChamp.col === tc) {
       captures.push({ type: 'championMove', row: tr, col: tc, _victimThreat: 300, _attackerAlly: 0 });
-      continue;
-    }
-
-    const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
-    if (enemy && champAtk >= (enemy.hp ?? 0)) {
-      captures.push({
-        type: 'championMove', row: tr, col: tc,
-        _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
-        _attackerAlly: 0,
-      });
     }
   }
 
