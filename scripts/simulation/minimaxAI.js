@@ -1126,9 +1126,9 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
     const h = historyScore(history, a, gameState);
     const q = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
     const sv = a.type === 'cast'
-      ? getSpellValue(a.cardUid, gameState, gameState.activePlayer) * 2
+      ? getSpellValue(a.cardUid, gameState, gameState.activePlayer) * 100
       : 0;
-    quietScores.set(a, h * 10 + sv + q); // history dominates; spell value + quickEval break ties
+    quietScores.set(a, h * 10 + sv + q); // spell value forces casts to top; history refines within non-cast moves
   }
   quietActions.sort((a, b) => (quietScores.get(b) ?? 0) - (quietScores.get(a) ?? 0));
 
