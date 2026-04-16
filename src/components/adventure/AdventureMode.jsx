@@ -66,6 +66,10 @@ export default function AdventureMode({ onBack }) {
   const [shopOfferings, setShopOfferings] = useState(null);  // shop items
   const [tileEvent, setTileEvent]         = useState(null);  // { event, rng, row, col }
 
+  // ── Boss entry state ──────────────────────────────────────────────────────
+  // pendingBossEntry: { row, col } — boss tile the player wants to enter (not yet confirmed)
+  const [pendingBossEntry, setPendingBossEntry] = useState(null);
+
   function saveAdventureRunResult(completedRun) {
     if (!completedRun) return;
     const guestId = getGuestId();
@@ -126,6 +130,15 @@ export default function AdventureMode({ onBack }) {
     const tile = run.dungeonLayout[row][col];
     if (!tile || tile.type === 'wall') return;
 
+    // Boss tile: show confirmation warning before entering — do not move yet
+    if (tile.type === 'boss' && !tile.completed) {
+      const { initialState, aiDepth, fightDifficultyLabel } = buildAdventureGameState(run, row, col, 'boss');
+      setFightCtx({ initialState, aiDepth, row, col, tileType: 'boss', fightDifficultyLabel });
+      setPendingBossEntry({ row, col });
+      setPhase('boss_warning');
+      return;
+    }
+
     // Plagued curse: subtract 1 HP on each move
     let newRun = run;
     if (run.curses && run.curses.includes('plagued')) {
@@ -143,6 +156,23 @@ export default function AdventureMode({ onBack }) {
     }
 
     newRun = moveToTile(newRun, row, col);
+
+    // Gate tile: grant Major Health Potion on first visit each loop
+    if (tile.isGate && !newRun.bossGatePotionGranted) {
+      const totalPotions = (newRun.potions || 0) + (newRun.majorPotions || 0);
+      if (totalPotions < 3) {
+        newRun = saveRun({ ...newRun, majorPotions: (newRun.majorPotions || 0) + 1, bossGatePotionGranted: true });
+      } else if (newRun.potions > 0) {
+        // Replace one standard potion with a major potion
+        newRun = saveRun({ ...newRun, potions: newRun.potions - 1, majorPotions: (newRun.majorPotions || 0) + 1, bossGatePotionGranted: true });
+      } else {
+        newRun = saveRun({ ...newRun, bossGatePotionGranted: true });
+      }
+      setRun(newRun);
+      setPhase('gate_potion');
+      return;
+    }
+
     setRun(newRun);
 
     const tileType = tile.type;
@@ -150,12 +180,7 @@ export default function AdventureMode({ onBack }) {
       // Build adventure fight context
       const { initialState, aiDepth, fightDifficultyLabel } = buildAdventureGameState(newRun, row, col, tileType);
       setFightCtx({ initialState, aiDepth, row, col, tileType, fightDifficultyLabel });
-      // Show boss passive intro before the fight when passives are present
-      if (tileType === 'boss' && initialState.bossPassives && initialState.bossPassives.length > 0) {
-        setPhase('boss_intro');
-      } else {
-        setPhase('fight');
-      }
+      setPhase('fight');
     } else if (tile.completed) {
       // Already completed — just move, no event
     } else if (tileType === 'rest') {
@@ -178,6 +203,56 @@ export default function AdventureMode({ onBack }) {
       setTileEvent({ event, rng, row, col });
       setPhase(`tile_event:${row}:${col}`);
     }
+  }
+
+  // Confirm entering boss room: apply movement then start fight
+  function handleConfirmBossEntry() {
+    if (!run || !pendingBossEntry || !fightCtx) return;
+    const { row, col } = pendingBossEntry;
+
+    // Plagued curse: subtract 1 HP on move into boss room
+    let newRun = run;
+    if (run.curses && run.curses.includes('plagued')) {
+      const newHP = run.championHP - 1;
+      if (newHP <= 0) {
+        const dyingRun = { ...run, championHP: 0 };
+        clearRun();
+        saveAdventureRunResult(dyingRun);
+        setRun(dyingRun);
+        setPendingBossEntry(null);
+        setFightCtx(null);
+        setPhase('run_summary');
+        return;
+      }
+      newRun = saveRun({ ...run, championHP: newHP });
+    }
+
+    newRun = moveToTile(newRun, row, col);
+    setRun(newRun);
+    setPendingBossEntry(null);
+    // Rebuild fight state with the updated run (potion usage during warning may have changed HP)
+    const { initialState, aiDepth, fightDifficultyLabel } = buildAdventureGameState(newRun, row, col, 'boss');
+    setFightCtx({ initialState, aiDepth, row, col, tileType: 'boss', fightDifficultyLabel });
+    setPhase('fight');
+  }
+
+  // Use a potion during the boss warning modal
+  function handleUsePotionInWarning() {
+    if (!run) return;
+    const majorPotions = run.majorPotions || 0;
+    const standardPotions = run.potions || 0;
+    if (majorPotions === 0 && standardPotions === 0) return;
+    if (run.championHP >= run.maxChampionHP) return;
+
+    let newRun;
+    if (majorPotions > 0) {
+      const newHP = Math.min(run.maxChampionHP, run.championHP + 10);
+      newRun = saveRun({ ...run, championHP: newHP, majorPotions: majorPotions - 1 });
+    } else {
+      const newHP = Math.min(run.maxChampionHP, run.championHP + 5);
+      newRun = saveRun({ ...run, championHP: newHP, potions: standardPotions - 1 });
+    }
+    setRun(newRun);
   }
 
   // ── Fight result handling ────────────────────────────────────────────────
@@ -261,14 +336,24 @@ export default function AdventureMode({ onBack }) {
   }
 
   /**
-   * Use a health potion during the map phase.
+   * Use a health potion during the map phase. Major potions (10 HP) are used first.
    */
   function handleUsePotion() {
-    if (!run || run.potions <= 0) return;
-    const newHP = Math.min(run.maxChampionHP, run.championHP + 5);
-    const newRun = { ...run, championHP: newHP, potions: run.potions - 1 };
+    if (!run) return;
+    const majorPotions = run.majorPotions || 0;
+    const standardPotions = run.potions || 0;
+    if (majorPotions === 0 && standardPotions === 0) return;
+    if (run.championHP >= run.maxChampionHP) return;
+
+    let newRun;
+    if (majorPotions > 0) {
+      const newHP = Math.min(run.maxChampionHP, run.championHP + 10);
+      newRun = { ...run, championHP: newHP, majorPotions: majorPotions - 1 };
+    } else {
+      const newHP = Math.min(run.maxChampionHP, run.championHP + 5);
+      newRun = { ...run, championHP: newHP, potions: standardPotions - 1 };
+    }
     setRun(newRun);
-    // Persist immediately
     saveRun(newRun);
   }
 
@@ -310,11 +395,29 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
-  if (phase === 'boss_intro' && fightCtx) {
+  if (phase === 'gate_potion') {
+    const majorPotions = run?.majorPotions || 0;
     return (
-      <BossPassiveIntro
-        bossPassives={fightCtx.initialState.bossPassives}
-        onBegin={() => setPhase('fight')}
+      <GatePotionNotification
+        majorPotions={majorPotions}
+        run={run}
+        onContinue={() => setPhase('map')}
+      />
+    );
+  }
+
+  if (phase === 'boss_warning' && fightCtx && run) {
+    return (
+      <BossRoomWarning
+        fightCtx={fightCtx}
+        run={run}
+        onUsePotion={handleUsePotionInWarning}
+        onEnter={handleConfirmBossEntry}
+        onBack={() => {
+          setPendingBossEntry(null);
+          setFightCtx(null);
+          setPhase('map');
+        }}
       />
     );
   }
@@ -426,11 +529,14 @@ export default function AdventureMode({ onBack }) {
 
 // ── Boss Passive Intro ────────────────────────────────────────────────────────
 
-function BossPassiveIntro({ bossPassives, onBegin }) {
+// ── Gate Potion Notification ──────────────────────────────────────────────────
+
+function GatePotionNotification({ run, majorPotions, onContinue }) {
+  const totalPotions = (run?.potions || 0) + (majorPotions || 0);
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0a0005',
+      background: '#0a0a14',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -440,52 +546,260 @@ function BossPassiveIntro({ bossPassives, onBegin }) {
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.15em', marginBottom: '8px' }}>
-          BOSS ENCOUNTER
+          APPROACHING THE THRONE
         </div>
-        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f9fafb', margin: 0 }}>
-          The Enthroned
+        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '20px', color: '#f9fafb', margin: 0 }}>
+          The Gate
         </h2>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9a7a40', letterSpacing: '0.1em', marginBottom: '10px', textAlign: 'center' }}>
-          BOSS PASSIVE
+      <div style={{
+        width: '100%',
+        maxWidth: '380px',
+        background: 'linear-gradient(135deg, #0a1a0a, #0a2a10)',
+        border: '1px solid #4ade8060',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '28px', marginBottom: '10px' }}>🧪</div>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#4ade80', marginBottom: '8px' }}>
+          Major Health Potion Found!
         </div>
-        {(bossPassives || []).map(p => (
-          <div key={p.id} style={{
-            background: 'linear-gradient(135deg, #1a1000, #120800)',
-            border: '1px solid #C9A84C60',
-            borderRadius: '6px',
-            padding: '16px 20px',
-            marginBottom: '10px',
-          }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', marginBottom: '6px' }}>
-              {p.name}
-            </div>
-            <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '15px', color: '#c0b090', lineHeight: 1.5 }}>
-              {p.description}
-            </div>
-          </div>
-        ))}
+        <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '15px', color: '#c0e0c0', lineHeight: 1.5 }}>
+          You found a Major Health Potion! Use it before facing the boss.
+        </div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#6a9a7a', marginTop: '10px' }}>
+          Heals 10 HP when used · Potions: {totalPotions}/3
+        </div>
       </div>
 
       <button
-        onClick={onBegin}
+        onClick={onContinue}
         style={{
-          background: 'linear-gradient(135deg, #3a0a00, #6a1500)',
-          color: '#f0c060',
+          background: 'linear-gradient(135deg, #0a2a0a, #1a5a1a)',
+          color: '#4ade80',
           fontFamily: "'Cinzel', serif",
           fontSize: '13px',
           fontWeight: 600,
-          border: '1px solid #C9A84C80',
+          border: '1px solid #4ade8060',
           borderRadius: '4px',
           padding: '12px 36px',
           cursor: 'pointer',
           letterSpacing: '0.1em',
         }}
       >
-        Begin Fight
+        Continue
       </button>
+    </div>
+  );
+}
+
+// ── Boss Room Warning ─────────────────────────────────────────────────────────
+
+function BossRoomWarning({ fightCtx, run, onUsePotion, onEnter, onBack }) {
+  const bossState  = fightCtx.initialState;
+  const bossChamp  = bossState.champions[1];
+  const bossUnits  = bossState.units.filter(u => u.owner === 1);
+  const switches   = bossState.switchTiles || [];
+  const passives   = bossState.bossPassives || [];
+
+  const majorPotions   = run.majorPotions || 0;
+  const standardPotions = run.potions || 0;
+  const totalPotions   = majorPotions + standardPotions;
+  const nextHeal       = majorPotions > 0 ? 10 : 5;
+  const canUsePotion   = totalPotions > 0 && run.championHP < run.maxChampionHP;
+
+  const COL_LABELS = ['A', 'B', 'C', 'D', 'E'];
+  const formatPos = (row, col) => `${COL_LABELS[col]}${row + 1}`;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0005',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 16px',
+      gap: '20px',
+      overflowY: 'auto',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.15em', marginBottom: '8px' }}>
+          BOSS ENCOUNTER
+        </div>
+        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f9fafb', margin: 0 }}>
+          The Enthroned
+        </h2>
+        <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#8a7a60', marginTop: '6px', fontStyle: 'italic' }}>
+          Champion HP: <span style={{ color: '#f87171', fontWeight: 600 }}>{bossChamp.hp}</span>
+        </div>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Boss Passive */}
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9a7a40', letterSpacing: '0.1em', marginBottom: '2px', textAlign: 'center' }}>
+          BOSS PASSIVE
+        </div>
+        {passives.map(p => (
+          <div key={p.id} style={{
+            background: 'linear-gradient(135deg, #1a1000, #120800)',
+            border: '1px solid #C9A84C60',
+            borderRadius: '6px',
+            padding: '14px 18px',
+          }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', marginBottom: '5px' }}>
+              {p.name}
+              {p.id === 'royal_stasis' && (
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#9a8a50', marginLeft: '8px' }}>
+                  (3 turns)
+                </span>
+              )}
+            </div>
+            <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#c0b090', lineHeight: 1.5 }}>
+              {p.description}
+            </div>
+          </div>
+        ))}
+
+        {/* Starting Units */}
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9a7a40', letterSpacing: '0.1em', marginTop: '4px', textAlign: 'center' }}>
+          STARTING UNITS
+        </div>
+        <div style={{
+          background: '#0d0d18',
+          border: '1px solid #2a2a3a',
+          borderRadius: '6px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+        }}>
+          {bossUnits.map((u, i) => (
+            <div key={i} style={{
+              background: '#1a1a2a',
+              border: '1px solid #3a3a5a',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '11px',
+              color: '#b0b0d0',
+            }}>
+              {u.name} <span style={{ color: '#f87171' }}>{u.atk}/{u.hp}</span>{' '}
+              <span style={{ color: '#6a6a88' }}>@ {formatPos(u.row, u.col)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Switch Tiles */}
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#9a7a40', letterSpacing: '0.1em', marginTop: '4px', textAlign: 'center' }}>
+          SWITCH TILES
+        </div>
+        <div style={{
+          background: '#0d0d18',
+          border: '1px solid #2a2a3a',
+          borderRadius: '6px',
+          padding: '12px 16px',
+        }}>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '13px', color: '#c0b090', lineHeight: 1.6 }}>
+            Stepping on a switch displaces the occupant of the Throne (C3).
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+            {switches.map((sw, i) => (
+              <div key={i} style={{
+                background: '#1a1a2a',
+                border: '1px solid #4a4a6a',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '11px',
+                color: '#a0a0d0',
+              }}>
+                {formatPos(sw.row, sw.col)}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Player status */}
+        <div style={{
+          background: '#0d0d18',
+          border: '1px solid #2a2a3a',
+          borderRadius: '6px',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#a0a0c0' }}>
+            Your HP: <span style={{ color: run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80', fontWeight: 600 }}>
+              {run.championHP}/{run.maxChampionHP}
+            </span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#a0a0c0' }}>
+            Potions: <span style={{ color: '#60a0ff', fontWeight: 600 }}>{totalPotions}/3</span>
+            {majorPotions > 0 && <span style={{ color: '#4ade80', marginLeft: '4px' }}>({majorPotions} major)</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '420px' }}>
+        {canUsePotion && (
+          <button
+            onClick={onUsePotion}
+            style={{
+              background: 'linear-gradient(135deg, #0a1a3a, #1a3a7a)',
+              color: '#60a0ff',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '12px',
+              fontWeight: 600,
+              border: '1px solid #60a0ff60',
+              borderRadius: '4px',
+              padding: '10px 24px',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+            }}
+          >
+            🧪 Use Potion (+{nextHeal} HP)
+          </button>
+        )}
+        <button
+          onClick={onEnter}
+          style={{
+            background: 'linear-gradient(135deg, #3a0a00, #6a1500)',
+            color: '#f0c060',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '13px',
+            fontWeight: 600,
+            border: '1px solid #C9A84C80',
+            borderRadius: '4px',
+            padding: '12px 36px',
+            cursor: 'pointer',
+            letterSpacing: '0.1em',
+          }}
+        >
+          Enter the Boss Room
+        </button>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'transparent',
+            color: '#6a6a88',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '12px',
+            fontWeight: 600,
+            border: '1px solid #3a3a5a',
+            borderRadius: '4px',
+            padding: '10px 24px',
+            cursor: 'pointer',
+            letterSpacing: '0.05em',
+          }}
+        >
+          Go Back
+        </button>
+      </div>
     </div>
   );
 }
@@ -1024,7 +1338,7 @@ function RunPanel({ run, livePenalty }) {
   );
 }
 
-const CONFIRM_MOVE_TYPES = new Set(['fight', 'elite_fight', 'boss', 'shop', 'event']);
+const CONFIRM_MOVE_TYPES = new Set(['fight', 'elite_fight', 'shop', 'event']);
 
 function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
@@ -1070,7 +1384,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         color={run.championHP / run.maxChampionHP < 0.4 ? '#f87171' : '#4ade80'}
       />
       <StatPill label="Gold"    value={run.gold}           color="#C9A84C" />
-      <StatPill label="Potions" value={`${run.potions}/3`} color="#60a0ff" />
+      <StatPill label="Potions" value={`${(run.potions || 0) + (run.majorPotions || 0)}/3`} color="#60a0ff" />
       <StatPill label="Rooms"   value={run.roomsCleared}   color="#a0a0c0" />
       <StatPill label="Cards"   value={run.deck.length}    color="#c084fc" />
       <StatPill label="Steps"   value={tilesMoved >= 100 ? '100 (max)' : tilesMoved} color={getStepsColor(tilesMoved)} />
@@ -1092,7 +1406,9 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
     </div>
   );
 
-  const potionButton = run.potions > 0 && (
+  const totalPotions = (run.potions || 0) + (run.majorPotions || 0);
+  const nextPotionHeal = (run.majorPotions || 0) > 0 ? 10 : 5;
+  const potionButton = totalPotions > 0 && (
     <button
       onClick={onUsePotion}
       disabled={run.championHP >= run.maxChampionHP}
@@ -1109,7 +1425,7 @@ function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
         letterSpacing: '0.05em',
       }}
     >
-      🧪 Use Potion (+5 HP) · {run.potions}/{3}
+      🧪 Use Potion (+{nextPotionHeal} HP) · {totalPotions}/3{(run.majorPotions || 0) > 0 ? ' ✦' : ''}
     </button>
   );
 

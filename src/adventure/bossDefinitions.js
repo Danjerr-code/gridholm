@@ -114,40 +114,6 @@ function throneArcherBase(loopScaling) {
   };
 }
 
-/**
- * Dormant Court Knight — a dormant unit that awakens after 1 turn.
- * Placed far from the boss; dormant=true blocks it from acting until it wakes.
- * @param {number} loopScaling
- * @returns {Object} base unit data
- */
-function courtKnightBase(loopScaling) {
-  return {
-    id: 'court_knight',
-    name: 'Court Knight',
-    atk: 3 + loopScaling,
-    hp: 5 + loopScaling,
-    maxHp: 5 + loopScaling,
-    spd: 1,
-    type: 'unit',
-    attribute: 'neutral',
-    unitType: ['Knight', 'Guard'],
-    rules: 'Dormant 1 — awakens after 1 turn.',
-    cost: 3,
-    rarity: 'rare',
-    image: null,
-    isToken: false,
-    legendary: false,
-    rush: false,
-    atkBonus: 0,
-    shield: 0,
-    speedBonus: 0,
-    turnAtkBonus: 0,
-    hidden: false,
-    moved: false,
-    summoned: false,
-  };
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -170,34 +136,29 @@ export function getBossDefinition(bossId, loopCount = 0) {
       aiDepth:      2,
       deck:         [...ENTHRONED_DECK],
       // Pre-placed units at fight start (owner = 1 = AI).
-      // dormant=true + dormantCounter=N means the unit cannot act until counter reaches 0.
       startingUnits: [
-        // Active guards flanking the boss champion at (2,2)
+        // Guards flanking the boss champion at (2,2)
         { base: throneGuardBase(ls),  row: 1, col: 2 },
         { base: throneGuardBase(ls),  row: 3, col: 2 },
-        // Active archers to the sides of the throne
+        // Archers to the sides of the throne
         { base: throneArcherBase(ls), row: 2, col: 1 },
         { base: throneArcherBase(ls), row: 2, col: 3 },
-        // Dormant Court Knights in the back rows — awaken after 1 turn
-        { base: { ...courtKnightBase(ls), dormant: true, dormantCounter: 1 }, row: 0, col: 2 },
-        { base: { ...courtKnightBase(ls), dormant: true, dormantCounter: 1 }, row: 4, col: 2 },
       ],
       // Switch tiles: stepping on any of these displaces the occupant of Throne (2,2).
-      // Placed at corners adjacent to the boss's patrol zone.
+      // Placed at the three corners opposite from the player's start at (0,0).
       switchTiles: [
-        { row: 0, col: 1, active: true },
-        { row: 0, col: 3, active: true },
-        { row: 4, col: 1, active: true },
-        { row: 4, col: 3, active: true },
+        { row: 4, col: 0, active: true },
+        { row: 0, col: 4, active: true },
+        { row: 4, col: 4, active: true },
       ],
       // Boss passives — applied at fight start; each entry describes a passive effect.
       bossPassives: [
         {
-          id:          'decree_of_the_crown',
-          name:        'Decree of the Crown',
-          description: 'Controlling the Throne deals +1 damage.',
-          effect:      'throneBonus',
-          value:       1,
+          id:          'royal_stasis',
+          name:        'Royal Stasis',
+          description: 'All boss pieces are locked for the first 3 turns. They cannot move, attack, or use abilities during this time.',
+          effect:      'stasis',
+          value:       3,
         },
       ],
     };

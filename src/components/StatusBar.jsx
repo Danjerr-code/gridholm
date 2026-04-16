@@ -153,6 +153,17 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, commandL
     border: '1px solid #252538',
   };
 
+  // Royal Stasis counter — shown during the boss fight while stasis is active
+  const hasStasis = state.bossPassives?.some(p => p.id === 'royal_stasis');
+  const aiTurnCount = state.players[1]?.turnCount ?? 0;
+  const stasisActive = hasStasis && aiTurnCount <= 3;
+  const stasisRemaining = Math.max(0, 3 - aiTurnCount);
+  const stasisLabel = stasisActive
+    ? stasisRemaining > 0
+      ? `Royal Stasis: ${stasisRemaining} turn${stasisRemaining !== 1 ? 's' : ''} remaining`
+      : 'Royal Stasis: Final Turn'
+    : null;
+
   // opponentConnected dot: show next to p1 if myPlayerIndex===1, p2 if myPlayerIndex===0
   const showDotOnP1 = opponentConnected !== undefined && myPlayerIndex === 1;
   const showDotOnP2 = opponentConnected !== undefined && myPlayerIndex === 0;
@@ -175,6 +186,11 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, commandL
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: '#6a6a88' }}>Turn {state.turn}</span>
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C' }}>{activePlayerName}</span>
           <span style={{ fontSize: '10px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{PHASE_LABELS[state.phase] || state.phase}</span>
+          {stasisLabel && (
+            <span style={{ fontSize: '9px', color: '#a08020', fontFamily: 'var(--font-sans)', fontStyle: 'italic', textAlign: 'center' }}>
+              {stasisLabel}
+            </span>
+          )}
           {commandsUsed !== undefined && (
             <div style={{ display: 'flex', gap: '3px', marginTop: '2px' }}>
               {Array.from({ length: commandLimit }, (_, idx) => idx + 1).map(i => {
@@ -241,6 +257,11 @@ export default function StatusBar({ state, myPlayerIndex, commandsUsed, commandL
           <div style={{ fontSize: '11px', color: '#6a6a88', fontFamily: 'var(--font-sans)' }}>Turn {state.turn}</div>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', fontWeight: 600, color: '#C9A84C' }}>{activePlayerName}'s turn</div>
           <div style={{ fontSize: '11px', color: '#8080a0', fontFamily: 'var(--font-sans)' }}>{desktopPhaseLabels[state.phase] || state.phase}</div>
+          {stasisLabel && (
+            <div style={{ fontSize: '10px', color: '#a08020', fontFamily: 'var(--font-sans)', fontStyle: 'italic', marginTop: '2px' }}>
+              {stasisLabel}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 flex-row-reverse flex-wrap">
           <span style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', fontWeight: 500, color: '#e8e8f0' }}>

@@ -102,6 +102,8 @@ export function createNewRun(championFaction, startingDeck) {
     curses: [],
     gold: 0,
     potions: 0,
+    majorPotions: 0,
+    bossGatePotionGranted: false,
     championHP: 15,
     maxChampionHP: 15,
     currentTile: startTile,
@@ -261,6 +263,8 @@ export function completeTile(state, row, col, fightResult = null) {
     tilesMoved = 0;
   }
 
+  const bossGatePotionGranted = isBoss ? false : (state.bossGatePotionGranted ?? false);
+
   const newState = {
     ...state,
     currentTile,
@@ -277,6 +281,7 @@ export function completeTile(state, row, col, fightResult = null) {
     combatRoomsCleared: isBoss ? 0 : (state.combatRoomsCleared ?? 0) + (isCombat ? 1 : 0),
     tilesMoved,
     cumulativeChampionHPBonus,
+    bossGatePotionGranted,
   };
 
   saveRun(newState);

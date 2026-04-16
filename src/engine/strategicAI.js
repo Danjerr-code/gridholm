@@ -212,6 +212,28 @@ function getLegalActions(state) {
   // 7. End turn
   actions.push({ type: 'endTurn' });
 
+  // Boss fight: AI (player 1) never voluntarily moves onto an active switch tile.
+  // After a switch has been used (active: false), that restriction is lifted.
+  if (state.adventureBossFight && ap === 1) {
+    const activeSwitches = (state.switchTiles || []).filter(s => s.active);
+    if (activeSwitches.length > 0) {
+      return actions.filter(action => {
+        if (action.type === 'move') {
+          const [tr, tc] = action.targetTile;
+          if (activeSwitches.some(sw => sw.row === tr && sw.col === tc)) return false;
+          if (action.approachTile) {
+            const [ar, ac] = action.approachTile;
+            if (activeSwitches.some(sw => sw.row === ar && sw.col === ac)) return false;
+          }
+        }
+        if (action.type === 'championMove') {
+          if (activeSwitches.some(sw => sw.row === action.row && sw.col === action.col)) return false;
+        }
+        return true;
+      });
+    }
+  }
+
   return actions;
 }
 

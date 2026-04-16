@@ -705,10 +705,29 @@ function aiResolveEndTurn(s) {
   return s;
 }
 
+// Returns true if the boss is currently locked by Royal Stasis (AI turn <= 3).
+function isBossStasisActive(state) {
+  if (!state.bossPassives?.some(p => p.id === 'royal_stasis')) return false;
+  const aiTurnCount = state.players[AI_PLAYER]?.turnCount ?? 0;
+  return aiTurnCount <= 3;
+}
+
 function runHeuristicTurn(state) {
   // cloneState strips stateHistory; save it so endTurn can accumulate properly.
   const savedHistory = state.stateHistory;
   let s = cloneState(state);
+
+  // Royal Stasis: skip boss's first 3 turns entirely
+  if (isBossStasisActive(state)) {
+    const stasisTurnsLeft = 3 - (state.players[AI_PLAYER]?.turnCount ?? 0);
+    const logMsg = stasisTurnsLeft > 0
+      ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
+      : 'Royal Stasis lifts. The Enthroned awakens.';
+    s.log = [...s.log, logMsg];
+    const forEndTurn = endActionPhase(s);
+    forEndTurn.stateHistory = savedHistory;
+    return aiResolveEndTurn(endTurn(forEndTurn));
+  }
 
   // Diagnostic: log turn context when debug mode is active
   if (getAIDebug()) {
@@ -758,6 +777,20 @@ function runHeuristicTurnSteps(state) {
   const savedHistory = state.stateHistory;
   let s = cloneState(state);
 
+  // Royal Stasis: skip boss's first 3 turns entirely
+  if (isBossStasisActive(state)) {
+    const stasisTurnsLeft = 3 - (state.players[AI_PLAYER]?.turnCount ?? 0);
+    const logMsg = stasisTurnsLeft > 0
+      ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
+      : 'Royal Stasis lifts. The Enthroned awakens.';
+    s.log = [...s.log, logMsg];
+    steps.push(s);
+    const forEndTurn = endActionPhase(s);
+    forEndTurn.stateHistory = savedHistory;
+    steps.push(aiResolveEndTurn(endTurn(forEndTurn)));
+    return steps;
+  }
+
   // Auto-resolve Nezzar contract if pending at start of AI turn
   s = aiResolveContract(s);
   if (s !== cloneState(state)) steps.push(s);
@@ -793,6 +826,18 @@ function runStrategicTurn(state) {
   let actionCount = 0;
   const MAX_ACTIONS = 150; // safety cap
 
+  // Royal Stasis: skip boss's first 3 turns entirely
+  if (isBossStasisActive(state)) {
+    const stasisTurnsLeft = 3 - (state.players[AI_PLAYER]?.turnCount ?? 0);
+    const logMsg = stasisTurnsLeft > 0
+      ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
+      : 'Royal Stasis lifts. The Enthroned awakens.';
+    s.log = [...s.log, logMsg];
+    const forEndTurn = endActionPhase(s);
+    forEndTurn.stateHistory = savedHistory;
+    return endTurn(forEndTurn);
+  }
+
   while (!s.winner && actionCount < MAX_ACTIONS) {
     const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
     const aiDepth = s.adventureAIDepth ?? 2;
@@ -819,6 +864,21 @@ function runStrategicTurnSteps(state) {
   let s = cloneState(state);
   let actionCount = 0;
   const MAX_ACTIONS = 150;
+
+  // Royal Stasis: skip boss's first 3 turns entirely
+  if (isBossStasisActive(state)) {
+    const stasisTurnsLeft = 3 - (state.players[AI_PLAYER]?.turnCount ?? 0);
+    const logMsg = stasisTurnsLeft > 0
+      ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
+      : 'Royal Stasis lifts. The Enthroned awakens.';
+    s.log = [...s.log, logMsg];
+    steps.push(s);
+    const forEndTurn = endActionPhase(s);
+    forEndTurn.stateHistory = savedHistory;
+    const finalState = endTurn(forEndTurn);
+    steps.push(finalState);
+    return steps;
+  }
 
   while (!s.winner && actionCount < MAX_ACTIONS) {
     const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
