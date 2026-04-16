@@ -208,7 +208,7 @@ export function buildAdventureGameState(run, row, col, tileType) {
     aiDepth          = bossDef.aiDepth;
     fightDifficultyLabel = 'Boss';
   } else {
-    const roomsCleared = run.roomsCleared ?? 0;
+    const roomsCleared = run.combatRoomsCleared ?? 0;
     const tier         = getFightTier(roomsCleared);
     aiDepth            = tier.aiDepth;
     fightDifficultyLabel = getFightDifficultyLabel(roomsCleared, tileType);
@@ -250,7 +250,7 @@ export function buildAdventureGameState(run, row, col, tileType) {
   // ── Enemy champion HP from rooms-cleared tier ─────────────────────────────
   // Boss HP is set later in the boss block; only override for normal/elite fights.
   if (!isBoss) {
-    const roomsCleared = run.roomsCleared ?? 0;
+    const roomsCleared = run.combatRoomsCleared ?? 0;
     const tier = getFightTier(roomsCleared);
     // Elite adds +3 HP on top of the base tier HP
     const baseHP = tier.championHP + (isElite ? 3 : 0);

@@ -113,6 +113,7 @@ export function createNewRun(championFaction, startingDeck) {
     bossDefeated: false,
     loopCount: 0,
     roomsCleared: 0,
+    combatRoomsCleared: 0,
     tilesMoved: 0,
     cumulativeChampionHPBonus: 0,
   };
@@ -216,7 +217,9 @@ export function completeTile(state, row, col, fightResult = null) {
     ? [...state.fightHistory, fightResult]
     : state.fightHistory;
 
-  const isBoss = state.dungeonLayout[row]?.[col]?.type === 'boss';
+  const tileType = state.dungeonLayout[row]?.[col]?.type;
+  const isBoss = tileType === 'boss';
+  const isCombat = tileType === 'fight' || tileType === 'elite_fight';
   let loopCount = state.loopCount;
   let dungeonLayout = newLayout;
   let seed = state.seed;
@@ -270,6 +273,8 @@ export function completeTile(state, row, col, fightResult = null) {
     bossDefeated,
     loopCount,
     roomsCleared: state.roomsCleared + 1,
+    // combatRoomsCleared counts only fight/elite_fight completions; resets on new loop
+    combatRoomsCleared: isBoss ? 0 : (state.combatRoomsCleared ?? 0) + (isCombat ? 1 : 0),
     tilesMoved,
     cumulativeChampionHPBonus,
   };

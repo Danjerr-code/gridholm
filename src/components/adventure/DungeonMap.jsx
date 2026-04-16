@@ -84,7 +84,7 @@ const PULSE_STYLE = `
  */
 export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE_SIZE }) {
   const gridTotal = GRID_PADDING * 2 + 5 * tileSize + 4 * TILE_GAP;
-  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath, roomsCleared } = state;
+  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath, combatRoomsCleared } = state;
 
   // Determine whether the boss room is currently locked (player not on gate tile)
   const gateTile = useMemo(() => {
@@ -200,7 +200,7 @@ export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE
                 dimmed={dimmed}
                 onClick={movable ? () => onTileClick(r, c) : undefined}
                 tileSize={tileSize}
-                roomsCleared={roomsCleared ?? 0}
+                roomsCleared={combatRoomsCleared ?? 0}
               />
             );
           })}
