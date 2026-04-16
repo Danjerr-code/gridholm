@@ -18,7 +18,7 @@ import { UNIT_TYPES } from './unitTypes.js';
 export const CARD_DB = {
   // Human units
   militia:         { id: 'militia', rarity: 'common',         name: 'Militia',             type: 'unit',  cost: 1, atk: 1, hp: 3, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: '', image: 'militia.webp' },
-  ashclaw:         { id: 'ashclaw', rarity: 'common',         name: 'Ashclaw',             type: 'unit',  cost: 1, atk: 2, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEASTKIN], attribute: 'primal',  rules: '', image: 'footsoldier.webp' },
+  ashclaw:         { id: 'ashclaw', rarity: 'common',         name: 'Ashclaw',             type: 'unit',  cost: 1, atk: 2, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEASTKIN], attribute: 'primal',  rules: '', image: 'ashclaw.webp' },
   squire:          { id: 'squire', rarity: 'common',          name: 'Squire',              type: 'unit',  cost: 2, atk: 1, hp: 4, spd: 2, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: '', image: 'squire.webp' },
   crossbowman:     { id: 'crossbowman', rarity: 'rare',     name: 'Crossbowman',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN, UNIT_TYPES.SOLDIER], attribute: 'light',   rules: 'When this unit destroys an enemy unit, draw 1 card.', image: 'crossbowman.webp' },
   shieldwall:      { id: 'shieldwall', rarity: 'common',      name: 'Shield Wall',         type: 'unit',  cost: 2, atk: 1, hp: 5, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: '', image: 'shieldwall.webp' },
@@ -39,9 +39,9 @@ export const CARD_DB = {
   peacekeeper:      { id: 'peacekeeper', rarity: 'common',       name: 'Peacekeeper',         type: 'unit',  cost: 6, atk: 5, hp: 5, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'When summoned, adjacent enemy units are stunned next turn.', image: 'peacekeeper.webp' },
 
   // New Light units (set completion batch)
-  armourer:         { id: 'armourer', rarity: 'common',         name: 'Armourer',            type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Action: Target friendly unit within 1 tile gains Shield 1.', action: true },
-  rayslinger:       { id: 'rayslinger', rarity: 'common',       name: 'Rayslinger',          type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Action: An adjacent unit is stunned next turn.', action: true },
-  shieldbearer:     { id: 'shieldbearer', rarity: 'common',     name: 'Shieldbearer',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Aura 1: Friendly units within 1 tile have +1 HP.', aura: { range: 1, stat: 'hp', value: 1, target: 'friendly' } },
+  armourer:         { id: 'armourer', rarity: 'common',         name: 'Armourer',            type: 'unit',  cost: 1, atk: 1, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Action: Target friendly unit within 1 tile gains Shield 1.', action: true, image: 'armourer.webp' },
+  rayslinger:       { id: 'rayslinger', rarity: 'common',       name: 'Rayslinger',          type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Action: An adjacent unit is stunned next turn.', action: true, image: 'rayslinger.webp' },
+  shieldbearer:     { id: 'shieldbearer', rarity: 'common',     name: 'Shieldbearer',        type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.HUMAN], attribute: 'light',   rules: 'Aura 1: Friendly units within 1 tile have +1 HP.', aura: { range: 1, stat: 'hp', value: 1, target: 'friendly' }, image: 'shieldbearer.webp' },
 
   // Human spells
   smite:           { id: 'smite', rarity: 'rare',           name: 'Smite',               type: 'spell', cost: 3, effect: 'smite',           unitType: [UNIT_TYPES.HUMAN],attribute: 'light',   rules: 'Deal 4 damage to one enemy unit or relic within 2 tiles of your champion.', image: 'smite.webp' },
@@ -80,8 +80,8 @@ export const CARD_DB = {
   kragorsbehemoth: { id: 'kragorsbehemoth', rarity: 'common', name: "Kragor's Behemoth",    type: 'unit',  cost: 7, atk: 5, hp: 4, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When this unit deals damage to the enemy champion, that champion is stunned next turn.', triggers: [{ event: 'onChampionDamageDealt', effect: 'stunEnemyChampion' }], image: 'kragorsbehemoth.webp' },
 
   // New Primal units (set completion batch)
-  drumhide:         { id: 'drumhide', rarity: 'common',         name: 'Drumhide',            type: 'unit',  cost: 2, atk: 2, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When summoned, your champion may take an additional action this turn.' },
-  recklesscharger:  { id: 'recklesscharger', rarity: 'common',  name: 'Reckless Charger',    type: 'unit',  cost: 2, atk: 3, hp: 3, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When this unit attacks, it becomes stunned.' },
+  drumhide:         { id: 'drumhide', rarity: 'common',         name: 'Drumhide',            type: 'unit',  cost: 2, atk: 2, hp: 1, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When summoned, your champion may take an additional action this turn.', image: 'drumhide.webp' },
+  recklesscharger:  { id: 'recklesscharger', rarity: 'common',  name: 'Reckless Charger',    type: 'unit',  cost: 2, atk: 3, hp: 3, spd: 1, unitType: [UNIT_TYPES.BEAST], attribute: 'primal',  rules: 'When this unit attacks, it becomes stunned.', image: 'recklesscharger.webp' },
 
   // Beast spells
   ambush:          { id: 'ambush', rarity: 'common',          name: 'Ambush',              type: 'spell', cost: 3, effect: 'ambush',          unitType: [UNIT_TYPES.BEAST],attribute: 'primal',  rules: 'A friendly unit battles an adjacent enemy unit.', image: 'ambush.webp' },
@@ -121,10 +121,10 @@ export const CARD_DB = {
   rootsongcommander:{ id: 'rootsongcommander', rarity: 'rare',name: 'Rootsong Commander',  type: 'unit',  cost: 5, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.ELF],     attribute: 'mystic',  rules: 'Action: Target friendly unit gains +1/+1 for each friendly Elf you control until end of turn.', action: true, image: 'rootsongcommander.webp' },
 
   // New Mystic units (set completion batch)
-  manasprite:       { id: 'manasprite', rarity: 'common',       name: 'Mana Sprite',         type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.ELF], attribute: 'mystic',  rules: 'Action: Gain 1 mana this turn.', action: true },
-  spellkeeper:      { id: 'spellkeeper', rarity: 'common',      name: 'Spellkeeper',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.WIZARD], attribute: 'mystic',  rules: 'After you cast a spell this turn, return that card to your hand.', triggers: [{ event: 'onCardPlayed', effect: 'spellkeeperReturn', selfTrigger: false }] },
-  dryadtrickster:   { id: 'dryadtrickster', rarity: 'common',   name: 'Dryad Trickster',     type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.SPIRIT], attribute: 'mystic',  hidden: true, rules: "Hidden. On reveal: switch the ATK and HP of the unit that revealed this. If not in battle, choose the target." },
-  veilseer:         { id: 'veilseer', rarity: 'common',         name: 'Veil Seer',           type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.WIZARD], attribute: 'mystic',  rules: "When summoned, look at the opponent's hand." },
+  manasprite:       { id: 'manasprite', rarity: 'common',       name: 'Mana Sprite',         type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.ELF], attribute: 'mystic',  rules: 'Action: Gain 1 mana this turn.', action: true, image: 'manasprite.webp' },
+  spellkeeper:      { id: 'spellkeeper', rarity: 'common',      name: 'Spellkeeper',         type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.WIZARD], attribute: 'mystic',  rules: 'After you cast a spell this turn, return that card to your hand.', triggers: [{ event: 'onCardPlayed', effect: 'spellkeeperReturn', selfTrigger: false }], image: 'spellkeeper.webp' },
+  dryadtrickster:   { id: 'dryadtrickster', rarity: 'common',   name: 'Dryad Trickster',     type: 'unit',  cost: 2, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.SPIRIT], attribute: 'mystic',  hidden: true, rules: "Hidden. On reveal: switch the ATK and HP of the unit that revealed this. If not in battle, choose the target.", image: 'dryadtrickster.webp' },
+  veilseer:         { id: 'veilseer', rarity: 'common',         name: 'Veil Seer',           type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.WIZARD], attribute: 'mystic',  rules: "When summoned, look at the opponent's hand.", image: 'veilseer.webp' },
 
   // Elf spells
   moonleaf:        { id: 'moonleaf', rarity: 'common',        name: 'Moonleaf',            type: 'spell', cost: 2, effect: 'moonleaf',        unitType: [UNIT_TYPES.ELF],  attribute: 'mystic',  rules: 'Increase the HP of a friendly unit equal to the number of cards in your hand.', image: 'moonleaf.webp' },
@@ -165,10 +165,10 @@ export const CARD_DB = {
   hexbloodwarlock: { id: 'hexbloodwarlock', rarity: 'rare', name: 'Hexblood Warlock',     type: 'unit',  cost: 3, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.DEMON, UNIT_TYPES.WIZARD], attribute: 'dark',    rules: 'Whenever you play a card, deal 1 damage to the enemy champion.', triggers: [{ event: 'onCardPlayed', effect: 'dealOneToEnemyChampion', selfTrigger: false }], image: 'hexbloodwarlock.webp' },
 
   // New Dark units (set completion batch)
-  hollowoffering:   { id: 'hollowoffering', rarity: 'common',   name: 'Hollow Offering',     type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.SHADOW], attribute: 'dark',    rules: 'When this unit is destroyed, your champion gains +2 HP.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'hollowofferingRestore', selfTrigger: true }] },
-  hexcrawler:       { id: 'hexcrawler', rarity: 'common',       name: 'Hex Crawler',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'The next unit your opponent plays has -1/-1.' },
-  finalexchange:    { id: 'finalexchange', rarity: 'common',    name: 'Final Exchange',      type: 'spell', cost: 2, effect: 'finalexchange', unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Each player sacrifices a unit.' },
-  nullherald:       { id: 'nullherald', rarity: 'common',       name: 'Null Herald',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: "Action: Sacrifice this unit. Banish your opponent's grave.", action: true },
+  hollowoffering:   { id: 'hollowoffering', rarity: 'common',   name: 'Hollow Offering',     type: 'unit',  cost: 1, atk: 1, hp: 1, spd: 1, unitType: [UNIT_TYPES.SHADOW], attribute: 'dark',    rules: 'When this unit is destroyed, your champion gains +2 HP.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'hollowofferingRestore', selfTrigger: true }], image: 'hollowoffering.webp' },
+  hexcrawler:       { id: 'hexcrawler', rarity: 'common',       name: 'Hex Crawler',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'The next unit your opponent plays has -1/-1.', image: 'hexcrawler.webp' },
+  finalexchange:    { id: 'finalexchange', rarity: 'common',    name: 'Final Exchange',      type: 'spell', cost: 2, effect: 'finalexchange', unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: 'Each player sacrifices a unit.', image: 'finalexchange.webp' },
+  nullherald:       { id: 'nullherald', rarity: 'common',       name: 'Null Herald',         type: 'unit',  cost: 2, atk: 2, hp: 2, spd: 1, unitType: [UNIT_TYPES.DEMON], attribute: 'dark',    rules: "Action: Sacrifice this unit. Banish your opponent's grave.", action: true, image: 'nullherald.webp' },
 
   // Mystic/Dark bridge units (Batch 2)
   duskbloomtender:  { id: 'duskbloomtender', rarity: 'rare',  name: 'Duskbloom Tender',  type: 'unit',  cost: 3, atk: 3, hp: 2, spd: 2, unitType: [UNIT_TYPES.ELF],   attribute: 'mystic', rules: 'Whenever a friendly unit dies, this unit gains +1 HP.', triggers: [{ event: 'onFriendlyUnitDeath', effect: 'gainPlusOneHP', selfTrigger: false }], image: 'duskbloomtender.webp' },
