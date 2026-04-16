@@ -2,9 +2,9 @@
  * DraftScreen — Map-based draft orchestrator (complete rewrite)
  *
  * Draft flow:
- *   1. Faction primary selection   → pick primary faction + champion
- *   2. Legendary pick              → pick 1 legendary from primary faction pool
- *   3. Faction secondary selection → pick secondary faction (no card)
+ *   1. Faction primary selection   → pick primary faction + champion (no card)
+ *   2. Faction secondary selection → pick secondary faction (no card)
+ *   3. Legendary pick              → pick 1 legendary from primary+secondary pool
  *   4. Map is generated and displayed (DraftMapScreen)
  *   5. For each of 29 map nodes:
  *      a. Show map with "Continue" button
@@ -24,6 +24,7 @@ import { AutoSizeText } from '../AutoSizeText.jsx';
 import { CHAMPIONS } from '../../engine/champions.js';
 import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
 import { generateLegendaryPack, getRandomFactions } from '../../draft/draftPool.js';
+import DraftCurvePanel from './DraftCurvePanel.jsx';
 import { generateDraftMap, getCurrentNode, getDraftPath } from '../../draft/draftMap.js';
 import {
   generateBucketOptions,
@@ -63,7 +64,7 @@ const FACTION_STYLE = {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function DraftScreen({ onDraftComplete }) {
   // ── Phase state machine ──────────────────────────────────────────────────────
-  // 'faction_primary' → 'legendary_pick' → 'faction_secondary'
+  // 'faction_primary' → 'faction_secondary' → 'legendary_pick'
   // → 'map_view' → 'node_interact' → (repeat) → 'draft_complete'
   const [phase, setPhase] = useState('faction_primary');
 
@@ -90,8 +91,13 @@ export default function DraftScreen({ onDraftComplete }) {
 
   function handlePrimarySelect(faction) {
     setPrimaryFaction(faction);
-    // Generate legendary pack for this faction
-    const pack = generateLegendaryPack(faction, faction, []);
+    setPhase('faction_secondary');
+  }
+
+  function handleSecondarySelect(faction) {
+    setSecondaryFaction(faction);
+    // Pool draws from both factions after both are known
+    const pack = generateLegendaryPack(primaryFaction, faction, []);
     setLegendaryPack(pack);
     setPhase('legendary_pick');
   }
@@ -102,19 +108,13 @@ export default function DraftScreen({ onDraftComplete }) {
     const newLegIds = legId ? [legId] : [];
     setDraftedIds(newDraftedIds);
     setLegendaryIds(newLegIds);
-    setPhase('faction_secondary');
-  }
-
-  function handleSecondarySelect(faction) {
-    setSecondaryFaction(faction);
-    // Generate the map
-    const map = generateDraftMap(primaryFaction, faction);
+    // Generate the map now that both factions and legendary are settled
+    const map = generateDraftMap(primaryFaction, secondaryFaction);
     setDraftMap(map);
     setMapPosition(0);
     setCommittedBranch(null);
     setNodeHistory([]);
-    // Pre-generate buckets for node 1
-    const buckets = generateBucketOptionsForNode(map.nodes['node_1'], []);
+    const buckets = generateBucketOptionsForNode(map.nodes['node_1'], newDraftedIds);
     setCurrentBuckets(buckets);
     setPhase('map_view');
   }
@@ -282,6 +282,7 @@ export default function DraftScreen({ onDraftComplete }) {
         committedBranch={committedBranch}
         primaryFaction={primaryFaction}
         secondaryFaction={secondaryFaction}
+        draftedIds={draftedIds}
         nextBuckets={currentNode?.type !== 'special' ? currentBuckets : null}
         onContinue={handleContinueToNode}
       />
@@ -323,7 +324,6 @@ export default function DraftScreen({ onDraftComplete }) {
 
   if (phase === 'draft_complete') {
     const sortedDeck = getSortedDeck(draftedIds);
-    const curveCounts = getCurveCounts(draftedIds);
     return (
       <div style={scrn}>
         <div style={{ maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 32 }}>
@@ -333,8 +333,7 @@ export default function DraftScreen({ onDraftComplete }) {
               {FACTION_STYLE[primaryFaction]?.label} / {FACTION_STYLE[secondaryFaction]?.label} — {draftedIds.length} cards
             </p>
           </div>
-          <ManaCurveBar counts={curveCounts} total={draftedIds.length} />
-          <CardTypeCounter ids={draftedIds} />
+          <DraftCurvePanel draftedIds={draftedIds} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sortedDeck.map((card, i) => (
               <DeckListRow key={i} card={card} />
@@ -503,72 +502,10 @@ function DeckListRow({ card }) {
   );
 }
 
-function ManaCurveBar({ counts, total }) {
-  const maxCount = Math.max(1, ...Object.values(counts));
-  const costs = [1, 2, 3, 4, 5, 6, 7, 8];
-  return (
-    <div>
-      <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#6a6a8a', letterSpacing: '0.08em', marginBottom: 6 }}>
-        MANA CURVE
-      </p>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 48 }}>
-        {costs.map(cost => {
-          const count = counts[cost] ?? 0;
-          const height = count === 0 ? 4 : Math.max(8, Math.round((count / maxCount) * 44));
-          return (
-            <div key={cost} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-              {count > 0 && <span style={{ fontSize: 9, color: '#C9A84C', fontFamily: 'monospace', marginBottom: 2 }}>{count}</span>}
-              <div style={{ width: '100%', height, background: count === 0 ? '#1a1a2a' : '#C9A84C55', borderRadius: 2, border: '1px solid #2a2a3a' }} />
-              <span style={{ fontSize: 8, color: '#4a4a6a', fontFamily: 'monospace', marginTop: 2 }}>{cost}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function CardTypeCounter({ ids }) {
-  const { units, spells, relics, omens } = getTypeCounts(ids);
-  return (
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-      {[['Units', units], ['Spells', spells], ['Relics', relics], ['Omens', omens]].map(([label, count]) => (
-        <span key={label} style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
-          {label}: <span style={{ color: '#e8e8f0' }}>{count}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 // ── Utility functions ─────────────────────────────────────────────────────────
 
 function getSortedDeck(ids) {
   return ids.map(id => CARD_DB[id]).filter(Boolean).sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0));
-}
-
-function getCurveCounts(ids) {
-  const counts = {};
-  for (const id of ids) {
-    const card = CARD_DB[id];
-    if (!card) continue;
-    const cost = card.cost ?? 0;
-    counts[cost] = (counts[cost] ?? 0) + 1;
-  }
-  return counts;
-}
-
-function getTypeCounts(ids) {
-  let units = 0, spells = 0, relics = 0, omens = 0;
-  for (const id of ids) {
-    const card = CARD_DB[id];
-    if (!card) continue;
-    if (card.isRelic || card.type === 'relic') relics++;
-    else if (card.isOmen || card.type === 'omen') omens++;
-    else if (card.type === 'spell') spells++;
-    else if (card.type === 'unit') units++;
-  }
-  return { units, spells, relics, omens };
 }
 
 // ── Button styles ─────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import { BRANCHES, getDraftPath, getNodeId, SPECIAL_TYPES } from '../../draft/dr
 import { BUCKET_LABELS, BUCKET_DESCRIPTIONS } from '../../draft/draftBuckets.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
+import DraftCurvePanel from './DraftCurvePanel.jsx';
 
 const BRANCH_LABELS = {
   primary_faction:   'Primary',
@@ -57,6 +58,7 @@ export default function DraftMapScreen({
   committedBranch,
   primaryFaction,
   secondaryFaction,
+  draftedIds,
   nextBuckets,
   onContinue,
 }) {
@@ -95,6 +97,9 @@ export default function DraftMapScreen({
           secondaryFaction={secondaryFaction}
           path={path}
         />
+
+        {/* Deck curve and type counters */}
+        <DraftCurvePanel draftedIds={draftedIds} />
 
         {/* Next node preview */}
         {nextBuckets && (

@@ -27,6 +27,7 @@ import { ATTRIBUTES } from '../../engine/attributes.js';
 import { CARD_DB } from '../../engine/cards.js';
 import { getCardImageUrl } from '../../supabase.js';
 import { AutoSizeText } from '../AutoSizeText.jsx';
+import DraftCurvePanel from './DraftCurvePanel.jsx';
 
 const BRANCH_SPECIAL_ICONS = {
   primary_faction:   '★',
@@ -108,6 +109,9 @@ export default function DraftNodeScreen({
             {step === 'bucket' ? 'Choose a bucket' : 'Choose a card'}
           </span>
         </div>
+
+        {/* Deck curve and type counters */}
+        <DraftCurvePanel draftedIds={draftedIds} />
 
         {step === 'bucket' && (
           <BucketStep
