@@ -1726,21 +1726,18 @@ export function playerRevealUnit(state, unitUid) {
   return s;
 }
 
-// Consolidated Dread Mirror reveal handler. Called whenever a unit or champion
-// moves onto a hidden Dread Mirror. Reveals the omen, deals ATK damage back to
-// the revealer, and either destroys the omen (revealer survived) or leaves it
-// on the board revealed (revealer died). Returns 'revealer_died' or 'omen_destroyed'.
+// Dread Mirror reveal handler. Called only when an enemy unit or champion attacks
+// into Dread Mirror's tile. Reveals the omen, deals ATK damage equal to the attacker's
+// ATK back to the attacker, and either destroys the omen (attacker survived) or leaves
+// it on the board revealed (attacker died). Returns 'revealer_died' or 'omen_destroyed'.
 function handleDreadMirrorReveal(state, revealedOmen, revealingUnit, isChampion) {
   // Step 1: Reveal the omen (clears hidden flag, registers passive trigger)
   revealUnit(state, revealedOmen);
 
-  // Step 2: Damage = revealer's own ATK
+  // Step 2: Damage = attacker's own ATK
   const revealerAtk = isChampion
     ? getChampionAtkBuff(state, revealingUnit)
     : getEffectiveAtk(state, revealingUnit);
-
-  // DIAGNOSTIC LOG 1
-  console.log(`DREAD MIRROR REVEAL: revealer=${revealingUnit.id ?? 'champion'}, revealer ATK=${revealerAtk}, revealer HP=${revealingUnit.hp}, dreadmirror owner=${revealedOmen.owner}, activePlayer=${state.activePlayer}`);
 
   if (revealerAtk > 0) {
     addLog(state, `Dread Mirror reflects ${revealerAtk} damage.`);
@@ -1753,13 +1750,10 @@ function handleDreadMirrorReveal(state, revealedOmen, revealingUnit, isChampion)
     addLog(state, `Dread Mirror revealed. ${isChampion ? state.players[revealingUnit.owner].name + "'s champion" : revealingUnit.name} takes 0 damage.`);
   }
 
-  // Step 3: Check if revealer died
+  // Step 3: Check if attacker died
   const revealerDied = isChampion
     ? revealingUnit.hp <= 0
     : !state.units.find(u => u.uid === revealingUnit.uid);
-
-  // DIAGNOSTIC LOG 2
-  console.log(`DREAD MIRROR DAMAGE APPLIED: revealer HP after=${revealingUnit.hp}, revealer died=${revealerDied}`);
 
   if (revealerDied) {
     // Omen stays on the board, revealed, passive active, timer ticking from reveal
@@ -4067,6 +4061,8 @@ export function moveUnit(state, unitUid, row, col) {
         updateShieldbearerAura(s);
         return s;
       }
+      // Dread Mirror: moving INTO an enemy is a move action — no reflect damage fires.
+      // Falls through to combat so the enemy deals counter damage and destroys the omen.
       // Dread Shade: reveal fires +2 ATK bonus, then falls through to normal combat below
     }
     // Reveal hidden enemy unit before resolving combat
