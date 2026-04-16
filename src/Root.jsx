@@ -184,15 +184,37 @@ export default function Root() {
   if (route.view === 'ai_deck_select') {
     if (!selectedDeck) {
       return (
-        <DeckSelect
-          onSelect={(deckId) => {
-            const customDeck = localStorage.getItem('gridholm_custom_deck');
-            console.log(`[DeckSelect] Player selected deckId="${deckId}" | localStorage gridholm_custom_deck: ${customDeck ? `found (${JSON.parse(customDeck)?.cards?.length ?? 0} cards)` : 'null'}`);
-            setSelectedDeck(deckId);
-          }}
-          opponentSelected={null}
-          profileDecks={profileDecks}
-        />
+        <div style={{ position: 'relative' }}>
+          <DeckSelect
+            onSelect={(deckId) => {
+              const customDeck = localStorage.getItem('gridholm_custom_deck');
+              console.log(`[DeckSelect] Player selected deckId="${deckId}" | localStorage gridholm_custom_deck: ${customDeck ? `found (${JSON.parse(customDeck)?.cards?.length ?? 0} cards)` : 'null'}`);
+              setSelectedDeck(deckId);
+            }}
+            opponentSelected={null}
+            profileDecks={profileDecks}
+          />
+          <button
+            style={{
+              position: 'fixed',
+              top: '16px',
+              left: '16px',
+              background: 'transparent',
+              color: '#4a4a6a',
+              border: '1px solid #2a2a3a',
+              borderRadius: '4px',
+              padding: '8px 14px',
+              fontFamily: "'Cinzel', serif",
+              fontSize: '11px',
+              cursor: 'pointer',
+              zIndex: 100,
+              letterSpacing: '0.05em',
+            }}
+            onClick={() => navigate('lobby')}
+          >
+            ← Back
+          </button>
+        </div>
       );
     }
     return (
