@@ -130,11 +130,27 @@ export default function AdventureMode({ onBack }) {
     const tile = run.dungeonLayout[row][col];
     if (!tile || tile.type === 'wall') return;
 
-    // Boss tile: show confirmation warning before entering — do not move yet
+    // Boss tile: award major potion on entry if not yet granted, then show boss warning
     if (tile.type === 'boss' && !tile.completed) {
       const { initialState, aiDepth, fightDifficultyLabel } = buildAdventureGameState(run, row, col, 'boss');
       setFightCtx({ initialState, aiDepth, row, col, tileType: 'boss', fightDifficultyLabel });
       setPendingBossEntry({ row, col });
+
+      if (!run.bossGatePotionGranted) {
+        const totalPotions = (run.potions || 0) + (run.majorPotions || 0);
+        let newRun = run;
+        if (totalPotions < 3) {
+          newRun = saveRun({ ...run, majorPotions: (run.majorPotions || 0) + 1, bossGatePotionGranted: true });
+        } else if (run.potions > 0) {
+          newRun = saveRun({ ...run, potions: run.potions - 1, majorPotions: (run.majorPotions || 0) + 1, bossGatePotionGranted: true });
+        } else {
+          newRun = saveRun({ ...run, bossGatePotionGranted: true });
+        }
+        setRun(newRun);
+        setPhase('boss_entry_potion');
+        return;
+      }
+
       setPhase('boss_warning');
       return;
     }
@@ -156,22 +172,6 @@ export default function AdventureMode({ onBack }) {
     }
 
     newRun = moveToTile(newRun, row, col);
-
-    // Gate tile: grant Major Health Potion on first visit each loop
-    if (tile.isGate && !newRun.bossGatePotionGranted) {
-      const totalPotions = (newRun.potions || 0) + (newRun.majorPotions || 0);
-      if (totalPotions < 3) {
-        newRun = saveRun({ ...newRun, majorPotions: (newRun.majorPotions || 0) + 1, bossGatePotionGranted: true });
-      } else if (newRun.potions > 0) {
-        // Replace one standard potion with a major potion
-        newRun = saveRun({ ...newRun, potions: newRun.potions - 1, majorPotions: (newRun.majorPotions || 0) + 1, bossGatePotionGranted: true });
-      } else {
-        newRun = saveRun({ ...newRun, bossGatePotionGranted: true });
-      }
-      setRun(newRun);
-      setPhase('gate_potion');
-      return;
-    }
 
     setRun(newRun);
 
@@ -406,6 +406,18 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
+  if (phase === 'boss_entry_potion') {
+    const majorPotions = run?.majorPotions || 0;
+    return (
+      <GatePotionNotification
+        majorPotions={majorPotions}
+        run={run}
+        isBossEntry
+        onContinue={() => setPhase('boss_warning')}
+      />
+    );
+  }
+
   if (phase === 'boss_warning' && fightCtx && run) {
     return (
       <BossRoomWarning
@@ -531,7 +543,7 @@ export default function AdventureMode({ onBack }) {
 
 // ── Gate Potion Notification ──────────────────────────────────────────────────
 
-function GatePotionNotification({ run, majorPotions, onContinue }) {
+function GatePotionNotification({ run, majorPotions, isBossEntry, onContinue }) {
   const totalPotions = (run?.potions || 0) + (majorPotions || 0);
   return (
     <div style={{
@@ -546,10 +558,10 @@ function GatePotionNotification({ run, majorPotions, onContinue }) {
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.15em', marginBottom: '8px' }}>
-          APPROACHING THE THRONE
+          {isBossEntry ? 'ENTERING THE THRONE ROOM' : 'APPROACHING THE THRONE'}
         </div>
         <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '20px', color: '#f9fafb', margin: 0 }}>
-          The Gate
+          {isBossEntry ? 'Boss Chamber' : 'The Gate'}
         </h2>
       </div>
 
