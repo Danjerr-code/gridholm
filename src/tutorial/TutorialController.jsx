@@ -1024,7 +1024,7 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
           style={{ minHeight: 0 }}
         >
           {/* Log hidden per-scenario via visibility so layout frame stays stable */}
-          <div style={{ flex: 1, minHeight: 0, visibility: hideLog ? 'hidden' : 'visible' }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', visibility: hideLog ? 'hidden' : 'visible' }}>
             <Log entries={state.log} />
           </div>
 
