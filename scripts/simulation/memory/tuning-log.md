@@ -403,3 +403,57 @@ Replaced the `cost > 3 discard` mulligan in both simulation and live game AI wit
 - Memory file tuning-log.md and balance-flags.md updated accordingly
 
 ### Commit: d2829f9
+
+## Entry 29 — 2026-04-15 (LOG-1482) — Transposition Table + Iterative Deepening
+
+### Changes
+Implemented all 3 steps in minimaxAI.js:
+1. Zobrist hashing (`5ad418e`): lazy 32-bit xorshift table keyed on uid/position/HP/owner/resources/turn/commandsUsed
+2. Transposition table (`cb09f1d`): TT_EXACT/LOWER/UPPER flags, 1M entry cap, TT best action used for move ordering above killers
+3. Iterative deepening with time budget (`af6d480`): default 800ms, maxDepth=20 cap, fresh TT per decision shared across ID iterations, fixed double-store cutoff bug
+
+runSimulation.js / runMatrix.js: `--time-budget` flag (default 800ms), minimaxStats reporting (avgDepth, ttHitRate, avgTtSize)
+
+### 20-game targeted validation (10 HvB + 10 EvD)
+| Matchup | DR | Avg Turns | Avg Depth | TT Hit Rate |
+|---|---|---|---|---|
+| Human vs Beast | 20.0% | 19.0 | 18.64 | 66.7% |
+| Elf vs Demon | 90.0% | 23.4 | 19.48 | 62.9% |
+| **Combined** | **55.0%** | **21.2** | **~19.1** | **~65%** |
+
+### Gate assessment
+- Avg depth > 3.0: YES (18-19) ✓
+- DR ≤ 37.9%: NO (55% combined) ✗
+
+### Key findings
+- TT + ID allows depth 18-19 per decision in 800ms (vs depth 2 fixed before)
+- 65% TT hit rate with only 16-28 entries/decision: game tree is very shallow in unique positions
+- 20-game test is statistically insufficient to compare against 1200-game baseline; Elf vs Demon alone pulls combined DR above gate threshold
+- **Status**: Full 1200-game matrix launched 2026-04-16 (100 games/direction, 800ms budget, all Tier 1 active)
+
+## Entry 30 — 2026-04-16 (LOG-1485) — Tier 2: Champion Safety S-Curve + Contempt Factor [BRANCH ONLY]
+
+### Branch: `tier2-eval-improvements`, commit `6658174`
+### Status: NOT merged — awaiting Tier 1 full matrix results
+
+### Changes
+
+**Tier 2a — Champion safety S-curve (boardEval.js):**
+- Replaced linear `myChamp.hp` with smoothstep S-curve: `f(x) = 3x² - 2x³`
+- At hp=1: score≈0.28 (vs linear 1.0) — 72% penalty at critical HP
+- At hp=5: score≈3.13 (vs linear 5.0) — 37% penalty at danger HP
+- At hp=10: score=10.0 — inflection point (same as linear)
+- At hp=15: score≈16.9 — slight bonus for high HP
+- Weight key `championHP: 5` unchanged — all faction profiles inherit
+
+**Tier 2b — Contempt factor (boardEval.js):**
+- `penalty = -contemptFactor × max(0, 1 - |rawScore| / contemptThreshold)`
+- New WEIGHTS: `contemptFactor: 20`, `contemptThreshold: 100`
+- At rawScore=0: penalty=-20 (full contempt — strongly avoid equality)
+- At |rawScore|=100: penalty=0 (position already decisive)
+- Applied from both players' perspectives → each pushed to create imbalance
+- Replaces `score = rawScore` with `score = rawScore + contemptPenalty`
+
+### Rationale
+CEO directed: if Tier 1 overall DR drops below 30% (from 37.9% baseline), proceed to Tier 2.
+Pre-implementing so Tier 2 is ready to test immediately when Tier 1 results arrive.

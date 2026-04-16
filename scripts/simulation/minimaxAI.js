@@ -27,6 +27,119 @@ import { getCardRating } from '../../src/engine/cardThreatRatings.js';
 const THRONE_ROW = 2;
 const THRONE_COL = 2;
 
+// ── Spell Value Ratings ───────────────────────────────────────────────────────
+
+/**
+ * Intrinsic spell value for move ordering and eval bonuses.
+ * Represents value not captured by post-cast board state changes:
+ *   - Card selection/draw (future decision quality)
+ *   - Permanent stat buffs (compounding over turns)
+ *   - Shields/protection (prevents loss not visible in HP)
+ *   - Board-wide buffs (multiple units affected)
+ *
+ * Damage spells (smite, crushingblow, gore, etc.) get low values (2–3)
+ * because their effect IS visible in post-cast HP diff (Fix 3 handles AOE).
+ */
+const SPELL_VALUES = {
+  // Card draw / knowledge
+  glimpse:           3,
+  // Permanent stat buffs
+  forgeweapon:       6,
+  forge_weapon:      6,  // alternate id
+  savagegrowth:      5,  // +2/+2 permanent
+  angelicblessing:   7,  // +4/+4 permanent + spell immunity
+  // Temporary unit buffs (turn-limited)
+  standfirm:         4,
+  animus:            3,
+  fortify:           4,
+  // Board-wide buffs
+  rally:             6,
+  crusade:           8,
+  packhowl:          7,
+  // Champion / unit shields
+  ironshield:        5,
+  ironthorns:        5,
+  // Crowd control / debuff
+  martiallaw:        7,
+  martial_law:       7,  // alternate id
+  predatorsmark:     5,
+  entangle:          4,
+  petrify:           5,
+  dominate:          6,
+  mindseize:         5,
+  shadowveil:        4,
+  // Healing (already partially scored by championHP/healingValue eval terms)
+  bloom:             2,
+  overgrowth:        2,
+  moonleaf:          2,
+  ancientspring:     2,
+  verdantsurge:      3,
+  glitteringgift:    2,
+  recall:            2,
+  shadow_mend:       2,
+  // Summon-generating spells
+  callofthesnakes:   5,
+  grave_harvest:     4,
+  // Resurrection / revival
+  seconddawn:        6,
+  rebirth:           5,
+  // Direct damage spells — damage IS captured by Fix 3 HP-diff tracking
+  smite:             2,
+  crushingblow:      2,
+  gore:              2,
+  spiritbolt:        2,
+  pounce:            2,
+  ambush:            3,
+  pestilence:        3,
+  toxic_spray:       3,
+  moonfire:          3,
+  arcane_barrage:    3,
+  plague_swarm:      4,
+  agonizingsymphony: 4,
+  // Utility / other
+  gildedcage:        5,
+  devour:            4,
+  souldrain:         4,
+  drain_life:        3,
+  void_siphon:       3,
+  infernalpact:      4,
+  pactofruin:        4,
+  darksentence:      4,
+  finalexchange:     5,
+  repel:             3,
+  fatesledger:       3,
+  tollofshadows:     3,
+  bloodoffering:     4,
+  echo_spell:        4,
+  amethystcache:     3,
+  // On-hold high-value spells
+  apexrampage:       7,
+  // New set spells
+  consecrated_ground:  5,
+  consecrating_strike: 4,
+  divine_judgment:     5,
+  fortify_the_crown:   5,
+  oath_of_valor:       5,
+  royal_decree:        4,
+  thrones_judgment:    5,
+};
+
+/**
+ * Returns the spellValue for a card that is about to be cast.
+ * Looks up the card in the active player's hand by cardUid, then maps
+ * the card's id through SPELL_VALUES.
+ *
+ * @param {string} cardUid  - the uid of the card being cast
+ * @param {object} state    - current game state (before applying the cast)
+ * @param {number} ap       - active player index (0 or 1)
+ * @returns {number}          spell value (0 if not found)
+ */
+function getSpellValue(cardUid, state, ap) {
+  const card = state.players[ap].hand.find(c => c.uid === cardUid);
+  if (!card) return 0;
+  return SPELL_VALUES[card.id] ?? 0;
+}
+
 // ── Zobrist Hashing ───────────────────────────────────────────────────────────
 
 /**
@@ -307,7 +420,28 @@ function filterActions(actions, state, commandsUsed) {
   const primarySlice = primary.slice(0, MAX_CANDIDATES);
   const heldSlice    = held.slice(0, Math.max(0, MAX_CANDIDATES - primarySlice.length));
 
-  return [...primarySlice, ...heldSlice, { type: 'endTurn' }];
+  // Spell insurance: if no cast action made the top candidates, inject the highest-value
+  // spell so the minimax tree always explores at least one casting option.
+  // Dedup by card id: pick one representative cast action per unique spell (highest spellValue).
+  const alreadyHasSpell = primarySlice.some(a => a.type === 'cast') || heldSlice.some(a => a.type === 'cast');
+  let extraSpells = [];
+  if (!alreadyHasSpell) {
+    const allCasts = [...primary, ...held].filter(a => a.type === 'cast');
+    // Group by card id (one representative per spell)
+    const bestBySpell = new Map(); // cardId → { action, spellValue }
+    for (const a of allCasts) {
+      const sv   = getSpellValue(a.cardUid, state, ap);
+      const card = state.players[ap].hand.find(c => c.uid === a.cardUid);
+      const cid  = card?.id ?? a.cardUid;
+      const prev = bestBySpell.get(cid);
+      if (!prev || sv > prev.spellValue) bestBySpell.set(cid, { action: a, spellValue: sv });
+    }
+    // Add up to 2 highest-value spell candidates
+    const ranked = [...bestBySpell.values()].sort((x, y) => y.spellValue - x.spellValue);
+    extraSpells = ranked.slice(0, 2).map(e => e.action);
+  }
+
+  return [...primarySlice, ...heldSlice, ...extraSpells, { type: 'endTurn' }];
 }
 
 // ── Capture Detection ─────────────────────────────────────────────────────────
@@ -440,10 +574,16 @@ function orderActions(actions, state, playerId) {
   const endTurns   = actions.filter(a => a.type === 'endTurn');
   const candidates = actions.filter(a => a.type !== 'endTurn');
 
+  const ap = state.activePlayer;
   const scores = new Map();
   for (const action of candidates) {
     const ns = applyAction(state, action);
-    scores.set(action, quickEvalOrder(ns, playerId));
+    let score = quickEvalOrder(ns, playerId);
+    // Fix 2: bias move ordering toward spell casts by adding intrinsic spell value
+    if (action.type === 'cast') {
+      score += getSpellValue(action.cardUid, state, ap) * 2;
+    }
+    scores.set(action, score);
   }
 
   // Sort descending: best first (alpha-beta prunes more when high-scoring moves searched first)
@@ -1012,6 +1152,13 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
     let firstChild  = true;
     const triedQuiet = []; // quiet moves tried before a cutoff (for history malus)
 
+    // Fix 3: pre-compute enemy HP total for recentDamageDealt bonus on cast actions
+    const enemyIdxForBonus = 1 - gameState.activePlayer;
+    const enemyChampHPBefore = gameState.champions[enemyIdxForBonus]?.hp ?? 0;
+    const enemyUnitHPBefore  = gameState.units
+      .filter(u => u.owner === enemyIdxForBonus && !u.isRelic && !u.isOmen)
+      .reduce((s, u) => s + (u.hp ?? 0), 0);
+
     for (const action of actions) {
       const newState  = applyAction(gameState, action);
       const isEndTurn = action.type === 'endTurn';
@@ -1050,10 +1197,30 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         return best;
       }
 
-      if (result.score > best.score) {
-        best = { score: result.score, action: action };
+      // Fix 2 + Fix 3: apply action bonuses for cast actions.
+      // Fix 2: intrinsic spell value for effects not visible in board eval (spellValue > 4).
+      // Fix 3: recentDamageDealt — reward AOE/damage spells by total enemy HP removed.
+      let actionBonus = 0;
+      if (action.type === 'cast') {
+        const sv = getSpellValue(action.cardUid, gameState, gameState.activePlayer);
+        if (sv > 4) actionBonus += sv * 0.5; // Fix 2: partial eval bonus for high-value spells
+
+        // Fix 3: measure total enemy HP removed by this cast (captures AOE that spread damage)
+        const afterEnemyChampHP = newState.champions[enemyIdxForBonus]?.hp ?? 0;
+        const afterEnemyUnitHP  = newState.units
+          .filter(u => u.owner === enemyIdxForBonus && !u.isRelic && !u.isOmen)
+          .reduce((s, u) => s + (u.hp ?? 0), 0);
+        const damageDealt = Math.max(0,
+          (enemyChampHPBefore + enemyUnitHPBefore) - (afterEnemyChampHP + afterEnemyUnitHP)
+        );
+        actionBonus += damageDealt * 3; // Fix 3: recentDamageDealt weight 3
       }
-      alpha = Math.max(alpha, result.score);
+      const adjustedScore = result.score + actionBonus;
+
+      if (adjustedScore > best.score) {
+        best = { score: adjustedScore, action: action };
+      }
+      alpha = Math.max(alpha, adjustedScore);
 
       if (beta <= alpha) {
         recordKiller(killers, depth, action);

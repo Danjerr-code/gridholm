@@ -331,9 +331,10 @@ export function runGame(gameId, p1Deck, p2Deck, opts = {}) {
     ...(useMinimaxAI ? {
       minimaxMs:      minimaxTotalMs,
       minimaxStats:   {
-        avgDepth:    minimaxStats.decisions > 0 ? minimaxStats.depthSum  / minimaxStats.decisions : 0,
-        avgTtSize:   minimaxStats.decisions > 0 ? minimaxStats.ttSizeSum / minimaxStats.decisions : 0,
-        ttHitRate:   minimaxStats.ttLookups > 0 ? minimaxStats.ttHits    / minimaxStats.ttLookups : 0,
+        avgDepth:    minimaxStats.decisions > 0 ? minimaxStats.depthSum   / minimaxStats.decisions : 0,
+        avgTtSize:   minimaxStats.decisions > 0 ? minimaxStats.ttSizeSum  / minimaxStats.decisions : 0,
+        ttHitRate:   minimaxStats.ttLookups > 0 ? minimaxStats.ttHits     / minimaxStats.ttLookups : 0,
+        avgQNodes:   minimaxStats.decisions > 0 ? (minimaxStats.qNodesSum ?? 0) / minimaxStats.decisions : 0,
         decisions:   minimaxStats.decisions,
       },
     } : {}),

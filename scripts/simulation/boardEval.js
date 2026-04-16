@@ -63,6 +63,7 @@ export const WEIGHTS = {
   tradeEfficiency:           5,  // bonus for favorable trades: kills defender while surviving
   tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
   boardCentrality:           4,  // net centrality score: sum of (4 - manhattanDistToCenter) per friendly piece minus enemy
+  projectedEnemyDamage:      4,  // penalty per unit of projected damage from enemy units over next 2 turns
 };
 
 /**
@@ -551,6 +552,29 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     }
   }
 
+  // projectedEnemyDamage: total damage enemy units can deal to us over the next 2 turns.
+  // For each enemy combat unit:
+  //   - Adjacent to our champion (dist=1): atk*2 (can attack twice)
+  //   - Within SPD of our champion:        atk*1 (move+attack once)
+  //   - Adjacent to a friendly unit:       atk*1 (can trade once)
+  //   - Otherwise (positional threat):     atk*0.5
+  // Applied as a penalty (negative contribution).
+  let projectedEnemyDamageTotal = 0;
+  for (const eu of oppCombatUnits) {
+    const atkVal = eu.atk ?? 0;
+    if (atkVal <= 0) continue;
+    const distToMyChamp = manhattan([eu.row, eu.col], [myChamp.row, myChamp.col]);
+    if (distToMyChamp <= 1) {
+      projectedEnemyDamageTotal += atkVal * 2;
+    } else if (distToMyChamp <= (eu.spd ?? 1)) {
+      projectedEnemyDamageTotal += atkVal * 1;
+    } else if (myUnits.some(ally => manhattan([eu.row, eu.col], [ally.row, ally.col]) <= 1)) {
+      projectedEnemyDamageTotal += atkVal * 1;
+    } else {
+      projectedEnemyDamageTotal += atkVal * 0.5;
+    }
+  }
+
   // boardCentrality: net Manhattan-from-center score across all pieces.
   // Each piece scores (4 - distToCenter): center=4, adj=3, dist2=2, dist3=1, corner=0.
   // Subtract the same calculation for all enemy pieces.
@@ -599,7 +623,8 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     throneControlValue        * (w.throneControlValue ?? 25) +
     tradeEfficiencyValue      * (w.tradeEfficiency ?? 5)  +
     tileDenialCount           * (w.tileDenial ?? 6)       +
-    boardCentrality           * (w.boardCentrality ?? 4);
+    boardCentrality           * (w.boardCentrality ?? 4)  +
+    -projectedEnemyDamageTotal * (w.projectedEnemyDamage ?? 4);
 
   return score;
 }

@@ -191,3 +191,22 @@ Proposed: `healingValue 5→0`, `championHP 10→5`, `championHPDiff 3→8`. Awa
 - Deeper search (d=3/d=4) confirmed non-fix via depth test
 - Move ordering + selective deepening + killer heuristic did not fix draws
 - Fix requires game mechanics investigation (card pool reduction, draw rule, or turn limit)
+
+---
+
+## 2026-04-16 — Tier 1 Full Matrix (PENDING RESULTS)
+
+**Matrix running:** 1200 games (100/direction, 800ms budget, all Tier 1 active: TT + ID + quiescence + history + PVS)
+**Baseline:** 37.9% overall DR (board centrality + throne control, commit `9bff7e2`)
+**Expected completion:** ~9 hours from 8:06 PM PDT 2026-04-16
+
+**Tier 1 improvements active:**
+- Transposition table (Zobrist hash, 1M cap, TT_EXACT/LOWER/UPPER)
+- Iterative deepening (800ms budget, maxDepth=20)
+- Quiescence search (capture-only, delta pruning, MVV-LVA, TT-integrated)
+- History heuristic (depth²-weighted, gravity formula, move ordering)
+- Principal variation search (null-window for non-PV nodes)
+
+**Gate condition:** Overall DR ≤ 30% for Tier 2 to be applied immediately; otherwise report and await direction.
+
+**Tier 2 branch ready:** `tier2-eval-improvements` (commit `6658174`) — champion safety S-curve + contempt factor, do not merge until Tier 1 results in.
