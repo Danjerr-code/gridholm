@@ -36,6 +36,7 @@ export const THREAT_RATINGS = {
   theironqueen:           { allyValue:  8, threatValue:  8 },
 
   // ── High-value non-legendaries ───────────────────────────────────────────────
+  immortal_bastion:       { allyValue: 10, threatValue: 10 },
   moonveilmystic:         { allyValue:  8, threatValue:  9 },
   wardlightcolossus:      { allyValue:  7, threatValue:  8 },
   cascadesage:            { allyValue:  7, threatValue:  7 },
