@@ -13,6 +13,12 @@ export function createDraftRunState() {
     losses: 0,
     currentGame: 0,
     runComplete: false,
+
+    // Map draft state
+    draftMap: null,         // generated map object (see draftMap.js)
+    mapPosition: 0,         // 0-based index into the traversal path (0 = node 1)
+    committedBranch: null,  // 'A'|'B'|'C'|'D' after fork commit, null before
+    nodeHistory: [],        // array of { nodeId, bucketId, cardId } per completed node
   };
 }
 

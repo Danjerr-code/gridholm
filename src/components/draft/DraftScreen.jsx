@@ -1,24 +1,41 @@
+/**
+ * DraftScreen — Map-based draft orchestrator (complete rewrite)
+ *
+ * Draft flow:
+ *   1. Faction primary selection   → pick primary faction + champion
+ *   2. Legendary pick              → pick 1 legendary from primary faction pool
+ *   3. Faction secondary selection → pick secondary faction (no card)
+ *   4. Map is generated and displayed (DraftMapScreen)
+ *   5. For each of 29 map nodes:
+ *      a. Show map with "Continue" button
+ *      b. Show node interaction (DraftNodeScreen or SpecialNodeScreen)
+ *      c. Update map state, record pick, advance position
+ *   6. draft_complete screen
+ *
+ * Props:
+ *   onDraftComplete({ primaryFaction, secondaryFaction, deck, legendaryIds })
+ */
+
 import { useState, useCallback } from 'react';
 import { CARD_DB } from '../../engine/cards.js';
 import { ATTRIBUTES } from '../../engine/attributes.js';
 import { getCardImageUrl } from '../../supabase.js';
 import { AutoSizeText } from '../AutoSizeText.jsx';
-import { buildDraftPool, generatePack, generateLegendaryPack, getRandomFactions, assignRareSlots } from '../../draft/draftPool.js';
 import { CHAMPIONS } from '../../engine/champions.js';
 import { ATTR_SYMBOLS } from '../../assets/attributeSymbols.jsx';
+import { generateLegendaryPack, getRandomFactions } from '../../draft/draftPool.js';
+import { generateDraftMap, getCurrentNode, getDraftPath } from '../../draft/draftMap.js';
+import {
+  generateBucketOptions,
+  getUnlockedKeywordBuckets,
+  BUCKET_IDS,
+} from '../../draft/draftBuckets.js';
+import DraftMapScreen from './DraftMapScreen.jsx';
+import DraftNodeScreen from './DraftNodeScreen.jsx';
+import SpecialNodeScreen from './SpecialNodeScreen.jsx';
 
-const TOTAL_PICKS = 29; // 1 legendary + 29 main = 30 cards
-
-// ── Faction visual config ────────────────────────────────────────────────────
-const FACTION_STYLE = {
-  light:  { bg: 'linear-gradient(135deg, #5a4a00, #C9A84C)', color: '#0a0a0f', label: 'Light',  subtitle: 'Formation & Aura' },
-  primal: { bg: 'linear-gradient(135deg, #3a1a00, #a0522d)', color: '#f9fafb', label: 'Primal', subtitle: 'Rush & Speed' },
-  mystic: { bg: 'linear-gradient(135deg, #2a0a4a, #7e3aaf)', color: '#f9fafb', label: 'Mystic', subtitle: 'Healing & Endurance' },
-  dark:   { bg: 'linear-gradient(135deg, #0a0010, #3d1a5e)', color: '#f9fafb', label: 'Dark',   subtitle: 'Hidden & Power' },
-};
-
-// ── Shared styles ────────────────────────────────────────────────────────────
-const screen = {
+// ── Shared styles ─────────────────────────────────────────────────────────────
+const scrn = {
   minHeight: '100vh',
   background: '#0a0a0f',
   color: '#f9fafb',
@@ -36,92 +53,157 @@ const heading = {
   marginBottom: '4px',
 };
 
+const FACTION_STYLE = {
+  light:  { bg: 'linear-gradient(135deg, #5a4a00, #C9A84C)', color: '#0a0a0f', label: 'Light',  subtitle: 'Formation & Aura' },
+  primal: { bg: 'linear-gradient(135deg, #3a1a00, #a0522d)', color: '#f9fafb', label: 'Primal', subtitle: 'Rush & Speed' },
+  mystic: { bg: 'linear-gradient(135deg, #2a0a4a, #7e3aaf)', color: '#f9fafb', label: 'Mystic', subtitle: 'Healing & Endurance' },
+  dark:   { bg: 'linear-gradient(135deg, #0a0010, #3d1a5e)', color: '#f9fafb', label: 'Dark',   subtitle: 'Hidden & Power' },
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function DraftScreen({ onDraftComplete }) {
-  const [phase, setPhase] = useState('faction_primary');   // state machine
+  // ── Phase state machine ──────────────────────────────────────────────────────
+  // 'faction_primary' → 'legendary_pick' → 'faction_secondary'
+  // → 'map_view' → 'node_interact' → (repeat) → 'draft_complete'
+  const [phase, setPhase] = useState('faction_primary');
+
+  // ── Faction + deck ───────────────────────────────────────────────────────────
   const [primaryFaction, setPrimaryFaction] = useState(null);
   const [secondaryFaction, setSecondaryFaction] = useState(null);
-  const [pool, setPool] = useState([]);
-  const [draftedIds, setDraftedIds] = useState([]);      // card IDs in order drafted
-  const [legendaryIds, setLegendaryIds] = useState([]);
-  const [pickNumber, setPickNumber] = useState(1);        // 1-indexed
-  const [currentPack, setCurrentPack] = useState([]);
-  const [rareSlotPositions, setRareSlotPositions] = useState(null);
-  const [offerCounts, setOfferCounts] = useState({});
-
-  // Faction selection — show 2 random for primary
   const [primaryOptions] = useState(() => getRandomFactions(2));
+  const [draftedIds, setDraftedIds] = useState([]);
+  const [legendaryIds, setLegendaryIds] = useState([]);
 
-  // ── Phase transitions ──────────────────────────────────────────────────────
+  // ── Legendary pick pack ──────────────────────────────────────────────────────
+  const [legendaryPack, setLegendaryPack] = useState([]);
+
+  // ── Map state ────────────────────────────────────────────────────────────────
+  const [draftMap, setDraftMap] = useState(null);
+  const [mapPosition, setMapPosition] = useState(0);    // 0-based node index in traversal path
+  const [committedBranch, setCommittedBranch] = useState(null);
+  const [nodeHistory, setNodeHistory] = useState([]);
+
+  // ── Current node buckets (pre-generated when map view shows) ─────────────────
+  const [currentBuckets, setCurrentBuckets] = useState(null);
+
+  // ── Phase transitions ─────────────────────────────────────────────────────────
 
   function handlePrimarySelect(faction) {
     setPrimaryFaction(faction);
+    // Generate legendary pack for this faction
+    const pack = generateLegendaryPack(faction, faction, []);
+    setLegendaryPack(pack);
+    setPhase('legendary_pick');
+  }
+
+  function handleLegendaryPick(card) {
+    const legId = card.id === '_skip' ? null : card.id;
+    const newDraftedIds = legId ? [legId] : [];
+    const newLegIds = legId ? [legId] : [];
+    setDraftedIds(newDraftedIds);
+    setLegendaryIds(newLegIds);
     setPhase('faction_secondary');
   }
 
   function handleSecondarySelect(faction) {
     setSecondaryFaction(faction);
-    const newPool = buildDraftPool(primaryFaction, faction);
-    setPool(newPool);
-    // Generate initial legendary pack
-    const pack = generateLegendaryPack(primaryFaction, faction, []);
-    setCurrentPack(pack);
-    setPhase('legendary_pick');
+    // Generate the map
+    const map = generateDraftMap(primaryFaction, faction);
+    setDraftMap(map);
+    setMapPosition(0);
+    setCommittedBranch(null);
+    setNodeHistory([]);
+    // Pre-generate buckets for node 1
+    const buckets = generateBucketOptionsForNode(map.nodes['node_1'], []);
+    setCurrentBuckets(buckets);
+    setPhase('map_view');
   }
 
-  function handleLegendaryPick(card) {
-    const newLegIds = [card.id];
-    const newDraftedIds = [card.id];
-    setLegendaryIds(newLegIds);
-    setDraftedIds(newDraftedIds);
-    // Assign rare slots for this draft run
-    const slots = assignRareSlots();
-    setRareSlotPositions(slots);
-    const initOfferCounts = {};
-    // Generate first main-draft pack
-    const pack = generatePack(pool, newDraftedIds, 1, primaryFaction, secondaryFaction, slots, initOfferCounts);
-    // Track offers for first pack
-    const newOfferCounts = { ...initOfferCounts };
-    for (const c of pack) newOfferCounts[c.id] = (newOfferCounts[c.id] ?? 0) + 1;
-    setOfferCounts(newOfferCounts);
-    setCurrentPack(pack);
-    setPickNumber(1);
-    setPhase('main_draft');
+  // ── Map navigation ────────────────────────────────────────────────────────────
+
+  function handleContinueToNode() {
+    setPhase('node_interact');
   }
 
-  const handleMainPick = useCallback((card) => {
-    const newDraftedIds = [...draftedIds, card.id];
-    setDraftedIds(newDraftedIds);
+  function handleNodeComplete({ cardId, bucketId, committedBranch: forkBranch, removedCardId }) {
+    // Update drafted IDs
+    let newDraftedIds = [...draftedIds];
+    let newLegIds = [...legendaryIds];
 
-    if (pickNumber >= TOTAL_PICKS) {
-      // Draft complete — 30 cards total
-      setPhase('draft_complete');
-    } else {
-      const nextPick = pickNumber + 1;
-      setPickNumber(nextPick);
-      const pack = generatePack(pool, newDraftedIds, nextPick, primaryFaction, secondaryFaction, rareSlotPositions, offerCounts);
-      // Track offer counts for this pack
-      const newOfferCounts = { ...offerCounts };
-      for (const c of pack) newOfferCounts[c.id] = (newOfferCounts[c.id] ?? 0) + 1;
-      setOfferCounts(newOfferCounts);
-      setCurrentPack(pack);
+    // Handle swap removal
+    if (removedCardId) {
+      const idx = newDraftedIds.indexOf(removedCardId);
+      if (idx !== -1) newDraftedIds.splice(idx, 1);
+      if (newLegIds.includes(removedCardId)) {
+        newLegIds = newLegIds.filter(id => id !== removedCardId);
+      }
     }
-  }, [draftedIds, pickNumber, pool, primaryFaction, secondaryFaction, rareSlotPositions, offerCounts]);
 
-  function handleStartGauntlet() {
-    onDraftComplete({
-      primaryFaction,
-      secondaryFaction,
-      deck: draftedIds,
-      legendaryIds,
-    });
+    // Add picked card (skip sentinel = no card)
+    if (cardId && cardId !== '_skip') {
+      newDraftedIds.push(cardId);
+      const card = CARD_DB[cardId];
+      if (card?.legendary && !newLegIds.includes(cardId)) {
+        newLegIds.push(cardId);
+      }
+    }
+
+    // Commit branch if this was the fork node
+    const resolvedBranch = forkBranch ?? committedBranch;
+    if (forkBranch && !committedBranch) {
+      setCommittedBranch(forkBranch);
+    }
+
+    // Record history
+    const path = getDraftPath(resolvedBranch);
+    const currentNodeId = path[mapPosition];
+    const newHistory = [...nodeHistory, { nodeId: currentNodeId, bucketId, cardId }];
+
+    // Advance position
+    const nextPosition = mapPosition + 1;
+    const isComplete = nextPosition >= 29; // 29 nodes total (0-indexed: 0..28)
+
+    setDraftedIds(newDraftedIds);
+    setLegendaryIds(newLegIds);
+    setNodeHistory(newHistory);
+
+    if (isComplete) {
+      setPhase('draft_complete');
+      return;
+    }
+
+    setMapPosition(nextPosition);
+
+    // Pre-generate buckets for the next node
+    const nextNodeId = getDraftPath(resolvedBranch)[nextPosition];
+    const nextNode = draftMap.nodes[nextNodeId];
+    const unlocked = getUnlockedKeywordBuckets(newDraftedIds);
+    const nextBuckets = generateBucketOptionsForNode(nextNode, unlocked);
+    setCurrentBuckets(nextBuckets);
+
+    setPhase('map_view');
   }
 
-  // ── Render phases ──────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+
+  function generateBucketOptionsForNode(node, unlocked) {
+    if (!node) return [];
+    if (node.type === 'fork') return generateBucketOptions(unlocked, true);
+    return generateBucketOptions(unlocked, false);
+  }
+
+  function getCurrentNodeObj() {
+    if (!draftMap) return null;
+    const path = getDraftPath(committedBranch);
+    const nodeId = path[mapPosition];
+    return draftMap.nodes[nodeId] ?? null;
+  }
+
+  // ── Render phases ─────────────────────────────────────────────────────────────
 
   if (phase === 'faction_primary') {
     return (
-      <div style={screen}>
+      <div style={scrn}>
         <div style={{ maxWidth: 480, width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 48 }}>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ ...heading, fontSize: 24 }}>DRAFT</h2>
@@ -131,13 +213,39 @@ export default function DraftScreen({ onDraftComplete }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
             {primaryOptions.map(faction => (
-              <FactionCard
-                key={faction}
-                faction={faction}
-                onClick={() => handlePrimarySelect(faction)}
-              />
+              <FactionCard key={faction} faction={faction} onClick={() => handlePrimarySelect(faction)} />
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'legendary_pick') {
+    return (
+      <div style={scrn}>
+        <div style={{ maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 32 }}>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ ...heading, fontSize: 20 }}>LEGENDARY PICK</h2>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#9a9ab0', fontSize: 14 }}>
+              Choose 1 legendary card for your deck
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {legendaryPack.map(card => (
+              <FullCard key={card.id} card={card} onClick={() => handleLegendaryPick(card)} />
+            ))}
+            {legendaryPack.length === 0 && (
+              <p style={{ color: '#6a6a8a', fontFamily: "'Crimson Text', serif" }}>
+                No legendaries available.
+              </p>
+            )}
+          </div>
+          {legendaryPack.length === 0 && (
+            <button style={btnSecondary} onClick={() => handleLegendaryPick({ id: '_skip' })}>
+              Continue Without Legendary
+            </button>
+          )}
         </div>
       </div>
     );
@@ -146,7 +254,7 @@ export default function DraftScreen({ onDraftComplete }) {
   if (phase === 'faction_secondary') {
     const secondaryOptions = ['light', 'primal', 'mystic', 'dark'].filter(f => f !== primaryFaction);
     return (
-      <div style={screen}>
+      <div style={scrn}>
         <div style={{ maxWidth: 480, width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 48 }}>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ ...heading, fontSize: 24 }}>DRAFT</h2>
@@ -157,11 +265,7 @@ export default function DraftScreen({ onDraftComplete }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
             {secondaryOptions.map(faction => (
-              <FactionCard
-                key={faction}
-                faction={faction}
-                onClick={() => handleSecondarySelect(faction)}
-              />
+              <FactionCard key={faction} faction={faction} onClick={() => handleSecondarySelect(faction)} />
             ))}
           </div>
         </div>
@@ -169,99 +273,82 @@ export default function DraftScreen({ onDraftComplete }) {
     );
   }
 
-  if (phase === 'legendary_pick') {
+  if (phase === 'map_view') {
+    const currentNode = getCurrentNodeObj();
     return (
-      <div style={screen}>
-        <div style={{ maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 32 }}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ ...heading, fontSize: 20 }}>LEGENDARY PICK</h2>
-            <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#9a9ab0', fontSize: 14 }}>
-              Choose 1 legendary card for your deck
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {currentPack.map(card => (
-              <FullCard key={card.id} card={card} onClick={() => handleLegendaryPick(card)} />
-            ))}
-            {currentPack.length === 0 && (
-              <p style={{ color: '#6a6a8a', fontFamily: "'Crimson Text', serif" }}>
-                No legendaries available for this faction pair.
-              </p>
-            )}
-          </div>
-          {currentPack.length === 0 && (
-            <button
-              style={btnSecondary}
-              onClick={() => handleLegendaryPick({ id: '_skip', name: 'Skip' })}
-            >
-              Continue Without Legendary
-            </button>
-          )}
-        </div>
-      </div>
+      <DraftMapScreen
+        draftMap={draftMap}
+        mapPosition={mapPosition}
+        committedBranch={committedBranch}
+        primaryFaction={primaryFaction}
+        secondaryFaction={secondaryFaction}
+        nextBuckets={currentNode?.type !== 'special' ? currentBuckets : null}
+        onContinue={handleContinueToNode}
+      />
     );
   }
 
-  if (phase === 'main_draft') {
-    const sortedDeck = getSortedDeck(draftedIds);
-    const curveCounts = getCurveCounts(draftedIds);
+  if (phase === 'node_interact') {
+    const currentNode = getCurrentNodeObj();
+    if (!currentNode) return null;
+
+    if (currentNode.type === 'special') {
+      return (
+        <SpecialNodeScreen
+          node={currentNode}
+          specialType={currentNode.specialType}
+          primaryFaction={primaryFaction}
+          secondaryFaction={secondaryFaction}
+          deck={draftedIds}
+          buckets={currentBuckets ?? []}
+          onComplete={handleNodeComplete}
+        />
+      );
+    }
+
+    // Standard or fork node
     return (
-      <div style={screen}>
-        <div style={{ maxWidth: 600, width: '100%', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ ...heading, fontSize: 18, margin: 0 }}>DRAFT</h2>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: 12, color: '#C9A84C' }}>
-              Pick {pickNumber} of {TOTAL_PICKS}
-            </span>
-          </div>
-
-          {/* Pack */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {currentPack.map(card => (
-              <FullCard key={card.id} card={card} onClick={() => handleMainPick(card)} />
-            ))}
-          </div>
-
-          {/* Mana curve */}
-          <ManaCurveBar counts={curveCounts} total={draftedIds.length} />
-          <CardTypeCounter ids={draftedIds} />
-
-          {/* Current deck */}
-          <div>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 11, color: '#6a6a8a', letterSpacing: '0.08em', marginBottom: 8 }}>
-              DECK ({draftedIds.length} / 30)
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {sortedDeck.map((card, i) => (
-                <MiniCardPill key={i} card={card} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DraftNodeScreen
+        node={currentNode}
+        buckets={currentBuckets ?? []}
+        primaryFaction={primaryFaction}
+        secondaryFaction={secondaryFaction}
+        draftedIds={draftedIds}
+        isFork={currentNode.type === 'fork'}
+        branchSpecialTypes={draftMap?.branchSpecialTypes ?? {}}
+        onComplete={handleNodeComplete}
+      />
     );
   }
 
   if (phase === 'draft_complete') {
     const sortedDeck = getSortedDeck(draftedIds);
+    const curveCounts = getCurveCounts(draftedIds);
     return (
-      <div style={screen}>
+      <div style={scrn}>
         <div style={{ maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 32 }}>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ ...heading, fontSize: 22 }}>DRAFT COMPLETE</h2>
             <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', color: '#9a9ab0', fontSize: 14 }}>
-              {FACTION_STYLE[primaryFaction]?.label} / {FACTION_STYLE[secondaryFaction]?.label} — 30 cards
+              {FACTION_STYLE[primaryFaction]?.label} / {FACTION_STYLE[secondaryFaction]?.label} — {draftedIds.length} cards
             </p>
           </div>
-          <ManaCurveBar counts={getCurveCounts(draftedIds)} total={30} />
+          <ManaCurveBar counts={curveCounts} total={draftedIds.length} />
           <CardTypeCounter ids={draftedIds} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sortedDeck.map((card, i) => (
               <DeckListRow key={i} card={card} />
             ))}
           </div>
-          <button style={btnPrimary} onClick={handleStartGauntlet}>
+          <button
+            style={btnPrimary}
+            onClick={() => onDraftComplete({
+              primaryFaction,
+              secondaryFaction,
+              deck: draftedIds,
+              legendaryIds,
+            })}
+          >
             Start Gauntlet →
           </button>
         </div>
@@ -345,7 +432,6 @@ function FullCard({ card, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.borderColor = card.legendary ? 'rgba(255, 140, 0, 1)' : attrColor; if (!card.legendary) e.currentTarget.style.boxShadow = `0 0 12px ${attrColor}50`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = card.legendary ? 'rgba(255, 140, 0, 0.8)' : `${attrColor}66`; if (!card.legendary) e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
     >
-      {/* Cost badge + Name */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <AutoSizeText maxFontSize={11} style={{ fontFamily: "'Cinzel', serif", fontWeight: 600, color: '#e8e8f0', lineHeight: 1.3, flex: 1 }}>
           {card.legendary && <span style={{ color: '#C9A84C', marginRight: 2 }}>♛</span>}
@@ -355,8 +441,6 @@ function FullCard({ card, onClick }) {
           {card.cost}
         </span>
       </div>
-
-      {/* Art */}
       {imageUrl ? (
         <img src={imageUrl} alt={card.name} style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4 }} />
       ) : (
@@ -364,8 +448,6 @@ function FullCard({ card, onClick }) {
           <span style={{ color: attrColor, fontSize: 10, fontFamily: "'Cinzel', serif" }}>{card.type?.toUpperCase()}</span>
         </div>
       )}
-
-      {/* Stats */}
       {card.type === 'unit' && (
         <div style={{ display: 'flex', gap: 6, fontSize: 10, color: '#a0a0c0', fontFamily: 'monospace' }}>
           <span>⚔ {card.atk}</span>
@@ -373,15 +455,11 @@ function FullCard({ card, onClick }) {
           <span>⚡ {card.spd}</span>
         </div>
       )}
-
-      {/* Rules */}
       {card.rules ? (
         <p style={{ fontSize: 9, color: '#8a8aa0', margin: 0, lineHeight: 1.4, height: 38, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
           {card.rules}
         </p>
       ) : null}
-
-      {/* Faction tag */}
       <span style={{ fontSize: 9, color: attrColor, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>
         {card.attribute}
       </span>
@@ -439,9 +517,7 @@ function ManaCurveBar({ counts, total }) {
           const height = count === 0 ? 4 : Math.max(8, Math.round((count / maxCount) * 44));
           return (
             <div key={cost} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-              {count > 0 && (
-                <span style={{ fontSize: 9, color: '#C9A84C', fontFamily: 'monospace', marginBottom: 2 }}>{count}</span>
-              )}
+              {count > 0 && <span style={{ fontSize: 9, color: '#C9A84C', fontFamily: 'monospace', marginBottom: 2 }}>{count}</span>}
               <div style={{ width: '100%', height, background: count === 0 ? '#1a1a2a' : '#C9A84C55', borderRadius: 2, border: '1px solid #2a2a3a' }} />
               <span style={{ fontSize: 8, color: '#4a4a6a', fontFamily: 'monospace', marginTop: 2 }}>{cost}</span>
             </div>
@@ -456,18 +532,11 @@ function CardTypeCounter({ ids }) {
   const { units, spells, relics, omens } = getTypeCounts(ids);
   return (
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
-        Units: <span style={{ color: '#e8e8f0' }}>{units}</span>
-      </span>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
-        Spells: <span style={{ color: '#e8e8f0' }}>{spells}</span>
-      </span>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
-        Relics: <span style={{ color: '#e8e8f0' }}>{relics}</span>
-      </span>
-      <span style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
-        Omens: <span style={{ color: '#e8e8f0' }}>{omens}</span>
-      </span>
+      {[['Units', units], ['Spells', spells], ['Relics', relics], ['Omens', omens]].map(([label, count]) => (
+        <span key={label} style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: '#a0a0c0', letterSpacing: '0.06em' }}>
+          {label}: <span style={{ color: '#e8e8f0' }}>{count}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -475,10 +544,7 @@ function CardTypeCounter({ ids }) {
 // ── Utility functions ─────────────────────────────────────────────────────────
 
 function getSortedDeck(ids) {
-  return ids
-    .map(id => CARD_DB[id])
-    .filter(Boolean)
-    .sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0));
+  return ids.map(id => CARD_DB[id]).filter(Boolean).sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0));
 }
 
 function getCurveCounts(ids) {
@@ -505,8 +571,7 @@ function getTypeCounts(ids) {
   return { units, spells, relics, omens };
 }
 
-// ── Shared button styles ──────────────────────────────────────────────────────
-
+// ── Button styles ─────────────────────────────────────────────────────────────
 const btnPrimary = {
   background: 'linear-gradient(135deg, #8a6a00, #C9A84C)',
   color: '#0a0a0f',
