@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { getCommandLimit } from '../engine/gameEngine.js';
+import { getCommandLimit, getChampionDef } from '../engine/gameEngine.js';
 import Cell from './Cell.jsx';
 import UnitToken from './UnitToken.jsx';
 import {
@@ -576,6 +576,37 @@ export default function Board({
     const isOwnChampion = champion.owner === myPlayerIndex;
 
     if (isMobile) {
+      const now = Date.now();
+      const champKey = champion.owner;
+      const last = lastChampTapRef.current[champKey] ?? 0;
+      lastChampTapRef.current[champKey] = now;
+
+      if (now - last < 300) {
+        // Double tap — try to invoke champion ability
+        lastChampTapRef.current[champKey] = 0;
+        if (isOwnChampion && canInteract && phase === 'action') {
+          const player = state.players[champion.owner];
+          const champDef = player && getChampionDef(player);
+          const tier = player?.resonance?.tier ?? 'none';
+          if (tier !== 'none' && champDef?.abilities) {
+            const ascended = champDef.abilities.ascended;
+            const attuned = champDef.abilities.attuned;
+            let activatedAbility = attuned;
+            if (tier === 'ascended' && ascended?.type === 'activated' && ascended?.replacesAbility) {
+              activatedAbility = ascended;
+            }
+            if (activatedAbility && !champion.moved && handlers.handleChampionAbilityActivate) {
+              handlers.handleChampionAbilityActivate(
+                activatedAbility.id,
+                activatedAbility.targetRequired ? activatedAbility.targetFilter : null,
+              );
+              return;
+            }
+          }
+        }
+        // No invoke-able ability or ineligible: fall through to single-tap selection
+      }
+
       // Mobile: single tap selects own champion for movement only (no details panel).
       // Long press (handled in Cell via onChampionLongPress) opens the details panel.
       if (isOwnChampion && canInteract && phase === 'action' && handlers.handleSelectChampion) {
