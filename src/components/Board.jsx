@@ -42,6 +42,7 @@ export default function Board({
   sacrificeTargetUids = [],
   selectedSacrificeUid = null,
   championAbilityTargetUids = [],
+  veilseerTargetUids = [],
   opponentMoveTiles = new Set(),
   spellGlowTile = null,
   handlers,
@@ -491,6 +492,10 @@ export default function Board({
       }
       return;
     }
+    if (veilseerTargetUids.includes(unit.uid)) {
+      handlers.handleVeilSeerHiddenTarget(unit.uid);
+      return;
+    }
     if (selectMode === 'fleshtithe_sacrifice') {
       if (sacrificeTargetUids.includes(unit.uid)) {
         handlers.handleFleshtitheSacrificeSelect(unit.uid);
@@ -598,6 +603,7 @@ export default function Board({
             const isSpellTarget = spellTargetUids.includes(unit?.uid);
             const isArcherTarget = archerShootTargets.includes(unit?.uid);
             const isSacrificeTarget = sacrificeTargetUids.includes(unit?.uid);
+            const isVeilseerTarget = veilseerTargetUids.includes(unit?.uid);
             const isSacrificeSelected = unit?.uid === selectedSacrificeUid;
             const isAbilityTarget = championAbilityTargetUids.includes(unit?.uid);
             const isChampionSpellTarget = champion ? spellTargetUids.includes('champion' + champion.owner) : false;
@@ -647,6 +653,7 @@ export default function Board({
                 isSacrificeTarget={isSacrificeTarget}
                 isSacrificeSelected={isSacrificeSelected}
                 isAbilityTarget={isAbilityTarget}
+                isVeilseerTarget={isVeilseerTarget}
                 unitAnimState={unit ? unitAnimStates[unit.uid] : null}
                 champAnimState={champAnimState}
                 dyingUnits={cellDyingUnits}

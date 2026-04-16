@@ -19,6 +19,7 @@ import { isMuted, setMuted } from './audio.js';
 import { renderRules } from './utils/rulesText.jsx';
 import GraveViewerModal from './components/GraveViewerModal.jsx';
 import ArcaneLensModal from './components/ArcaneLensModal.jsx';
+import { VeilSeerChoiceModal, VeilSeerRevealModal } from './components/VeilSeerModals.jsx';
 import { trackGameEnd } from './challenges/challengeTracker.js';
 import { ensureChallengeProgress, getActiveChallenges } from './challenges/challengeManager.js';
 
@@ -49,6 +50,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     archerShootTargets,
     sacrificeTargetUids,
     selectedSacrificeUid,
+    veilseerTargetUids,
     handlers,
   } = useGameState({
     deckId,
@@ -253,6 +255,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   if (selectMode === 'action_confirm' && selectedUnitObj) guidance = `Use ${selectedUnitObj.name} Action?`;
   if (selectMode === 'hand_select') guidance = 'Select a card from your hand to discard.';
   if (selectMode === 'fleshtithe_sacrifice') guidance = selectedSacrificeUid ? 'Confirm sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.' : 'Select a friendly unit to sacrifice for Flesh Tithe +2/+2, or Cancel to summon as 3/3.';
+  if (state.pendingVeilSeerChoice?.step === 'select_hidden') guidance = 'Click a highlighted hidden enemy unit to reveal its identity.';
   if (selectMode === 'champion_ability') guidance = 'Click a highlighted unit to Invoke, or Cancel.';
   if (selectMode === 'terrain_cast') guidance = 'Click a tile to place the terrain card there.';
   if (selectMode === 'relic_place') guidance = 'Click an adjacent tile to place the Amethyst Crystal.';
@@ -455,6 +458,23 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           />
         )
       )}
+
+      {/* Veil Seer — three-choice information modal */}
+      <VeilSeerChoiceModal
+        state={state}
+        playerIndex={0}
+        isActiveTurn={isP1Turn}
+        onChoiceDeck={() => handlers.handleVeilSeerChoiceDeck()}
+        onChoiceHand={() => handlers.handleVeilSeerChoiceHand()}
+        onChoiceHiddenPiece={() => handlers.handleVeilSeerChoiceHiddenPiece()}
+      />
+
+      {/* Veil Seer — reveal modal (deck / hand / hidden piece) */}
+      <VeilSeerRevealModal
+        state={state}
+        playerIndex={0}
+        onDismiss={() => handlers.handleVeilSeerDismiss()}
+      />
 
       {/* Grave select modal */}
       {state.pendingGraveSelect && isP1Turn && (
@@ -903,6 +923,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
             archerShootTargets={archerShootTargets}
             sacrificeTargetUids={sacrificeTargetUids}
             selectedSacrificeUid={selectedSacrificeUid}
+            veilseerTargetUids={veilseerTargetUids}
             myPlayerIndex={0}
             handlers={handlers}
             onInspectUnit={handlers.handleInspectUnit}

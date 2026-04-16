@@ -50,6 +50,11 @@ import {
   handleFleshtitheSacrifice as execFleshtitheSacrifice,
   handleTerrainCast as execTerrainCast,
   handleRelicPlace as execRelicPlace,
+  handleVeilSeerChoiceDeck as execVeilSeerChoiceDeck,
+  handleVeilSeerChoiceHand as execVeilSeerChoiceHand,
+  handleVeilSeerChoiceHiddenPiece as execVeilSeerChoiceHiddenPiece,
+  handleVeilSeerHiddenTarget as execVeilSeerHiddenTarget,
+  handleVeilSeerDismiss as execVeilSeerDismiss,
 } from '../engine/actionHandler.js';
 import {
   playTurnStartSound,
@@ -703,6 +708,26 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
     clearSelection();
   }, [clearSelection]);
 
+  const handleVeilSeerChoiceDeck = useCallback(() => {
+    setState(prev => execVeilSeerChoiceDeck(prev));
+  }, []);
+
+  const handleVeilSeerChoiceHand = useCallback(() => {
+    setState(prev => execVeilSeerChoiceHand(prev));
+  }, []);
+
+  const handleVeilSeerChoiceHiddenPiece = useCallback(() => {
+    setState(prev => execVeilSeerChoiceHiddenPiece(prev));
+  }, []);
+
+  const handleVeilSeerHiddenTarget = useCallback((uid) => {
+    setState(prev => execVeilSeerHiddenTarget(prev, uid));
+  }, []);
+
+  const handleVeilSeerDismiss = useCallback(() => {
+    setState(prev => execVeilSeerDismiss(prev));
+  }, []);
+
   const handleConfirmAction = useCallback(() => {
     if (!selectedUnit) return;
     setState(prev => execTriggerUnitAction(prev, selectedUnit));
@@ -803,6 +828,12 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
       })()
     : [];
 
+  const veilseerTargetUids = state.pendingVeilSeerChoice?.step === 'select_hidden'
+    ? state.units
+        .filter(u => u.owner !== state.pendingVeilSeerChoice.playerIndex && u.hidden)
+        .map(u => u.uid)
+    : [];
+
   return {
     state,
     selectedCard,
@@ -824,6 +855,7 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
     archerShootTargets,
     sacrificeTargetUids,
     selectedSacrificeUid,
+    veilseerTargetUids,
     handlers: {
       handleChampionMoveTile,
       handlePlayCard,
@@ -868,6 +900,11 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
       handleInspectCard,
       handleClearInspect,
       handleInspectTerrain,
+      handleVeilSeerChoiceDeck,
+      handleVeilSeerChoiceHand,
+      handleVeilSeerChoiceHiddenPiece,
+      handleVeilSeerHiddenTarget,
+      handleVeilSeerDismiss,
     },
   };
 }

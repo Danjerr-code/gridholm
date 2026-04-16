@@ -40,6 +40,11 @@ import {
   cancelSpell,
   castTerrainCard,
   resolveRelicPlace,
+  resolveVeilSeerChoiceDeck,
+  resolveVeilSeerChoiceHand,
+  resolveVeilSeerChoiceHiddenPiece,
+  resolveVeilSeerHiddenTarget,
+  resolveVeilSeerDismiss,
 } from './gameEngine.js';
 
 // ── Champion movement ──────────────────────────────────────────────────────
@@ -368,4 +373,26 @@ export function handleTerrainCast(state, cardUid, row, col) {
  */
 export function handleRelicPlace(state, row, col) {
   return resolveRelicPlace(state, row, col);
+}
+
+// ── Veil Seer choice resolution ───────────────────────────────────────────────
+
+export function handleVeilSeerChoiceDeck(state) {
+  return resolveVeilSeerChoiceDeck(state);
+}
+
+export function handleVeilSeerChoiceHand(state) {
+  return resolveVeilSeerChoiceHand(state);
+}
+
+export function handleVeilSeerChoiceHiddenPiece(state) {
+  return resolveVeilSeerChoiceHiddenPiece(state);
+}
+
+export function handleVeilSeerHiddenTarget(state, targetUid) {
+  return resolveVeilSeerHiddenTarget(state, targetUid);
+}
+
+export function handleVeilSeerDismiss(state) {
+  return resolveVeilSeerDismiss(state);
 }

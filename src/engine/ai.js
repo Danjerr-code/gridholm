@@ -22,7 +22,10 @@ import {
   resolveContractSelect,
   resolveBloodPactFriendly,
   resolveBloodPactEnemy,
+  resolveVeilSeerChoiceHand,
+  resolveVeilSeerHiddenTarget,
 } from './gameEngine.js';
+import { THREAT_RATINGS } from './cardThreatRatings.js';
 import { chooseActionStrategic, applyAction as applyActionStrategic, setAIDebug, getAIDebug } from './strategicAI.js';
 
 // ── AI mode ────────────────────────────────────────────────────────────────────
@@ -84,6 +87,22 @@ function aiSummonCast(state) {
     if (s.pendingFleshtitheSacrifice) {
       // Flesh Tithe: AI declines sacrifice
       s.pendingFleshtitheSacrifice = null;
+    }
+    if (s.pendingVeilSeerChoice && s.pendingVeilSeerChoice.playerIndex === AI_PLAYER) {
+      // Veil Seer: pick hidden piece (highest threat) if available, else opponent's hand
+      const hiddenEnemies = s.units.filter(u => u.owner !== AI_PLAYER && u.hidden);
+      if (hiddenEnemies.length > 0) {
+        hiddenEnemies.sort((a, b) => {
+          const aRating = (THREAT_RATINGS[a.id]?.threatValue) ?? Math.ceil((a.cost ?? 1) * 0.7);
+          const bRating = (THREAT_RATINGS[b.id]?.threatValue) ?? Math.ceil((b.cost ?? 1) * 0.7);
+          return bRating - aRating;
+        });
+        s = resolveVeilSeerHiddenTarget(s, hiddenEnemies[0].uid);
+      } else {
+        s = resolveVeilSeerChoiceHand(s);
+      }
+      // Clear reveal modal — AI doesn't need the UI
+      s.pendingVeilSeerReveal = null;
     }
     if (p.resources <= 0) break;
   }

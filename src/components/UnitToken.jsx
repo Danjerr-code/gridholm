@@ -76,7 +76,7 @@ function resolveAnimProps(animState) {
   }
 }
 
-export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isSacrificeSelected, isAbilityTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd, animState }) {
+export default function UnitToken({ unit, state, isSelected, isSpellTarget, isArcherTarget, isSacrificeTarget, isSacrificeSelected, isAbilityTarget, isVeilseerTarget, myPlayerIndex, onClick, isMobile, onLongPress, onLongPressDismiss, onDragStart, onDragMove, onDragEnd, animState }) {
   const isP1 = unit.owner === 0;
   const isLegendary = !!unit.legendary;
   const isRelic = !!unit.isRelic;
@@ -317,6 +317,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
     ringStyle = { outline: '2px solid #ef4444', boxShadow: '0 0 10px #ef444480' };
   } else if (isSacrificeTarget) {
     ringStyle = { outline: '2px solid #d97706' };
+  } else if (isVeilseerTarget) {
+    ringStyle = { outline: '2px solid #06b6d4', boxShadow: '0 0 8px #06b6d480' };
   } else if (isSpellTarget || isAbilityTarget) {
     ringStyle = { outline: '2px solid #f97316' };
   } else if (isArcherTarget) {

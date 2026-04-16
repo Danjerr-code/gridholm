@@ -1220,10 +1220,10 @@ export function fireOnSummonTriggers(unit, state) {
     addLog(state, `Drumhide: ${state.players[unit.owner].name}'s champion may take an additional action this turn.`);
   }
 
-  // 7d. Veil Seer: when summoned, reveal the opponent's hand to the owner
+  // 7d. Veil Seer: when summoned, prompt the owner to choose an information reveal
   if (unit.id === 'veilseer') {
-    state.pendingOpponentHandReveal = { playerIndex: unit.owner };
-    addLog(state, `Veil Seer: ${state.players[unit.owner].name} peeks at the opponent's hand.`);
+    state.pendingVeilSeerChoice = { playerIndex: unit.owner };
+    addLog(state, `Veil Seer: ${state.players[unit.owner].name} chooses an information reveal.`);
   }
 
   // 7e. Hex Crawler: apply -1/-1 debuff to next unit opponent summons (mark owner's hexcrawlers)
@@ -1497,6 +1497,8 @@ export function createInitialState(p1DeckId = 'human', p2DeckId = 'human') {
     pendingRelicPlace: null,  // { effect, playerIdx } — waiting for tile to place a relic (e.g. Amethyst Cache)
     pendingNegationCancel: null, // boolean flag — set to true when Negation Crystal auto-cancels an action
     pendingDeckPeek: null, // { unitUid, cards } — Arcane Lens: player picks one of top N cards to keep on top
+    pendingVeilSeerChoice: null, // { playerIndex, step? } — Veil Seer: player picks which info to reveal
+    pendingVeilSeerReveal: null, // { playerIndex, type: 'deck'|'hand'|'hidden', cards } — show reveal modal
     pendingContractSelect: null, // { contracts, nezzarUid } — Nezzar contract choice at turn start
     pendingBloodPact: null, // { step: 'selectFriendly'|'selectEnemy', nezzarUid, sacrificedUid? }
     pendingChampionSaplingPlace: null, // { playerIdx, validTiles: [[r,c],...] } — Sapling Summon tile pick
@@ -4584,6 +4586,8 @@ export function completeTurnAdvance(state, prevHistory = null) {
   if (s.championStunned) s.championStunned[s.activePlayer] = false;
   s.pendingLineBlast = null;
   s.pendingDirectionSelect = null;
+  s.pendingVeilSeerChoice = null;
+  s.pendingVeilSeerReveal = null;
 
   champ.moved = false;
 
@@ -5403,5 +5407,87 @@ export function resolveChampionSaplingPlace(state, row, col) {
   registerUnit(sapling, s);
   addLog(s, `${p.name}'s Sapling appears at (${row},${col}).`);
   s.pendingChampionSaplingPlace = null;
+  return s;
+}
+
+// ── Veil Seer resolve functions ───────────────────────────────────────────────
+
+/**
+ * Player chose "Top of Deck": show top card of their deck in a reveal modal.
+ */
+export function resolveVeilSeerChoiceDeck(state) {
+  const s = cloneState(state);
+  const playerIdx = s.pendingVeilSeerChoice.playerIndex;
+  const deck = s.players[playerIdx].deck;
+  s.pendingVeilSeerChoice = null;
+  if (deck.length === 0) {
+    addLog(s, `Veil Seer: ${s.players[playerIdx].name}'s deck is empty.`);
+  } else {
+    const topCard = deck[0];
+    s.pendingVeilSeerReveal = { playerIndex: playerIdx, type: 'deck', cards: [topCard] };
+    addLog(s, `Veil Seer: ${s.players[playerIdx].name} looks at the top card of their deck.`);
+  }
+  return s;
+}
+
+/**
+ * Player chose "Opponent's Hand": show all opponent hand cards.
+ */
+export function resolveVeilSeerChoiceHand(state) {
+  const s = cloneState(state);
+  const playerIdx = s.pendingVeilSeerChoice.playerIndex;
+  const opponentIdx = 1 - playerIdx;
+  const hand = s.players[opponentIdx].hand;
+  s.pendingVeilSeerChoice = null;
+  s.pendingVeilSeerReveal = { playerIndex: playerIdx, type: 'hand', cards: hand.slice() };
+  addLog(s, `Veil Seer: ${s.players[playerIdx].name} looks at the opponent's hand.`);
+  return s;
+}
+
+/**
+ * Player chose "Hidden Piece": advance to target-selection step.
+ */
+export function resolveVeilSeerChoiceHiddenPiece(state) {
+  const s = cloneState(state);
+  s.pendingVeilSeerChoice = { ...s.pendingVeilSeerChoice, step: 'select_hidden' };
+  return s;
+}
+
+/**
+ * Player clicked a hidden enemy unit: show its card identity in reveal modal.
+ * @param {string} targetUid — uid of the hidden enemy unit
+ */
+export function resolveVeilSeerHiddenTarget(state, targetUid) {
+  const s = cloneState(state);
+  const playerIdx = s.pendingVeilSeerChoice.playerIndex;
+  const unit = s.units.find(u => u.uid === targetUid);
+  if (!unit || !unit.hidden || unit.owner === playerIdx) return s;
+
+  const baseDef = CARD_DB[unit.id] ?? {};
+  const cardInfo = {
+    uid: unit.uid,
+    id: unit.id,
+    name: unit.name ?? baseDef.name,
+    type: baseDef.type ?? 'unit',
+    cost: baseDef.cost,
+    atk: unit.atk,
+    hp: unit.hp,
+    rules: baseDef.rules,
+    image: baseDef.image,
+    unitType: baseDef.unitType,
+    attribute: baseDef.attribute,
+  };
+  s.pendingVeilSeerChoice = null;
+  s.pendingVeilSeerReveal = { playerIndex: playerIdx, type: 'hidden', cards: [cardInfo] };
+  addLog(s, `Veil Seer: ${s.players[playerIdx].name} reveals a hidden enemy unit.`);
+  return s;
+}
+
+/**
+ * Dismiss the Veil Seer reveal modal (player clicked close).
+ */
+export function resolveVeilSeerDismiss(state) {
+  const s = cloneState(state);
+  s.pendingVeilSeerReveal = null;
   return s;
 }

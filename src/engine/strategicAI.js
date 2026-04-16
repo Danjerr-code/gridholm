@@ -33,9 +33,11 @@ import {
   getChampionDef,
   hasValidTargets,
   getCommandLimit,
+  resolveVeilSeerChoiceHand,
+  resolveVeilSeerHiddenTarget,
 } from './gameEngine.js';
 import { ACTION_REGISTRY } from './actionRegistry.js';
-import { getCardRating } from './cardThreatRatings.js';
+import { getCardRating, THREAT_RATINGS } from './cardThreatRatings.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -291,7 +293,23 @@ export function applyAction(state, action) {
     case 'summon': {
       let s = playCard(state, action.cardUid);
       if (!s.pendingSummon) return s;
-      return summonUnit(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
+      s = summonUnit(s, action.cardUid, action.targetTile[0], action.targetTile[1]);
+      // Auto-resolve Veil Seer choice for the active (AI) player
+      if (s.pendingVeilSeerChoice && s.pendingVeilSeerChoice.playerIndex === ap) {
+        const hiddenEnemies = s.units.filter(u => u.owner !== ap && u.hidden);
+        if (hiddenEnemies.length > 0) {
+          hiddenEnemies.sort((a, b) => {
+            const aVal = (THREAT_RATINGS[a.id]?.threatValue) ?? Math.ceil((a.cost ?? 1) * 0.7);
+            const bVal = (THREAT_RATINGS[b.id]?.threatValue) ?? Math.ceil((b.cost ?? 1) * 0.7);
+            return bVal - aVal;
+          });
+          s = resolveVeilSeerHiddenTarget(s, hiddenEnemies[0].uid);
+        } else {
+          s = resolveVeilSeerChoiceHand(s);
+        }
+        s.pendingVeilSeerReveal = null;
+      }
+      return s;
     }
 
     case 'cast': {

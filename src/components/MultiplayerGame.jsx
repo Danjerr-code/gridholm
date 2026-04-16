@@ -50,6 +50,11 @@ import {
   handleBloodPactFriendly as execBloodPactFriendly,
   handleBloodPactEnemy as execBloodPactEnemy,
   handleChampionAbility as execChampionAbility,
+  handleVeilSeerChoiceDeck as execVeilSeerChoiceDeck,
+  handleVeilSeerChoiceHand as execVeilSeerChoiceHand,
+  handleVeilSeerChoiceHiddenPiece as execVeilSeerChoiceHiddenPiece,
+  handleVeilSeerHiddenTarget as execVeilSeerHiddenTarget,
+  handleVeilSeerDismiss as execVeilSeerDismiss,
 } from '../engine/actionHandler.js';
 import { getGuestId, getCardImageUrl, supabase } from '../supabase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -66,6 +71,7 @@ import { CommandDisplay } from '../App.jsx';
 import { renderRules } from '../utils/rulesText.jsx';
 import GraveViewerModal from './GraveViewerModal.jsx';
 import ArcaneLensModal from './ArcaneLensModal.jsx';
+import { VeilSeerChoiceModal, VeilSeerRevealModal } from './VeilSeerModals.jsx';
 
 const PHASE_GUIDANCE = {
   'begin-turn': 'Beginning turn…',
@@ -582,6 +588,31 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     await dispatch(execScryDismiss(gameState));
   }, [gameState, dispatch]);
 
+  const handleVeilSeerChoiceDeck = useCallback(async () => {
+    if (!gameState) return;
+    await dispatch(execVeilSeerChoiceDeck(gameState));
+  }, [gameState, dispatch]);
+
+  const handleVeilSeerChoiceHand = useCallback(async () => {
+    if (!gameState) return;
+    await dispatch(execVeilSeerChoiceHand(gameState));
+  }, [gameState, dispatch]);
+
+  const handleVeilSeerChoiceHiddenPiece = useCallback(async () => {
+    if (!gameState) return;
+    await dispatch(execVeilSeerChoiceHiddenPiece(gameState));
+  }, [gameState, dispatch]);
+
+  const handleVeilSeerHiddenTarget = useCallback(async (uid) => {
+    if (!gameState) return;
+    await dispatch(execVeilSeerHiddenTarget(gameState, uid));
+  }, [gameState, dispatch]);
+
+  const handleVeilSeerDismiss = useCallback(async () => {
+    if (!gameState) return;
+    await dispatch(execVeilSeerDismiss(gameState));
+  }, [gameState, dispatch]);
+
   const handleContractSelect = useCallback(async (contractId) => {
     if (!gameState) return;
     const s = execContractSelect(gameState, contractId);
@@ -996,6 +1027,12 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         .map(u => u.uid)
     : [];
 
+  const veilseerTargetUids = state.pendingVeilSeerChoice?.step === 'select_hidden'
+    ? state.units
+        .filter(u => u.owner !== state.pendingVeilSeerChoice.playerIndex && u.hidden)
+        .map(u => u.uid)
+    : [];
+
   const terrainTargetTiles = selectMode === 'terrain_cast'
     ? getTerrainCastTiles(state)
     : [];
@@ -1040,6 +1077,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     handleInspectTerrain,
     handleInspectChampion,
     handleChampionAbilityTarget,
+    handleVeilSeerHiddenTarget,
   };
 
   const isImportantGuidance = selectMode === 'spell' || selectMode === 'summon' || selectMode === 'action_confirm' || selectMode === 'fleshtithe_sacrifice' || selectMode === 'targetless_spell' || selectMode === 'terrain_cast' || selectMode === 'relic_place' || selectMode === 'champion_ability';
@@ -1412,6 +1450,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             sacrificeTargetUids={isActiveTurn ? sacrificeTargetUids : []}
             selectedSacrificeUid={isActiveTurn ? selectedSacrificeUid : null}
             championAbilityTargetUids={isActiveTurn ? championAbilityTargetUids : []}
+            veilseerTargetUids={isActiveTurn ? veilseerTargetUids : []}
             opponentMoveTiles={opponentMoveTiles}
             spellGlowTile={spellGlowTile}
             handlers={handlers}
@@ -1722,53 +1761,22 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         )
       )}
 
-      {/* Veil Seer — opponent hand reveal modal */}
-      {gameState?.pendingOpponentHandReveal && gameState.pendingOpponentHandReveal.playerIndex === myPlayerIndex && isActiveTurn && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.80)' }}
-        >
-          <div style={{
-            background: 'linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 100%)',
-            border: '1px solid #3a3a60',
-            borderRadius: '10px',
-            padding: '20px 24px',
-            maxWidth: '90vw',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-          }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#C9A84C', fontVariant: 'small-caps', letterSpacing: '0.08em', marginBottom: '14px', textAlign: 'center' }}>
-              Veil Seer — Opponent&apos;s Hand
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
-              {(gameState.players[1 - myPlayerIndex]?.hand ?? []).map((card, i) => (
-                <Card key={card.uid ?? i} card={card} isPlayable={false} />
-              ))}
-              {(gameState.players[1 - myPlayerIndex]?.hand ?? []).length === 0 && (
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#8080a0' }}>Opponent&apos;s hand is empty.</div>
-              )}
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <button
-                onClick={async () => {
-                  const next = { ...gameState, pendingOpponentHandReveal: null };
-                  await dispatch(next);
-                }}
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '12px',
-                  color: '#C9A84C',
-                  background: 'transparent',
-                  border: '1px solid #C9A84C',
-                  borderRadius: '4px',
-                  padding: '6px 18px',
-                  cursor: 'pointer',
-                }}
-              >Dismiss</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Veil Seer — three-choice information modal */}
+      <VeilSeerChoiceModal
+        state={gameState}
+        playerIndex={myPlayerIndex}
+        isActiveTurn={isActiveTurn}
+        onChoiceDeck={handleVeilSeerChoiceDeck}
+        onChoiceHand={handleVeilSeerChoiceHand}
+        onChoiceHiddenPiece={handleVeilSeerChoiceHiddenPiece}
+      />
+
+      {/* Veil Seer — reveal modal (deck / hand / hidden piece) */}
+      <VeilSeerRevealModal
+        state={gameState}
+        playerIndex={myPlayerIndex}
+        onDismiss={handleVeilSeerDismiss}
+      />
 
       {/* My hand (face up) */}
       <div style={{

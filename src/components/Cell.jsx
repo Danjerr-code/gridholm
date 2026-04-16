@@ -29,6 +29,7 @@ export default function Cell({
   isSacrificeTarget,
   isSacrificeSelected = false,
   isAbilityTarget,
+  isVeilseerTarget = false,
   isTerrainTarget,
   isDirectionTarget = false,
   directionArrow = null,
@@ -436,6 +437,7 @@ export default function Cell({
             isSacrificeTarget={isSacrificeTarget}
             isSacrificeSelected={isSacrificeSelected}
             isAbilityTarget={isAbilityTarget}
+            isVeilseerTarget={isVeilseerTarget}
             myPlayerIndex={myPlayerIndex}
             onClick={e => { if (e.stopPropagation) e.stopPropagation(); onUnitClick && onUnitClick(); }}
             isMobile={isMobile}
