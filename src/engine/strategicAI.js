@@ -400,9 +400,12 @@ export const WEIGHTS = {
   enemyThreatValue:          4,
   trappedAllyPenalty:        5,
   highValueUnitActivity:     3,
-  throneControlValue:       15,
+  throneControlValue:       25,
   tradeEfficiency:           5,
   tileDenial:                6,
+  projectedChampionDamage:  20,
+  boardCentrality:           4,
+  turnAggressionScale:    0.08,
 };
 
 function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
@@ -561,12 +564,17 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
 
   const championSurroundPressure = killThreatScore + pinBonus;
 
-  // throneControlValue: champion-specific throne positioning bonus.
-  // 1.0 if champion on throne; 0.4 if champion adjacent to empty throne.
+  // throneControlValue: throne positioning bonus (matches simulation boardEval).
+  // Champion on throne: +1.0; friendly unit on throne: +0.5; champion adjacent to empty throne: +0.4.
+  // Champion-toward-center gradient: +(4 - distToCenter) × 0.3 when no friendly piece on throne.
+  const myChampOnThrone = myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL;
+  const myUnitOnThrone  = myUnits.some(u => u.row === THRONE_ROW && u.col === THRONE_COL);
+  const myPieceOnThrone = myChampOnThrone || myUnitOnThrone;
+
   let throneControlValue = 0;
-  if (myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL) {
-    throneControlValue = 1.0;
-  } else {
+  if (myChampOnThrone) throneControlValue += 1.0;
+  if (myUnitOnThrone)  throneControlValue += 0.5;
+  if (!myChampOnThrone) {
     const throneOccupied =
       gameState.units.some(u => u.row === THRONE_ROW && u.col === THRONE_COL) ||
       (gameState.champions[0].row === THRONE_ROW && gameState.champions[0].col === THRONE_COL) ||
@@ -574,10 +582,53 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     const champAdjacentToThrone = adjDirs.some(
       ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
     );
-    if (champAdjacentToThrone && !throneOccupied) {
-      throneControlValue = 0.4;
+    if (champAdjacentToThrone && !throneOccupied) throneControlValue += 0.4;
+    if (!myPieceOnThrone) {
+      const champDistToCenter = manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]);
+      throneControlValue += (4 - champDistToCenter) * 0.3;
     }
   }
+
+  // projectedChampionDamage: ATK of friendly combat units with a clear cardinal path to enemy champion.
+  const projectedChampionDamage = myCombatUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    if (dist > (u.spd ?? 1)) return sum;
+    if (u.row === oppChamp.row) {
+      const minC = Math.min(u.col, oppChamp.col);
+      const maxC = Math.max(u.col, oppChamp.col);
+      const blocked = gameState.units.some(
+        other => other !== u && other.row === u.row && other.col > minC && other.col < maxC
+      );
+      return blocked ? sum : sum + (u.atk ?? 0);
+    }
+    if (u.col === oppChamp.col) {
+      const minR = Math.min(u.row, oppChamp.row);
+      const maxR = Math.max(u.row, oppChamp.row);
+      const blocked = gameState.units.some(
+        other => other !== u && other.col === u.col && other.row > minR && other.row < maxR
+      );
+      return blocked ? sum : sum + (u.atk ?? 0);
+    }
+    return sum;
+  }, 0);
+
+  // boardCentrality: net (4 - distToCenter) sum across all friendly pieces minus all enemy pieces.
+  const boardCentrality =
+    (myUnits.reduce((sum, u) =>
+      sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
+     Math.max(0, 4 - manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]))) -
+    (oppUnits.reduce((sum, u) =>
+      sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
+     Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
+
+  // Mystic override: throneControlValue weight raised to 30 (only profile change data justified).
+  const faction = gameState.champions[ap]?.attribute ?? 'light';
+  const effectiveThroneWeight = (faction === 'mystic') ? 30
+    : (gameState.adventureBossFight ? 50 : (weights.throneControlValue ?? 25));
+
+  // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behaviour.
+  const aggressionScale = weights.turnAggressionScale ?? 0.08;
+  const aggressionMult  = 1 + Math.max(0, (gameState.turn ?? 0) - 12) * aggressionScale;
 
   return (
     championHP               * weights.championHP               +
@@ -586,23 +637,25 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     totalATKOnBoard          * weights.totalATKOnBoard          +
     totalHPOnBoard           * weights.totalHPOnBoard           +
     throneControl            * weights.throneControl            +
-    unitsThreateningChampion * weights.unitsThreateningChampion +
+    unitsThreateningChampion * weights.unitsThreateningChampion * aggressionMult +
     unitsAdjacentToAlly      * weights.unitsAdjacentToAlly      +
     cardsInHand              * weights.cardsInHand              +
     hiddenUnits              * weights.hiddenUnits              +
     manaEfficiency           * weights.manaEfficiency           +
-    lethalThreat             * weights.lethalThreat             +
+    lethalThreat             * weights.lethalThreat             * aggressionMult +
     gameLength                                                  +
-    championProximity        * weights.championProximity        +
-    opponentChampionLowHP    * weights.opponentChampionLowHP    +
+    championProximity        * weights.championProximity        * aggressionMult +
+    opponentChampionLowHP    * weights.opponentChampionLowHP    * aggressionMult +
+    projectedChampionDamage  * (weights.projectedChampionDamage ?? 20) +
     allyCardValue            * weights.allyCardValue            +
     enemyThreatValue         * weights.enemyThreatValue         +
     trappedAllyPenaltyValue                                     +
     highValueIdlePenalty                                        +
     championSurroundPressure                                    +
-    throneControlValue       * (gameState.adventureBossFight ? 50 : (weights.throneControlValue ?? 15)) +
+    throneControlValue       * effectiveThroneWeight            +
     tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
-    tileDenialCount          * (weights.tileDenial ?? 6)
+    tileDenialCount          * (weights.tileDenial ?? 6)        +
+    boardCentrality          * (weights.boardCentrality ?? 4)
   );
 }
 
@@ -659,97 +712,539 @@ function filterActions(actions, state, commandsUsed) {
   });
 }
 
+// ── Zobrist Hashing ───────────────────────────────────────────────────────────
+
+const _zobristTable = new Map();
+let   _zobristSeed  = 0x9e3779b9;
+
+function _zobristRand() {
+  _zobristSeed ^= _zobristSeed << 13;
+  _zobristSeed ^= _zobristSeed >> 17;
+  _zobristSeed ^= _zobristSeed << 5;
+  return _zobristSeed >>> 0;
+}
+
+function _zn(key) {
+  let v = _zobristTable.get(key);
+  if (v === undefined) { v = _zobristRand(); _zobristTable.set(key, v); }
+  return v;
+}
+
+function computeZobristHash(state, commandsUsed) {
+  let h = 0;
+  h ^= _zn(`ap:${state.activePlayer}`);
+  h ^= _zn(`t:${state.turn ?? 0}`);
+  h ^= _zn(`cmd:${commandsUsed ?? 0}`);
+  for (const unit of state.units) {
+    h ^= _zn(`u:${unit.uid}:${unit.row * 5 + unit.col}:${Math.round(unit.hp ?? 0)}`);
+  }
+  for (let i = 0; i < state.champions.length; i++) {
+    const c = state.champions[i];
+    h ^= _zn(`c:${i}:${c.row}:${c.col}:${Math.round(c.hp ?? 0)}`);
+  }
+  for (let i = 0; i < state.players.length; i++) {
+    h ^= _zn(`r:${i}:${state.players[i].resources ?? 0}`);
+  }
+  return h >>> 0;
+}
+
+function getStateHash(state, commandsUsed) {
+  const cmd = commandsUsed ?? 0;
+  if (state._zh !== undefined && state._zhCmd === cmd) return state._zh;
+  state._zh    = computeZobristHash(state, cmd);
+  state._zhCmd = cmd;
+  return state._zh;
+}
+
+// ── Transposition Table ───────────────────────────────────────────────────────
+
+const TT_EXACT = 0;
+const TT_LOWER = 1;
+const TT_UPPER = 2;
+const TT_MAX_SIZE = 1_000_000;
+
+function ttLookup(tt, hash, depth, alpha, beta) {
+  const e = tt.get(hash);
+  if (!e) return null;
+  if (e.depth >= depth) {
+    if (e.flag === TT_EXACT)                     return { score: e.score, action: e.action };
+    if (e.flag === TT_LOWER && e.score >= beta)  return { score: e.score, action: e.action };
+    if (e.flag === TT_UPPER && e.score <= alpha) return { score: e.score, action: e.action };
+  }
+  return { score: null, action: e.action };
+}
+
+function ttStore(tt, hash, depth, score, flag, action) {
+  const e = tt.get(hash);
+  if (e && e.depth > depth) return;
+  if (tt.size >= TT_MAX_SIZE && !e) return;
+  tt.set(hash, { depth, score, flag, action });
+}
+
+// ── Capture Detection ─────────────────────────────────────────────────────────
+
+function isCapture(action, state) {
+  const ap         = state.activePlayer;
+  const enemyIdx   = 1 - ap;
+  const enemyChamp = state.champions[enemyIdx];
+  if (action.type === 'move') {
+    const [tr, tc] = action.targetTile;
+    if (enemyChamp.row === tr && enemyChamp.col === tc) return true;
+    return state.units.some(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+  }
+  if (action.type === 'championMove') {
+    if (enemyChamp.row === action.row && enemyChamp.col === action.col) return true;
+    return state.units.some(u => u.owner === enemyIdx && u.row === action.row && u.col === action.col);
+  }
+  return false;
+}
+
+// ── Move Ordering ─────────────────────────────────────────────────────────────
+
+function quickEvalOrder(state, playerId) {
+  const ap = playerId === 'p1' ? 0 : 1;
+  const op = 1 - ap;
+  const myChamp   = state.champions[ap];
+  const oppChamp  = state.champions[op];
+  const myUnits   = state.units.filter(u => u.owner === ap);
+  const oppUnits  = state.units.filter(u => u.owner === op);
+
+  const championHP    = myChamp.hp * 5;
+  const unitCountDiff = (myUnits.length - oppUnits.length) * 8;
+
+  const myCombatUnits = myUnits.filter(u => !u.isRelic && !u.isOmen);
+  let projectedDmg = 0;
+  for (const u of myCombatUnits) {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    if (dist > (u.spd ?? 1)) continue;
+    if (u.row === oppChamp.row) {
+      const minC = Math.min(u.col, oppChamp.col);
+      const maxC = Math.max(u.col, oppChamp.col);
+      const blocked = state.units.some(
+        other => other !== u && other.row === u.row && other.col > minC && other.col < maxC
+      );
+      if (!blocked) projectedDmg += (u.atk ?? 0);
+    } else if (u.col === oppChamp.col) {
+      const minR = Math.min(u.row, oppChamp.row);
+      const maxR = Math.max(u.row, oppChamp.row);
+      const blocked = state.units.some(
+        other => other !== u && other.col === u.col && other.row > minR && other.row < maxR
+      );
+      if (!blocked) projectedDmg += (u.atk ?? 0);
+    }
+  }
+  const projectedChampionDamage = projectedDmg * 20;
+
+  const adjDirsLocal = [[-1,0],[1,0],[0,-1],[0,1]];
+  const adjToOppChamp = adjDirsLocal
+    .map(([dr, dc]) => [oppChamp.row + dr, oppChamp.col + dc])
+    .filter(([r, c]) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE);
+  const adjFriendlyUnits = myUnits.filter(u =>
+    adjToOppChamp.some(([r, c]) => u.row === r && u.col === c)
+  );
+  const adjATKSum = adjFriendlyUnits.reduce((s, u) => s + (u.atk ?? 0), 0);
+  const netKillPressure = adjATKSum - oppChamp.hp;
+  let killThreatScore = 0;
+  if (netKillPressure > 0)             killThreatScore = netKillPressure * 15;
+  else if (adjATKSum > oppChamp.hp / 2) killThreatScore = adjATKSum * 8;
+  let pinBonus = 0;
+  if (adjFriendlyUnits.length >= 2) {
+    const emptyAdjTiles = adjToOppChamp.filter(([r, c]) =>
+      !state.units.some(u => u.row === r && u.col === c) &&
+      !(state.champions[0].row === r && state.champions[0].col === c) &&
+      !(state.champions[1].row === r && state.champions[1].col === c)
+    ).length;
+    pinBonus = (adjToOppChamp.length - emptyAdjTiles) * 4;
+  }
+
+  return championHP + unitCountDiff + projectedChampionDamage + killThreatScore + pinBonus;
+}
+
+// ── Killer Move Heuristic ─────────────────────────────────────────────────────
+
+function matchesKiller(action, killer) {
+  if (!killer || action.type !== killer.type) return false;
+  switch (action.type) {
+    case 'move':
+      return action.unitId === killer.unitId &&
+             action.targetTile?.[0] === killer.targetTile?.[0] &&
+             action.targetTile?.[1] === killer.targetTile?.[1];
+    case 'cast':
+    case 'summon':
+      return action.cardUid === killer.cardUid;
+    case 'championMove':
+      return action.row === killer.row && action.col === killer.col;
+    case 'championAbility':
+    case 'endTurn':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function encodeKiller(action) {
+  return { type: action.type, unitId: action.unitId, targetTile: action.targetTile,
+           cardUid: action.cardUid, row: action.row, col: action.col };
+}
+
+function recordKiller(killers, depth, action) {
+  if (action.type === 'endTurn') return;
+  if (!killers[depth]) killers[depth] = [];
+  const slot = killers[depth];
+  if (slot.some(k => matchesKiller(action, k))) return;
+  if (slot.length >= 2) slot.shift();
+  slot.push(encodeKiller(action));
+}
+
+function applyKillers(actions, killers, depth) {
+  const killerList = killers[depth] ?? [];
+  if (killerList.length === 0) return actions;
+  const killerMatches = [];
+  const rest = [];
+  for (const action of actions) {
+    if (killerList.some(k => matchesKiller(action, k))) killerMatches.push(action);
+    else rest.push(action);
+  }
+  return [...killerMatches, ...rest];
+}
+
+// ── History Heuristic ─────────────────────────────────────────────────────────
+
+const HISTORY_ACTION_KEYS = ['cast', 'summon', 'championMove', 'championAbility', 'unitAction', 'endTurn'];
+const HISTORY_ACTION_IDX  = Object.fromEntries(HISTORY_ACTION_KEYS.map((k, i) => [k, i]));
+
+function makeHistoryTables() {
+  return {
+    tileMoves: Array.from({ length: 25 }, () => new Float64Array(25)),
+    types:     new Float64Array(HISTORY_ACTION_KEYS.length),
+  };
+}
+
+function _historyApply(arr, idx, bonus) {
+  arr[idx] = arr[idx] + bonus - arr[idx] * Math.abs(bonus) / 16384;
+}
+
+function historyScore(history, action, state) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (unit) {
+      const from = unit.row * 5 + unit.col;
+      const to   = action.targetTile[0] * 5 + action.targetTile[1];
+      return history.tileMoves[from][to];
+    }
+  }
+  if (action.type === 'championMove') {
+    const champ = state.champions[state.activePlayer];
+    const from  = champ.row * 5 + champ.col;
+    const to    = action.row * 5 + action.col;
+    return history.tileMoves[from][to];
+  }
+  return history.types[HISTORY_ACTION_IDX[action.type] ?? 0];
+}
+
+function historyRecord(history, action, state, bonus) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (unit) {
+      const from = unit.row * 5 + unit.col;
+      const to   = action.targetTile[0] * 5 + action.targetTile[1];
+      _historyApply(history.tileMoves[from], to, bonus);
+      return;
+    }
+  }
+  if (action.type === 'championMove') {
+    const champ = state.champions[state.activePlayer];
+    const from  = champ.row * 5 + champ.col;
+    const to    = action.row * 5 + action.col;
+    _historyApply(history.tileMoves[from], to, bonus);
+    return;
+  }
+  _historyApply(history.types, HISTORY_ACTION_IDX[action.type] ?? 0, bonus);
+}
+
+// ── Quiescence Search ─────────────────────────────────────────────────────────
+
+const Q_MAX_DEPTH    = 12;
+const Q_DELTA_MARGIN = 200;
+
+function generateCaptures(state, ap) {
+  const enemyIdx   = 1 - ap;
+  const myChamp    = state.champions[ap];
+  const enemyChamp = state.champions[enemyIdx];
+  const captures   = [];
+  const dirs       = [[-1,0],[1,0],[0,-1],[0,1]];
+
+  for (const unit of state.units) {
+    if (unit.owner !== ap || unit.isRelic || unit.isOmen) continue;
+    const atk = unit.atk ?? 0;
+    for (const [dr, dc] of dirs) {
+      const tr = unit.row + dr;
+      const tc = unit.col + dc;
+      if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
+      if (enemyChamp.row === tr && enemyChamp.col === tc) {
+        captures.push({ type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+          _victimThreat: 300, _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4) });
+        continue;
+      }
+      const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+      if (enemy && atk >= (enemy.hp ?? 0)) {
+        captures.push({ type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+          _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
+          _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4) });
+      }
+    }
+  }
+
+  const champAtk = myChamp.atk ?? 0;
+  for (const [dr, dc] of dirs) {
+    const tr = myChamp.row + dr;
+    const tc = myChamp.col + dc;
+    if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
+    if (enemyChamp.row === tr && enemyChamp.col === tc) {
+      captures.push({ type: 'championMove', row: tr, col: tc, _victimThreat: 300, _attackerAlly: 0 });
+      continue;
+    }
+    const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+    if (enemy && champAtk >= (enemy.hp ?? 0)) {
+      captures.push({ type: 'championMove', row: tr, col: tc,
+        _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4), _attackerAlly: 0 });
+    }
+  }
+
+  captures.sort((a, b) =>
+    (b._victimThreat - b._attackerAlly * 0.1) - (a._victimThreat - a._attackerAlly * 0.1)
+  );
+  return captures;
+}
+
+function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, tt, stats, deadline) {
+  stats.qNodes = (stats.qNodes ?? 0) + 1;
+  if (deadline && performance.now() > deadline.time) {
+    return { score: scoreState(state, playerId) };
+  }
+  const { over } = isGameOver(state);
+  if (over) return { score: scoreState(state, playerId) };
+
+  const hash     = getStateHash(state, 0);
+  const ttResult = ttLookup(tt, hash, 0, alpha, beta);
+  if (ttResult !== null && ttResult.score !== null) return { score: ttResult.score };
+
+  const staticEval = scoreState(state, playerId);
+
+  if (maximizing) {
+    if (staticEval >= beta) { ttStore(tt, hash, 0, staticEval, TT_LOWER, null); return { score: staticEval }; }
+    if (staticEval > alpha) alpha = staticEval;
+    if (qdepth <= 0) { ttStore(tt, hash, 0, staticEval, TT_EXACT, null); return { score: staticEval }; }
+
+    const captures = generateCaptures(state, state.activePlayer);
+    if (captures.length === 0) { ttStore(tt, hash, 0, staticEval, TT_EXACT, null); return { score: staticEval }; }
+
+    let best = staticEval;
+    for (const cap of captures) {
+      if (cap._victimThreat < 300 && staticEval + cap._victimThreat + Q_DELTA_MARGIN < alpha) continue;
+      const ns = applyAction(state, cap);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, tt, stats, deadline);
+      if (result.score > best) best = result.score;
+      if (result.score > alpha) alpha = result.score;
+      if (alpha >= beta) { ttStore(tt, hash, 0, best, TT_LOWER, null); return { score: best }; }
+    }
+    ttStore(tt, hash, 0, best, best > staticEval ? TT_EXACT : TT_UPPER, null);
+    return { score: best };
+
+  } else {
+    if (staticEval <= alpha) { ttStore(tt, hash, 0, staticEval, TT_UPPER, null); return { score: staticEval }; }
+    if (staticEval < beta) beta = staticEval;
+    if (qdepth <= 0) { ttStore(tt, hash, 0, staticEval, TT_EXACT, null); return { score: staticEval }; }
+
+    const captures = generateCaptures(state, state.activePlayer);
+    if (captures.length === 0) { ttStore(tt, hash, 0, staticEval, TT_EXACT, null); return { score: staticEval }; }
+
+    let best = staticEval;
+    for (const cap of captures) {
+      if (cap._victimThreat < 300 && staticEval - cap._victimThreat - Q_DELTA_MARGIN > beta) continue;
+      const ns = applyAction(state, cap);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, tt, stats, deadline);
+      if (result.score < best) best = result.score;
+      if (result.score < beta) beta = result.score;
+      if (alpha >= beta) { ttStore(tt, hash, 0, best, TT_UPPER, null); return { score: best }; }
+    }
+    ttStore(tt, hash, 0, best, best < staticEval ? TT_EXACT : TT_LOWER, null);
+    return { score: best };
+  }
+}
+
 // ── Minimax ───────────────────────────────────────────────────────────────────
 
 const WIN_BONUS = 500;
 
 function scoreState(gameState, playerId) {
   const { over, winner } = isGameOver(gameState);
-  if (over) {
-    return winner === playerId ? WIN_BONUS + evaluateBoard(gameState, playerId)
-                               : -(WIN_BONUS + evaluateBoard(gameState, playerId));
-  }
-  return evaluateBoard(gameState, playerId);
+  const base = evaluateBoard(gameState, playerId);
+  if (over) return winner === playerId ? base + WIN_BONUS : base - WIN_BONUS;
+  return base;
 }
 
-function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline, initialDepth) {
+/**
+ * Minimax with alpha-beta, TT, PVS, killer heuristic, history heuristic, and quiescence.
+ *
+ * Depth semantics: decrements by 1 on every action. Perspective flips only on endTurn.
+ * At depth 0, quiescence search resolves tactical captures before returning.
+ */
+function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline, killers, tt, history, stats) {
   if (performance.now() > deadline.time) {
     return { score: scoreState(gameState, playerId), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over || depth === 0) {
-    return { score: scoreState(gameState, playerId), action: null };
+  if (over) return { score: scoreState(gameState, playerId), action: null };
+
+  if (depth === 0) {
+    const qResult = quiescenceSearch(
+      gameState, alpha, beta, Q_MAX_DEPTH,
+      maximizingPlayer, playerId, tt, stats, deadline
+    );
+    return { score: qResult.score, action: null };
   }
 
-  // Safety net: depth should only decrease from initialDepth — if it somehow exceeds
-  // initialDepth + 2, a bug has occurred. Warn loudly rather than silently cap it.
-  if (initialDepth !== undefined && depth > initialDepth + 2) {
-    const pendingKeys = Object.keys(gameState).filter(k => k.startsWith('pending') && gameState[k]);
-    console.warn('[strategicAI] minimax depth exceeded safe range — possible infinite recursion. depth:', depth, 'initial:', initialDepth, 'pending:', pendingKeys);
-    return { score: scoreState(gameState, playerId), action: null };
+  // TT lookup
+  const hash     = getStateHash(gameState, commandsUsed);
+  const ttResult = ttLookup(tt, hash, depth, alpha, beta);
+  stats.ttLookups++;
+  if (ttResult !== null && ttResult.score !== null) {
+    stats.ttHits++;
+    return { score: ttResult.score, action: ttResult.action };
   }
+  const ttBestAction = ttResult?.action ?? null;
 
   const rawActions = getLegalActions(gameState);
-  const actions = filterActions(rawActions, gameState, commandsUsed);
+  const filtered   = filterActions(rawActions, gameState, commandsUsed);
 
-  if (actions.length === 0) {
-    return { score: scoreState(gameState, playerId), action: null };
+  if (filtered.length === 0) return { score: scoreState(gameState, playerId), action: null };
+
+  // Move ordering: TT best → killers → captures (by quickEvalOrder) → quiet (by history) → endTurn
+  const orderingPlayer = gameState.activePlayer === 0 ? 'p1' : 'p2';
+  const endTurnActions = filtered.filter(a => a.type === 'endTurn');
+  const nonEndTurn     = filtered.filter(a => a.type !== 'endTurn');
+  const captureActions = nonEndTurn.filter(a =>  isCapture(a, gameState));
+  const quietActions   = nonEndTurn.filter(a => !isCapture(a, gameState));
+
+  const capScores = new Map();
+  for (const a of captureActions) {
+    capScores.set(a, quickEvalOrder(applyAction(gameState, a), orderingPlayer));
+  }
+  captureActions.sort((a, b) => (capScores.get(b) ?? 0) - (capScores.get(a) ?? 0));
+
+  const quietScores = new Map();
+  for (const a of quietActions) {
+    const h = historyScore(history, a, gameState);
+    const q = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
+    quietScores.set(a, h * 10 + q);
+  }
+  quietActions.sort((a, b) => (quietScores.get(b) ?? 0) - (quietScores.get(a) ?? 0));
+
+  let actions = [...captureActions, ...quietActions, ...endTurnActions];
+  actions = applyKillers(actions, killers, depth);
+  if (ttBestAction) {
+    const idx = actions.findIndex(a => matchesKiller(a, ttBestAction));
+    if (idx > 0) actions = [actions[idx], ...actions.slice(0, idx), ...actions.slice(idx + 1)];
   }
 
+  const originalAlpha = alpha;
+  const histBonus     = depth * depth;
+
   if (maximizingPlayer) {
-    let best = { score: -Infinity, action: null };
+    let best       = { score: -Infinity, action: null };
+    let firstChild = true;
+    const triedQuiet = [];
 
     for (const action of actions) {
-      const newState = applyAction(gameState, action);
-      if (!newState) {
-        console.warn('[strategicAI] applyAction returned null — skipping action:', action.type, action);
-        continue;
-      }
-      const isEndTurn = action.type === 'endTurn';
-      const nextDepth        = isEndTurn ? depth - 1 : depth;
+      const newState  = applyAction(gameState, action);
+      if (!newState) { console.warn('[strategicAI] applyAction returned null:', action.type); continue; }
+      const isEndTurn        = action.type === 'endTurn';
+      const nextDepth        = depth - 1;
       const nextMaximizing   = isEndTurn ? false : true;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, initialDepth);
+      let result;
+      if (firstChild) {
+        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        firstChild = false;
+      } else {
+        result = minimax(newState, nextDepth, alpha, alpha + 1, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        if (!result.timedOut && result.score > alpha && result.score < beta) {
+          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        }
+      }
 
       if (result.timedOut) {
         if (best.action === null) best = { score: result.score, action, timedOut: true };
         return best;
       }
-
       if (result.score > best.score) best = { score: result.score, action };
       alpha = Math.max(alpha, result.score);
-      if (beta <= alpha) break;
+
+      if (beta <= alpha) {
+        recordKiller(killers, depth, action);
+        if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+          historyRecord(history, action, gameState, histBonus);
+          for (const q of triedQuiet) historyRecord(history, q, gameState, -histBonus);
+        }
+        ttStore(tt, hash, depth, best.score, TT_LOWER, best.action);
+        return best;
+      }
+      if (!isCapture(action, gameState) && action.type !== 'endTurn') triedQuiet.push(action);
     }
 
+    const flag = best.score > originalAlpha ? TT_EXACT : TT_UPPER;
+    ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
+
   } else {
-    let best = { score: Infinity, action: null };
+    let best          = { score: Infinity, action: null };
+    const originalBeta = beta;
+    let firstChild    = true;
+    const triedQuiet  = [];
 
     for (const action of actions) {
-      const newState = applyAction(gameState, action);
-      if (!newState) {
-        console.warn('[strategicAI] applyAction returned null — skipping action:', action.type, action);
-        continue;
-      }
-      const isEndTurn = action.type === 'endTurn';
-      const nextDepth        = isEndTurn ? depth - 1 : depth;
+      const newState  = applyAction(gameState, action);
+      if (!newState) { console.warn('[strategicAI] applyAction returned null:', action.type); continue; }
+      const isEndTurn        = action.type === 'endTurn';
+      const nextDepth        = depth - 1;
       const nextMaximizing   = isEndTurn ? true : false;
       const nextCommandsUsed = isEndTurn ? 0 : (action.type === 'move' ? commandsUsed + 1 : commandsUsed);
 
-      const result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, initialDepth);
+      let result;
+      if (firstChild) {
+        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        firstChild = false;
+      } else {
+        result = minimax(newState, nextDepth, beta - 1, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        if (!result.timedOut && result.score < beta && result.score > alpha) {
+          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        }
+      }
 
       if (result.timedOut) {
         if (best.action === null) best = { score: result.score, action, timedOut: true };
         return best;
       }
-
       if (result.score < best.score) best = { score: result.score, action };
       beta = Math.min(beta, result.score);
-      if (beta <= alpha) break;
+
+      if (beta <= alpha) {
+        recordKiller(killers, depth, action);
+        if (!isCapture(action, gameState) && action.type !== 'endTurn') {
+          historyRecord(history, action, gameState, histBonus);
+          for (const q of triedQuiet) historyRecord(history, q, gameState, -histBonus);
+        }
+        ttStore(tt, hash, depth, best.score, TT_UPPER, best.action);
+        return best;
+      }
+      if (!isCapture(action, gameState) && action.type !== 'endTurn') triedQuiet.push(action);
     }
 
+    const flag = best.score < originalBeta ? TT_EXACT : TT_LOWER;
+    ttStore(tt, hash, depth, best.score, flag, best.action);
     return best;
   }
 }
@@ -807,15 +1302,18 @@ function describeAction(action, state) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Choose the best action for the live game AI using minimax with alpha-beta pruning.
- * Falls back to the first legal action if search exceeds 2 seconds.
+ * Choose the best action for the live game AI using iterative deepening minimax with
+ * alpha-beta pruning, transposition table, PVS, killer heuristic, history heuristic,
+ * and quiescence search at leaf nodes.
+ *
+ * Time budget: 500ms per decision. TT, killers, and history are fresh per call and
+ * shared across ID iterations so depth-N results seed depth-(N+1).
  *
  * @param {object} gameState    - current game state
  * @param {number} commandsUsed - move actions taken this turn (default: read from state)
- * @param {number} [depth=2]    - minimax search depth (turn-depth)
  * @returns {object}             action object to apply
  */
-export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
+export function chooseActionStrategic(gameState, commandsUsed) {
   const cmds = commandsUsed ?? (gameState.players[gameState.activePlayer].commandsUsed ?? 0);
   const ap = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
@@ -886,22 +1384,47 @@ export function chooseActionStrategic(gameState, commandsUsed, depth = 2) {
     }
   }
 
-  const deadline = { time: performance.now() + 2000 };
+  // Fresh TT, killers, and history per decision. Shared across ID iterations.
+  const tt      = new Map();
+  const killers = {};
+  const history = makeHistoryTables();
+  const stats   = { ttLookups: 0, ttHits: 0, qNodes: 0 };
+  const deadline = { time: performance.now() + 500 };
 
-  const result = minimax(gameState, depth, -Infinity, Infinity, true, playerId, cmds, deadline, depth);
+  let bestAction   = null;
+  let depthReached = 0;
 
-  if (result.timedOut || result.action === null) {
+  for (let d = 1; d <= 20; d++) {
+    if (performance.now() >= deadline.time) break;
+
+    const result = minimax(
+      gameState, d, -Infinity, Infinity,
+      true, playerId, cmds, deadline, killers, tt, history, stats
+    );
+
     if (result.timedOut) {
-      if (typeof window !== 'undefined') console.warn('[strategicAI] Search timed out — falling back to first legal action');
+      if (bestAction === null && result.action !== null) {
+        bestAction   = result.action;
+        depthReached = d;
+      }
+      break;
     }
+
+    if (result.action !== null) {
+      bestAction   = result.action;
+      depthReached = d;
+    }
+  }
+
+  if (bestAction === null) {
     const actions = getLegalActions(gameState);
     const fallback = actions[0] ?? { type: 'endTurn' };
-    aiLog(`   → FALLBACK (timeout/no result): ${describeAction(fallback, gameState)}`);
+    aiLog(`   → FALLBACK (no result): ${describeAction(fallback, gameState)}`);
     return fallback;
   }
 
-  aiLog(`   → CHOSEN (score ${result.score?.toFixed(1)}): ${describeAction(result.action, gameState)}`);
-  return result.action;
+  aiLog(`   → CHOSEN (depth ${depthReached}): ${describeAction(bestAction, gameState)}`);
+  return bestAction;
 }
 
 // ── Mulligan heuristic ────────────────────────────────────────────────────────
