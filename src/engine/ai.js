@@ -706,6 +706,8 @@ function aiResolveEndTurn(s) {
 }
 
 function runHeuristicTurn(state) {
+  // cloneState strips stateHistory; save it so endTurn can accumulate properly.
+  const savedHistory = state.stateHistory;
   let s = cloneState(state);
 
   // Diagnostic: log turn context when debug mode is active
@@ -723,7 +725,9 @@ function runHeuristicTurn(state) {
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
     if (getAIDebug()) console.log('[HeuristicAI] → LETHAL: moving unit onto enemy champion');
-    return aiResolveEndTurn(endTurn(endActionPhase(lethalState)));
+    const forEndTurn = endActionPhase(lethalState);
+    forEndTurn.stateHistory = savedHistory;
+    return aiResolveEndTurn(endTurn(forEndTurn));
   }
 
   const before = { champAbil: s.champions[AI_PLAYER].moved, unitCount: s.units.filter(u => u.owner === AI_PLAYER).length };
@@ -742,12 +746,16 @@ function runHeuristicTurn(state) {
   s = aiUnitMove(s);
 
   s = endActionPhase(s);
+  s.stateHistory = savedHistory;
   s = aiResolveEndTurn(endTurn(s));
   return s;
 }
 
 function runHeuristicTurnSteps(state) {
   const steps = [];
+  // cloneState strips stateHistory; endTurn needs it to accumulate turn snapshots.
+  // Save it here so we can restore it just before endTurn reads it.
+  const savedHistory = state.stateHistory;
   let s = cloneState(state);
 
   // Auto-resolve Nezzar contract if pending at start of AI turn
@@ -758,7 +766,10 @@ function runHeuristicTurnSteps(state) {
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
     steps.push(lethalState);
-    steps.push(aiResolveEndTurn(endTurn(endActionPhase(lethalState))));
+    // endActionPhase also clones; restore stateHistory on its output before endTurn reads it.
+    const forEndTurn = endActionPhase(lethalState);
+    forEndTurn.stateHistory = savedHistory;
+    steps.push(aiResolveEndTurn(endTurn(forEndTurn)));
     return steps;
   }
 
@@ -767,13 +778,17 @@ function runHeuristicTurnSteps(state) {
   s = aiSummonCast(s); steps.push(s);
   s = aiPlayNonCombatCards(s); steps.push(s);
   s = aiUnitMove(s); steps.push(s);
+  // endActionPhase clones; restore stateHistory on its output before endTurn reads it.
   s = endActionPhase(s);
+  s.stateHistory = savedHistory;
   s = aiResolveEndTurn(endTurn(s));
   steps.push(s);
   return steps;
 }
 
 function runStrategicTurn(state) {
+  // cloneState strips stateHistory; save it so endTurn can accumulate properly.
+  const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
   const MAX_ACTIONS = 150; // safety cap
@@ -787,11 +802,20 @@ function runStrategicTurn(state) {
     if (action.type === 'endTurn') break;
   }
 
+  // Fix up stateHistory on the result (same logic as runStrategicTurnSteps).
+  if (s.stateHistory?.length > 0 && savedHistory?.length > 0) {
+    s.stateHistory = [...savedHistory, ...s.stateHistory];
+  } else if (!s.stateHistory && savedHistory) {
+    s.stateHistory = savedHistory;
+  }
+
   return s;
 }
 
 function runStrategicTurnSteps(state) {
   const steps = [];
+  // cloneState strips stateHistory; save it so we can reattach it after the turn.
+  const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
   const MAX_ACTIONS = 150;
@@ -804,6 +828,19 @@ function runStrategicTurnSteps(state) {
     steps.push(s);
     actionCount++;
     if (action.type === 'endTurn') break;
+  }
+
+  // Fix up stateHistory on the final step. cloneState stripped the incoming history,
+  // so endTurn built stateHistory from [] instead of savedHistory. Prepend it now.
+  if (steps.length > 0) {
+    const last = steps[steps.length - 1];
+    if (last.stateHistory?.length > 0 && savedHistory?.length > 0) {
+      // endTurn ran and appended a snapshot; prepend the history from prior turns.
+      last.stateHistory = [...savedHistory, ...last.stateHistory];
+    } else if (!last.stateHistory && savedHistory) {
+      // Game ended mid-action before endTurn ran; carry forward the prior history.
+      last.stateHistory = savedHistory;
+    }
   }
 
   return steps;
