@@ -181,7 +181,7 @@ export const TUTORIAL_SCENARIOS = [
       units: [],
       p1Deck: [
         'militia', 'militia',
-        'footsoldier', 'footsoldier',
+        'armourer', 'armourer',
         'squire', 'squire',
         'knight', 'knight',
         'crossbowman',
@@ -194,7 +194,7 @@ export const TUTORIAL_SCENARIOS = [
         'imp', 'imp', 'imp',
         'hellhound', 'hellhound',
         'brutedemon', 'brutedemon',
-        'footsoldier', 'footsoldier',
+        'imp', 'imp',
         'militia', 'militia',
         'squire',
       ],
