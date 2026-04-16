@@ -498,15 +498,24 @@ function resolveEffect(effectId, listener, context, state) {
     }
 
     case 'discardOrDie': {
-      // Clockwork Manimus: at end of turn, discard a card or the unit is destroyed.
+      // Clockwork Manimus: at end of turn, automatically discard a random card or be destroyed.
+      // Re-entrancy guard: if end-of-turn is already being processed (e.g. discard triggered another
+      // end-of-turn effect), skip to prevent infinite loops.
       if (!listenerUnit) break;
+      if (state.processingEndOfTurn) break;
       const p = state.players[playerIndex];
+      console.log(`[Clockwork Manimus] discardOrDie: hand size before discard = ${p.hand?.length ?? 0}`);
       if (!p.hand || p.hand.length === 0) {
         addLog(state, `Clockwork Manimus: no cards in hand — destroyed!`);
         destroyUnit(listenerUnit, state, 'discardOrDie');
       } else {
-        addLog(state, `Clockwork Manimus: discard a card to keep it alive.`);
-        state.pendingHandSelect = { reason: 'discardOrDie', cardUid: listenerUnit.uid, data: { unitUid: listenerUnit.uid } };
+        state.processingEndOfTurn = true;
+        const randomIdx = Math.floor(Math.random() * p.hand.length);
+        const [discarded] = p.hand.splice(randomIdx, 1);
+        p.discard.push(discarded);
+        console.log(`[Clockwork Manimus] discardOrDie: discarded ${discarded.name}, hand size after = ${p.hand.length}`);
+        addLog(state, `Clockwork Manimus: ${discarded.name} discarded.`);
+        state.processingEndOfTurn = false;
       }
       break;
     }
@@ -814,12 +823,15 @@ function resolveEffect(effectId, listener, context, state) {
     }
 
     case 'spellkeeperReturn': {
-      // Spellkeeper: after owner casts a spell, return that card to hand.
+      // Spellkeeper: after owner casts their NEXT spell this turn, return that card to hand.
+      // Only fires once per turn — subsequent spells are not returned.
       const card = context?.card;
       if (!card || card.type !== 'spell') break;
       // Only fires for the owner of the spellkeeper, not the opponent
       if (context?.playerIndex !== playerIndex) break;
       if (!listenerUnit) break;
+      if (listenerUnit.spellkeeperUsedThisTurn) break;
+      listenerUnit.spellkeeperUsedThisTurn = true;
       const p = state.players[playerIndex];
       const returnedCopy = { ...card, uid: `${card.id}_spellkeeper_${Math.random().toString(36).slice(2)}` };
       p.hand.push(returnedCopy);

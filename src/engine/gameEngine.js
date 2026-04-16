@@ -1995,7 +1995,8 @@ export function moveChampion(state, row, col) {
     }
     // Reveal hidden enemy unit before champion combat
     if (enemyUnit.hidden) {
-      revealUnit(s, enemyUnit);
+      // Pass champ as excludeUnit so Dryad Trickster doesn't enter voluntary-reveal mode
+      revealUnit(s, enemyUnit, champ);
       // Shadow Trap Hole on reveal: destroy the revealer — champion can't be destroyed, skip
     }
     // Combat: champion moves into enemy unit tile — simultaneous damage
@@ -2547,18 +2548,6 @@ export function resolveHandSelect(state, selectedCardUid) {
     }
     s.pendingHandSelect = null;
     return s;
-  }
-
-  if (hs.reason === 'discardOrDie') {
-    // Clockwork Manimus end-of-turn discard. After discard, advance the turn.
-    const idx = p.hand.findIndex(c => c.uid === selectedCardUid);
-    if (idx !== -1) {
-      const [discarded] = p.hand.splice(idx, 1);
-      p.discard.push(discarded);
-      addLog(s, `Clockwork Manimus: ${discarded.name} discarded.`);
-    }
-    s.pendingHandSelect = null;
-    return completeTurnAdvance(s);
   }
 
   if (hs.reason === 'tollofshadows_discard') {
@@ -4067,6 +4056,15 @@ export function moveUnit(state, unitUid, row, col) {
         updateShieldbearerAura(s);
         return s;
       }
+      if (unit.id === 'dryadtrickster') {
+        // Dryad Trickster: ATK/HP swap on target already fired in revealUnit; stays on original tile as revealed 1/1, no combat
+        const liveUnit = s.units.find(u => u.uid === unitUid);
+        if (liveUnit) liveUnit.moved = true;
+        updateWildbornAura(s);
+        updateStandardBearerAura(s);
+        updateShieldbearerAura(s);
+        return s;
+      }
       // Dread Shade: reveal fires +2 ATK bonus, then falls through to normal combat below
     }
     // Reveal hidden enemy unit before resolving combat
@@ -4125,6 +4123,25 @@ export function moveUnit(state, unitUid, row, col) {
       addLog(s, `Shadow Trap Hole springs! ${unit.name} is destroyed.`);
       destroyUnit(unit, s, 'shadowtrap');
       // Shadow Trap is now revealed (no longer hidden) but stays
+      return s;
+    }
+
+    // Dryad Trickster on reveal: ATK/HP swap on attacker already fired in revealUnit; attacker stays on its tile, no combat
+    if (wasHidden && enemyUnit.id === 'dryadtrickster') {
+      const liveAttacker = s.units.find(u => u.uid === unitUid);
+      if (liveAttacker) {
+        if (liveAttacker.id === 'ironqueen') {
+          liveAttacker.ironQueenActionsUsed = (liveAttacker.ironQueenActionsUsed ?? 0) + 1;
+          if (liveAttacker.ironQueenActionsUsed >= 2) liveAttacker.moved = true;
+        } else if ((liveAttacker.extraActionsRemaining ?? 0) > 0) {
+          liveAttacker.extraActionsRemaining--;
+        } else {
+          liveAttacker.moved = true;
+        }
+      }
+      updateWildbornAura(s);
+      updateStandardBearerAura(s);
+      updateShieldbearerAura(s);
       return s;
     }
 
@@ -4514,6 +4531,7 @@ export function completeTurnAdvance(state, prevHistory = null) {
       u.turnAtkBonus = 0;
       u.extraActionsRemaining = 0;
       u.rooted = false;
+      if (u.spellkeeperUsedThisTurn) u.spellkeeperUsedThisTurn = false;
       // Clear fortify bonus (revert temporary HP increase)
       if (u.fortifyBonus) {
         u.hp = Math.max(1, u.hp - u.fortifyBonus);
