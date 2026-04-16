@@ -1274,6 +1274,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 // ── Diagnostic logging ────────────────────────────────────────────────────────
 
 let _aiDebugEnabled = false;
+let _spellAuditEnabled = false;
 
 /**
  * Enable/disable verbose AI decision logging.
@@ -1281,6 +1282,13 @@ let _aiDebugEnabled = false;
  */
 export function setAIDebug(enabled) { _aiDebugEnabled = enabled; }
 export function getAIDebug() { return _aiDebugEnabled; }
+
+/**
+ * Enable/disable spell audit logging.
+ * When enabled, chooseActionStrategic emits a [SPELL_AUDIT] JSON line per decision
+ * recording which spells were in hand and whether a spell was cast.
+ */
+export function setSpellAudit(enabled) { _spellAuditEnabled = enabled; }
 
 function aiLog(...args) {
   if (_aiDebugEnabled) console.log('[AI]', ...args);
@@ -1442,11 +1450,32 @@ export function chooseActionStrategic(gameState, commandsUsed) {
     const actions = getLegalActions(gameState);
     const fallback = actions[0] ?? { type: 'endTurn' };
     aiLog(`   → FALLBACK (no result): ${describeAction(fallback, gameState)}`);
+    if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, fallback);
     return fallback;
   }
 
   aiLog(`   → CHOSEN (depth ${depthReached}): ${describeAction(bestAction, gameState)}`);
+  if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, bestAction);
   return bestAction;
+}
+
+function _emitSpellAudit(gameState, ap, chosenAction) {
+  const p = gameState.players[ap];
+  const spellsInHand = p.hand.filter(c => c.type === 'spell').map(c => c.id);
+  const candidateActions = getLegalActions(gameState);
+  const hasSpellCandidate = candidateActions.some(a => a.type === 'cast');
+  const isCast = chosenAction.type === 'cast';
+  let spellCast = null;
+  if (isCast) {
+    const card = p.hand.find(c => c.uid === chosenAction.cardUid);
+    if (card) spellCast = { id: card.id, name: card.name, cost: card.cost };
+  }
+  console.log('[SPELL_AUDIT] ' + JSON.stringify({
+    chosen: isCast ? 'cast' : chosenAction.type,
+    spellCast,
+    spellsInHand,
+    hasSpellCandidate,
+  }));
 }
 
 // ── Mulligan heuristic ────────────────────────────────────────────────────────
