@@ -129,6 +129,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.winner]);
 
+  // DIAGNOSTIC — remove before merge
   // ── Card drag state ────────────────────────────────────────────────────
   const [dragCard, setDragCard] = useState(null);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
