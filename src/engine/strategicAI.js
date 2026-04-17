@@ -1150,14 +1150,33 @@ function computeZobristHash(state, commandsUsed) {
   h ^= _zn(`cmd:${commandsUsed ?? 0}`);
   for (const unit of state.units) {
     h ^= _zn(`u:${unit.uid}:${unit.row * 5 + unit.col}:${Math.round(unit.hp ?? 0)}`);
+    h ^= _zn(`ub:${unit.uid}:${unit.atkBonus ?? 0}:${unit.turnAtkBonus ?? 0}:${unit.speedBonus ?? 0}`);
+    h ^= _zn(`us:${unit.uid}:${unit.shield ?? 0}:${unit.hidden ? 1 : 0}:${unit.moved ? 1 : 0}:${unit.poison ?? 0}`);
   }
   for (let i = 0; i < state.champions.length; i++) {
     const c = state.champions[i];
     h ^= _zn(`c:${i}:${c.row}:${c.col}:${Math.round(c.hp ?? 0)}`);
+    const tier = state.players[i]?.resonance?.tier ?? 'base';
+    h ^= _zn(`ct:${i}:${tier}`);
+    const abilityUsed = state.championAbilityUsed?.[i] ? 1 : 0;
+    const champMoved  = c.moved ? 1 : 0;
+    h ^= _zn(`ca:${i}:${abilityUsed}:${champMoved}`);
   }
   for (let i = 0; i < state.players.length; i++) {
     h ^= _zn(`r:${i}:${state.players[i].resources ?? 0}`);
+    const hand     = state.players[i].hand ?? [];
+    const handHash = hand.map(c => c.uid).sort().join(',');
+    h ^= _zn(`h:${i}:${handHash}`);
   }
+  if (state.terrainGrid) {
+    for (let r = 0; r < 5; r++) {
+      for (let col = 0; col < 5; col++) {
+        const terrain = state.terrainGrid[r]?.[col];
+        if (terrain) h ^= _zn(`tr:${r}:${col}:${terrain.id ?? terrain}`);
+      }
+    }
+  }
+  h ^= _zn(`ps:${state.pendingSpell ? 1 : 0}:${state.pendingDeckPeek ? 1 : 0}:${state.pendingDiscard ? 1 : 0}:${state.pendingHandSelect ? 1 : 0}`);
   return h >>> 0;
 }
 

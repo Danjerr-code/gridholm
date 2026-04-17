@@ -193,18 +193,49 @@ function computeZobristHash(state, commandsUsed) {
   // Units on board — uid is a stable instance ID for each unit across the game
   for (const unit of state.units) {
     h ^= _zn(`u:${unit.uid}:${unit.row * 5 + unit.col}:${Math.round(unit.hp ?? 0)}`);
+    h ^= _zn(`ub:${unit.uid}:${unit.atkBonus ?? 0}:${unit.turnAtkBonus ?? 0}:${unit.speedBonus ?? 0}`);
+    h ^= _zn(`us:${unit.uid}:${unit.shield ?? 0}:${unit.hidden ? 1 : 0}:${unit.moved ? 1 : 0}:${unit.poison ?? 0}`);
   }
 
   // Champions — indexed by player (0=p1, 1=p2)
   for (let i = 0; i < state.champions.length; i++) {
     const c = state.champions[i];
     h ^= _zn(`c:${i}:${c.row}:${c.col}:${Math.round(c.hp ?? 0)}`);
+    const tier = state.players[i]?.resonance?.tier ?? 'base';
+    h ^= _zn(`ct:${i}:${tier}`);
+    const abilityUsed = state.championAbilityUsed?.[i] ? 1 : 0;
+    const champMoved  = c.moved ? 1 : 0;
+    h ^= _zn(`ca:${i}:${abilityUsed}:${champMoved}`);
   }
 
   // Player resources (mana) — determines which spells/summons are affordable
   for (let i = 0; i < state.players.length; i++) {
     h ^= _zn(`r:${i}:${state.players[i].resources ?? 0}`);
+    const hand     = state.players[i].hand ?? [];
+    const handHash = hand.map(c => c.uid).sort().join(',');
+    h ^= _zn(`h:${i}:${handHash}`);
   }
+
+  // Terrain grid — tiles with active terrain effects change eval and legal targets
+  if (state.terrainGrid) {
+    for (let r = 0; r < 5; r++) {
+      for (let col = 0; col < 5; col++) {
+        const terrain = state.terrainGrid[r]?.[col];
+        if (terrain) h ^= _zn(`tr:${r}:${col}:${terrain.id ?? terrain}`);
+      }
+    }
+  }
+
+  // Pending states — define which action types are legal on the next action
+  h ^= _zn(`ps:${state.pendingSpell ? 1 : 0}:${state.pendingDeckPeek ? 1 : 0}:${state.pendingDiscard ? 1 : 0}:${state.pendingHandSelect ? 1 : 0}`);
+
+  // Stagnation state — must be in the hash so TT entries don't return scores
+  // computed at a different stagnation level. Cap effective stagnation at 6 since
+  // the penalty doesn't increase past -50 at 5+ turns (same bucket = same eval).
+  const stagBucket = (state.meaningfulThisTurn ?? false)
+    ? 0
+    : Math.min(state.stagnationTurns ?? 0, 6);
+  h ^= _zn(`stag:${stagBucket}`);
 
   return h >>> 0; // ensure unsigned 32-bit
 }
@@ -465,6 +496,45 @@ function isCapture(action, state) {
     return state.units.some(u => u.owner === enemyIdx && u.row === action.row && u.col === action.col);
   }
   return false;
+}
+
+// ── Stagnation Tracking ───────────────────────────────────────────────────────
+
+/**
+ * Returns true if the given action constitutes a "meaningful state change" for
+ * stagnation tracking purposes:
+ *   - summon or cast (a card was played)
+ *   - move or championMove that targets an occupied enemy tile (combat)
+ *
+ * Champion abilities are NOT counted — even if they deal damage or summon units,
+ * they are turn-to-turn resources that don't advance the game toward a decisive
+ * outcome. Excluding them ensures the stagnation counter accumulates when both
+ * AIs cycle champion-ability + endTurn, which is the primary EvD draw pathology.
+ */
+function isMeaningfulAction(action, gameState, newState) {
+  if (action.type === 'summon' || action.type === 'cast') return true;
+  if ((action.type === 'move' || action.type === 'championMove') && isCapture(action, gameState)) return true;
+  return false;
+}
+
+/**
+ * Propagates stagnation state from parent to child after applying an action.
+ * Mutates newState in place (it is already a fresh clone from applyAction).
+ *
+ * On endTurn: commits the turn's meaningful-change flag into stagnationTurns.
+ * On other actions: accumulates meaningfulThisTurn if the action was meaningful.
+ */
+function trackStagnation(action, gameState, newState) {
+  if (action.type === 'endTurn') {
+    newState.stagnationTurns    = (gameState.meaningfulThisTurn ?? false)
+      ? 0
+      : (gameState.stagnationTurns ?? 0) + 1;
+    newState.meaningfulThisTurn = false;
+  } else {
+    const meaningful = isMeaningfulAction(action, gameState, newState);
+    newState.meaningfulThisTurn = (gameState.meaningfulThisTurn ?? false) || meaningful;
+    newState.stagnationTurns    = gameState.stagnationTurns ?? 0;
+  }
 }
 
 // ── Move Ordering Heuristic ───────────────────────────────────────────────────
@@ -1027,8 +1097,12 @@ function scoreState(gameState, playerId, weights) {
   const { over, winner } = isGameOver(gameState);
   const base = evaluateBoard(gameState, playerId, weights);
   if (over) {
-    return winner === playerId ? base + WIN_BONUS : base - WIN_BONUS;
+    if (winner === playerId) return base + WIN_BONUS;
+    if (winner === null)    return base - 30; // Draw contempt: prefer uncertain loss over certain draw
+    return base - WIN_BONUS;
   }
+  // Near-draw contempt: positions within ±5 of equal are slightly penalized to push for advantage
+  if (Math.abs(base) < 5) return base - 5;
   return base;
 }
 
@@ -1173,6 +1247,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
     for (const action of actions) {
       const newState  = applyAction(gameState, action);
+      trackStagnation(action, gameState, newState);
       const isEndTurn = action.type === 'endTurn';
 
       const nextDepth        = depth - 1;
@@ -1259,6 +1334,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
     for (const action of actions) {
       const newState  = applyAction(gameState, action);
+      trackStagnation(action, gameState, newState);
       const isEndTurn = action.type === 'endTurn';
 
       const nextDepth        = depth - 1;
