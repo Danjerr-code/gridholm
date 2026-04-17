@@ -26,6 +26,7 @@ import {
   resolveSpell,
   resolveFleshtitheSacrifice,
   resolveHandSelect,
+  resolveGlimpse,
   applyChampionAbility,
   triggerUnitAction,
   getChampionMoveTiles,
@@ -216,6 +217,9 @@ export function getLegalActions(state) {
   ) {
     return actions;
   }
+  // Glimpse: peek only (no draw in sim context) — auto-resolve immediately
+  if (state.pendingDeckPeek) return [{ type: 'deckPeekResolve' }];
+
   // Catch-all: any future pending state not yet in the list above
   const hasPendingState = Object.keys(state).some(key => key.startsWith('pending') && state[key]);
   if (hasPendingState) return actions;
@@ -428,6 +432,10 @@ export function applyActionMutate(state, action) {
       return resolveSpell(state, pending.cardUid, action.targetUid);
     }
 
+    case 'deckPeekResolve':
+      // Auto-resolve Glimpse: keep top card and draw (matches live resolveGlimpse behavior)
+      return resolveGlimpse(state, true);
+
     case 'endTurn':
       return endTurn(state);
 
@@ -533,6 +541,10 @@ export function applyAction(state, action) {
       if (!pending) return cloneState(state);
       return resolveSpell(state, pending.cardUid, action.targetUid);
     }
+
+    case 'deckPeekResolve':
+      // Auto-resolve Glimpse: keep top card and draw (matches live resolveGlimpse behavior)
+      return resolveGlimpse(state, true);
 
     case 'endTurn': {
       return endTurn(state);
