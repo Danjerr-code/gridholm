@@ -267,15 +267,18 @@ function getPlayer(state) { return state.players[state.activePlayer]; }
 
 
 // Deep-clone state.
-// stateHistory is intentionally excluded from clones: it is managed at the endTurn
-// boundary and must not be nested inside each snapshot.
-// structuredClone is used instead of JSON.parse(JSON.stringify()) to handle circular
-// references in unit objects (e.g. Vexis shadow copies, modifier references) without
-// throwing. It is natively supported in all modern browsers (Chrome 98+, Firefox 94+,
-// Safari 15.4+) and Node.js 17+.
+// stateHistory is preserved as a shallow reference (not deep-cloned) because history
+// entries are immutable snapshots. structuredClone is used instead of
+// JSON.parse(JSON.stringify()) to handle circular references in unit objects (e.g.
+// Vexis shadow copies, modifier references) without throwing. It is natively supported
+// in all modern browsers (Chrome 98+, Firefox 94+, Safari 15.4+) and Node.js 17+.
+// Note: snapshots stored in stateHistory will also carry a stateHistory reference
+// (their history at time of snapshot). A future refactor should extract stateHistory
+// from game state entirely since it is a UI/replay concern, not a gameplay concern.
 export function cloneState(state) {
-  const { stateHistory: _h, ...rest } = state;
-  return structuredClone(rest);
+  const rest = structuredClone({ ...state, stateHistory: undefined });
+  rest.stateHistory = state.stateHistory;
+  return rest;
 }
 
 // ── HP restore ─────────────────────────────────────────────────────────────
@@ -4469,19 +4472,14 @@ export function archerShoot(state, archerUid, targetUid) {
 // ── end phase ──────────────────────────────────────────────────────────────
 
 export function endActionAndTurn(state) {
-  const savedHistory = state.stateHistory;
-  const afterActionPhase = endActionPhase(state);
-  if (savedHistory !== undefined) {
-    afterActionPhase.stateHistory = savedHistory;
-  }
-  return endTurn(afterActionPhase);
+  return endTurn(endActionPhase(state));
 }
 
 export function endTurn(state) {
   // PRESERVE: do not clear on game over. Required for future match review feature.
   const prevHistory = state.stateHistory || [];
 
-  const s = cloneState(state); // cloneState strips stateHistory; prevHistory carries it
+  const s = cloneState(state);
   const p = s.players[s.activePlayer];
 
   // END TURN TRIGGERS
@@ -4622,14 +4620,14 @@ export function completeTurnAdvance(state, prevHistory = null) {
   // Append a snapshot of the completed turn to stateHistory.
   // PRESERVE: do not clear on game over. Required for future match review feature.
   const history = prevHistory ?? advanced.stateHistory ?? [];
-  const snapshot = cloneState(advanced); // cloneState excludes stateHistory — no nesting
+  const snapshot = cloneState(advanced); // shallow stateHistory ref in snapshot is expected; see cloneState comment
   advanced.stateHistory = [...history, snapshot];
 
   return advanced;
 }
 
 export function discardCard(state, cardUid) {
-  const prevHistory = state.stateHistory || []; // carry history before clone strips it
+  const prevHistory = state.stateHistory || [];
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
