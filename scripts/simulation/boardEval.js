@@ -42,7 +42,7 @@ export const WEIGHTS = {
   throneControl:            20,
   unitsThreateningChampion: 18,
   unitsAdjacentToAlly:       4,
-  cardsInHand:               5,
+  cardsInHand:              10,
   hiddenUnits:               6,
   manaEfficiency:            2,
   lethalThreat:             35,

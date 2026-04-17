@@ -552,7 +552,10 @@ function quickEvalOrder(state, playerId) {
   }
   const championSurroundPressure = killThreatScore + pinBonus;
 
-  return championHP + unitCountDiff + projectedChampionDamage + championSurroundPressure;
+  // Term 5: cardsInHand (weight 10, matching boardEval WEIGHTS)
+  const cardsInHand = (state.players[ap].hand?.length ?? 0) * 10;
+
+  return championHP + unitCountDiff + projectedChampionDamage + championSurroundPressure + cardsInHand;
 }
 
 /**
@@ -1199,14 +1202,10 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         return best;
       }
 
-      // Fix 2 + Fix 3: apply action bonuses for cast actions.
-      // Fix 2: intrinsic spell value for effects not visible in board eval (spellValue > 4).
-      // Fix 3: recentDamageDealt — reward AOE/damage spells by total enemy HP removed.
+      // Fix 3: reward cast actions by total enemy HP removed (AOE/damage spells).
+      // actionBonus sv multiplier removed — it does not propagate through alpha-beta.
       let actionBonus = 0;
       if (action.type === 'cast') {
-        const sv = getSpellValue(action.cardUid, gameState, gameState.activePlayer);
-        if (sv > 4) actionBonus += sv * 0.5; // Fix 2: partial eval bonus for high-value spells
-
         // Fix 3: measure total enemy HP removed by this cast (captures AOE that spread damage)
         const afterEnemyChampHP = newState.champions[enemyIdxForBonus]?.hp ?? 0;
         const afterEnemyUnitHP  = newState.units
@@ -1215,7 +1214,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         const damageDealt = Math.max(0,
           (enemyChampHPBefore + enemyUnitHPBefore) - (afterEnemyChampHP + afterEnemyUnitHP)
         );
-        actionBonus += damageDealt * 3; // Fix 3: recentDamageDealt weight 3
+        actionBonus += damageDealt * 3;
       }
       const adjustedScore = result.score + actionBonus;
 
