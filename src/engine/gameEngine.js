@@ -4469,7 +4469,12 @@ export function archerShoot(state, archerUid, targetUid) {
 // ── end phase ──────────────────────────────────────────────────────────────
 
 export function endActionAndTurn(state) {
-  return endTurn(endActionPhase(state));
+  const savedHistory = state.stateHistory;
+  const afterActionPhase = endActionPhase(state);
+  if (savedHistory !== undefined) {
+    afterActionPhase.stateHistory = savedHistory;
+  }
+  return endTurn(afterActionPhase);
 }
 
 export function endTurn(state) {

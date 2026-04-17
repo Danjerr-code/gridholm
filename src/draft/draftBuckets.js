@@ -1,7 +1,7 @@
 /**
  * draftBuckets.js
  * ---------------
- * Defines the 6 general buckets + 4 keyword buckets for the map draft system.
+ * Defines the 5 general buckets + 4 keyword buckets for the map draft system.
  *
  * At each standard node the player sees 4 buckets drawn from the available pool.
  * Each bucket draw yields 3 cards to pick from.
@@ -11,8 +11,7 @@
  *   units_mid   — units cost 3-4
  *   units_high  — units cost 5+
  *   spells      — all spell cards
- *   relics      — relic cards
- *   omens       — omen cards
+ *   artifacts   — relic and omen cards
  *
  * Keyword buckets (unlock at 4 faction cards drafted):
  *   aura        — cards with aura property   (Light faction unlock)
@@ -31,8 +30,7 @@ export const BUCKET_IDS = {
   UNITS_MID:  'units_mid',
   UNITS_HIGH: 'units_high',
   SPELLS:     'spells',
-  RELICS:     'relics',
-  OMENS:      'omens',
+  ARTIFACTS:  'artifacts',
   AURA:       'aura',
   RUSH:       'rush',
   RESTORE:    'restore',
@@ -45,8 +43,7 @@ export const GENERAL_BUCKETS = [
   BUCKET_IDS.UNITS_MID,
   BUCKET_IDS.UNITS_HIGH,
   BUCKET_IDS.SPELLS,
-  BUCKET_IDS.RELICS,
-  BUCKET_IDS.OMENS,
+  BUCKET_IDS.ARTIFACTS,
 ];
 
 export const KEYWORD_BUCKETS = [
@@ -69,8 +66,7 @@ export const BUCKET_LABELS = {
   [BUCKET_IDS.UNITS_MID]:  'Units II',
   [BUCKET_IDS.UNITS_HIGH]: 'Units III',
   [BUCKET_IDS.SPELLS]:     'Spells',
-  [BUCKET_IDS.RELICS]:     'Relics',
-  [BUCKET_IDS.OMENS]:      'Omens',
+  [BUCKET_IDS.ARTIFACTS]:  'Artifacts',
   [BUCKET_IDS.AURA]:       'Aura',
   [BUCKET_IDS.RUSH]:       'Rush',
   [BUCKET_IDS.RESTORE]:    'Restore',
@@ -83,8 +79,7 @@ export const BUCKET_DESCRIPTIONS = {
   [BUCKET_IDS.UNITS_MID]:  'Cost 3-4 units',
   [BUCKET_IDS.UNITS_HIGH]: 'Cost 5+ units',
   [BUCKET_IDS.SPELLS]:     'Spell cards',
-  [BUCKET_IDS.RELICS]:     'Relic cards',
-  [BUCKET_IDS.OMENS]:      'Omen cards',
+  [BUCKET_IDS.ARTIFACTS]:  'Relics and Omens',
   [BUCKET_IDS.AURA]:       'Aura units (Light)',
   [BUCKET_IDS.RUSH]:       'Rush units (Primal)',
   [BUCKET_IDS.RESTORE]:    'Restore effects (Mystic)',
@@ -220,10 +215,8 @@ function filterByBucket(pool, bucketId) {
       return pool.filter(c => c.type === 'unit' && !c.legendary && (c.cost ?? 99) >= 5);
     case BUCKET_IDS.SPELLS:
       return pool.filter(c => c.type === 'spell' && !c.legendary);
-    case BUCKET_IDS.RELICS:
-      return pool.filter(c => (c.type === 'relic' || c.isRelic) && !c.legendary);
-    case BUCKET_IDS.OMENS:
-      return pool.filter(c => (c.type === 'omen' || c.isOmen) && !c.legendary);
+    case BUCKET_IDS.ARTIFACTS:
+      return pool.filter(c => (c.type === 'relic' || c.isRelic || c.type === 'omen' || c.isOmen) && !c.legendary);
     case BUCKET_IDS.AURA:
       return pool.filter(c => c.aura && !c.legendary);
     case BUCKET_IDS.RUSH:
