@@ -5,6 +5,7 @@ import {
   createNewRun, loadRun, clearRun, saveRun,
   moveToTile, completeTile, applyReward,
   FACTION_CURATED_CARDS,
+  getChampionProgress,
 } from '../../adventure/adventureState.js';
 import AdventureDraftScreen from './AdventureDraftScreen.jsx';
 import { buildAdventureGameState } from '../../adventure/adventureFight.js';
@@ -818,6 +819,27 @@ function BossRoomWarning({ fightCtx, run, onUsePotion, onEnter, onBack }) {
 
 // ── Champion Selection ────────────────────────────────────────────────────────
 
+const XP_TIER_THRESHOLDS = [50, 150, 350];
+
+function ChampionProgressBadge({ faction }) {
+  const { xp, tier } = getChampionProgress(faction);
+  const nextThreshold = XP_TIER_THRESHOLDS[tier] ?? null;
+  const label = nextThreshold != null
+    ? `Tier ${tier} · ${xp}/${nextThreshold} XP`
+    : `Tier ${tier} · ${xp} XP (max)`;
+  return (
+    <div style={{
+      fontFamily: "'Cinzel', serif",
+      fontSize: '9px',
+      color: tier > 0 ? '#C9A84C' : '#4a4a6a',
+      letterSpacing: '0.05em',
+      marginTop: '4px',
+    }}>
+      {label}
+    </div>
+  );
+}
+
 function ChampionSelect({ savedRun, onSelect, onContinue, onBack }) {
   return (
     <div style={{
@@ -929,6 +951,7 @@ function ChampionSelect({ savedRun, onSelect, onContinue, onBack }) {
                 <div style={{ fontSize: '11px', color: '#6a6a8a', lineHeight: 1.4 }}>
                   {info.desc}
                 </div>
+                <ChampionProgressBadge faction={factionKey} />
               </div>
             </button>
           );

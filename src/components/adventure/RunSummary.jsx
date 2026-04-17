@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { CARD_DB } from '../../engine/cards.js';
 import { addPacks } from '../../packs/packGenerator.js';
 import { BLESSINGS_POOL } from '../../adventure/encounterRewards.js';
+import { FACTION_ADVENTURE_CARD_POOL, getChampionProgress } from '../../adventure/adventureState.js';
 
 const BEST_KEY = 'gridholm_adventure_best';
 
@@ -95,6 +96,7 @@ export default function RunSummary({ run, onPlayAgain, onMainMenu }) {
   const [packClaimed, setPackClaimed] = useState(false);
   const [personalBest, setPersonalBest] = useState(null);
   const [isBeatRecord, setIsBeatRecord] = useState(false);
+  const [tierUnlock, setTierUnlock] = useState(null); // { tier, cards }
 
   useEffect(() => {
     if (!run) return;
@@ -105,6 +107,17 @@ export default function RunSummary({ run, onPlayAgain, onMainMenu }) {
       (run.roomsCleared ?? 0) > prev.roomsCleared ||
       (run.loopCount ?? 0) > prev.loopCount
     );
+
+    // Detect if a new tier was reached during this run
+    const newTier = run.highestTierReachedThisRun;
+    if (newTier && newTier > (run.championTierAtRunStart ?? 0)) {
+      const factionPool = FACTION_ADVENTURE_CARD_POOL[run.championFaction] ?? {};
+      const tierCardIds = factionPool[newTier - 1] ?? []; // tier N unlocks pool index N-1
+      const unlockedCardNames = tierCardIds
+        .map(id => CARD_DB[id]?.name ?? id)
+        .filter(Boolean);
+      setTierUnlock({ tier: newTier, cards: unlockedCardNames });
+    }
   }, []);
 
   function handleClaimPack() {
@@ -160,6 +173,28 @@ export default function RunSummary({ run, onPlayAgain, onMainMenu }) {
           </div>
         )}
       </div>
+
+      {/* Champion tier unlock notification */}
+      {tierUnlock && (
+        <div style={{
+          ...card,
+          background: '#001a0a',
+          border: '1px solid #4ade8080',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#4ade80', letterSpacing: '0.12em', marginBottom: '6px' }}>
+            ✦ CHAMPION UNLOCKED · TIER {tierUnlock.tier}
+          </div>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#a0e0a0', lineHeight: 1.5, marginBottom: '8px' }}>
+            {tierUnlock.cards.length > 0
+              ? tierUnlock.cards.join(', ')
+              : 'New abilities unlocked!'}
+          </div>
+          <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '12px', color: '#4a8a60' }}>
+            These cards are now available on your next run.
+          </div>
+        </div>
+      )}
 
       {/* Run stats */}
       <div style={card}>

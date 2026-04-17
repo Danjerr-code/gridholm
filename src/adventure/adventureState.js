@@ -1,6 +1,102 @@
 import { generateDungeon } from './dungeonGenerator.js';
 
 const STORAGE_KEY = 'gridholm_adventure_run';
+const CHAMPION_PROGRESS_KEY = 'gridholm_adventure_champion_progress';
+
+// XP thresholds for tiers 1, 2, 3
+const XP_TIERS = [50, 150, 350];
+
+const DEFAULT_CHAMPION_PROGRESS = {
+  light:  { xp: 0, tier: 0 },
+  primal: { xp: 0, tier: 0 },
+  mystic: { xp: 0, tier: 0 },
+  dark:   { xp: 0, tier: 0 },
+};
+
+/**
+ * Cards unlocked per tier for each faction in Adventure Mode.
+ * Tier 0 = always available; Tier 1/2 = unlocked at that tier.
+ */
+export const FACTION_ADVENTURE_CARD_POOL = {
+  light: {
+    0: ['vanguardcharger', 'shieldmaiden', 'oathofvalor', 'wardenoflight'],
+    1: ['squiresoath', 'repel', 'consecratingStrike'],
+    2: ['immortalbastion', 'divinejudgment', 'eternalvigil'],
+  },
+  primal: {
+    0: ['viper', 'denmothers', 'survivorshide', 'venomfang'],
+    1: ['plagueswarm', 'scavenger', 'carrionfeeder'],
+    2: ['corneredbeast', 'toxicspray', 'festeringwounds'],
+  },
+  mystic: {
+    0: ['verdantblade', 'timewornSage', 'moonfire', 'dominate'],
+    1: ['arcanecascade', 'manasurge', 'echospell'],
+    2: ['reflectingpool', 'spellweaver', 'arcanebarrage'],
+  },
+  dark: {
+    0: ['soulturech', 'cursedresilience', 'shadowmend', 'graveharvest'],
+    1: ['deathsembrace', 'revenant', 'drainlife'],
+    2: ['abyssalfiend', 'voidsiphon', 'undyingpact'],
+  },
+};
+
+/** Return all card IDs available to a faction at its current unlock tier. */
+export function getAdventureCardPool(faction) {
+  const tier = getChampionTier(faction);
+  const tiers = FACTION_ADVENTURE_CARD_POOL[faction] ?? {};
+  const ids = [];
+  for (let t = 0; t <= Math.min(tier, 2); t++) {
+    ids.push(...(tiers[t] ?? []));
+  }
+  return ids;
+}
+
+/** Return the full cross-run progress object for all factions. */
+function _loadAllProgress() {
+  try {
+    const raw = localStorage.getItem(CHAMPION_PROGRESS_KEY);
+    if (!raw) return { ...DEFAULT_CHAMPION_PROGRESS };
+    return { ...DEFAULT_CHAMPION_PROGRESS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_CHAMPION_PROGRESS };
+  }
+}
+
+/** Return { xp, tier } for a specific faction. */
+export function getChampionProgress(faction) {
+  return _loadAllProgress()[faction] ?? { xp: 0, tier: 0 };
+}
+
+/** Return the current tier number for a faction. */
+export function getChampionTier(faction) {
+  return getChampionProgress(faction).tier;
+}
+
+/**
+ * Add XP to a faction's champion, upgrading tier if thresholds are crossed.
+ * Returns { xp, tier, newTierReached } — newTierReached is the highest new tier
+ * reached in this call, or null if no tier change occurred.
+ */
+export function addChampionXP(faction, amount) {
+  try {
+    const all = _loadAllProgress();
+    const current = all[faction] ?? { xp: 0, tier: 0 };
+    const newXP = current.xp + amount;
+    let newTier = current.tier;
+    let newTierReached = null;
+    for (let i = current.tier; i < XP_TIERS.length; i++) {
+      if (newXP >= XP_TIERS[i]) {
+        newTier = i + 1;
+        newTierReached = i + 1;
+      }
+    }
+    all[faction] = { xp: newXP, tier: newTier };
+    localStorage.setItem(CHAMPION_PROGRESS_KEY, JSON.stringify(all));
+    return { xp: newXP, tier: newTier, newTierReached };
+  } catch {
+    return { xp: 0, tier: 0, newTierReached: null };
+  }
+}
 
 /**
  * 12 curated common cards per faction for the adventure starting deck.
@@ -118,6 +214,8 @@ export function createNewRun(championFaction, startingDeck) {
     combatRoomsCleared: 0,
     tilesMoved: 0,
     cumulativeChampionHPBonus: 0,
+    championTierAtRunStart: getChampionTier(championFaction),
+    highestTierReachedThisRun: null,
   };
 }
 
@@ -222,6 +320,26 @@ export function completeTile(state, row, col, fightResult = null) {
   const tileType = state.dungeonLayout[row]?.[col]?.type;
   const isBoss = tileType === 'boss';
   const isCombat = tileType === 'fight' || tileType === 'elite_fight';
+  const isElite = tileType === 'elite_fight';
+
+  // Award cross-run champion XP based on tile type
+  let highestTierReachedThisRun = state.highestTierReachedThisRun ?? null;
+  if (isCombat || isBoss) {
+    const xpGrants = [];
+    if (isCombat) xpGrants.push(10);
+    if (isElite)  xpGrants.push(25);
+    if (isBoss)   xpGrants.push(60, 80);
+    for (const xp of xpGrants) {
+      const result = addChampionXP(state.championFaction, xp);
+      if (result.newTierReached !== null) {
+        highestTierReachedThisRun = Math.max(
+          highestTierReachedThisRun ?? 0,
+          result.newTierReached,
+        );
+      }
+    }
+  }
+
   let loopCount = state.loopCount;
   let dungeonLayout = newLayout;
   let seed = state.seed;
@@ -282,6 +400,7 @@ export function completeTile(state, row, col, fightResult = null) {
     tilesMoved,
     cumulativeChampionHPBonus,
     bossGatePotionGranted,
+    highestTierReachedThisRun,
   };
 
   saveRun(newState);

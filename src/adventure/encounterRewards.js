@@ -11,6 +11,7 @@
  */
 
 import { CARD_DB } from '../engine/cards.js';
+import { getChampionTier } from './adventureState.js';
 
 // ── Blessing pool ─────────────────────────────────────────────────────────────
 
@@ -148,10 +149,29 @@ function _buildCardPool(faction, rarity) {
 
 /**
  * Pick `count` blessings not already held by the player.
+ * Faction blessing becomes available at champion Tier 2.
+ * @param {string[]} existingBlessingIds
+ * @param {number} count
+ * @param {string} [faction] - champion faction for tier-gated faction blessing
  */
-function _pickBlessings(existingBlessingIds, count) {
-  const available = BLESSINGS_POOL.filter(b => !existingBlessingIds.includes(b.id));
+function _pickBlessings(existingBlessingIds, count, faction) {
+  let available = BLESSINGS_POOL.filter(b => !existingBlessingIds.includes(b.id));
+  if (faction && getChampionTier(faction) >= 2) {
+    const fb = FACTION_BLESSINGS.find(b => b.faction === faction);
+    if (fb && !existingBlessingIds.includes(fb.id)) {
+      available = [...available, fb];
+    }
+  }
   return _pickN(available, count);
+}
+
+/**
+ * Return the faction-specific curse if the champion has reached Tier 1+, else null.
+ * Used by event definitions to gate faction curses.
+ */
+export function getFactionCurse(faction) {
+  if (!faction || getChampionTier(faction) < 1) return null;
+  return FACTION_CURSES.find(c => c.faction === faction) ?? null;
 }
 
 /** Deduplicate card array by id, preserving order. */
@@ -194,13 +214,13 @@ export function generateFightReward(state, tileType) {
     const rarePool = _buildCardPool(faction, 'rare');
     cardOffers = _dedup(_pickN(rarePool, 3));
     // Boss: guaranteed 3 blessing choices
-    blessingOffers = _pickBlessings(state.blessings, 3);
+    blessingOffers = _pickBlessings(state.blessings, 3, faction);
   } else if (isElite) {
     gold = _randInt(20, 25);
     const rarePool = _buildCardPool(faction, 'rare');
     cardOffers = _dedup(_pickN(rarePool, 3));
     // Elite: 2 blessing choices
-    blessingOffers = _pickBlessings(state.blessings, 2);
+    blessingOffers = _pickBlessings(state.blessings, 2, faction);
   } else {
     gold = _randInt(10, 15);
     // Rarity-aware: ~30% chance of rare slot
@@ -257,7 +277,7 @@ export function generateTreasure(state) {
   }
 
   // blessing
-  const blessingOffers = _pickBlessings(state.blessings, 2);
+  const blessingOffers = _pickBlessings(state.blessings, 2, state.championFaction);
   return { treasureType: 'blessing', blessingOffers };
 }
 
@@ -308,8 +328,12 @@ export function generateShopOfferings(state) {
     items.push({ itemType: 'card_removal', price: 10 });
   }
 
-  // Blessing for sale
-  const availBlessings = BLESSINGS_POOL.filter(b => !state.blessings.includes(b.id));
+  // Blessing for sale — include faction blessing if Tier 2+
+  let availBlessings = BLESSINGS_POOL.filter(b => !state.blessings.includes(b.id));
+  if (getChampionTier(faction) >= 2) {
+    const fb = FACTION_BLESSINGS.find(b => b.faction === faction);
+    if (fb && !state.blessings.includes(fb.id)) availBlessings = [...availBlessings, fb];
+  }
   if (availBlessings.length > 0) {
     const blessing = availBlessings[Math.floor(Math.random() * availBlessings.length)];
     items.push({ itemType: 'blessing', blessing, price: _randInt(30, 40) });
