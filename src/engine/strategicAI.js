@@ -49,7 +49,7 @@ const adjDirs = [[-1,0],[1,0],[0,-1],[0,1]];
 const NO_TARGET_SPELLS = new Set([
   'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
   'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
-  'ancientspring', 'verdantsurge', 'predatorsmark', 'seconddawn',
+  'ancientspring', 'verdantsurge', 'predatorsmark', 'seconddawn', 'glimpse',
 ]);
 
 const TWO_STEP_SPELLS = new Set(['bloom', 'ambush']);
@@ -401,6 +401,139 @@ export function applyAction(state, action) {
   }
 }
 
+// ── Spell Value Ratings ───────────────────────────────────────────────────────
+
+const SPELL_VALUES = {
+  glimpse:           3,
+  forgeweapon:       6,
+  forge_weapon:      6,
+  savagegrowth:      5,
+  angelicblessing:   7,
+  standfirm:         4,
+  animus:            3,
+  fortify:           4,
+  rally:             6,
+  crusade:           8,
+  packhowl:          7,
+  ironshield:        5,
+  ironthorns:        5,
+  martiallaw:        7,
+  martial_law:       7,
+  predatorsmark:     5,
+  entangle:          4,
+  petrify:           5,
+  dominate:          6,
+  mindseize:         5,
+  shadowveil:        4,
+  bloom:             2,
+  overgrowth:        2,
+  moonleaf:          2,
+  ancientspring:     2,
+  verdantsurge:      3,
+  glitteringgift:    2,
+  recall:            2,
+  shadow_mend:       2,
+  callofthesnakes:   5,
+  grave_harvest:     4,
+  seconddawn:        6,
+  rebirth:           5,
+  smite:             2,
+  crushingblow:      2,
+  gore:              2,
+  spiritbolt:        2,
+  pounce:            2,
+  ambush:            3,
+  pestilence:        3,
+  toxic_spray:       3,
+  moonfire:          3,
+  arcane_barrage:    3,
+  plague_swarm:      4,
+  agonizingsymphony: 4,
+  gildedcage:        5,
+  devour:            4,
+  souldrain:         4,
+  drain_life:        3,
+  void_siphon:       3,
+  infernalpact:      4,
+  pactofruin:        4,
+  darksentence:      4,
+  finalexchange:     5,
+  repel:             3,
+  fatesledger:       3,
+  tollofshadows:     3,
+  bloodoffering:     4,
+  echo_spell:        4,
+  amethystcache:     3,
+  apexrampage:       7,
+  consecrated_ground:  5,
+  consecrating_strike: 4,
+  divine_judgment:     5,
+  fortify_the_crown:   5,
+  oath_of_valor:       5,
+  royal_decree:        4,
+  thrones_judgment:    5,
+};
+
+function getSpellValue(cardUid, state, ap) {
+  const card = state.players[ap].hand.find(c => c.uid === cardUid);
+  if (!card) return 0;
+  return SPELL_VALUES[card.id] ?? 0;
+}
+
+// ── Card Hold Logic ───────────────────────────────────────────────────────────
+
+function shouldHoldCard(card, state, apIdx) {
+  const ap = apIdx ?? state.activePlayer;
+  const enemyIdx = 1 - ap;
+  const myChamp  = state.champions[ap];
+  const oppChamp = state.champions[enemyIdx];
+  const key = card.effect ?? card.id;
+  const myUnits = state.units.filter(u => u.owner === ap);
+  const myCombatUnits = myUnits.filter(u => !u.isRelic && !u.isOmen);
+
+  switch (key) {
+    case 'apexrampage':
+      return !myCombatUnits.some(u =>
+        manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]) === 1
+      );
+    case 'angelicblessing': {
+      const adjacentToCaster = myCombatUnits.filter(u =>
+        manhattan([u.row, u.col], [myChamp.row, myChamp.col]) === 1
+      );
+      return !adjacentToCaster.some(u => (u.atk ?? 0) >= 3);
+    }
+    case 'tollofshadows': {
+      const myRelicsOmens  = myUnits.filter(u => u.isRelic || u.isOmen).length;
+      const oppRelicsOmens = state.units.filter(u => u.owner === enemyIdx && (u.isRelic || u.isOmen)).length;
+      return oppRelicsOmens <= myRelicsOmens;
+    }
+    case 'crushingblow':
+      return !state.units.some(u =>
+        u.owner === enemyIdx && !u.isRelic && !u.isOmen &&
+        manhattan([u.row, u.col], [myChamp.row, myChamp.col]) === 1
+      );
+    case 'verdantsurge':
+      return myCombatUnits.length < 3;
+    case 'seconddawn': {
+      const grave = state.players[ap].grave ?? [];
+      const combatInGrave = grave.filter(c => c.type === 'unit' && !c.token).length;
+      return combatInGrave < 2;
+    }
+    case 'bloodmoon':
+      return myCombatUnits.length < 3;
+    default:
+      return false;
+  }
+}
+
+function shouldHoldChampionAbility(state, apIdx) {
+  const ap = apIdx ?? state.activePlayer;
+  const champ = state.champions[ap];
+  if (champ.attribute !== 'mystic') return false;
+  const hand = state.players[ap].hand ?? [];
+  return !hand.some(c => c.type === 'spell' && (c.cost ?? 0) >= 4);
+}
+
 // ── Board evaluation ──────────────────────────────────────────────────────────
 
 export const WEIGHTS = {
@@ -412,12 +545,18 @@ export const WEIGHTS = {
   throneControl:            20,
   unitsThreateningChampion: 18,
   unitsAdjacentToAlly:       4,
-  cardsInHand:               5,
+  cardsInHand:              10,
   hiddenUnits:               6,
   manaEfficiency:            2,
   lethalThreat:             35,
   championProximity:        10,
   opponentChampionLowHP:    30,
+  relicsOnBoard:             4,
+  omensOnBoard:              3,
+  terrainBenefit:            3,
+  terrainHarm:               3,
+  healingValue:              0,
+  projectedEnemyDamage:      4,
   allyCardValue:             3,
   enemyThreatValue:          4,
   trappedAllyPenalty:        5,
@@ -430,7 +569,87 @@ export const WEIGHTS = {
   turnAggressionScale:    0.08,
 };
 
-function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
+export const FACTION_WEIGHTS = {
+  primal: { ...WEIGHTS },
+  mystic: { ...WEIGHTS, throneControlValue: 30 },
+  light:  { ...WEIGHTS },
+  dark:   { ...WEIGHTS },
+};
+
+function getPhase(turn) {
+  if (turn <= 5)  return 'early';
+  if (turn <= 12) return 'mid';
+  return 'late';
+}
+
+function applyPhaseModifiers(w, faction, phase) {
+  const pw = { ...w };
+  if (phase === 'early') {
+    if (faction !== 'primal') {
+      pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 0.5);
+      pw.championProximity        = Math.round(w.championProximity        * 0.5);
+      pw.totalATKOnBoard          = Math.round(w.totalATKOnBoard          * 0.8);
+    }
+    pw.unitCountDiff = Math.round(w.unitCountDiff * 1.4);
+    pw.cardsInHand   = Math.round(w.cardsInHand   * 1.3);
+  }
+  if (phase === 'mid') {
+    switch (faction) {
+      case 'primal':
+        pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 1.4);
+        pw.championProximity        = Math.round(w.championProximity        * 1.3);
+        break;
+      case 'mystic':
+        pw.healingValue = Math.round(w.healingValue * 1.5);
+        pw.cardsInHand  = Math.round(w.cardsInHand  * 1.3);
+        break;
+      case 'light':
+        pw.unitsAdjacentToAlly = Math.round(w.unitsAdjacentToAlly * 1.5);
+        pw.unitCountDiff       = Math.round(w.unitCountDiff       * 1.2);
+        break;
+      case 'dark':
+        pw.cardsInHand = Math.round(w.cardsInHand * 1.4);
+        pw.hiddenUnits = Math.round(w.hiddenUnits * 1.5);
+        break;
+    }
+  }
+  if (phase === 'late') {
+    pw.championHPDiff           = Math.round(w.championHPDiff           * 2.0);
+    pw.unitsThreateningChampion = Math.round(w.unitsThreateningChampion * 1.5);
+    pw.championProximity        = Math.round(w.championProximity        * 1.5);
+    pw.lethalThreat             = Math.round(w.lethalThreat             * 1.5);
+    if (faction === 'mystic') {
+      pw.healingValue             = Math.round(w.healingValue             * 0.3);
+      pw.unitsThreateningChampion = 18;
+    }
+  }
+  return pw;
+}
+
+function computeGameLengthPenalty(faction, turnNumber) {
+  switch (faction) {
+    case 'primal':
+      if (turnNumber <= 8)  return 0;
+      if (turnNumber <= 18) return (turnNumber - 8)  * -2;
+      return -20 + (turnNumber - 18) * -5;
+    case 'mystic':
+      if (turnNumber <= 14) return 0;
+      if (turnNumber <= 24) return (turnNumber - 14) * -2;
+      return -20 + (turnNumber - 24) * -5;
+    default:
+      if (turnNumber <= 10) return 0;
+      if (turnNumber <= 20) return (turnNumber - 10) * -2;
+      return -20 + (turnNumber - 20) * -5;
+  }
+}
+
+function resolveFactionWeights(faction, turnNumber) {
+  const base  = FACTION_WEIGHTS[faction] ?? WEIGHTS;
+  const phase = getPhase(turnNumber);
+  return applyPhaseModifiers(base, faction, phase);
+}
+
+function evaluateBoard(gameState, playerId, weights = null) {
   if (!gameState) return 0;
   const ap = playerId === 'p1' ? 0 : 1;
   const op = 1 - ap;
@@ -441,7 +660,19 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const oppUnits = gameState.units.filter(u => u.owner === op);
   const myPlayer = gameState.players[ap];
 
+  const turnNumber = gameState.turn ?? 0;
+  const faction    = myChamp?.attribute ?? 'light';
+
+  // Resolve weights: auto-detect faction if not explicitly provided
+  let w;
+  if (weights != null) {
+    w = weights;
+  } else {
+    w = resolveFactionWeights(faction, turnNumber);
+  }
+
   const championHP    = myChamp.hp;
+  const healingValue  = myChamp.hp;
   const rawChampionHPDiff = myChamp.hp - oppChamp.hp;
   // Amplify the HP advantage when the opponent is close to death — creates urgency to close.
   const hpDiffMultiplier = oppChamp.hp <= 5 ? 3 : 1;
@@ -480,11 +711,7 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
   }, 0);
 
-  // Escalating gameLength penalty: no urgency 1-10, moderate 11-20, extreme >20.
-  const turnNumber = gameState.turn ?? 0;
-  const gameLength = turnNumber <= 10 ? 0
-    : turnNumber <= 20 ? (turnNumber - 10) * -2
-    : -20 + (turnNumber - 20) * -5;
+  const gameLength = computeGameLengthPenalty(faction, turnNumber);
 
   const championProximity = myUnits.reduce((sum, u) => {
     const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
@@ -512,7 +739,7 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   for (const u of oppUnits) {
     if (u.id === 'gildedcage_relic' && u.trappedUnit && u.trappedUnit.owner === ap) {
       const rating = getCardRating(u.trappedUnit.id, 'ally', u.trappedUnit.cost ?? 4);
-      trappedAllyPenaltyValue -= rating * (weights.trappedAllyPenalty ?? 5) / 10;
+      trappedAllyPenaltyValue -= rating * (w.trappedAllyPenalty ?? 5) / 10;
     }
   }
 
@@ -528,7 +755,7 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
       manhattan([u.row, u.col], [eu.row, eu.col]) <= 2
     );
     if (distToEnemy > 2 && !nearEnemyUnit) {
-      highValueIdlePenalty -= (allyVal - 6) * (weights.highValueUnitActivity ?? 3) / 10;
+      highValueIdlePenalty -= (allyVal - 6) * (w.highValueUnitActivity ?? 3) / 10;
     }
   }
 
@@ -587,15 +814,25 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
   const championSurroundPressure = killThreatScore + pinBonus;
 
   // throneControlValue: throne positioning bonus (matches simulation boardEval).
-  // Champion on throne: +1.0; friendly unit on throne: +0.5; champion adjacent to empty throne: +0.4.
-  // Champion-toward-center gradient: +(4 - distToCenter) × 0.3 when no friendly piece on throne.
   const myChampOnThrone = myChamp.row === THRONE_ROW && myChamp.col === THRONE_COL;
   const myUnitOnThrone  = myUnits.some(u => u.row === THRONE_ROW && u.col === THRONE_COL);
   const myPieceOnThrone = myChampOnThrone || myUnitOnThrone;
 
   let throneControlValue = 0;
-  if (myChampOnThrone) throneControlValue += 1.0;
-  if (myUnitOnThrone)  throneControlValue += 0.5;
+  if (myChampOnThrone) {
+    throneControlValue += 1.0;
+  }
+  if (myUnitOnThrone) {
+    throneControlValue += 0.75;
+    // Denial bonus: enemy champion within 2 tiles of throne
+    const oppChampDistToThrone = manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL]);
+    if (oppChampDistToThrone <= 2) throneControlValue += 1.0;
+    // Preparation bonus: own champion adjacent to throne
+    const myChampAdjacentToThrone = adjDirs.some(
+      ([dr, dc]) => myChamp.row + dr === THRONE_ROW && myChamp.col + dc === THRONE_COL
+    );
+    if (myChampAdjacentToThrone) throneControlValue += 0.5;
+  }
   if (!myChampOnThrone) {
     const throneOccupied =
       gameState.units.some(u => u.row === THRONE_ROW && u.col === THRONE_COL) ||
@@ -634,6 +871,44 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     return sum;
   }, 0);
 
+  // relicsOnBoard: count of friendly relics alive on the board.
+  const relicsOnBoard = myUnits.filter(u => u.isRelic).length;
+
+  // omensOnBoard: count of friendly omens alive on the board.
+  const omensOnBoard = myUnits.filter(u => u.isOmen).length;
+
+  // terrainBenefit / terrainHarm
+  let terrainBenefit = 0;
+  let terrainHarm = 0;
+  if (gameState.terrainGrid) {
+    for (const u of myUnits) {
+      const t = gameState.terrainGrid[u.row]?.[u.col];
+      if (t?.whileOccupied?.hpBuff && t.whileOccupied.friendlyOnly) terrainBenefit += 1;
+    }
+    for (const u of oppUnits) {
+      const t = gameState.terrainGrid[u.row]?.[u.col];
+      if (t?.whileOccupied?.atkDebuff) terrainHarm += 1;
+      if (t?.onOccupy?.damage) terrainHarm += 0.5;
+    }
+  }
+
+  // projectedEnemyDamage: total damage enemy units can deal to us over the next 2 turns.
+  let projectedEnemyDamageTotal = 0;
+  for (const eu of oppCombatUnits) {
+    const atkVal = eu.atk ?? 0;
+    if (atkVal <= 0) continue;
+    const distToMyChamp = manhattan([eu.row, eu.col], [myChamp.row, myChamp.col]);
+    if (distToMyChamp <= 1) {
+      projectedEnemyDamageTotal += atkVal * 2;
+    } else if (distToMyChamp <= (eu.spd ?? 1)) {
+      projectedEnemyDamageTotal += atkVal * 1;
+    } else if (myUnits.some(ally => manhattan([eu.row, eu.col], [ally.row, ally.col]) <= 1)) {
+      projectedEnemyDamageTotal += atkVal * 1;
+    } else {
+      projectedEnemyDamageTotal += atkVal * 0.5;
+    }
+  }
+
   // boardCentrality: net (4 - distToCenter) sum across all friendly pieces minus all enemy pieces.
   const boardCentrality =
     (myUnits.reduce((sum, u) =>
@@ -643,45 +918,108 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
       sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
      Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
 
-  // Mystic override: throneControlValue weight raised to 30 (only profile change data justified).
-  const faction = gameState.champions[ap]?.attribute ?? 'light';
-  const effectiveThroneWeight = (faction === 'mystic') ? 30
-    : (gameState.adventureBossFight ? 50 : (weights.throneControlValue ?? 25));
+  // Boss fight override for throne weight (live-specific feature).
+  const effectiveThroneWeight = gameState.adventureBossFight ? 50 : (w.throneControlValue ?? 25);
 
   // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behaviour.
-  const aggressionScale = weights.turnAggressionScale ?? 0.08;
-  const aggressionMult  = 1 + Math.max(0, (gameState.turn ?? 0) - 12) * aggressionScale;
+  const aggressionScale = w.turnAggressionScale ?? 0.08;
+  const aggressionMult  = 1 + Math.max(0, turnNumber - 12) * aggressionScale;
 
   return (
-    championHP               * weights.championHP               +
-    championHPDiff           * weights.championHPDiff           +
-    unitCountDiff            * weights.unitCountDiff            +
-    totalATKOnBoard          * weights.totalATKOnBoard          +
-    totalHPOnBoard           * weights.totalHPOnBoard           +
-    throneControl            * weights.throneControl            +
-    unitsThreateningChampion * weights.unitsThreateningChampion * aggressionMult +
-    unitsAdjacentToAlly      * weights.unitsAdjacentToAlly      +
-    cardsInHand              * weights.cardsInHand              +
-    hiddenUnits              * weights.hiddenUnits              +
-    manaEfficiency           * weights.manaEfficiency           +
-    lethalThreat             * weights.lethalThreat             * aggressionMult +
-    gameLength                                                  +
-    championProximity        * weights.championProximity        * aggressionMult +
-    opponentChampionLowHP    * weights.opponentChampionLowHP    * aggressionMult +
-    projectedChampionDamage  * (weights.projectedChampionDamage ?? 20) +
-    allyCardValue            * weights.allyCardValue            +
-    enemyThreatValue         * weights.enemyThreatValue         +
-    trappedAllyPenaltyValue                                     +
-    highValueIdlePenalty                                        +
-    championSurroundPressure                                    +
-    throneControlValue       * effectiveThroneWeight            +
-    tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
-    tileDenialCount          * (weights.tileDenial ?? 6)        +
-    boardCentrality          * (weights.boardCentrality ?? 4)
+    championHP               * w.championHP               +
+    healingValue             * w.healingValue              +
+    championHPDiff           * w.championHPDiff           +
+    unitCountDiff            * w.unitCountDiff            +
+    totalATKOnBoard          * w.totalATKOnBoard          +
+    totalHPOnBoard           * w.totalHPOnBoard           +
+    throneControl            * w.throneControl            +
+    unitsThreateningChampion * w.unitsThreateningChampion * aggressionMult +
+    unitsAdjacentToAlly      * w.unitsAdjacentToAlly      +
+    cardsInHand              * w.cardsInHand              +
+    hiddenUnits              * w.hiddenUnits              +
+    manaEfficiency           * w.manaEfficiency           +
+    lethalThreat             * w.lethalThreat             * aggressionMult +
+    gameLength                                            +
+    championProximity        * w.championProximity        * aggressionMult +
+    opponentChampionLowHP    * w.opponentChampionLowHP    * aggressionMult +
+    projectedChampionDamage  * (w.projectedChampionDamage ?? 20) +
+    relicsOnBoard            * w.relicsOnBoard            +
+    omensOnBoard             * w.omensOnBoard             +
+    terrainBenefit           * w.terrainBenefit           +
+    terrainHarm              * w.terrainHarm              +
+    allyCardValue            * w.allyCardValue            +
+    enemyThreatValue         * w.enemyThreatValue         +
+    trappedAllyPenaltyValue                               +
+    highValueIdlePenalty                                  +
+    championSurroundPressure                              +
+    throneControlValue       * effectiveThroneWeight      +
+    tradeEfficiencyValue     * (w.tradeEfficiency ?? 5)   +
+    tileDenialCount          * (w.tileDenial ?? 6)        +
+    boardCentrality          * (w.boardCentrality ?? 4)   +
+    -projectedEnemyDamageTotal * (w.projectedEnemyDamage ?? 4)
   );
 }
 
 // ── Action filtering (reduces branching factor) ────────────────────────────────
+
+// Max non-endTurn candidates retained after priority sort.
+const MAX_CANDIDATES = 6;
+
+function actionPriority(action, state, enemyIdx, enemyChamp) {
+  if (action.type === 'move') {
+    const unit = state.units.find(u => u.uid === action.unitId);
+    if (!unit) return 0;
+    const [tr, tc] = action.targetTile;
+    const hitsChamp = enemyChamp.row === tr && enemyChamp.col === tc;
+    if (hitsChamp && unit.atk >= enemyChamp.hp) return 100;
+    if (hitsChamp) return 80;
+    const eu = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+    if (eu && unit.atk >= eu.hp) return 70;
+    if (eu) return 50;
+    const curDist = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
+    const newDist  = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
+    if (newDist < curDist) return 30;
+    return 10;
+  }
+  if (action.type === 'cast')           return 40;
+  if (action.type === 'unitAction')     return 25;
+  if (action.type === 'summon')         return 20;
+  if (action.type === 'championMove')   return 15;
+
+  if (action.type === 'championAbility') {
+    const turn = state.turn ?? 0;
+    const oppChampHP = enemyChamp.hp;
+    const myIdx = 1 - enemyIdx;
+    const myFaction = state.champions[myIdx]?.attribute ?? null;
+    const myCombatUnits = state.units.filter(u => u.owner === myIdx && !u.isRelic && !u.isOmen).length;
+    if (myFaction === 'mystic' && turn >= 15) return 0;
+    if (oppChampHP <= 15 && myCombatUnits >= 2) return 1;
+    if (turn >= 16) return 1;
+    if (turn >= 9)  return 15;
+    return 35;
+  }
+
+  // Unreachable second move block (Mystic closing boost) — preserved from sim for parity
+  if (action.type === 'move') {
+    const myIdx = 1 - enemyIdx;
+    const myFaction = state.champions[myIdx]?.attribute ?? null;
+    const turn = state.turn ?? 0;
+    if (myFaction === 'mystic' && turn >= 13) {
+      const unit = state.units.find(u => u.uid === action.unitId);
+      if (unit) {
+        const [tr, tc] = action.targetTile;
+        const hitsChamp = enemyChamp.row === tr && enemyChamp.col === tc;
+        if (hitsChamp && unit.atk >= enemyChamp.hp) return 100;
+        if (hitsChamp) return 85;
+        const curDist = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
+        const newDist  = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
+        if (newDist < curDist) return 45 + (unit.atk ?? 0);
+      }
+    }
+  }
+
+  return 5;
+}
 
 function filterActions(actions, state, commandsUsed) {
   const ap = state.activePlayer;
@@ -698,40 +1036,93 @@ function filterActions(actions, state, commandsUsed) {
     ? Math.min(...unitCards.map(c => c.cost ?? 0))
     : Infinity;
 
-  return actions.filter(action => {
+  // Remove clearly bad moves first
+  const candidate = actions.filter(action => {
+    if (action.type === 'endTurn') return false;
     switch (action.type) {
       case 'move': {
         const unit = state.units.find(u => u.uid === action.unitId);
         if (!unit) return false;
         const [tr, tc] = action.targetTile;
-
         if (
           state.units.some(u => u.owner === enemyIdx && u.row === tr && u.col === tc) ||
           (enemyChamp.row === tr && enemyChamp.col === tc)
-        ) {
-          return true;
-        }
-
+        ) return true;
         const curDistEnemy  = manhattan([unit.row, unit.col], [enemyChamp.row, enemyChamp.col]);
         const newDistEnemy  = manhattan([tr, tc], [enemyChamp.row, enemyChamp.col]);
         const curDistThrone = manhattan([unit.row, unit.col], [THRONE_ROW, THRONE_COL]);
         const newDistThrone = manhattan([tr, tc], [THRONE_ROW, THRONE_COL]);
-
         if (newDistEnemy > curDistEnemy && newDistThrone > curDistThrone) return false;
         return true;
       }
-
       case 'summon': {
         const card = hand.find(c => c.uid === action.cardUid);
         if (!card) return false;
         if (card.cost > 2 * minUnitCost) return false;
         return true;
       }
-
       default:
         return true;
     }
   });
+
+  // Deduplicate summons: one tile per card — closest to enemy champion
+  const seenCardUids = new Set();
+  let deduped = candidate.filter(action => {
+    if (action.type !== 'summon') return true;
+    if (seenCardUids.has(action.cardUid)) return false;
+    seenCardUids.add(action.cardUid);
+    return true;
+  });
+
+  // Mystic closing: exclude champion ability after turn 15
+  const myFaction = state.champions[ap]?.attribute ?? null;
+  const curTurn   = state.turn ?? 0;
+  if (myFaction === 'mystic' && curTurn >= 15) {
+    deduped = deduped.filter(a => a.type !== 'championAbility');
+  }
+
+  // Partition: hold-list cards only fill slots if nothing better exists
+  const isHeldAction = a => {
+    if (a.type === 'championAbility') return shouldHoldChampionAbility(state, ap);
+    if (a.type === 'cast' || a.type === 'summon') {
+      const card = state.players[ap].hand.find(c => c.uid === a.cardUid);
+      return card ? shouldHoldCard(card, state, ap) : false;
+    }
+    return false;
+  };
+
+  const primary = deduped.filter(a => !isHeldAction(a));
+  const held    = deduped.filter(a =>  isHeldAction(a));
+
+  const byPriority = (a, b) =>
+    actionPriority(b, state, enemyIdx, enemyChamp) -
+    actionPriority(a, state, enemyIdx, enemyChamp);
+
+  primary.sort(byPriority);
+  held.sort(byPriority);
+
+  const primarySlice = primary.slice(0, MAX_CANDIDATES);
+  const heldSlice    = held.slice(0, Math.max(0, MAX_CANDIDATES - primarySlice.length));
+
+  // Spell insurance: inject highest-value spell if no cast in top candidates
+  const alreadyHasSpell = primarySlice.some(a => a.type === 'cast') || heldSlice.some(a => a.type === 'cast');
+  let extraSpells = [];
+  if (!alreadyHasSpell) {
+    const allCasts = [...primary, ...held].filter(a => a.type === 'cast');
+    const bestBySpell = new Map();
+    for (const a of allCasts) {
+      const sv   = getSpellValue(a.cardUid, state, ap);
+      const card = state.players[ap].hand.find(c => c.uid === a.cardUid);
+      const cid  = card?.id ?? a.cardUid;
+      const prev = bestBySpell.get(cid);
+      if (!prev || sv > prev.spellValue) bestBySpell.set(cid, { action: a, spellValue: sv });
+    }
+    const ranked = [...bestBySpell.values()].sort((x, y) => y.spellValue - x.spellValue);
+    extraSpells = ranked.slice(0, 2).map(e => e.action);
+  }
+
+  return [...primarySlice, ...heldSlice, ...extraSpells, { type: 'endTurn' }];
 }
 
 // ── Zobrist Hashing ───────────────────────────────────────────────────────────
@@ -879,7 +1270,9 @@ function quickEvalOrder(state, playerId) {
     pinBonus = (adjToOppChamp.length - emptyAdjTiles) * 4;
   }
 
-  return championHP + unitCountDiff + projectedChampionDamage + killThreatScore + pinBonus;
+  const cardsInHand = (state.players[ap].hand?.length ?? 0) * 10;
+
+  return championHP + unitCountDiff + projectedChampionDamage + killThreatScore + pinBonus + cardsInHand;
 }
 
 // ── Killer Move Heuristic ─────────────────────────────────────────────────────
@@ -997,39 +1390,49 @@ function generateCaptures(state, ap) {
   const dirs       = [[-1,0],[1,0],[0,-1],[0,1]];
 
   for (const unit of state.units) {
-    if (unit.owner !== ap || unit.isRelic || unit.isOmen) continue;
+    if (unit.owner !== ap) continue;
+    if (unit.isRelic || unit.isOmen) continue;
     const atk = unit.atk ?? 0;
+
     for (const [dr, dc] of dirs) {
       const tr = unit.row + dr;
       const tc = unit.col + dc;
       if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
+
+      // 1. Any unit attack on the enemy champion
       if (enemyChamp.row === tr && enemyChamp.col === tc) {
-        captures.push({ type: 'move', unitId: unit.uid, targetTile: [tr, tc],
-          _victimThreat: 300, _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4) });
+        captures.push({
+          type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+          _victimThreat: 300,
+          _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4),
+        });
         continue;
       }
-      const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
+
+      // 2. Defensive: kill-eligible enemy unit adjacent to the friendly champion
+      const enemy = state.units.find(u => u.owner === enemyIdx && !u.isRelic && !u.isOmen && u.row === tr && u.col === tc);
       if (enemy && atk >= (enemy.hp ?? 0)) {
-        captures.push({ type: 'move', unitId: unit.uid, targetTile: [tr, tc],
-          _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
-          _attackerAlly: getCardRating(unit.id, 'ally', unit.cost ?? 4) });
+        const threatsMyChamp = dirs.some(([ddr, ddc]) =>
+          myChamp.row + ddr === enemy.row && myChamp.col + ddc === enemy.col
+        );
+        if (threatsMyChamp) {
+          captures.push({
+            type: 'move', unitId: unit.uid, targetTile: [tr, tc],
+            _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4),
+            _attackerAlly: getCardRating(unit.id,  'ally',   unit.cost  ?? 4),
+          });
+        }
       }
     }
   }
 
-  const champAtk = myChamp.atk ?? 0;
+  // 3. Champion attacks on enemy champion only
   for (const [dr, dc] of dirs) {
     const tr = myChamp.row + dr;
     const tc = myChamp.col + dc;
     if (tr < 0 || tr >= 5 || tc < 0 || tc >= 5) continue;
     if (enemyChamp.row === tr && enemyChamp.col === tc) {
       captures.push({ type: 'championMove', row: tr, col: tc, _victimThreat: 300, _attackerAlly: 0 });
-      continue;
-    }
-    const enemy = state.units.find(u => u.owner === enemyIdx && u.row === tr && u.col === tc);
-    if (enemy && champAtk >= (enemy.hp ?? 0)) {
-      captures.push({ type: 'championMove', row: tr, col: tc,
-        _victimThreat: getCardRating(enemy.id, 'threat', enemy.cost ?? 4), _attackerAlly: 0 });
     }
   }
 
@@ -1039,19 +1442,19 @@ function generateCaptures(state, ap) {
   return captures;
 }
 
-function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, tt, stats, deadline) {
+function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weights, tt, stats, deadline) {
   stats.qNodes = (stats.qNodes ?? 0) + 1;
   if (deadline && performance.now() > deadline.time) {
-    return { score: scoreState(state, playerId) };
+    return { score: scoreState(state, playerId, weights) };
   }
   const { over } = isGameOver(state);
-  if (over) return { score: scoreState(state, playerId) };
+  if (over) return { score: scoreState(state, playerId, weights) };
 
   const hash     = getStateHash(state, 0);
   const ttResult = ttLookup(tt, hash, 0, alpha, beta);
   if (ttResult !== null && ttResult.score !== null) return { score: ttResult.score };
 
-  const staticEval = scoreState(state, playerId);
+  const staticEval = scoreState(state, playerId, weights);
 
   if (maximizing) {
     if (staticEval >= beta) { ttStore(tt, hash, 0, staticEval, TT_LOWER, null); return { score: staticEval }; }
@@ -1065,7 +1468,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, tt, 
     for (const cap of captures) {
       if (cap._victimThreat < 300 && staticEval + cap._victimThreat + Q_DELTA_MARGIN < alpha) continue;
       const ns = applyAction(state, cap);
-      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, tt, stats, deadline);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, weights, tt, stats, deadline);
       if (result.score > best) best = result.score;
       if (result.score > alpha) alpha = result.score;
       if (alpha >= beta) { ttStore(tt, hash, 0, best, TT_LOWER, null); return { score: best }; }
@@ -1085,7 +1488,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, tt, 
     for (const cap of captures) {
       if (cap._victimThreat < 300 && staticEval - cap._victimThreat - Q_DELTA_MARGIN > beta) continue;
       const ns = applyAction(state, cap);
-      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, tt, stats, deadline);
+      const result = quiescenceSearch(ns, alpha, beta, qdepth - 1, maximizing, playerId, weights, tt, stats, deadline);
       if (result.score < best) best = result.score;
       if (result.score < beta) beta = result.score;
       if (alpha >= beta) { ttStore(tt, hash, 0, best, TT_UPPER, null); return { score: best }; }
@@ -1099,9 +1502,9 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, tt, 
 
 const WIN_BONUS = 500;
 
-function scoreState(gameState, playerId) {
+function scoreState(gameState, playerId, weights) {
   const { over, winner } = isGameOver(gameState);
-  const base = evaluateBoard(gameState, playerId);
+  const base = evaluateBoard(gameState, playerId, weights ?? null);
   if (over) return winner === playerId ? base + WIN_BONUS : base - WIN_BONUS;
   return base;
 }
@@ -1112,18 +1515,18 @@ function scoreState(gameState, playerId) {
  * Depth semantics: decrements by 1 on every action. Perspective flips only on endTurn.
  * At depth 0, quiescence search resolves tactical captures before returning.
  */
-function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, deadline, killers, tt, history, stats) {
+function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, commandsUsed, weights, deadline, killers, tt, history, stats) {
   if (performance.now() > deadline.time) {
-    return { score: scoreState(gameState, playerId), action: null, timedOut: true };
+    return { score: scoreState(gameState, playerId, weights), action: null, timedOut: true };
   }
 
   const { over } = isGameOver(gameState);
-  if (over) return { score: scoreState(gameState, playerId), action: null };
+  if (over) return { score: scoreState(gameState, playerId, weights), action: null };
 
   if (depth === 0) {
     const qResult = quiescenceSearch(
       gameState, alpha, beta, Q_MAX_DEPTH,
-      maximizingPlayer, playerId, tt, stats, deadline
+      maximizingPlayer, playerId, weights, tt, stats, deadline
     );
     return { score: qResult.score, action: null };
   }
@@ -1141,9 +1544,9 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
   const rawActions = getLegalActions(gameState);
   const filtered   = filterActions(rawActions, gameState, commandsUsed);
 
-  if (filtered.length === 0) return { score: scoreState(gameState, playerId), action: null };
+  if (filtered.length === 0) return { score: scoreState(gameState, playerId, weights), action: null };
 
-  // Move ordering: TT best → killers → captures (by quickEvalOrder) → quiet (by history) → endTurn
+  // Move ordering: TT best → killers → captures (by quickEvalOrder) → quiet (by history + spell value) → endTurn
   const orderingPlayer = gameState.activePlayer === 0 ? 'p1' : 'p2';
   const endTurnActions = filtered.filter(a => a.type === 'endTurn');
   const nonEndTurn     = filtered.filter(a => a.type !== 'endTurn');
@@ -1158,9 +1561,12 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
   const quietScores = new Map();
   for (const a of quietActions) {
-    const h = historyScore(history, a, gameState);
-    const q = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
-    quietScores.set(a, h * 10 + q);
+    const h  = historyScore(history, a, gameState);
+    const q  = quickEvalOrder(applyAction(gameState, a), orderingPlayer);
+    const sv = a.type === 'cast'
+      ? getSpellValue(a.cardUid, gameState, gameState.activePlayer) * 100
+      : 0;
+    quietScores.set(a, h * 10 + sv + q);
   }
   quietActions.sort((a, b) => (quietScores.get(b) ?? 0) - (quietScores.get(a) ?? 0));
 
@@ -1179,6 +1585,13 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
     let firstChild = true;
     const triedQuiet = [];
 
+    // Fix 3: pre-compute enemy HP for cast action bonus (AOE/damage spells)
+    const enemyIdxForBonus    = 1 - gameState.activePlayer;
+    const enemyChampHPBefore  = gameState.champions[enemyIdxForBonus]?.hp ?? 0;
+    const enemyUnitHPBefore   = gameState.units
+      .filter(u => u.owner === enemyIdxForBonus && !u.isRelic && !u.isOmen)
+      .reduce((s, u) => s + (u.hp ?? 0), 0);
+
     for (const action of actions) {
       const newState  = applyAction(gameState, action);
       if (!newState) { console.warn('[strategicAI] applyAction returned null:', action.type); continue; }
@@ -1189,12 +1602,12 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
       let result;
       if (firstChild) {
-        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         firstChild = false;
       } else {
-        result = minimax(newState, nextDepth, alpha, alpha + 1, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        result = minimax(newState, nextDepth, alpha, alpha + 1, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         if (!result.timedOut && result.score > alpha && result.score < beta) {
-          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         }
       }
 
@@ -1202,8 +1615,23 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
         if (best.action === null) best = { score: result.score, action, timedOut: true };
         return best;
       }
-      if (result.score > best.score) best = { score: result.score, action };
-      alpha = Math.max(alpha, result.score);
+
+      // Fix 3: reward cast actions by total enemy HP removed (AOE/damage spells).
+      let actionBonus = 0;
+      if (action.type === 'cast') {
+        const afterEnemyChampHP = newState.champions[enemyIdxForBonus]?.hp ?? 0;
+        const afterEnemyUnitHP  = newState.units
+          .filter(u => u.owner === enemyIdxForBonus && !u.isRelic && !u.isOmen)
+          .reduce((s, u) => s + (u.hp ?? 0), 0);
+        const damageDealt = Math.max(0,
+          (enemyChampHPBefore + enemyUnitHPBefore) - (afterEnemyChampHP + afterEnemyUnitHP)
+        );
+        actionBonus += damageDealt * 3;
+      }
+      const adjustedScore = result.score + actionBonus;
+
+      if (adjustedScore > best.score) best = { score: adjustedScore, action };
+      alpha = Math.max(alpha, adjustedScore);
 
       if (beta <= alpha) {
         recordKiller(killers, depth, action);
@@ -1237,12 +1665,12 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
       let result;
       if (firstChild) {
-        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         firstChild = false;
       } else {
-        result = minimax(newState, nextDepth, beta - 1, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+        result = minimax(newState, nextDepth, beta - 1, beta, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         if (!result.timedOut && result.score < beta && result.score > alpha) {
-          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, deadline, killers, tt, history, stats);
+          result = minimax(newState, nextDepth, alpha, beta, nextMaximizing, playerId, nextCommandsUsed, weights, deadline, killers, tt, history, stats);
         }
       }
 
@@ -1275,6 +1703,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
 let _aiDebugEnabled = false;
 let _spellAuditEnabled = false;
+let _tradeDecisionLogEnabled = false;
 
 /**
  * Enable/disable verbose AI decision logging.
@@ -1289,6 +1718,7 @@ export function getAIDebug() { return _aiDebugEnabled; }
  * recording which spells were in hand and whether a spell was cast.
  */
 export function setSpellAudit(enabled) { _spellAuditEnabled = enabled; }
+export function setTradeDecisionLog(enabled) { _tradeDecisionLogEnabled = enabled; }
 
 function aiLog(...args) {
   if (_aiDebugEnabled) console.log('[AI]', ...args);
@@ -1421,6 +1851,12 @@ export function chooseActionStrategic(gameState, commandsUsed) {
   const stats   = { ttLookups: 0, ttHits: 0, qNodes: 0 };
   const deadline = { time: performance.now() + 500 };
 
+  // Resolve faction weights once per decision; pass through the entire search tree.
+  const myChampForWeights = gameState.champions[ap];
+  const faction    = myChampForWeights?.attribute ?? 'light';
+  const turnNumber = gameState.turn ?? 0;
+  const weights    = resolveFactionWeights(faction, turnNumber);
+
   let bestAction   = null;
   let depthReached = 0;
 
@@ -1429,7 +1865,7 @@ export function chooseActionStrategic(gameState, commandsUsed) {
 
     const result = minimax(
       gameState, d, -Infinity, Infinity,
-      true, playerId, cmds, deadline, killers, tt, history, stats
+      true, playerId, cmds, weights, deadline, killers, tt, history, stats
     );
 
     if (result.timedOut) {
@@ -1451,12 +1887,145 @@ export function chooseActionStrategic(gameState, commandsUsed) {
     const fallback = actions[0] ?? { type: 'endTurn' };
     aiLog(`   → FALLBACK (no result): ${describeAction(fallback, gameState)}`);
     if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, fallback);
+    _emitTradeDecision(gameState, ap, playerId, fallback, preActions, 0);
     return fallback;
   }
 
   aiLog(`   → CHOSEN (depth ${depthReached}): ${describeAction(bestAction, gameState)}`);
   if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, bestAction);
+  _emitTradeDecision(gameState, ap, playerId, bestAction, preActions, depthReached);
   return bestAction;
+}
+
+function _evalBoardTerms(gameState, playerId) {
+  if (!gameState) return { _total: 0 };
+  const ap = playerId === 'p1' ? 0 : 1;
+  const op = 1 - ap;
+  const myChamp  = gameState.champions[ap];
+  const oppChamp = gameState.champions[op];
+  const myUnits  = gameState.units.filter(u => u.owner === ap);
+  const oppUnits = gameState.units.filter(u => u.owner === op);
+  const myPlayer = gameState.players[ap];
+
+  const myCombatUnits  = myUnits.filter(u => !u.isRelic && !u.isOmen);
+  const oppCombatUnits = oppUnits.filter(u => !u.isRelic && !u.isOmen);
+
+  const championHP     = myChamp.hp;
+  const championHPDiff = myChamp.hp - oppChamp.hp;
+  const unitCountDiff  = myUnits.length - oppUnits.length;
+
+  const lethalThreat = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return dist <= (u.spd ?? 1) ? sum + (u.atk ?? 0) : sum;
+  }, 0);
+
+  const allyCardValue = myCombatUnits.reduce((sum, u) =>
+    sum + getCardRating(u.id, 'ally', u.cost ?? 4), 0);
+  const enemyThreatValue = -oppCombatUnits.reduce((sum, u) =>
+    sum + getCardRating(u.id, 'threat', u.cost ?? 4), 0);
+
+  let tradeEfficiencyValue = 0;
+  for (const attacker of myCombatUnits) {
+    for (const defender of oppCombatUnits) {
+      const dist = manhattan([attacker.row, attacker.col], [defender.row, defender.col]);
+      if (dist > (attacker.spd ?? 1)) continue;
+      if ((attacker.atk ?? 0) >= (defender.hp ?? 1)) {
+        const defenderThreat = getCardRating(defender.id, 'threat', defender.cost ?? 4);
+        if ((defender.atk ?? 0) < (attacker.hp ?? 1)) {
+          tradeEfficiencyValue += defenderThreat;
+        } else {
+          const attackerAlly = getCardRating(attacker.id, 'ally', attacker.cost ?? 4);
+          tradeEfficiencyValue += defenderThreat - attackerAlly;
+        }
+      }
+    }
+  }
+
+  const unitsThreateningChampion = myUnits.filter(u =>
+    manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]) <= 2
+  ).length;
+
+  const championProximity = myUnits.reduce((sum, u) => {
+    const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+    return sum + Math.max(0, 5 - dist);
+  }, 0);
+
+  const total = scoreState(gameState, playerId);
+
+  return {
+    championHP,
+    championHPDiff,
+    unitCountDiff,
+    lethalThreat,
+    allyCardValue,
+    enemyThreatValue,
+    tradeEfficiencyValue,
+    unitsThreateningChampion,
+    championProximity,
+    _total: total,
+  };
+}
+
+function _emitTradeDecision(gameState, ap, playerId, bestAction, legalActions, depthReached) {
+  if (!_tradeDecisionLogEnabled) return;
+
+  const moveActions = legalActions.filter(a => a.type === 'move');
+  if (moveActions.length === 0) return;
+
+  const enemyIdx = 1 - ap;
+
+  const candidates = moveActions.map(a => {
+    const ns = applyAction(gameState, a);
+    const terms = _evalBoardTerms(ns, playerId);
+    const unit = gameState.units.find(u => u.uid === a.unitId);
+    return {
+      action: describeAction(a, gameState),
+      score: terms._total,
+      evalTerms: terms,
+      unitId: a.unitId,
+      unitName: unit?.name ?? a.unitId,
+    };
+  });
+  candidates.sort((a, b) => b.score - a.score);
+
+  let selectedUnit = null;
+  let enemiesInRange = [];
+  if (bestAction.type === 'move') {
+    const unit = gameState.units.find(u => u.uid === bestAction.unitId);
+    if (unit) {
+      selectedUnit = { id: unit.id, name: unit.name, atk: unit.atk, hp: unit.hp, row: unit.row, col: unit.col };
+      const spd = unit.spd ?? 1;
+      const enemyPieces = [
+        ...gameState.units.filter(u => u.owner === enemyIdx).map(u => ({
+          id: u.id, name: u.name ?? u.id, atk: u.atk, hp: u.hp, row: u.row, col: u.col,
+        })),
+        { id: 'champion', name: gameState.champions[enemyIdx].id ?? 'champion',
+          atk: gameState.champions[enemyIdx].atk ?? 0, hp: gameState.champions[enemyIdx].hp,
+          row: gameState.champions[enemyIdx].row, col: gameState.champions[enemyIdx].col },
+      ];
+      enemiesInRange = enemyPieces
+        .filter(e => manhattan([unit.row, unit.col], [e.row, e.col]) <= spd)
+        .map(e => ({ ...e, wouldDieFromAttack: (unit.atk ?? 0) >= (e.hp ?? 1) }));
+    }
+  }
+
+  const entry = {
+    type: 'TRADE_DECISION',
+    turn: gameState.turn ?? 0,
+    activePlayer: playerId,
+    selectedUnit,
+    enemiesInRange,
+    top3Candidates: candidates.slice(0, 3).map(c => ({
+      action: c.action,
+      score: c.score,
+      evalTerms: c.evalTerms,
+    })),
+    actionSelected: describeAction(bestAction, gameState),
+    actionSelectedType: bestAction.type,
+    depthReached,
+  };
+
+  console.log('[TRADE_DECISION] ' + JSON.stringify(entry));
 }
 
 function _emitSpellAudit(gameState, ap, chosenAction) {
