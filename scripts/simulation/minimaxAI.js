@@ -907,6 +907,9 @@ function generateCaptures(state, ap) {
  */
 function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weights, tt, stats, deadline) {
   stats.qNodes = (stats.qNodes ?? 0) + 1;
+  // Instrumentation: track max quiescence depth reached and stand-pat exits
+  const depthReached = Q_MAX_DEPTH - qdepth;
+  if (depthReached > (stats.qDepthMax ?? 0)) stats.qDepthMax = depthReached;
 
   // Time-budget guard: if the main search deadline has passed, return static eval immediately
   if (deadline && performance.now() > deadline.time) {
@@ -928,6 +931,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weig
   if (maximizing) {
     // Stand-pat: if static position is already good enough, cut immediately
     if (staticEval >= beta) {
+      stats.qStandPat = (stats.qStandPat ?? 0) + 1;
       ttStore(tt, hash, 0, staticEval, TT_LOWER, null);
       return { score: staticEval };
     }
@@ -941,6 +945,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weig
     const ap       = state.activePlayer;
     const captures = generateCaptures(state, ap);
     if (captures.length === 0) {
+      stats.qStandPat = (stats.qStandPat ?? 0) + 1; // no captures = stand-pat exit
       ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
       return { score: staticEval };
     }
@@ -970,6 +975,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weig
   } else {
     // Minimizer stand-pat
     if (staticEval <= alpha) {
+      stats.qStandPat = (stats.qStandPat ?? 0) + 1;
       ttStore(tt, hash, 0, staticEval, TT_UPPER, null);
       return { score: staticEval };
     }
@@ -983,6 +989,7 @@ function quiescenceSearch(state, alpha, beta, qdepth, maximizing, playerId, weig
     const ap       = state.activePlayer;
     const captures = generateCaptures(state, ap);
     if (captures.length === 0) {
+      stats.qStandPat = (stats.qStandPat ?? 0) + 1; // no captures = stand-pat exit
       ttStore(tt, hash, 0, staticEval, TT_EXACT, null);
       return { score: staticEval };
     }
@@ -1395,7 +1402,7 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
   const tt         = new Map();
   const killers    = {};
   const history    = makeHistoryTables();
-  const localStats = { ttLookups: 0, ttHits: 0, qNodes: 0 };
+  const localStats = { ttLookups: 0, ttHits: 0, qNodes: 0, qStandPat: 0, qDepthMax: 0 };
 
   // ── Iterative deepening search ─────────────────────────────────────────────
   const deadline = { time: performance.now() + timeBudget };
@@ -1427,12 +1434,14 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
 
   // Accumulate into caller-owned stats object if provided.
   if (options.stats) {
-    options.stats.ttLookups   = (options.stats.ttLookups   ?? 0) + localStats.ttLookups;
-    options.stats.ttHits      = (options.stats.ttHits      ?? 0) + localStats.ttHits;
-    options.stats.qNodesSum   = (options.stats.qNodesSum   ?? 0) + localStats.qNodes;
-    options.stats.depthSum    = (options.stats.depthSum    ?? 0) + depthReached;
-    options.stats.ttSizeSum   = (options.stats.ttSizeSum   ?? 0) + tt.size;
-    options.stats.decisions   = (options.stats.decisions   ?? 0) + 1;
+    options.stats.ttLookups    = (options.stats.ttLookups    ?? 0) + localStats.ttLookups;
+    options.stats.ttHits       = (options.stats.ttHits       ?? 0) + localStats.ttHits;
+    options.stats.qNodesSum    = (options.stats.qNodesSum    ?? 0) + localStats.qNodes;
+    options.stats.qStandPatSum = (options.stats.qStandPatSum ?? 0) + localStats.qStandPat;
+    options.stats.qDepthMaxSum = (options.stats.qDepthMaxSum ?? 0) + localStats.qDepthMax;
+    options.stats.depthSum     = (options.stats.depthSum     ?? 0) + depthReached;
+    options.stats.ttSizeSum    = (options.stats.ttSizeSum    ?? 0) + tt.size;
+    options.stats.decisions    = (options.stats.decisions    ?? 0) + 1;
   }
 
   return bestAction ?? chooseAction(gameState, commandsUsed);
