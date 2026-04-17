@@ -49,10 +49,12 @@ import { chooseMulligan } from './simAI.js';
 const VALID_DECK_IDS = new Set(['human', 'beast', 'elf', 'demon']);
 
 // Spells that require no explicit target (resolved immediately in playCard).
+// glimpse triggers pendingDeckPeek (no targeting step) — must be here so the
+// cast action is generated; deckPeekResolve then completes the draw.
 const NO_TARGET_SPELLS = new Set([
   'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
   'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
-  'ancientspring', 'verdantsurge',
+  'ancientspring', 'verdantsurge', 'glimpse',
 ]);
 
 // Spells that require two sequential target selections (multi-step).
