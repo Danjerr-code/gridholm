@@ -209,6 +209,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
+  const dropShadow = '0 4px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4)';
 
   // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
   // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
@@ -457,7 +458,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   return (
     <div className={animWrapClass} style={animStyle}>
     <div
-      className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative unit-token-ring${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
       draggable={false}
       onDragStart={e => e.preventDefault()}
       style={{
@@ -470,9 +471,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           '--team-ring': ownerRingColor.ring,
           '--team-glow': ownerRingColor.glow,
         } : (!isRelic ? {
-          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}`,
+          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}, ${dropShadow}`,
         } : {
-          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88`,
+          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
         })),
         overflow: 'hidden',
         ...ringStyle,
@@ -658,11 +659,12 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         bottom: '2px',
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'rgba(0, 0, 0, 0.80)',
+        background: 'rgba(20,20,30,0.85)',
+        border: '1px solid rgba(201,168,76,0.3)',
         color: '#fff',
         fontSize: '10px',
         fontFamily: 'var(--font-sans)',
-        fontWeight: 700,
+        fontWeight: 600,
         padding: '1px 6px',
         borderRadius: '99px',
         zIndex: 2,
@@ -675,6 +677,15 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
+      {/* Cylindrical depth gradient overlay — lighter top, darker bottom */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.2) 100%)',
+        borderRadius: '50%',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
       {/* Buff shimmer overlay */}

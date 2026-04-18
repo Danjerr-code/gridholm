@@ -20,7 +20,7 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
   const displayCost = effectiveCost !== undefined ? effectiveCost : card.cost;
   const isSpell = card.type === 'spell';
   const selectedStyle = isSelected ? '-translate-y-2.5 scale-110' : '';
-  const playableStyle = isPlayable && !isSelected ? 'hover:-translate-y-1 cursor-pointer' : 'cursor-pointer';
+  const playableStyle = isSelected ? 'cursor-pointer' : 'hover:-translate-y-[3px] cursor-pointer';
   const dimStyle = !isPlayable && !isSelected ? 'opacity-50' : '';
   const isLegendary = !!card.legendary;
   const factionColor = getFactionColor(card.unitType);
@@ -62,8 +62,9 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
             {card.name}
           </AutoSizeText>
           <span style={{
-            background: '#C9A84C',
-            color: '#0a0a14',
+            background: 'rgba(20,20,30,0.85)',
+            border: '1px solid rgba(201,168,76,0.3)',
+            color: '#C9A84C',
             fontFamily: 'var(--font-sans)',
             fontSize: '9px',
             fontWeight: 700,
@@ -72,6 +73,7 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
             lineHeight: 1.4,
             flexShrink: 0,
             marginLeft: '2px',
+            textShadow: '0 1px 3px rgba(0,0,0,0.5)',
           }}>{displayCost}</span>
         </div>
         {/* Art area */}
@@ -121,8 +123,9 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
             {card.name}
           </AutoSizeText>
           <span style={{
-            background: '#C9A84C',
-            color: '#0a0a14',
+            background: 'rgba(20,20,30,0.85)',
+            border: '1px solid rgba(201,168,76,0.3)',
+            color: '#C9A84C',
             fontFamily: 'var(--font-sans)',
             fontSize: '9px',
             fontWeight: 700,
@@ -131,6 +134,7 @@ export default function Card({ card, effectiveCost, isSelected, isPlayable, onCl
             lineHeight: 1.4,
             flexShrink: 0,
             marginLeft: '2px',
+            textShadow: '0 1px 3px rgba(0,0,0,0.5)',
           }}>{displayCost}</span>
         </div>
 
