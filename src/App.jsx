@@ -941,7 +941,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
 
         {/* Right sidebar: game log + action buttons */}
         <div className="w-48 flex-shrink-0 hidden sm:flex flex-col gap-2" style={{ minHeight: 0 }}>
-          <Log entries={state.log} onCardNameClick={handlers.handleInspectCard} />
+          <Log entries={state.log} onCardNameClick={handlers.handleInspectCard} myPlayerIndex={0} />
 
           {/* Action buttons panel */}
           <div

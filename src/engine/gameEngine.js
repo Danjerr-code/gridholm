@@ -3414,14 +3414,14 @@ export function resolveTimewornSage(state, handCardUid, topCardUid) {
   }
   const [handCard] = peekCards.splice(handIdx, 1);
   p.hand.push(handCard);
-  addLog(s, `Timeworn Sage: ${handCard.name} added to hand.`);
+  addLog(s, `Timeworn Sage: ${handCard.name} added to hand.`, s.activePlayer);
   // Of remaining cards, put topCardUid on top, other on bottom
   const topIdx = peekCards.findIndex(c => c.uid === topCardUid);
   if (topIdx !== -1) {
     const [topCard] = peekCards.splice(topIdx, 1);
     p.deck.push(...peekCards); // other goes to bottom
     p.deck.unshift(topCard);   // top goes on top
-    addLog(s, `Timeworn Sage: ${topCard.name} placed on top of deck.`);
+    addLog(s, `Timeworn Sage: ${topCard.name} placed on top of deck.`, s.activePlayer);
   } else {
     // No top selection — just return remaining in order
     p.deck.unshift(...peekCards);
