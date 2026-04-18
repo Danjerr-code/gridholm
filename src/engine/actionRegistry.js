@@ -233,8 +233,15 @@ export const ACTION_REGISTRY = {
       !u.isOmen &&
       manhattan([unit.row, unit.col], [u.row, u.col]) === 1
     );
+    unit.hp -= 1;
+    if (unit.hp <= 0) {
+      destroyUnit(unit, state, 'sacrifice');
+      for (const u of affected) u.rooted = true;
+      addLog(state, `Tangleroot Yew: adjacent enemies are Rooted.`);
+      return state;
+    }
+    addLog(state, `Tangleroot Yew: loses 1 HP (${unit.hp}/${unit.maxHp} HP). Adjacent enemies are Rooted.`);
     for (const u of affected) u.rooted = true;
-    addLog(state, `Tangleroot Yew: adjacent enemies are Rooted.`);
     return state;
   },
 
