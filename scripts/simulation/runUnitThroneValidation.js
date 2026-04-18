@@ -21,8 +21,8 @@ import { chooseActionMinimax } from './minimaxAI.js';
 
 const THRONE_ROW = 2;
 const THRONE_COL = 2;
-const MAX_TURNS            = 30;
-const MAX_ACTIONS_GAME     = 500;
+const MAX_TURNS            = 25;
+const MAX_ACTIONS_GAME     = 300;
 const MAX_ACTIONS_PER_TURN = 80;
 
 function parseArgs(argv) {

@@ -656,3 +656,17 @@ button, input, .card-name, .card-stats, .card-rules,
   -webkit-mask: radial-gradient(circle at center, transparent 38%, black 41%, black 49%, transparent 52%);
   animation: glittering-gift-sparkle 9s linear infinite;
 }
+
+/* ── Hover states ─────────────────────────────────────────────── */
+
+/* Default (unoccupied/neutral) board tile hover */
+.tile-hoverable:hover {
+  outline: 1.5px solid rgba(201,168,76,0.5);
+  transition: outline 80ms ease;
+}
+
+/* Unit token hover — brightness lift */
+.unit-token-ring:hover {
+  filter: brightness(1.15);
+  transition: filter 80ms ease;
+}

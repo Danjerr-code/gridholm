@@ -60,6 +60,7 @@ export default function Cell({
   const terrainTint = terrain ? TERRAIN_TINTS[terrain.id] : null;
 
   let tileStyle;
+  let tileHoverClass = '';
   let tileClass = `relative w-full aspect-square transition-colors${isThroneShockwave ? ' throne-damage-pulse-anim' : ''}`;
 
   if (isChampionSaplingTile) {
@@ -128,6 +129,7 @@ export default function Cell({
       borderRadius: '4px',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
     };
+    tileHoverClass = 'tile-hoverable';
   }
 
   // Long-press on the Throne tile (mobile only) shows terrain detail instead of tapping.
@@ -205,7 +207,7 @@ export default function Cell({
 
   return (
     <div
-      className={tileClass}
+      className={`${tileClass}${tileHoverClass ? ` ${tileHoverClass}` : ''}`}
       style={{ minWidth: 0, ...tileStyle }}
       title={isCenter ? (isMobile ? 'Throne — long press to inspect' : 'Throne — click to inspect') : undefined}
       {...tilePointerHandlers}

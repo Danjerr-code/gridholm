@@ -446,7 +446,7 @@ export function applyActionMutate(state, action) {
       return resolveGlimpse(state, true);
 
     case 'endTurn':
-      return endTurn(state);
+      return endTurn(state).state;
 
     default:
       throw new Error(`Unknown action type: ${action.type}`);
@@ -556,7 +556,7 @@ export function applyAction(state, action) {
       return resolveGlimpse(state, true);
 
     case 'endTurn': {
-      return endTurn(state);
+      return endTurn(state).state;
     }
 
     default:

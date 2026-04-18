@@ -164,8 +164,8 @@ function scoredCandidates(state, commandsUsed, apIdx) {
 
 // ── Game loop ─────────────────────────────────────────────────────────────────
 
-const MAX_TURNS        = 30;
-const MAX_ACTIONS_GAME = 500;
+const MAX_TURNS        = 25;
+const MAX_ACTIONS_GAME = 300;
 
 function runGame(gameId, depth) {
   // Build decks using attribute keys as champion identifiers

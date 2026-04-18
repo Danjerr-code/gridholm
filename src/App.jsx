@@ -33,6 +33,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const gameMode = adventureContext ? 'adventure' : isDraft ? 'draft' : 'quickplay';
   const {
     state,
+    history,
     selectedCard,
     selectedUnit,
     selectMode,
@@ -286,10 +287,10 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     && isP1Turn;
 
   // Match review screen — shown over everything when active
-  if (showMatchReview && state.stateHistory && state.stateHistory.length > 3) {
+  if (showMatchReview && history.length > 3) {
     return (
       <MatchReview
-        stateHistory={state.stateHistory}
+        stateHistory={history}
         onBack={() => setShowMatchReview(false)}
       />
     );
@@ -333,7 +334,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           >
             {adventureContext ? 'Continue' : 'Play Again'}
           </button>
-          {state.stateHistory && state.stateHistory.length > 3 && (
+          {history.length > 3 && (
             <button
               style={{
                 background: 'transparent',

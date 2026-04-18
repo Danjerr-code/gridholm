@@ -21,8 +21,8 @@ const MATCHUPS = [
 ];
 
 const GAMES_PER_MATCHUP = 10;
-const MAX_TURNS = 30;
-const MAX_ACTIONS_GAME = 500;
+const MAX_TURNS = 25;
+const MAX_ACTIONS_GAME = 300;
 const MAX_ACTIONS_PER_TURN = 80;
 const MINIMAX_DEPTH = 2;
 

@@ -174,8 +174,8 @@ function hasChampionAbilityAvailable(state) {
 
 // ── Single game runner with diagnostics ───────────────────────────────────────
 
-const MAX_TURNS        = 30;
-const MAX_ACTIONS_GAME = 500;
+const MAX_TURNS        = 25;
+const MAX_ACTIONS_GAME = 300;
 
 function runDiagnosticGame(gameId, p1Deck, p2Deck) {
   let state = createGame(p1Deck, p2Deck);

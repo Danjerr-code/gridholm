@@ -18,8 +18,8 @@ import { chooseActionMinimax } from './minimaxAI.js';
 
 const THRONE_ROW = 2;
 const THRONE_COL = 2;
-const MAX_TURNS          = 30;   // match runSimulation.js
-const MAX_ACTIONS_GAME   = 500;  // match runSimulation.js — guards against infinite loops
+const MAX_TURNS          = 25;   // match runSimulation.js
+const MAX_ACTIONS_GAME   = 300;  // match runSimulation.js — guards against infinite loops
 const MAX_ACTIONS_PER_TURN = 80; // match runSimulation.js — per-turn safety cap
 
 function parseArgs(argv) {

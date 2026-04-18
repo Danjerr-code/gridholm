@@ -19,7 +19,7 @@ import { createGame, applyAction, isGameOver, getLegalActions } from './headless
 import { chooseActionMinimax } from './minimaxAI.js';
 
 const MAX_TURNS   = 35;
-const MAX_ACTIONS = 600;
+const MAX_ACTIONS = 300;
 
 // ── Game runner ───────────────────────────────────────────────────────────────
 

@@ -213,8 +213,8 @@ function serializeCardStats(tracker) {
 
 // ── Single game runner ────────────────────────────────────────────────────────
 
-const MAX_TURNS         = 30;
-const MAX_ACTIONS_GAME  = 500;
+const MAX_TURNS         = 25;
+const MAX_ACTIONS_GAME  = 300;
 
 // Max actions within a single player's turn before forcing endTurn (prevents MCTS stalls).
 const MAX_ACTIONS_PER_TURN = 80;

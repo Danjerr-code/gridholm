@@ -297,14 +297,14 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
         return;
       }
       setAIMode('heuristic');
-      const aiSteps = runAITurnSteps(currentS);
-      const finalAI = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : currentS;
+      const stepResults = runAITurnSteps(currentS);
+      const finalResult = stepResults.length > 0 ? stepResults[stepResults.length - 1] : { state: currentS };
 
       // Replay each AI step with a short delay for visual feedback
       let i = 0;
       function replay() {
-        if (i >= aiSteps.length) {
-          const advanced = autoAdvancePhase(finalAI);
+        if (i >= stepResults.length) {
+          const advanced = autoAdvancePhase(finalResult.state);
           setState(advanced);
           latestStateRef.current = advanced;
           aiRunningRef.current = false;
@@ -313,8 +313,9 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
           if (afterAI) afterAI(advanced);
           return;
         }
-        setState(aiSteps[i]);
-        latestStateRef.current = aiSteps[i];
+        const { state: stepState } = stepResults[i];
+        setState(stepState);
+        latestStateRef.current = stepState;
         i++;
         setTimeout(replay, 600);
       }
@@ -423,20 +424,21 @@ export default function TutorialController({ scenario, onExit, onComplete, onGoT
         return;
       }
       setAIMode('heuristic');
-      const aiSteps = runAITurnSteps(s);
-      const finalState = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : s;
+      const stepResults = runAITurnSteps(s);
+      const finalResult = stepResults.length > 0 ? stepResults[stepResults.length - 1] : { state: s };
       let i = 0;
       function replay() {
-        if (i >= aiSteps.length) {
-          const advanced = autoAdvancePhase(aiSteps[aiSteps.length - 1] ?? s);
+        if (i >= stepResults.length) {
+          const advanced = autoAdvancePhase(finalResult.state);
           setState(advanced);
           latestStateRef.current = advanced;
           aiRunningRef.current = false;
           setHintsUsedThisTurn(0);
           return;
         }
-        setState(aiSteps[i]);
-        latestStateRef.current = aiSteps[i];
+        const { state: stepState } = stepResults[i];
+        setState(stepState);
+        latestStateRef.current = stepState;
         i++;
         setTimeout(replay, 700);
       }

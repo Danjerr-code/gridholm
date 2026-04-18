@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, getGuestId } from '../supabase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { playTurnStartSound, playSfxDraw } from '../audio.js';
-import { createInitialState, autoAdvancePhase, submitMulligan, getChampionDef } from '../engine/gameEngine.js';
+import { createInitialState, autoAdvancePhase, submitMulligan, getChampionDef, applyForfeit } from '../engine/gameEngine.js';
 import { FACTION_INFO, parseDeckSpec } from '../engine/cards.js';
 import { sanitizeGameState } from '../engine/stateSanitizer.js';
 
@@ -179,10 +179,7 @@ export function useMultiplayerGame(gameId) {
     const idleEngineIndex = idlePlayerId === session.player1_id
       ? (isSwapped ? 1 : 0)
       : (isSwapped ? 0 : 1);
-    const winnerEngineIndex = 1 - idleEngineIndex;
-    const winnerName = session.game_state?.players?.[winnerEngineIndex]?.name
-      ?? (winnerEngineIndex === 0 ? 'Player 1' : 'Player 2');
-    const updatedGameState = { ...session.game_state, winner: winnerName };
+    const { log: _tLog, ...updatedGameState } = applyForfeit(session.game_state, idleEngineIndex, 'timeout');
 
     supabase
       .from('game_sessions')
@@ -265,7 +262,7 @@ export function useMultiplayerGame(gameId) {
       p2_deck: p2 ? getCardIds(p2) : [],
       winner: winnerValue,
       total_turns: gs.turn ?? 0,
-      state_history: null, // stateHistory is stripped during multiplayer sync
+      state_history: null,
       final_state: gs,
     }).then(({ error }) => {
       if (error) console.warn('[Replay] Multiplayer insert failed:', error.message);
@@ -499,11 +496,10 @@ export function useMultiplayerGame(gameId) {
       }
     }
 
-    // Strip stateHistory and log before syncing to Supabase.
-    // stateHistory is in-memory only and grows with every turn.
+    // Strip log before syncing to Supabase.
     // log is maintained locally on each client to avoid bloating the JSONB column;
     // the realtime handler carries it forward for the passive player.
-    const { stateHistory: _h, log, ...stateForSync } = newGameState;
+    const { log, ...stateForSync } = newGameState;
     console.log('[Multiplayer] sync payload:', JSON.stringify(stateForSync).length, 'bytes | log entries:', (log ?? []).length);
 
     const { data: updated } = await supabase
@@ -641,10 +637,7 @@ export function useMultiplayerGame(gameId) {
     const opponentId = myIndex === 0
       ? (isSwapped ? session.player1_id : session.player2_id)
       : (isSwapped ? session.player2_id : session.player1_id);
-    const opponentEngineIndex = myIndex === 0 ? 1 : 0;
-    const winnerName = session.game_state?.players?.[opponentEngineIndex]?.name
-      ?? (opponentEngineIndex === 0 ? 'Player 1' : 'Player 2');
-    const updatedGameState = { ...session.game_state, winner: winnerName };
+    const { log: _cLog, ...updatedGameState } = applyForfeit(session.game_state, myIndex, 'concede');
     const { data: updated } = await supabase
       .from('game_sessions')
       .update({ status: 'complete', winner: opponentId, game_state: updatedGameState, updated_at: new Date().toISOString() })
