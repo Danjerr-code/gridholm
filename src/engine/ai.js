@@ -26,7 +26,7 @@ import {
   resolveVeilSeerHiddenTarget,
 } from './gameEngine.js';
 import { THREAT_RATINGS } from './cardThreatRatings.js';
-import { chooseActionStrategic, applyAction as applyActionStrategic, setAIDebug, getAIDebug } from './strategicAI.js';
+import { chooseActionStrategic, applyAction as applyActionStrategic, setAIDebug, getAIDebug, setTradeDecisionLog } from './strategicAI.js';
 
 // ── AI mode ────────────────────────────────────────────────────────────────────
 // 'strategic' uses minimax (default). 'heuristic' uses the rule-based AI.
@@ -35,7 +35,7 @@ export function setAIMode(mode) { _aiMode = mode; }
 export function getAIMode() { return _aiMode; }
 
 // Re-export debug toggle so callers can enable/disable from a single import.
-export { setAIDebug, getAIDebug };
+export { setAIDebug, getAIDebug, setTradeDecisionLog };
 
 const AI_PLAYER = 1;
 

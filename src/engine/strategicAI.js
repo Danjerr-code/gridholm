@@ -1275,6 +1275,7 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
 
 let _aiDebugEnabled = false;
 let _spellAuditEnabled = false;
+let _tradeLogEnabled = false;
 
 /**
  * Enable/disable verbose AI decision logging.
@@ -1289,6 +1290,17 @@ export function getAIDebug() { return _aiDebugEnabled; }
  * recording which spells were in hand and whether a spell was cast.
  */
 export function setSpellAudit(enabled) { _spellAuditEnabled = enabled; }
+
+/**
+ * Enable/disable trade-decision logging.
+ * When enabled, chooseActionStrategic emits a [TRADE_DECISION] JSON line per decision
+ * with the chosen action, top-3 candidates by 1-ply eval, and enemy units in range.
+ */
+export function setTradeDecisionLog(enabled) {
+  _tradeLogEnabled = !!enabled;
+  if (enabled) console.log('[TRADE_DECISION] logging enabled');
+  return _tradeLogEnabled;
+}
 
 function aiLog(...args) {
   if (_aiDebugEnabled) console.log('[AI]', ...args);
@@ -1451,11 +1463,13 @@ export function chooseActionStrategic(gameState, commandsUsed) {
     const fallback = actions[0] ?? { type: 'endTurn' };
     aiLog(`   → FALLBACK (no result): ${describeAction(fallback, gameState)}`);
     if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, fallback);
+    if (_tradeLogEnabled) _emitTradeDecision(gameState, ap, fallback, 0);
     return fallback;
   }
 
   aiLog(`   → CHOSEN (depth ${depthReached}): ${describeAction(bestAction, gameState)}`);
   if (_spellAuditEnabled) _emitSpellAudit(gameState, ap, bestAction);
+  if (_tradeLogEnabled) _emitTradeDecision(gameState, ap, bestAction, depthReached);
   return bestAction;
 }
 
@@ -1475,6 +1489,64 @@ function _emitSpellAudit(gameState, ap, chosenAction) {
     spellCast,
     spellsInHand,
     hasSpellCandidate,
+  }));
+}
+
+function _evalTerms(state, playerId) {
+  const ap = playerId === 'p1' ? 0 : 1;
+  const op = 1 - ap;
+  const myChamp = state.champions[ap];
+  const oppChamp = state.champions[op];
+  const myUnits = state.units.filter(u => u.owner === ap);
+  const oppUnits = state.units.filter(u => u.owner === op);
+  return {
+    hpDiff: myChamp.hp - oppChamp.hp,
+    unitCountDiff: myUnits.length - oppUnits.length,
+    lethalThreat: myUnits.reduce((s, u) => {
+      const dist = manhattan([u.row, u.col], [oppChamp.row, oppChamp.col]);
+      return dist <= (u.spd ?? 1) ? s + (u.atk ?? 0) : s;
+    }, 0),
+    proximity: myUnits.reduce((s, u) =>
+      s + Math.max(0, 5 - manhattan([u.row, u.col], [oppChamp.row, oppChamp.col])), 0),
+  };
+}
+
+function _emitTradeDecision(gameState, ap, chosenAction, depthReached) {
+  const playerId = ap === 0 ? 'p1' : 'p2';
+  const oppIdx = 1 - ap;
+  const oppChamp = gameState.champions[oppIdx];
+  const myChamp = gameState.champions[ap];
+
+  const allActions = getLegalActions(gameState);
+  const scored = allActions.map(a => {
+    const after = applyAction(gameState, a);
+    return { action: a, score: scoreState(after, playerId), terms: _evalTerms(after, playerId) };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const top3 = scored.slice(0, 3).map(s => ({
+    desc: describeAction(s.action, gameState),
+    type: s.action.type,
+    score: Math.round(s.score * 10) / 10,
+    terms: s.terms,
+  }));
+
+  const enemyUnitsInRange = gameState.units
+    .filter(u => u.owner === oppIdx)
+    .filter(u => manhattan([u.row, u.col], [myChamp.row, myChamp.col]) <= 3)
+    .map(u => ({ name: u.name, atk: u.atk, hp: u.hp, dist: manhattan([u.row, u.col], [myChamp.row, myChamp.col]) }));
+
+  console.log('[TRADE_DECISION] ' + JSON.stringify({
+    turn: gameState.turn ?? '?',
+    player: playerId,
+    depthReached,
+    chosen: {
+      desc: describeAction(chosenAction, gameState),
+      type: chosenAction.type,
+    },
+    top3Candidates: top3,
+    enemyUnitsInRange,
+    oppChampHp: oppChamp.hp,
+    myChampHp: myChamp.hp,
   }));
 }
 
