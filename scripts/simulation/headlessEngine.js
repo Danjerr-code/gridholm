@@ -60,6 +60,8 @@ const NO_TARGET_SPELLS = new Set([
   // pactofruin: triggers pendingHandSelect in playCard; handSelect actions are
   // already enumerated by getLegalActions when pendingHandSelect is set.
   'pactofruin',
+  // Beast/Dark/Light spells missing from sim (parity fix)
+  'predatorsmark', 'fatesledger', 'seconddawn',
 ]);
 
 // Spells that require two sequential target selections (multi-step).
