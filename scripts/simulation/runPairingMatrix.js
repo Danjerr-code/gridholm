@@ -35,8 +35,8 @@ function parseArgs(argv) {
 
 // ── Game loop ─────────────────────────────────────────────────────────────────
 
-const MAX_TURNS        = 30;
-const MAX_ACTIONS_GAME = 500;
+const MAX_TURNS        = 25;
+const MAX_ACTIONS_GAME = 300;
 
 /**
  * Run a single game between two pairings, using fresh generated decks.

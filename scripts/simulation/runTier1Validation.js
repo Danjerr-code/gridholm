@@ -27,8 +27,8 @@ import { performance } from 'perf_hooks';
 import { createGame, applyAction, isGameOver, getLegalActions } from './headlessEngine.js';
 import { chooseActionMinimax } from './minimaxAI.js';
 
-const MAX_TURNS           = 30;
-const MAX_ACTIONS_GAME    = 500;
+const MAX_TURNS           = 25;
+const MAX_ACTIONS_GAME    = 300;
 const MAX_ACTIONS_PER_TURN = 80;
 const TIME_BUDGET_MS      = 800;
 

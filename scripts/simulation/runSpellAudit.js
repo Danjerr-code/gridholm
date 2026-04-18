@@ -18,8 +18,8 @@ import { chooseActionStrategic, setSpellAudit } from '../../src/engine/strategic
 
 const FACTIONS  = ['human', 'beast', 'elf', 'demon'];
 const GAMES_PER_FACTION = 5;
-const MAX_TURNS = 35;
-const MAX_ACTIONS = 600;
+const MAX_TURNS = 25;
+const MAX_ACTIONS = 300;
 
 // ── Audit log capture ─────────────────────────────────────────────────────────
 
