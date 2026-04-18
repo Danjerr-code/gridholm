@@ -210,3 +210,19 @@ Proposed: `healingValue 5→0`, `championHP 10→5`, `championHPDiff 3→8`. Awa
 **Gate condition:** Overall DR ≤ 30% for Tier 2 to be applied immediately; otherwise report and await direction.
 
 **Tier 2 branch ready:** `tier2-eval-improvements` (commit `6658174`) — champion safety S-curve + contempt factor, do not merge until Tier 1 results in.
+
+## EvD Confirmed Structurally Drawish — 2026-04-18 (LOG-1525)
+
+**EvD confirmed as structurally drawish matchup via asymmetry test LOG-1525. 85% draw rate with asymmetric AI strength (strong full-eval AI wins only 5% vs depth-1 basic-eval AI). Not an AI problem. Potential future balance pass if human play data confirms.**
+
+- Strong Elf (200ms, full weights) vs Weak Demon (depth=1, championHP+unitCount only): 10% strong win, 90% DR
+- Strong Demon vs Weak Elf: 0% strong win, 80% DR
+- Action-limit (600) hit in 17/20 games — primary terminator
+- championAbility spam dominates (31-39% of all actions)
+- Root cause: both champions heal/sustain indefinitely; no forced progression
+
+### New Sim Baseline (post-LOG-1525)
+- MAX_TURNS=25, MAX_ACTIONS=300 (committed `66f3a8c`)
+- No contempt factor, no stagnation penalty
+- Validation: HvB DR=60%, EvD DR=80%, aggregate=70%
+  Note: CEO expected ~40-50% aggregate. HvB higher than expected — 300-action limit may be too tight for HvB games to resolve. Flag for review.

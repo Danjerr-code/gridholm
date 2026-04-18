@@ -982,11 +982,8 @@ function fireEndTurnTriggers(state, playerIdx) {
   // Final Gambit: player loses at end of turn if the flag is set
   if (state.finalGambitActive?.[playerIdx] && !state.winner) {
     const loser = state.players[playerIdx];
-    const winner = state.players[1 - playerIdx];
-    state.finalGambitActive[playerIdx] = false;
     addLog(state, `Final Gambit: ${loser.name} has sealed their fate!`);
-    state.winner = winner.name;
-    addLog(state, `Game over! ${winner.name} wins!`);
+    checkWinner(state);
   }
 }
 
@@ -2732,15 +2729,8 @@ export function resolveBloodPactEnemy(state, unitUid) {
   return s;
 }
 
-// Local checkWinner used within contract resolve (can't call exported version directly)
 function checkWinnerLocal(state) {
-  for (const champ of state.champions) {
-    if (champ.hp <= 0) {
-      const winner = state.players[1 - champ.owner];
-      state.winner = winner.name;
-      addLog(state, `Game over! ${winner.name} wins!`);
-    }
-  }
+  checkWinner(state);
 }
 
 // ── Flesh Tithe sacrifice ─────────────────────────────────────────────────
@@ -4626,10 +4616,12 @@ export function discardCard(state, cardUid) {
   return { state: s, turnSnapshot: null };
 }
 
-export function checkWinner(state) {
+// Returns {winner, reason, loserIdx} or {winner: null, reason: null}.
+// May mutate state for Undying Pact intercept (heals champion, destroys pact unit).
+// This is the single source of truth for win condition logic.
+export function checkWinCondition(state) {
   for (const champ of state.champions) {
     if (champ.hp <= 0) {
-      // Undying Pact: intercept lethal damage once per game
       if (!state.undyingPactUsed && state.activeModifiers) {
         const pactMod = state.activeModifiers.find(m => m.type === 'undyingPact' && m.playerIndex === champ.owner);
         if (pactMod) {
@@ -4639,15 +4631,40 @@ export function checkWinner(state) {
             champ.hp = 1;
             destroyUnit(pactUnit, state, 'undyingPact');
             addLog(state, `Undying Pact: sacrificed — ${state.players[champ.owner].name}'s champion survives at 1 HP!`);
-            continue;
           }
         }
       }
-      const winner = state.players[1 - champ.owner];
-      state.winner = winner.name;
-      addLog(state, `Game over! ${winner.name} wins!`);
     }
   }
+  for (const champ of state.champions) {
+    if (champ.hp <= 0) {
+      return { winner: state.players[1 - champ.owner].name, reason: 'champion_defeated', loserIdx: champ.owner };
+    }
+  }
+  for (let i = 0; i < state.players.length; i++) {
+    if (state.finalGambitActive?.[i]) {
+      return { winner: state.players[1 - i].name, reason: 'final_gambit', loserIdx: i };
+    }
+  }
+  return { winner: null, reason: null };
+}
+
+export function checkWinner(state) {
+  const result = checkWinCondition(state);
+  if (!result.winner) return;
+  if (result.reason === 'final_gambit') {
+    state.finalGambitActive[result.loserIdx] = false;
+  }
+  state.winner = result.winner;
+  addLog(state, `Game over! ${result.winner} wins!`);
+}
+
+// Sets winner due to forfeit (timeout, disconnect, or concede). Returns a cloned state.
+export function applyForfeit(state, forfeitingPlayerIdx, reason) {
+  const s = cloneState(state);
+  s.winner = s.players[1 - forfeitingPlayerIdx].name;
+  addLog(s, `Game over! ${s.winner} wins! (${reason})`);
+  return s;
 }
 
 // ── valid spell targets ─────────────────────────────────────────────────────
