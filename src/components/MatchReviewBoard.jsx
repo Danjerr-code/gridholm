@@ -6,7 +6,7 @@ import { getCardImageUrl } from '../supabase.js';
  * Props:
  *   gameState  {object}  — one entry from the stateHistory array
  */
-export default function MatchReviewBoard({ gameState }) {
+export default function MatchReviewBoard({ gameState, onUnitClick, onChampionClick }) {
   if (!gameState) return null;
 
   const { units = [], champions = [], terrainGrid, players = [] } = gameState;
@@ -81,10 +81,14 @@ export default function MatchReviewBoard({ gameState }) {
                 )}
 
                 {/* Champion token */}
-                {champion && !unit && <ChampionToken champion={champion} />}
+                {champion && !unit && (
+                  <ChampionToken champion={champion} onClick={onChampionClick ? () => onChampionClick(champion) : undefined} />
+                )}
 
                 {/* Unit token */}
-                {unit && <UnitTokenReadOnly unit={unit} />}
+                {unit && (
+                  <UnitTokenReadOnly unit={unit} onClick={onUnitClick ? () => onUnitClick(unit) : undefined} />
+                )}
               </div>
             );
           })
@@ -98,12 +102,13 @@ export default function MatchReviewBoard({ gameState }) {
   );
 }
 
-function ChampionToken({ champion }) {
+function ChampionToken({ champion, onClick }) {
   const isP1 = champion.owner === 0;
   const champColor = isP1 ? '#185FA5' : '#993C1D';
 
   return (
     <div
+      onClick={onClick}
       style={{
         position: 'absolute',
         inset: '3px',
@@ -115,6 +120,7 @@ function ChampionToken({ champion }) {
         background: `radial-gradient(circle, ${champColor}66 0%, transparent 100%)`,
         border: `2px solid ${champColor}`,
         boxShadow: `0 0 8px ${champColor}60`,
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <svg width="14" height="12" viewBox="0 0 24 20" fill="white" style={{ flexShrink: 0 }}>
@@ -135,7 +141,7 @@ function ChampionToken({ champion }) {
   );
 }
 
-function UnitTokenReadOnly({ unit }) {
+function UnitTokenReadOnly({ unit, onClick }) {
   const isP1 = unit.owner === 0;
   const ownerColor = isP1
     ? { ring: '#3b82f6', glow: 'rgba(59,130,246,0.45)' }
@@ -147,6 +153,7 @@ function UnitTokenReadOnly({ unit }) {
 
   return (
     <div
+      onClick={onClick}
       style={{
         position: 'absolute',
         inset: '2px',
@@ -159,6 +166,7 @@ function UnitTokenReadOnly({ unit }) {
         border: `2px solid ${ownerColor.ring}`,
         boxShadow: `0 0 6px ${ownerColor.glow}`,
         overflow: 'hidden',
+        cursor: onClick ? 'pointer' : 'default',
       }}
       title={`${unit.name} — ATK:${effectiveAtk} HP:${unit.hp} SPD:${effectiveSpd}`}
     >

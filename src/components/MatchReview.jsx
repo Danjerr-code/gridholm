@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import MatchReviewBoard from './MatchReviewBoard.jsx';
+import CardDetailModal from './CardDetailModal.jsx';
 import { findInflectionPoints } from '../engine/matchReview.js';
 
 /**
@@ -11,6 +12,15 @@ import { findInflectionPoints } from '../engine/matchReview.js';
  */
 export default function MatchReview({ stateHistory, onBack }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [inspectedItem, setInspectedItem] = useState(null);
+
+  const handleUnitClick = useCallback((unit) => {
+    setInspectedItem({ type: 'unit', unit });
+  }, []);
+
+  const handleChampionClick = useCallback((champion) => {
+    setInspectedItem({ type: 'champion', playerIdx: champion.owner ?? 0 });
+  }, []);
 
   const inflectionPoints = useMemo(
     () => findInflectionPoints(stateHistory),
@@ -149,7 +159,11 @@ export default function MatchReview({ stateHistory, onBack }) {
 
       {/* Board */}
       <div style={{ width: '100%', maxWidth: '440px', marginBottom: '16px' }}>
-        <MatchReviewBoard gameState={currentState} />
+        <MatchReviewBoard
+          gameState={currentState}
+          onUnitClick={handleUnitClick}
+          onChampionClick={handleChampionClick}
+        />
       </div>
 
       {/* Inflection point cards */}
@@ -237,6 +251,14 @@ export default function MatchReview({ stateHistory, onBack }) {
         >
           No major turning points detected.
         </div>
+      )}
+
+      {inspectedItem && (
+        <CardDetailModal
+          inspectedItem={inspectedItem}
+          gameState={currentState}
+          onClose={() => setInspectedItem(null)}
+        />
       )}
     </div>
   );
