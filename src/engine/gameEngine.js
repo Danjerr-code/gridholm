@@ -267,15 +267,21 @@ function getPlayer(state) { return state.players[state.activePlayer]; }
 
 
 // Deep-clone state.
-// stateHistory is intentionally excluded from clones: it is managed at the endTurn
-// boundary and must not be nested inside each snapshot.
+// stateHistory is shallow-attached rather than deep-cloned: entries are immutable
+// snapshots so a reference copy is safe and cheap. This ensures that any code path
+// which clones state and then sets state.winner still has stateHistory available for
+// the match-review button check. Callers that extend stateHistory (endTurn,
+// completeTurnAdvance) always replace it with a new array, so the shallow reference
+// is never mutated in place.
 // structuredClone is used instead of JSON.parse(JSON.stringify()) to handle circular
 // references in unit objects (e.g. Vexis shadow copies, modifier references) without
 // throwing. It is natively supported in all modern browsers (Chrome 98+, Firefox 94+,
 // Safari 15.4+) and Node.js 17+.
 export function cloneState(state) {
   const { stateHistory: _h, ...rest } = state;
-  return structuredClone(rest);
+  const clone = structuredClone(rest);
+  if (_h !== undefined) clone.stateHistory = _h;
+  return clone;
 }
 
 // ── HP restore ─────────────────────────────────────────────────────────────
@@ -4481,7 +4487,7 @@ export function endTurn(state) {
   // PRESERVE: do not clear on game over. Required for future match review feature.
   const prevHistory = state.stateHistory || [];
 
-  const s = cloneState(state); // cloneState strips stateHistory; prevHistory carries it
+  const s = cloneState(state); // s.stateHistory = prevHistory (shallow ref from cloneState)
   const p = s.players[s.activePlayer];
 
   // END TURN TRIGGERS
@@ -4622,7 +4628,7 @@ export function completeTurnAdvance(state, prevHistory = null) {
   // Append a snapshot of the completed turn to stateHistory.
   // PRESERVE: do not clear on game over. Required for future match review feature.
   const history = prevHistory ?? advanced.stateHistory ?? [];
-  const snapshot = cloneState(advanced); // cloneState excludes stateHistory — no nesting
+  const snapshot = cloneState(advanced); // snapshot carries stateHistory ref but it is never read recursively
   advanced.stateHistory = [...history, snapshot];
 
   return advanced;
