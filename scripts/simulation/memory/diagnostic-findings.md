@@ -112,3 +112,37 @@
 `cardsInHand = 10` weight (changed from 5, now verified on main). At weight 10, cardsInHand represents 41.6% of Dark's total score. This may be making Dark too passive — the eval rewards holding cards, discouraging commitment. This is a **potential balance flag**, not an AI issue.
 
 **Status:** Reported to CEO. Awaiting direction.
+
+---
+
+## Post-Fix Canonical Baseline — 2026-04-18 (LOG-1552)
+
+**Run type**: Validation / Baseline establishment
+
+**Fixes active**: championThroneProximity weight=8 (commit 0e6d630), multi-action lethal detection, headlessEngine NO_TARGET_SPELLS (agonizingsymphony, pestilence, pactofruin, predatorsmark, fatesledger, seconddawn)
+
+**Config**: timeBudget=200ms, MAX_TURNS=35, MAX_ACTIONS=600, 60 games (6 matchups × 10)
+
+**Canonical post-fix baseline** (first full 6-matchup run at 200ms settings):
+
+| Matchup | DR | P1 WR | P2 WR | AvgTurns |
+|---------|----|-------|-------|----------|
+| HvB | 30% | 40% | 30% | 25.4 |
+| HvE | 60% | 30% | 10% | 29.0 |
+| HvD | 20% | 30% | 50% | 29.4 |
+| BvE | 60% | 20% | 20% | 29.5 |
+| BvD | 20% | 40% | 40% | 24.9 |
+| EvD | 70% | 20% | 10% | 31.4 |
+| **Agg** | **43.3%** | | | |
+
+**Key confirmations:**
+- championThroneProximity: all 12 player-slots reach dist≤2 before turn 7 on average ✓
+- Action-limit hits: 0/60 ✓ (engine stable)
+- Decisive games: 34/60 (57%) — lethal detection is active
+- Demon spell parity: agonizingsymphony (50% HvD, 20% BvD), pactofruin (40% HvD, 20% BvD) confirmed non-zero ✓
+- EvD demon spells near-zero (0% agonizingsymphony/pactofruin): spells ARE enumerable; likely strategic/sample variance
+
+**Structural draws remain** (pre-existing, not fixable via AI tuning at this point):
+- Elf matchups: HvE=60%, BvE=60%, EvD=70% — all above 50% threshold
+- Root cause: Elf healing stack + board control at 200ms search depth
+

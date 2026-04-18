@@ -515,3 +515,13 @@ All matchups improved vs weight=0 baseline (−10pp HvB, −10pp EvD, −10pp Hv
 
 - **Commit**: `0e6d630`
 - **Full results**: `scripts/simulation/memory/results/champion-throne-proximity-weight-diagnostic-2026-04-18.md`
+
+## Entry 33 — 2026-04-18 (LOG-1552) — Post-Fix Canonical Baseline Matrix
+
+- **Run type**: Validation (baseline establishment)
+- **Config**: timeBudget=200ms, MAX_TURNS=35, MAX_ACTIONS=600, 60 games
+- **Fixes active**: championThroneProximity weight=8 + spell parity + lethal detection
+- **Aggregate DR**: 43.3% (first canonical 6-matchup number at 200ms settings)
+- **Per-matchup**: HvB=30%, HvE=60%, HvD=20%, BvE=60%, BvD=20%, EvD=70%
+- **Full results**: `scripts/simulation/memory/results/baseline-post-april-18-fixes-2026-04-18.md`
+- **Label**: baseline-post-april-18-fixes
