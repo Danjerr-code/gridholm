@@ -55,6 +55,11 @@ const NO_TARGET_SPELLS = new Set([
   'overgrowth', 'packhowl', 'callofthesnakes', 'rally', 'crusade',
   'ironthorns', 'infernalpact', 'martiallaw', 'fortify', 'shadowveil',
   'ancientspring', 'verdantsurge', 'glimpse',
+  // Demon spells missing from sim (parity fix)
+  'agonizingsymphony', 'pestilence',
+  // pactofruin: triggers pendingHandSelect in playCard; handSelect actions are
+  // already enumerated by getLegalActions when pendingHandSelect is set.
+  'pactofruin',
 ]);
 
 // Spells that require two sequential target selections (multi-step).
