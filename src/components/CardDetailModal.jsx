@@ -127,7 +127,7 @@ function StatGrid({ items }) {
   );
 }
 
-function CardDetailContent({ inspectedItem, gameState }) {
+export function CardDetailContent({ inspectedItem, gameState }) {
   if (!inspectedItem) return null;
 
   if (inspectedItem.type === 'champion') {
