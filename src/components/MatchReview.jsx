@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import MatchReviewBoard from './MatchReviewBoard.jsx';
 import CardDetailModal from './CardDetailModal.jsx';
+import { getCardImageUrl } from '../supabase.js';
 import { findInflectionPoints } from '../engine/matchReview.js';
 
 /**
@@ -13,6 +14,7 @@ import { findInflectionPoints } from '../engine/matchReview.js';
 export default function MatchReview({ stateHistory, onBack }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inspectedItem, setInspectedItem] = useState(null);
+  const [showOpponentHand, setShowOpponentHand] = useState(true);
 
   const handleUnitClick = useCallback((unit) => {
     setInspectedItem({ type: 'unit', unit });
@@ -166,6 +168,39 @@ export default function MatchReview({ stateHistory, onBack }) {
         />
       </div>
 
+      {/* Hand state */}
+      {(currentState?.players?.[0]?.hand?.length > 0 || currentState?.players?.[1]?.hand?.length > 0) && (
+        <div style={{ width: '100%', maxWidth: '440px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Hands
+            </div>
+            <button
+              onClick={() => setShowOpponentHand(v => !v)}
+              style={{ background: 'transparent', border: '1px solid #252538', borderRadius: '4px',
+                color: '#6b7280', fontFamily: 'var(--font-sans)', fontSize: '10px',
+                padding: '2px 8px', cursor: 'pointer' }}
+            >
+              {showOpponentHand ? 'Hide P2 hand' : 'Show P2 hand'}
+            </button>
+          </div>
+          <ReviewHandStrip
+            hand={currentState?.players?.[0]?.hand ?? []}
+            label="P1"
+            labelColor="#3b82f6"
+            onCardClick={(card) => setInspectedItem({ type: 'card', card })}
+          />
+          {showOpponentHand && (
+            <ReviewHandStrip
+              hand={currentState?.players?.[1]?.hand ?? []}
+              label="P2"
+              labelColor="#ef4444"
+              onCardClick={(card) => setInspectedItem({ type: 'card', card })}
+            />
+          )}
+        </div>
+      )}
+
       {/* Inflection point cards */}
       {inflectionPoints.length > 0 && (
         <div style={{ width: '100%', maxWidth: '440px' }}>
@@ -260,6 +295,71 @@ export default function MatchReview({ stateHistory, onBack }) {
           onClose={() => setInspectedItem(null)}
         />
       )}
+    </div>
+  );
+}
+
+function ReviewHandStrip({ hand, label, labelColor, onCardClick }) {
+  if (!hand || hand.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: labelColor, minWidth: '20px' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#4b5563', fontStyle: 'italic' }}>empty hand</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '8px' }}>
+      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: labelColor, minWidth: '20px', paddingTop: '4px' }}>{label}</span>
+      <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }} className="no-scrollbar">
+        {hand.map((card, i) => {
+          const imageUrl = card.image ? getCardImageUrl(card.image) : null;
+          const isSpell = card.type === 'spell';
+          return (
+            <div
+              key={card.uid ?? i}
+              onClick={() => onCardClick(card)}
+              title={card.name}
+              style={{
+                position: 'relative',
+                flexShrink: 0,
+                width: '48px',
+                height: '64px',
+                borderRadius: '4px',
+                background: '#0d0d1a',
+                border: '1px solid #2a2a42',
+                overflow: 'hidden',
+                cursor: 'pointer',
+              }}
+            >
+              {imageUrl ? (
+                <img src={imageUrl} alt={card.name}
+                  onError={e => { e.target.style.display = 'none'; }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#6b7280', textAlign: 'center', padding: '2px' }}>
+                  {card.name}
+                </div>
+              )}
+              {/* Cost badge */}
+              <div style={{ position: 'absolute', top: '2px', right: '2px', background: '#C9A84C',
+                color: '#0a0a0f', fontFamily: 'var(--font-sans)', fontSize: '8px', fontWeight: 700,
+                padding: '0 3px', borderRadius: '99px', lineHeight: 1.6 }}>
+                {card.cost}
+              </div>
+              {/* Type pill */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: 'rgba(0,0,0,0.75)', color: '#9ca3af',
+                fontFamily: 'var(--font-sans)', fontSize: '7px', fontWeight: 600,
+                padding: '1px 3px', textAlign: 'center', whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {isSpell ? '✦' : `${card.atk}/${card.hp}`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
