@@ -1,3 +1,5 @@
+import { getCardImageUrl } from '../supabase.js';
+
 /**
  * MatchReviewBoard — read-only 5x5 board renderer for match review.
  *
@@ -141,6 +143,7 @@ function UnitTokenReadOnly({ unit }) {
 
   const effectiveAtk = (unit.atk ?? 0) + (unit.atkBonus ?? 0) + (unit.turnAtkBonus ?? 0);
   const effectiveSpd = (unit.spd ?? 1) + (unit.speedBonus ?? 0);
+  const imageUrl = unit.image ? getCardImageUrl(unit.image) : null;
 
   return (
     <div
@@ -155,9 +158,26 @@ function UnitTokenReadOnly({ unit }) {
         background: '#1a1a2e',
         border: `2px solid ${ownerColor.ring}`,
         boxShadow: `0 0 6px ${ownerColor.glow}`,
+        overflow: 'hidden',
       }}
       title={`${unit.name} — ATK:${effectiveAtk} HP:${unit.hp} SPD:${effectiveSpd}`}
     >
+      {/* Portrait */}
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={unit.name}
+          onError={(e) => { e.target.style.display = 'none'; }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: '50%',
+          }}
+        />
+      )}
       {/* ATK top-left */}
       <span
         style={{
@@ -169,22 +189,33 @@ function UnitTokenReadOnly({ unit }) {
           fontWeight: 700,
           color: '#f97316',
           lineHeight: 1,
+          zIndex: 1,
+          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
         }}
       >
         {effectiveAtk}
       </span>
       {/* HP bottom */}
-      <span
+      <div
         style={{
+          position: 'absolute',
+          bottom: '2px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.80)',
+          color: '#4ade80',
           fontFamily: 'var(--font-sans)',
           fontSize: '10px',
           fontWeight: 700,
-          color: '#4ade80',
-          lineHeight: 1,
+          padding: '1px 5px',
+          borderRadius: '99px',
+          lineHeight: 1.4,
+          whiteSpace: 'nowrap',
+          zIndex: 2,
         }}
       >
-        {unit.hp}
-      </span>
+        {effectiveAtk}/{unit.hp}
+      </div>
       {/* SPD top-right */}
       <span
         style={{
@@ -196,6 +227,8 @@ function UnitTokenReadOnly({ unit }) {
           fontWeight: 700,
           color: '#a78bfa',
           lineHeight: 1,
+          zIndex: 1,
+          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
         }}
       >
         {effectiveSpd}
@@ -205,13 +238,21 @@ function UnitTokenReadOnly({ unit }) {
         <span
           style={{
             position: 'absolute',
-            bottom: '1px',
+            top: '2px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#6a3abf',
+            color: '#fff',
             fontFamily: 'var(--font-sans)',
             fontSize: '7px',
-            color: '#9ca3af',
+            fontWeight: 600,
+            padding: '1px 4px',
+            borderRadius: '99px',
+            whiteSpace: 'nowrap',
+            zIndex: 3,
           }}
         >
-          ?
+          H
         </span>
       )}
     </div>
