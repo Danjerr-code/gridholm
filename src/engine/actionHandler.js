@@ -17,6 +17,8 @@ import {
   moveChampion,
   moveUnit,
   getApproachTiles,
+  cardinalNeighbors,
+  getCommandLimit,
   manhattan,
   triggerUnitAction,
   resolveSpell,
@@ -87,6 +89,51 @@ export function handleUnitMove(state, unitUid, row, col) {
 
   if (unit && targetHasEnemy && manhattan([unit.row, unit.col], [row, col]) === 2) {
     const tiles = getApproachTiles(state, unit, row, col);
+
+    // DIAG [spd-2-state-compare]: log full state on every SPD-2 attack attempt
+    const p = state.players[state.activePlayer];
+    const candidateTiles = cardinalNeighbors(row, col).map(([r, c]) => {
+      const occupant = state.units.find(u => u.row === r && u.col === c)
+        || state.champions.find(ch => ch.row === r && ch.col === c);
+      return {
+        tile: [r, c],
+        adjacentToAttacker: manhattan([unit.row, unit.col], [r, c]) === 1,
+        occupied: !!occupant,
+        occupant: occupant ? { uid: occupant.uid, name: occupant.name, owner: occupant.owner } : null,
+        inApproachSet: tiles.some(([tr, tc]) => tr === r && tc === c),
+      };
+    });
+    const diagResult = tiles.length > 1 ? 'NEEDS_APPROACH_SELECT'
+      : tiles.length === 1 ? 'ATTACK_PROCEEDS'
+      : unit.flying ? 'FLYING_FALLBACK'
+      : 'SILENT_FAIL';
+    console.log('[SPD2-DIAG] Attack attempt — result:', diagResult, {
+      attacker: {
+        uid: unit.uid, name: unit.name,
+        pos: [unit.row, unit.col],
+        moved: unit.moved, speedBonus: unit.speedBonus,
+        atkBonus: unit.atkBonus, turnAtkBonus: unit.turnAtkBonus,
+        extraActionsRemaining: unit.extraActionsRemaining,
+        flying: unit.flying, summoned: unit.summoned, dormant: unit.dormant,
+      },
+      target: { pos: [row, col] },
+      approachTilesFound: tiles.length,
+      approachTileCandidates: candidateTiles,
+      gameState: {
+        turn: state.turn, activePlayer: state.activePlayer,
+        commandsUsed: p?.commandsUsed,
+        commandLimit: getCommandLimit(state, state.activePlayer),
+        pendingSpell: !!state.pendingSpell,
+        pendingHandSelect: !!state.pendingHandSelect,
+        pendingDiscard: !!state.pendingDiscard,
+        pendingSummon: !!state.pendingSummon,
+        pendingTerrainCast: !!state.pendingTerrainCast,
+        pendingRelicPlace: !!state.pendingRelicPlace,
+        pendingDirectionSelect: !!state.pendingDirectionSelect,
+      },
+    });
+    // END DIAG
+
     if (tiles.length > 1) {
       return { needsApproach: true, state };
     } else if (tiles.length === 1) {
