@@ -12,6 +12,7 @@ const TILE_ICONS = {
   boss:        '💀',
   wall:        null,  // solid block — no icon
   start:       '🚩',
+  orb_room:    '◉',
 };
 
 const TILE_LABELS = {
@@ -23,6 +24,7 @@ const TILE_LABELS = {
   event:       'Event',
   boss:        'Boss',
   start:       'Start',
+  orb_room:    'Orb Room',
 };
 
 // Color accents per tile type
@@ -36,6 +38,7 @@ const TILE_COLORS = {
   boss:        '#cc2020',
   start:       '#4a9060',
   wall:        '#1a1a2a',
+  orb_room:    '#C9A84C',
 };
 
 const DEFAULT_TILE_SIZE = 56;
@@ -67,11 +70,15 @@ function isAdjacent(tile, currentTile) {
   return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
 }
 
-// CSS keyframes injected once for pulsing current tile indicator
+// CSS keyframes injected once for pulsing current tile indicator and orb room glow
 const PULSE_STYLE = `
 @keyframes dungeonDotPulse {
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 3px #C9A84C) drop-shadow(0 0 6px #C9A84C80); }
   50%       { opacity: 0.55; filter: drop-shadow(0 0 6px #C9A84C) drop-shadow(0 0 12px #C9A84C60); }
+}
+@keyframes orbRoomGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px #C9A84C) drop-shadow(0 0 8px #C9A84C60); }
+  50%       { filter: drop-shadow(0 0 8px #C9A84C) drop-shadow(0 0 16px #C9A84C80); }
 }
 `;
 
@@ -84,7 +91,13 @@ const PULSE_STYLE = `
  */
 export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE_SIZE }) {
   const gridTotal = GRID_PADDING * 2 + 5 * tileSize + 4 * TILE_GAP;
-  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath, combatRoomsCleared } = state;
+  const { dungeonLayout, revealedTiles, completedTiles, currentTile, movementPath, combatRoomsCleared, roomsCleared } = state;
+
+  // Orb room is locked until 50% of non-wall tiles are cleared
+  const orbRoomUnlocked = useMemo(() => {
+    const nonWallCount = dungeonLayout.flat().filter(t => t.type !== 'wall').length;
+    return (roomsCleared ?? 0) >= Math.floor(nonWallCount * 0.5);
+  }, [dungeonLayout, roomsCleared]);
 
   // Determine whether the boss room is currently locked (player not on gate tile)
   const gateTile = useMemo(() => {
@@ -120,6 +133,8 @@ export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE
         if (tile.type === 'boss') {
           if (!gateTile || currentTile.row !== gateTile.row || currentTile.col !== gateTile.col) continue;
         }
+        // Orb room locked until 50% of non-wall rooms cleared
+        if (tile.type === 'orb_room' && !tile.completed && !orbRoomUnlocked) continue;
         result.push({ row: r, col: c });
       }
     }
@@ -184,7 +199,7 @@ export default function DungeonMap({ state, onTileClick, tileSize = DEFAULT_TILE
             const completed = isTileCompleted(tile, completedTiles);
             const current = isCurrentTile(tile, currentTile);
             const movable = movableTiles.some(t => t.row === r && t.col === c);
-            const locked = tile.type === 'boss' && bossLocked;
+            const locked = (tile.type === 'boss' && bossLocked) || (tile.type === 'orb_room' && !tile.completed && !orbRoomUnlocked);
             // Non-adjacent revealed tiles are dimmed
             const dimmed = revealed && !current && !movable && tile.type !== 'wall';
 
@@ -305,7 +320,12 @@ function TileCell({ tile, revealed, completed, current, movable, locked, dimmed,
       }}
     >
       {/* Icon */}
-      <div style={{ fontSize: '20px', lineHeight: 1, userSelect: 'none' }}>
+      <div style={{
+        fontSize: '20px',
+        lineHeight: 1,
+        userSelect: 'none',
+        ...(tile.type === 'orb_room' && !completed ? { animation: 'orbRoomGlow 2.5s ease-in-out infinite', color: '#C9A84C' } : {}),
+      }}>
         {icon}
       </div>
 

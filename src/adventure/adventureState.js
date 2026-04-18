@@ -163,7 +163,7 @@ export const FACTION_CURATED_CARDS = {
  */
 export function createNewRun(championFaction, startingDeck) {
   const seed = Math.floor(Math.random() * 2 ** 32);
-  const dungeonLayout = generateDungeon(seed);
+  const dungeonLayout = generateDungeon(seed, 0);
 
   // Find start tile
   let startTile = null;
@@ -194,6 +194,7 @@ export function createNewRun(championFaction, startingDeck) {
     seed,
     championFaction,
     deck,
+    upgrades: deck.map(() => false),
     blessings: [],
     curses: [],
     gold: 0,
@@ -253,7 +254,11 @@ export function applyReward(state, reward) {
 
   switch (reward.type) {
     case 'card':
-      newState = { ...newState, deck: [...newState.deck, reward.value] };
+      newState = {
+        ...newState,
+        deck: [...newState.deck, reward.value],
+        upgrades: [...(newState.upgrades ?? []), false],
+      };
       break;
     case 'gold':
       newState = { ...newState, gold: newState.gold + reward.value };
@@ -281,7 +286,19 @@ export function applyReward(state, reward) {
       if (idx !== -1) {
         const newDeck = [...newState.deck];
         newDeck.splice(idx, 1);
-        newState = { ...newState, deck: newDeck };
+        const newUpgrades = [...(newState.upgrades ?? [])];
+        newUpgrades.splice(idx, 1);
+        newState = { ...newState, deck: newDeck, upgrades: newUpgrades };
+      }
+      break;
+    }
+    case 'upgrade_card': {
+      // Mark the first non-upgraded instance of reward.value (card ID) as upgraded.
+      const upgrades = [...(newState.upgrades ?? newState.deck.map(() => false))];
+      const upgradeIdx = newState.deck.findIndex((id, i) => id === reward.value && !upgrades[i]);
+      if (upgradeIdx !== -1) {
+        upgrades[upgradeIdx] = true;
+        newState = { ...newState, upgrades };
       }
       break;
     }
@@ -354,7 +371,7 @@ export function completeTile(state, row, col, fightResult = null) {
   if (isBoss) {
     loopCount = state.loopCount + 1;
     seed = (state.seed + loopCount) >>> 0;
-    dungeonLayout = generateDungeon(seed);
+    dungeonLayout = generateDungeon(seed, loopCount);
     // Find new start tile and reveal around it
     let startTile = null;
     for (let r = 0; r < 5; r++) {

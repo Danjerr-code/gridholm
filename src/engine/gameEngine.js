@@ -681,6 +681,12 @@ function fireDeathTriggers(unit, state, source, destroyingUids, combatTile) {
     fireTrigger('onFriendlyUnitDeath', deathCtx, state);
   }
 
+  // divinepersistence: restore 1 HP to player champion when a friendly combat unit dies
+  if (state.adventureDivinePersistence && unit.owner === 0 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
+    const healed = restoreHP('champion0', 1, state, 'divinepersistence');
+    if (healed > 0) addLog(state, `Divine Persistence: champion restores 1 HP.`);
+  }
+
   // A unit dying reduces friendly unit count — check if any friendlyUnitCount-scaled units
   // (e.g. Oathkeep Paragon) now have effective HP <= 0 and must die.
   if (!unit.isRelic && !unit.isOmen) {
@@ -1417,6 +1423,29 @@ export function fireOnSummonTriggers(unit, state) {
       liveUnit.atk = (liveUnit.atk || 0) + bonus;
     }
   }
+
+  // First Blood: first player unit summoned each turn gains +3 ATK this turn
+  if (state.adventureFirstBlood && unit.owner === 0 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
+    const liveUnit = state.units.find(u => u.uid === unit.uid);
+    if (liveUnit) {
+      liveUnit.turnAtkBonus = (liveUnit.turnAtkBonus || 0) + 3;
+      addLog(state, `First Blood: ${liveUnit.name} gains +3 ATK this turn.`);
+    }
+  }
+
+  // Restorative Flow: if player champion HP ≥ 20, summoned units gain +2/+2
+  if (state.adventureRestorativeFlow && unit.owner === 0 && !unit.isRelic && !unit.isOmen && !unit.isToken) {
+    const champ = state.champions[0];
+    if (champ && champ.hp >= 20) {
+      const liveUnit = state.units.find(u => u.uid === unit.uid);
+      if (liveUnit) {
+        liveUnit.atk    = (liveUnit.atk    || 0) + 2;
+        liveUnit.hp     = (liveUnit.hp     || 0) + 2;
+        liveUnit.maxHp  = (liveUnit.maxHp  || liveUnit.hp);
+        addLog(state, `Restorative Flow: ${liveUnit.name} gains +2/+2.`);
+      }
+    }
+  }
 }
 
 // ── initializer ────────────────────────────────────────────────────────────
@@ -1632,6 +1661,13 @@ function _dispatchAction(unit, state, targets) {
 function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
   unit.hidden = false;
   addLog(state, `${unit.name} revealed!`);
+  // shadowstrike: player's hidden unit gains +1/+1 when revealed
+  if (state.adventureShadowStrike && unit.owner === 0 && !unit.isRelic && !unit.isOmen) {
+    unit.atk = (unit.atk ?? 0) + 1;
+    unit.hp  = (unit.hp  ?? 0) + 1;
+    unit.maxHp = Math.max(unit.maxHp ?? unit.hp, unit.hp);
+    addLog(state, `Shadow Strike: ${unit.name} gains +1/+1.`);
+  }
   // On-reveal effects
   if (unit.id === 'shadowtrap') {
     // On reveal: destroy the enemy unit that revealed this unit (handled at call site)
@@ -1898,6 +1934,40 @@ function doBeginTurnPhase(state) {
   // Clear recalled-this-turn
   state.recalledThisTurn = [];
 
+  // ── Adventure start-of-turn blessings ──────────────────────────────────────
+  if (state.activePlayer === 0) {
+    // Rally Formation: if 3+ friendly units in play, each gains +1 ATK this turn
+    if (state.adventureRallyFormation) {
+      const friendly = state.units.filter(u => u.owner === 0 && !u.isRelic && !u.isOmen && !u.hidden);
+      if (friendly.length >= 3) {
+        for (const u of friendly) u.turnAtkBonus = (u.turnAtkBonus || 0) + 1;
+        addLog(state, `Rally Formation: ${friendly.length} friendly units gain +1 ATK this turn.`);
+      }
+    }
+
+    // Elven Bond: each Elf unit the player controls grants +1 mana
+    if (state.adventureElvenBond) {
+      const elfCount = state.units.filter(u => u.owner === 0 && !u.isRelic && !u.isOmen && !u.hidden && u.unitType?.includes('Elf')).length;
+      if (elfCount > 0) {
+        p.resources = Math.min(p.resources + elfCount, 10);
+        addLog(state, `Elven Bond: ${elfCount} Elf unit(s) grant +${elfCount} mana.`);
+      }
+    }
+
+    // Strength in Numbers: friendly units gain +1 HP per other friendly unit (max +3)
+    if (state.adventureStrengthInNumbers) {
+      const friendly = state.units.filter(u => u.owner === 0 && !u.isRelic && !u.isOmen && !u.hidden);
+      const bonus = Math.min(friendly.length - 1, 3);
+      if (bonus > 0) {
+        for (const u of friendly) {
+          u.hp    += bonus;
+          u.maxHp = Math.max(u.maxHp ?? u.hp, u.hp);
+        }
+        addLog(state, `Strength in Numbers: friendly units gain +${bonus} HP.`);
+      }
+    }
+  }
+
   state.phase = 'action';
   return state;
 }
@@ -2025,6 +2095,15 @@ export function moveChampion(state, row, col) {
       champ.hp -= champIncomingDmg;
       s.players[s.activePlayer].championTookDamage = true;
       addLog(s, `${enemyUnit.name} counterattacks champion for ${champIncomingDmg} damage.`);
+      // Dark Bargain: when player champion takes damage, deal 1 to enemy champion
+      if (s.adventureDarkBargain && champIncomingDmg > 0 && s.activePlayer === 0) {
+        const enemyChamp = s.champions[1];
+        if (enemyChamp) {
+          enemyChamp.hp -= 1;
+          addLog(s, `Dark Bargain: enemy champion takes 1 damage.`);
+          checkWinner(s);
+        }
+      }
     }
     // If enemy was destroyed, champion advances to that tile
     const enemyDestroyed = !s.units.find(u => u.uid === enemyUnit.uid);
@@ -3261,6 +3340,25 @@ export function resolveSpell(state, cardUid, targetUnitUid) {
     fireTrigger('onCardPlayed', { playerIndex: s.activePlayer, card: resolvedSpellCard }, s);
   }
 
+  // Arcane Momentum: casting the 3rd spell in a turn returns that spell to hand
+  if (!isPaid && resolvedSpellCard && s.adventureArcaneMomentum && s.activePlayer === 0 &&
+      s.players[s.activePlayer].spellsCastThisTurn === 3 && !s.pendingSpell) {
+    const copy = { ...resolvedSpellCard, uid: `${resolvedSpellCard.id}_momentum_${Math.random().toString(36).slice(2)}` };
+    s.players[s.activePlayer].hand.push(copy);
+    addLog(s, `Arcane Momentum: ${resolvedSpellCard.name} returns to your hand.`);
+  }
+
+  // Champion's Chosen: when player targets a friendly unit with a spell, that unit gains +1/+1
+  if (!isPaid && resolvedSpellCard && s.adventureChampionChosen && s.activePlayer === 0 && !s.pendingSpell) {
+    const liveTarget = target && s.units.find(u => u.uid === target.uid);
+    if (liveTarget && liveTarget.owner === 0 && !liveTarget.isRelic && !liveTarget.isOmen) {
+      liveTarget.atk   = (liveTarget.atk   || 0) + 1;
+      liveTarget.hp    = (liveTarget.hp    || 0) + 1;
+      liveTarget.maxHp = Math.max(liveTarget.maxHp ?? liveTarget.hp, liveTarget.hp);
+      addLog(s, `Champion's Chosen: ${liveTarget.name} gains +1/+1.`);
+    }
+  }
+
   // Arcane Flow blessing: after casting a spell from hand (not echo/multi-step continuation),
   // reveal cards from top of deck until finding one with less cost. Add it to hand at cost 0.
   if (!isPaid && resolvedSpellCard && s.adventureArcaneFlow && !s.pendingSpell) {
@@ -4294,6 +4392,15 @@ export function moveUnit(state, unitUid, row, col) {
     if (s.adventureCurses?.includes('marked_for_death') && enemyChamp.owner === 0) champDmg += 1;
     enemyChamp.hp -= champDmg;
     addLog(s, `${unit.name} attacks ${s.players[enemyChamp.owner].name}'s champion for ${champDmg} damage.`);
+    // Dark Bargain: when player champion takes damage, deal 1 to enemy champion
+    if (s.adventureDarkBargain && champDmg > 0 && enemyChamp.owner === 0) {
+      const aiChamp = s.champions[1];
+      if (aiChamp) {
+        aiChamp.hp -= 1;
+        addLog(s, `Dark Bargain: enemy champion takes 1 damage.`);
+        checkWinner(s);
+      }
+    }
 
     const unitAfterThorn = s.units.find(u => u.uid === unitUid);
     if (unitAfterThorn) {
@@ -4433,6 +4540,16 @@ export function applyDamageToUnit(state, unit, dmg, sourceName, combatTile = nul
   }
   unit.hp -= actualDmg;
   if (actualDmg > 0) addLog(state, `${unit.name} takes ${actualDmg} damage (${unit.hp}/${unit.maxHp} HP).`);
+  // Spreading Sickness: when a poisoned enemy unit takes damage, adjacent enemy units gain Poison 1
+  if (state.adventureSpreadingSickness && actualDmg > 0 && unit.owner === 1 && (unit.poison ?? 0) > 0) {
+    const adj = cardinalNeighbors(unit.row, unit.col);
+    for (const [r, c] of adj) {
+      const neighbor = state.units.find(u => u.owner === 1 && u.row === r && u.col === c && !u.isRelic && !u.isOmen);
+      if (neighbor && (neighbor.poison ?? 0) === 0) {
+        applyPoison(state, neighbor, 1);
+      }
+    }
+  }
   // Fire onDamageTaken before death check — allows bounce-before-death effects (e.g. Shimmer Guardian).
   if (actualDmg > 0) {
     fireTrigger('onDamageTaken', {
@@ -5304,6 +5421,24 @@ export function applyChampionAbility(state, playerIdx, abilityId, targetUid) {
 
   // Ability uses the champion's action — cannot activate if champion already moved/acted
   if (champ.moved) return s;
+
+  // Undying Legion: replaces champion invoke — pay 2 mana, return a unit from grave to hand
+  if (s.adventureUndyingLegion && playerIdx === 0) {
+    const grave = p.grave.filter(c => c.type === 'unit' && !c.isRelic && !c.isOmen);
+    if (grave.length > 0 && p.resources >= 2) {
+      p.resources -= 2;
+      const pick = grave[grave.length - 1]; // most recently graved unit
+      const graveIdx = p.grave.findIndex(c => c.uid === pick.uid);
+      if (graveIdx !== -1) p.grave.splice(graveIdx, 1);
+      const returnedCard = { ...pick, uid: `${pick.id}_undying_${Math.random().toString(36).slice(2)}` };
+      p.hand.push(returnedCard);
+      addLog(s, `Undying Legion: ${returnedCard.name} returns from the grave to your hand.`);
+      champ.moved = true;
+      if (!s.championAbilityUsed) s.championAbilityUsed = [false, false];
+      s.championAbilityUsed[playerIdx] = true;
+    }
+    return s;
+  }
 
   switch (abilityId) {
     case 'shield': {

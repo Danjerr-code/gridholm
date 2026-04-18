@@ -13,7 +13,7 @@ import {
   generateFightReward, generateTreasure, generateShopOfferings,
   BLESSINGS_POOL,
 } from '../../adventure/encounterRewards.js';
-import { makeEventRng, getRandomEvent } from '../../adventure/eventDefinitions.js';
+import { makeEventRng, getRandomEvent, CARD_UPGRADE_EVENT } from '../../adventure/eventDefinitions.js';
 import DungeonMap from './DungeonMap.jsx';
 import RewardScreen from './RewardScreen.jsx';
 import EventScreen from './EventScreen.jsx';
@@ -40,6 +40,7 @@ const TILE_LABELS = {
   event:       'Mysterious Event',
   boss:        'The Boss',
   start:       'Starting Chamber',
+  orb_room:    'Crystallization Chamber',
 };
 
 const CURSES_INFO = {
@@ -70,6 +71,9 @@ export default function AdventureMode({ onBack }) {
   // ── Boss entry state ──────────────────────────────────────────────────────
   // pendingBossEntry: { row, col } — boss tile the player wants to enter (not yet confirmed)
   const [pendingBossEntry, setPendingBossEntry] = useState(null);
+
+  // ── Orb room state ────────────────────────────────────────────────────────
+  const [pendingOrbRoom, setPendingOrbRoom] = useState(null);
 
   function saveAdventureRunResult(completedRun) {
     if (!completedRun) return;
@@ -184,6 +188,16 @@ export default function AdventureMode({ onBack }) {
       setPhase('fight');
     } else if (tile.completed) {
       // Already completed — just move, no event
+    } else if (tileType === 'orb_room') {
+      // Crystallization Orb Room — only movable if 50% of non-wall rooms cleared
+      const nonWallCount = newRun.dungeonLayout.flat().filter(t => t.type !== 'wall').length;
+      if (newRun.roomsCleared < Math.floor(nonWallCount * 0.5)) {
+        // Not yet unlocked; treat as completed (player moved there but nothing happens yet)
+        // Shouldn't happen since DungeonMap guards movability, but safety fallback
+      } else {
+        setPendingOrbRoom({ row, col });
+        setPhase(`orb_room:${row}:${col}`);
+      }
     } else if (tileType === 'rest') {
       // Rest: calculate heal immediately so it can be shown, apply on confirm
       const healAmt = Math.max(5, Math.ceil(newRun.maxChampionHP * 0.25));
@@ -198,9 +212,9 @@ export default function AdventureMode({ onBack }) {
       setShopOfferings(offerings);
       setPhase(`shop:${row}:${col}`);
     } else {
-      // Mysterious event
+      // Mysterious event — use card_upgrade event if tile is marked as such
       const rng = makeEventRng(newRun.seed, row, col);
-      const event = getRandomEvent(rng);
+      const event = tile.subtype === 'card_upgrade' ? CARD_UPGRADE_EVENT : getRandomEvent(rng);
       setTileEvent({ event, rng, row, col });
       setPhase(`tile_event:${row}:${col}`);
     }
@@ -537,7 +551,220 @@ export default function AdventureMode({ onBack }) {
     );
   }
 
+  // Crystallization Orb Room
+  if (phase.startsWith('orb_room:') && pendingOrbRoom && run) {
+    const { row, col } = pendingOrbRoom;
+    return (
+      <OrbRoomScreen
+        run={run}
+        onDone={(rewards) => {
+          let newRun = run;
+          for (const r of rewards) newRun = applyReward(newRun, r);
+          newRun = completeTile(newRun, row, col);
+          setRun(newRun);
+          setPendingOrbRoom(null);
+          setPhase('map');
+        }}
+      />
+    );
+  }
+
   return null;
+}
+
+// ── Crystallization Orb Room ──────────────────────────────────────────────────
+
+const ORB_CONTENTS = {
+  light: [
+    { orb: 'Golden',  color: '#C9A84C', glow: '#C9A84C80', cardId: 'standardbearer', blessingId: 'rallyformation',    blessingName: 'Rally Formation' },
+    { orb: 'Crystal', color: '#a0d8ef', glow: '#a0d8ef80', cardId: 'forgeweapon',    blessingId: 'championschosen',   blessingName: "Champion's Chosen" },
+    { orb: 'Mithral', color: '#c0c0d8', glow: '#c0c0d880', cardId: 'rebirth',         blessingId: 'divinepersistence', blessingName: 'Divine Persistence' },
+  ],
+  primal: [
+    { orb: 'Golden',  color: '#C9A84C', glow: '#C9A84C80', cardId: 'rockhorn',  blessingId: 'firstblood',        blessingName: 'First Blood' },
+    { orb: 'Crystal', color: '#a0d8ef', glow: '#a0d8ef80', cardId: 'venomfang', blessingId: 'spreadingsickness', blessingName: 'Spreading Sickness' },
+    { orb: 'Mithral', color: '#c0c0d8', glow: '#c0c0d880', cardId: 'packrunt',  blessingId: 'strengthinnumbers', blessingName: 'Strength in Numbers' },
+  ],
+  mystic: [
+    { orb: 'Golden',  color: '#C9A84C', glow: '#C9A84C80', cardId: 'cascadesage',       blessingId: 'arcanemomentum', blessingName: 'Arcane Momentum' },
+    { orb: 'Crystal', color: '#a0d8ef', glow: '#a0d8ef80', cardId: 'rootsongcommander', blessingId: 'elvenbond',      blessingName: 'Elven Bond' },
+    { orb: 'Mithral', color: '#c0c0d8', glow: '#c0c0d880', cardId: 'moonveilmystic',    blessingId: 'restorativeflow', blessingName: 'Restorative Flow' },
+  ],
+  dark: [
+    { orb: 'Golden',  color: '#C9A84C', glow: '#C9A84C80', cardId: 'gravecaller',  blessingId: 'undyinglegion', blessingName: 'Undying Legion' },
+    { orb: 'Crystal', color: '#a0d8ef', glow: '#a0d8ef80', cardId: 'darkdealer',   blessingId: 'darkbargain',   blessingName: 'Dark Bargain' },
+    { orb: 'Mithral', color: '#c0c0d8', glow: '#c0c0d880', cardId: 'dreadknight',  blessingId: 'shadowstrike',  blessingName: 'Shadow Strike' },
+  ],
+};
+
+const ORB_BLESSINGS_DESC = {
+  rallyformation:    'Start of your turn: if 3+ friendly units in play, each gains +1 ATK this turn.',
+  championschosen:   'When you target a friendly unit with a spell, that unit gains +1/+1.',
+  divinepersistence: 'When a friendly unit dies, restore 1 HP to your champion.',
+  firstblood:        'Friendly units have +3 ATK on the turn they are summoned.',
+  spreadingsickness: 'When a poisoned enemy takes damage, adjacent enemies gain Poison 1.',
+  strengthinnumbers: 'Friendly units gain +1 HP per other friendly unit in play (max +3).',
+  arcanemomentum:    'When you cast 3 spells in a turn, return the last spell cast to your hand.',
+  elvenbond:         'Your Elves gain 1 mana at the start of your turn (once each).',
+  restorativeflow:   'While your champion HP is 20 or more, friendly units have +2/+2.',
+  undyinglegion:     'Replace your champion invoke with: Pay 2 mana — return a unit from your grave to hand.',
+  darkbargain:       'When your champion takes damage during your turn, deal 1 damage to the enemy champion.',
+  shadowstrike:      'When a friendly hidden unit is revealed, it gains +1/+1.',
+};
+
+function OrbRoomScreen({ run, onDone }) {
+  const [selectedOrb, setSelectedOrb] = useState(null);   // index 0,1,2
+  const [expandedOrb, setExpandedOrb] = useState(null);   // index after click
+  const [shattered, setShattered] = useState(false);
+
+  const orbs = ORB_CONTENTS[run.championFaction] ?? ORB_CONTENTS.light;
+
+  function handleOrbClick(idx) {
+    if (shattered) return;
+    setExpandedOrb(idx);
+    setSelectedOrb(idx);
+  }
+
+  function handleConfirm() {
+    if (selectedOrb === null) return;
+    const chosen = orbs[selectedOrb];
+    setShattered(true);
+    setTimeout(() => {
+      onDone([
+        { type: 'card', value: chosen.cardId },
+        { type: 'blessing', value: chosen.blessingId },
+      ]);
+    }, 600);
+  }
+
+  const confirmed = shattered;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#08080f',
+      color: '#f9fafb',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 16px',
+      gap: '24px',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#C9A84C', letterSpacing: '0.15em', marginBottom: '8px' }}>
+          CRYSTALLIZATION CHAMBER
+        </div>
+        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '22px', color: '#f9fafb', margin: 0, letterSpacing: '0.1em' }}>
+          Three Orbs Await
+        </h2>
+        <p style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '14px', color: '#8a8aaa', marginTop: '8px' }}>
+          Choose one. The others shatter. What is chosen is yours forever.
+        </p>
+      </div>
+
+      {/* Orbs row */}
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '640px' }}>
+        {orbs.map((orb, idx) => {
+          const isExpanded = expandedOrb === idx;
+          const isShattering = shattered && idx !== selectedOrb;
+          const isConfirmed = shattered && idx === selectedOrb;
+          const card = CARD_DB[orb.cardId];
+
+          return (
+            <div
+              key={idx}
+              onClick={() => !shattered && handleOrbClick(idx)}
+              style={{
+                flex: isExpanded ? '1 1 280px' : '0 0 140px',
+                minWidth: isExpanded ? '280px' : '140px',
+                background: isExpanded ? 'linear-gradient(135deg, #0a0a14, #141428)' : '#0d0d18',
+                border: `1px solid ${isExpanded ? orb.color : '#2a2a3a'}`,
+                borderRadius: '10px',
+                padding: isExpanded ? '20px' : '28px 12px',
+                cursor: shattered ? 'default' : 'pointer',
+                textAlign: 'center',
+                transition: 'all 300ms ease',
+                boxShadow: isExpanded ? `0 0 20px ${orb.glow}` : isShattering ? 'none' : `0 0 6px ${orb.glow}`,
+                opacity: isShattering ? 0.15 : 1,
+                transform: isShattering ? 'scale(0.8)' : 'scale(1)',
+                filter: isShattering ? 'grayscale(0.8)' : 'none',
+              }}
+            >
+              {/* Orb glyph */}
+              <div style={{
+                fontSize: isExpanded ? '40px' : '32px',
+                marginBottom: '8px',
+                filter: `drop-shadow(0 0 8px ${orb.color})`,
+                transition: 'font-size 200ms',
+              }}>
+                ◉
+              </div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: orb.color, letterSpacing: '0.06em', marginBottom: isExpanded ? '12px' : 0 }}>
+                {orb.orb} Orb
+              </div>
+
+              {/* Expanded: show card + blessing */}
+              {isExpanded && (
+                <>
+                  <div style={{ borderTop: `1px solid ${orb.color}40`, marginTop: '12px', paddingTop: '12px' }}>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#6a6a8a', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                      SIGNPOST CARD
+                    </div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '14px', color: '#f0e8d0', marginBottom: '4px' }}>
+                      {card?.name ?? orb.cardId}
+                    </div>
+                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '12px', color: '#8a8aaa', fontStyle: 'italic', marginBottom: '12px' }}>
+                      {card?.rules ?? ''}
+                    </div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#6a6a8a', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                      BLESSING
+                    </div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: '13px', color: '#4ade80', marginBottom: '4px' }}>
+                      ✦ {orb.blessingName}
+                    </div>
+                    <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '12px', color: '#4a6a40', lineHeight: 1.5 }}>
+                      {ORB_BLESSINGS_DESC[orb.blessingId] ?? ''}
+                    </div>
+                  </div>
+                  {!confirmed && (
+                    <button
+                      onClick={e => { e.stopPropagation(); handleConfirm(); }}
+                      style={{
+                        marginTop: '16px',
+                        background: `linear-gradient(135deg, #1a1400, #2a2800)`,
+                        color: orb.color,
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        border: `1px solid ${orb.color}80`,
+                        borderRadius: '4px',
+                        padding: '10px 28px',
+                        cursor: 'pointer',
+                        letterSpacing: '0.08em',
+                        width: '100%',
+                      }}
+                    >
+                      Claim This Orb
+                    </button>
+                  )}
+                  {isConfirmed && (
+                    <div style={{ marginTop: '12px', fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#4ade80', letterSpacing: '0.06em' }}>
+                      ✓ Claimed
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '12px', color: '#3a3a5a', textAlign: 'center' }}>
+        {expandedOrb === null ? 'Click an orb to reveal its contents.' : 'Confirm your choice — the other orbs will shatter.'}
+      </div>
+    </div>
+  );
 }
 
 // ── Boss Passive Intro ────────────────────────────────────────────────────────
@@ -1373,7 +1600,7 @@ function RunPanel({ run, livePenalty }) {
   );
 }
 
-const CONFIRM_MOVE_TYPES = new Set(['fight', 'elite_fight', 'shop', 'event']);
+const CONFIRM_MOVE_TYPES = new Set(['fight', 'elite_fight', 'shop', 'event', 'orb_room']);
 
 function MapScreen({ run, onTileClick, onUsePotion, onAbandon, onBack }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);

@@ -1,7 +1,7 @@
 /**
  * Dungeon Generator — creates a deterministic 5x5 dungeon layout from a seed.
  *
- * Tile types: 'start' | 'boss' | 'wall' | 'fight' | 'elite_fight' | 'shop' | 'treasure' | 'rest' | 'event'
+ * Tile types: 'start' | 'boss' | 'wall' | 'fight' | 'elite_fight' | 'shop' | 'treasure' | 'rest' | 'event' | 'orb_room'
  */
 
 // ── Linear Congruential Generator ────────────────────────────────────────────
@@ -84,9 +84,10 @@ function randomTileType(rng) {
 /**
  * Generate a deterministic 5x5 dungeon layout.
  * @param {number} seed - unsigned 32-bit integer
+ * @param {number} [loopCount=0] - current loop count; orb_room only placed on loopCount === 0
  * @returns {Object[][]} 5x5 array of tile objects
  */
-export function generateDungeon(seed) {
+export function generateDungeon(seed, loopCount = 0) {
   const rng = makeLCG(seed >>> 0);
 
   // Initialize empty grid
@@ -183,6 +184,46 @@ export function generateDungeon(seed) {
 
   // 7. Mark gate tile — single entrance to the boss room
   layout[gateTile.row][gateTile.col].isGate = true;
+
+  // 8. In Act 1 (loopCount === 0), place one orb_room tile at a non-key position.
+  //    Replace a random fight tile (most common), falling back to any eligible tile.
+  if (loopCount === 0) {
+    const orbCandidates = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const t = layout[r][c];
+        if (t.type === 'fight' && !t.isGate) orbCandidates.push(t);
+      }
+    }
+    if (orbCandidates.length === 0) {
+      // fallback: any non-key tile
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          const t = layout[r][c];
+          if (t.type !== 'start' && t.type !== 'boss' && t.type !== 'wall' && !t.isGate) {
+            orbCandidates.push(t);
+          }
+        }
+      }
+    }
+    rng.shuffle(orbCandidates);
+    if (orbCandidates.length > 0) {
+      orbCandidates[0].type = 'orb_room';
+    }
+  }
+
+  // 9. Guarantee one card-upgrade event per dungeon: mark one event tile with subtype.
+  //    If no event tiles exist, pick any non-key tile and convert to event + subtype.
+  const eventTiles = [];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if (layout[r][c].type === 'event') eventTiles.push(layout[r][c]);
+    }
+  }
+  if (eventTiles.length > 0) {
+    rng.shuffle(eventTiles);
+    eventTiles[0].subtype = 'card_upgrade';
+  }
 
   return layout;
 }

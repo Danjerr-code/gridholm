@@ -160,6 +160,45 @@ function applyBlessings(state, blessings) {
         break;
 
       // throne_sense, resilience, and blood_tithe are handled outside the fight engine
+
+      // ── Orb Room blessings (flags read by gameEngine) ──────────────────────
+      case 'rallyformation':
+        state.adventureRallyFormation = true;
+        break;
+      case 'championschosen':
+        state.adventureChampionChosen = true;
+        break;
+      case 'divinepersistence':
+        state.adventureDivinePersistence = true;
+        break;
+      case 'firstblood':
+        state.adventureFirstBlood = true;
+        break;
+      case 'spreadingsickness':
+        state.adventureSpreadingSickness = true;
+        break;
+      case 'strengthinnumbers':
+        state.adventureStrengthInNumbers = true;
+        break;
+      case 'arcanemomentum':
+        state.adventureArcaneMomentum = true;
+        break;
+      case 'elvenbond':
+        state.adventureElvenBond = true;
+        break;
+      case 'restorativeflow':
+        state.adventureRestorativeFlow = true;
+        break;
+      case 'undyinglegion':
+        state.adventureUndyingLegion = true;
+        break;
+      case 'darkbargain':
+        state.adventureDarkBargain = true;
+        break;
+      case 'shadowstrike':
+        state.adventureShadowStrike = true;
+        break;
+
       default:
         break;
     }
@@ -228,6 +267,34 @@ export function buildAdventureGameState(run, row, col, tileType) {
 
   // ── Base game state ──────────────────────────────────────────────────────
   const state = createInitialState(playerSpec, aiSpec);
+
+  // ── Apply card upgrades: +1/+1 for units, -1 cost for spells ────────────────
+  if (run.upgrades?.some(Boolean)) {
+    const upgradeCounts = {};
+    for (let i = 0; i < run.deck.length; i++) {
+      if (run.upgrades[i]) {
+        const id = run.deck[i];
+        upgradeCounts[id] = (upgradeCounts[id] ?? 0) + 1;
+      }
+    }
+    const appliedCounts = {};
+    const allPlayerCards = [...(state.players[0].hand ?? []), ...(state.players[0].deck ?? [])];
+    for (const card of allPlayerCards) {
+      const id = card.id;
+      const remaining = (upgradeCounts[id] ?? 0) - (appliedCounts[id] ?? 0);
+      if (remaining > 0) {
+        if (card.type === 'unit') {
+          card.atk = (card.atk ?? 0) + 1;
+          card.hp = (card.hp ?? 0) + 1;
+          card.maxHp = card.hp;
+        } else {
+          card.cost = Math.max(1, (card.cost ?? 1) - 1);
+        }
+        card.name = card.name.replace(/\+$/, '') + '+';
+        appliedCounts[id] = (appliedCounts[id] ?? 0) + 1;
+      }
+    }
+  }
 
   // ── Override player champion HP/maxHp from adventure run ─────────────────
   state.champions[0].hp    = run.championHP;

@@ -404,6 +404,46 @@ const EVENTS = [
   },
 ];
 
+// ── Card Upgrade Event (guaranteed once per act via tile subtype) ─────────────
+
+export const CARD_UPGRADE_EVENT = {
+  id: 'card_upgrade',
+  title: "Artificer's Forge",
+  description: "A master artificer offers to enhance one of your weapons. Upgraded units gain +1/+1 permanently. Upgraded spells cost 1 less mana. Each card can only be upgraded once.",
+  choices: [
+    {
+      label: 'Upgrade a card.',
+      effectDesc: 'Select one card from your deck to upgrade permanently.',
+      applyOutcome(state) {
+        const deck = state.deck ?? [];
+        const upgrades = state.upgrades ?? deck.map(() => false);
+        const hasUpgradeable = deck.some((id, i) => !upgrades[i]);
+        if (!hasUpgradeable) {
+          return {
+            outcomeText: 'All your cards are already upgraded. The artificer nods with approval.',
+            rewards: [],
+          };
+        }
+        return {
+          outcomeText: 'The forge glows hot. Choose a card to enhance.',
+          rewards: [],
+          needsCardUpgrade: true,
+        };
+      },
+    },
+    {
+      label: 'Leave the forge.',
+      effectDesc: 'Nothing happens.',
+      applyOutcome() {
+        return {
+          outcomeText: 'You leave the forge untouched. The fire dims behind you.',
+          rewards: [],
+        };
+      },
+    },
+  ],
+};
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**

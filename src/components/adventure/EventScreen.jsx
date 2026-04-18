@@ -57,8 +57,9 @@ const goldBtn = {
 export default function EventScreen({ event, run, rng, onDone }) {
   const [view, setView] = useState('choice'); // 'choice' | 'outcome'
   const [outcome, setOutcome] = useState(null);
-  const [pickedCardId, setPickedCardId] = useState(null);   // for card offer pick
+  const [pickedCardId, setPickedCardId] = useState(null);    // for card offer pick
   const [sacrificeCardId, setSacrificeCardId] = useState(null); // for card removal
+  const [upgradeCardId, setUpgradeCardId] = useState(null);  // for card upgrade
 
   function handleChoiceSelect(idx) {
     const result = event.choices[idx].applyOutcome(run, rng);
@@ -76,14 +77,19 @@ export default function EventScreen({ event, run, rng, onDone }) {
       rewards.push({ type: 'remove_card', value: sacrificeCardId });
       for (const r of outcome.afterRemovalRewards ?? []) rewards.push(r);
     }
+    if (outcome.needsCardUpgrade && upgradeCardId) {
+      rewards.push({ type: 'upgrade_card', value: upgradeCardId });
+    }
     onDone(rewards, { revealAll: outcome.revealAll ?? false });
   }
 
-  const needsCardPick   = view === 'outcome' && (outcome?.cardOffers?.length ?? 0) > 0;
-  const needsRemoval    = view === 'outcome' && outcome?.needsCardRemoval && (run?.deck?.length ?? 0) > 0;
-  const cardPickDone    = !needsCardPick  || pickedCardId !== null;
-  const removalDone     = !needsRemoval   || sacrificeCardId !== null;
-  const showContinue    = view === 'outcome' && cardPickDone && removalDone;
+  const needsCardPick    = view === 'outcome' && (outcome?.cardOffers?.length ?? 0) > 0;
+  const needsRemoval     = view === 'outcome' && outcome?.needsCardRemoval && (run?.deck?.length ?? 0) > 0;
+  const needsUpgrade     = view === 'outcome' && outcome?.needsCardUpgrade;
+  const cardPickDone     = !needsCardPick  || pickedCardId !== null;
+  const removalDone      = !needsRemoval   || sacrificeCardId !== null;
+  const upgradeDone      = !needsUpgrade   || upgradeCardId !== null;
+  const showContinue     = view === 'outcome' && cardPickDone && removalDone && upgradeDone;
 
   if (view === 'choice') {
     return (
@@ -184,6 +190,37 @@ export default function EventScreen({ event, run, rng, onDone }) {
           </button>
         </div>
       )}
+
+      {/* Card upgrade picker */}
+      {needsUpgrade && !upgradeCardId && (
+        <div style={{ width: '100%', maxWidth: '480px' }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', letterSpacing: '0.1em', color: '#C9A84C', marginBottom: '8px', textAlign: 'center' }}>
+            SELECT A CARD TO UPGRADE
+          </div>
+          <DeckUpgradePicker deck={run.deck} upgrades={run.upgrades ?? []} onSelect={setUpgradeCardId} />
+        </div>
+      )}
+
+      {/* Upgrade card confirmation */}
+      {needsUpgrade && upgradeCardId && (() => {
+        const card = CARD_DB[upgradeCardId];
+        const upgradeDesc = card?.type === 'spell' || card?.type === 'omen'
+          ? `−1 mana cost (min 1)`
+          : `+1/+1`;
+        return (
+          <div style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
+            <div style={{ fontFamily: "'Crimson Text', serif", fontSize: '14px', color: '#C9A84C' }}>
+              Upgrading: <strong>{card?.name ?? upgradeCardId}+</strong> ({upgradeDesc})
+            </div>
+            <button
+              onClick={() => setUpgradeCardId(null)}
+              style={{ marginTop: '6px', background: 'none', border: '1px solid #4a4a6a', borderRadius: '4px', color: '#8a8aaa', fontFamily: "'Cinzel', serif", fontSize: '10px', padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.05em' }}
+            >
+              Change selection
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Reveal all notice */}
       {outcome.revealAll && (
@@ -291,6 +328,65 @@ function CardOfferRow({ card, selected, onSelect }) {
         {selected && ' ✓'}
       </span>
     </button>
+  );
+}
+
+// ── Deck upgrade picker (for card upgrade) ───────────────────────────────────
+
+function DeckUpgradePicker({ deck, upgrades, onSelect }) {
+  // Show unique card IDs that have at least one non-upgraded instance.
+  // Counts: total copies and already-upgraded copies.
+  const info = {};
+  for (let i = 0; i < deck.length; i++) {
+    const id = deck[i];
+    if (!info[id]) info[id] = { total: 0, upgraded: 0 };
+    info[id].total++;
+    if (upgrades[i]) info[id].upgraded++;
+  }
+  const upgradeable = Object.entries(info).filter(([, v]) => v.upgraded < v.total);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
+      {upgradeable.map(([id, { total, upgraded }]) => {
+        const card = CARD_DB[id];
+        if (!card) return null;
+        const rarityColor = RARITY_COLOR[card.rarity] ?? '#a0a0c0';
+        const upgradeDesc = card.type === 'spell' || card.type === 'omen' ? '−1 mana' : '+1/+1';
+        return (
+          <button
+            key={id}
+            onClick={() => onSelect(id)}
+            style={{
+              background: '#0d0d18',
+              border: '1px solid #2a2a3a',
+              borderRadius: '5px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#C9A84C'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a3a'; }}
+          >
+            <div>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '12px', color: '#f0e8d0' }}>{card.name}</span>
+              <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '11px', color: '#8a8aaa', marginLeft: '8px', fontStyle: 'italic' }}>
+                {card.type} · cost {card.cost} · {upgradeDesc}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: rarityColor }}>{card.rarity}</span>
+              {total > 1 && (
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#6a6a8a' }}>
+                  ×{total - upgraded} avail
+                </span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
