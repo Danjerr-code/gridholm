@@ -32,6 +32,23 @@ export default function MatchReview({ stateHistory, onBack }) {
   const totalTurns = stateHistory.length;
   const currentState = stateHistory[currentIndex];
 
+  const turnActions = useMemo(() => {
+    if (!currentState) return [];
+    const prevLog = currentIndex > 0 ? (stateHistory[currentIndex - 1]?.log ?? []) : [];
+    const currLog = currentState.log ?? [];
+    const newEntries = currLog.slice(prevLog.length);
+    return newEntries
+      .map(e => (typeof e === 'string' ? e : e?.text ?? ''))
+      .filter(text => {
+        const t = text.toLowerCase();
+        return (
+          /summons|plays|casts|moves|attacks|uses|draws|invokes|champion/.test(t) &&
+          !/^turn \d+ begins/i.test(t)
+        );
+      })
+      .slice(0, 8);
+  }, [currentState, currentIndex, stateHistory]);
+
   function stepBack() {
     setCurrentIndex(i => Math.max(0, i - 1));
   }
@@ -167,6 +184,25 @@ export default function MatchReview({ stateHistory, onBack }) {
           onChampionClick={handleChampionClick}
         />
       </div>
+
+      {/* Actions this turn */}
+      {turnActions.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '440px', marginBottom: '12px',
+          background: '#0d0d1a', border: '1px solid #252538', borderRadius: '6px', padding: '8px 10px' }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#6b7280',
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>
+            Actions This Turn
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {turnActions.map((text, i) => (
+              <div key={i} style={{ fontFamily: 'var(--font-sans)', fontSize: '11px',
+                color: '#9090b8', lineHeight: 1.5, padding: '1px 0' }}>
+                · {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Hand state */}
       {(currentState?.players?.[0]?.hand?.length > 0 || currentState?.players?.[1]?.hand?.length > 0) && (
