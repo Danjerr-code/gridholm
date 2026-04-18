@@ -211,6 +211,10 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
     ].map(c => c.id);
 
     const { stateHistory, ...finalState } = state;
+    const cleanHistory = (stateHistory ?? []).map(snapshot => {
+      const { stateHistory: _nested, ...cleaned } = snapshot;
+      return cleaned;
+    });
 
     supabase.from('match_replays').insert({
       game_mode: gameMode,
@@ -220,7 +224,7 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
       p2_deck: getCardIds(p2),
       winner: winnerValue,
       total_turns: state.turn ?? 0,
-      state_history: stateHistory ?? [],
+      state_history: cleanHistory,
       final_state: finalState,
     }).then(({ error }) => {
       if (error) console.warn('[Replay] Insert failed:', error.message);

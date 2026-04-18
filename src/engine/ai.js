@@ -820,7 +820,7 @@ function runHeuristicTurnSteps(state) {
 }
 
 function runStrategicTurn(state) {
-  // cloneState strips stateHistory; save it so endTurn can accumulate properly.
+  // savedHistory used only in the Royal Stasis early-return path below.
   const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
@@ -847,19 +847,12 @@ function runStrategicTurn(state) {
     if (action.type === 'endTurn') break;
   }
 
-  // Fix up stateHistory on the result (same logic as runStrategicTurnSteps).
-  if (s.stateHistory?.length > 0 && savedHistory?.length > 0) {
-    s.stateHistory = [...savedHistory, ...s.stateHistory];
-  } else if (!s.stateHistory && savedHistory) {
-    s.stateHistory = savedHistory;
-  }
-
   return s;
 }
 
 function runStrategicTurnSteps(state) {
   const steps = [];
-  // cloneState strips stateHistory; save it so we can reattach it after the turn.
+  // savedHistory used only in the Royal Stasis early-return path below.
   const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
@@ -888,19 +881,6 @@ function runStrategicTurnSteps(state) {
     steps.push(s);
     actionCount++;
     if (action.type === 'endTurn') break;
-  }
-
-  // Fix up stateHistory on the final step. cloneState stripped the incoming history,
-  // so endTurn built stateHistory from [] instead of savedHistory. Prepend it now.
-  if (steps.length > 0) {
-    const last = steps[steps.length - 1];
-    if (last.stateHistory?.length > 0 && savedHistory?.length > 0) {
-      // endTurn ran and appended a snapshot; prepend the history from prior turns.
-      last.stateHistory = [...savedHistory, ...last.stateHistory];
-    } else if (!last.stateHistory && savedHistory) {
-      // Game ended mid-action before endTurn ran; carry forward the prior history.
-      last.stateHistory = savedHistory;
-    }
   }
 
   return steps;
