@@ -1312,6 +1312,36 @@ function minimax(gameState, depth, alpha, beta, maximizingPlayer, playerId, comm
   }
 }
 
+// ── Multi-action lethal detection ─────────────────────────────────────────────
+// DFS through action sequences up to depth 3, filtered to damage-path actions.
+// Returns the first action of a lethal sequence, or null.
+// Simulation handles all lethal-prevention effects (Undying Pact, Immortal Bastion).
+function findMultiActionLethal(gameState) {
+  const ap = gameState.activePlayer;
+  const enemyIdx = 1 - ap;
+  const start = performance.now();
+
+  function search(state, depth) {
+    if (depth >= 3) return null;
+    if (performance.now() - start > 4) return null;
+    const ec = state.champions[enemyIdx];
+    if (!ec) return null;
+    for (const action of getLegalActions(state)) {
+      if (action.type === 'endTurn' || action.type === 'summon' || action.type === 'unitAction') continue;
+      if (action.type === 'move' && (action.targetTile[0] !== ec.row || action.targetTile[1] !== ec.col)) continue;
+      if (action.type === 'championMove' && (action.row !== ec.row || action.col !== ec.col)) continue;
+      const ns = applyAction(state, action);
+      if (!ns) continue;
+      if (ns.winner) return action;
+      const sub = search(ns, depth + 1);
+      if (sub !== null) return action;
+    }
+    return null;
+  }
+
+  return search(gameState, 0);
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -1345,49 +1375,11 @@ export function chooseActionMinimax(gameState, commandsUsed = 0, options = {}) {
   const ap       = gameState.activePlayer;
   const playerId = ap === 0 ? 'p1' : 'p2';
 
-  // ── Pre-check: lethal detection ─────────────────────────────────────────────
-  const enemyIdx   = 1 - ap;
-  const enemyChamp = gameState.champions[enemyIdx];
-  const preActions = getLegalActions(gameState);
-
-  for (const action of preActions) {
-    if (action.type === 'move') {
-      const unit = gameState.units.find(u => u.uid === action.unitId);
-      if (
-        unit &&
-        action.targetTile[0] === enemyChamp.row &&
-        action.targetTile[1] === enemyChamp.col &&
-        unit.atk >= enemyChamp.hp
-      ) {
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    if (action.type === 'championMove') {
-      const myChamp = gameState.champions[ap];
-      if (
-        action.row === enemyChamp.row &&
-        action.col === enemyChamp.col &&
-        (myChamp.atk ?? 0) >= enemyChamp.hp
-      ) {
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    if (action.type === 'cast') {
-      const ns = applyAction(gameState, action);
-      if (ns.winner) {
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    if (action.type === 'championAbility') {
-      const ns = applyAction(gameState, action);
-      if (ns.winner) {
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
+  // ── Pre-check: multi-action lethal detection ────────────────────────────────
+  const lethalAction = findMultiActionLethal(gameState);
+  if (lethalAction) {
+    console.log('LETHAL FOUND: ' + lethalAction.type + ' ' + (lethalAction.unitId || lethalAction.cardId));
+    return lethalAction;
   }
 
   // Fresh TT, killers, and history per AI decision.
