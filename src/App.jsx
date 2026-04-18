@@ -67,20 +67,6 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const [challengeToasts, setChallengeToasts] = useState([]);
   const [showMatchReview, setShowMatchReview] = useState(false);
 
-  // DIAGNOSTIC: do not remove until Danjerr confirms Review Match button appears
-  useEffect(() => {
-    if (!state.winner) return;
-    const hist = state.stateHistory;
-    const buttonShouldRender = !!(hist && hist.length > 3);
-    console.log('[ReviewMatch Diagnostic]', {
-      stateHistoryExists: !!hist,
-      stateHistoryLength: hist?.length ?? 'N/A',
-      buttonShouldRender,
-      winner: state.winner,
-      gameMode,
-    });
-  }, [state.winner]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Reset minimize state whenever a new contract selection appears
   useEffect(() => {
     if (state.pendingContractSelect) setContractModalMinimized(false);
