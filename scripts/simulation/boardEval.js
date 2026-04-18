@@ -64,6 +64,7 @@ export const WEIGHTS = {
   tileDenial:                6,  // bonus per friendly unit adjacent to enemy champion (blocks summons)
   boardCentrality:           4,  // net centrality score: sum of (4 - manhattanDistToCenter) per friendly piece minus enemy
   projectedEnemyDamage:      4,  // penalty per unit of projected damage from enemy units over next 2 turns
+  championThroneProximity:   8,  // bonus for evaluating player's champion near Throne: max(0, 4 - manhattanDistToThrone)
 };
 
 /**
@@ -586,6 +587,11 @@ export function evaluateBoard(gameState, playerId, weights = null) {
       sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
      Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
 
+  // championThroneProximity: direct bonus for evaluating player's champion near Throne.
+  // Returns 4 on Throne, 3 adjacent, 2 at dist 2, 1 at dist 3, 0 at dist 4+.
+  const champDistToThrone = manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]);
+  const championThroneProximity = Math.max(0, 4 - champDistToThrone);
+
   // ── Weighted sum ────────────────────────────────────────────────────────────
 
   // Turn-scaling aggression multiplier: ramps up after turn 12 to push closing behavior.
@@ -624,6 +630,7 @@ export function evaluateBoard(gameState, playerId, weights = null) {
     tradeEfficiencyValue      * (w.tradeEfficiency ?? 5)  +
     tileDenialCount           * (w.tileDenial ?? 6)       +
     boardCentrality           * (w.boardCentrality ?? 4)  +
+    championThroneProximity   * (w.championThroneProximity ?? 8) +
     -projectedEnemyDamageTotal * (w.projectedEnemyDamage ?? 4);
 
   return score;

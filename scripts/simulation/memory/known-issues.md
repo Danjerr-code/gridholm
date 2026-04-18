@@ -1,11 +1,21 @@
 # Known Issues — AI Capability State
 
-**Last updated**: 2026-04-15 after LOG-1465 curve-aware mulligan.
-**Baseline commits**: `8ce9926` (Step 3 fix) + `5c6dfc9` (Mystic closing heuristic) + `27150eb` (remove opponent modeling) + `d2829f9` (curve-aware mulligan).
+**Last updated**: 2026-04-18 after LOG-1537 championThroneProximity commit.
+**Baseline commits**: `8ce9926` (Step 3 fix) + `5c6dfc9` (Mystic closing heuristic) + `27150eb` (remove opponent modeling) + `d2829f9` (curve-aware mulligan) + `0e6d630` (championThroneProximity weight=8).
 
 ---
 
 ## Resolved Issues
+
+### championThroneProximity eval term — COMMITTED (2026-04-18, commit 0e6d630, LOG-1537)
+- Term: `max(0, 4 - manhattanDist(championPos, thronePos))`, weight=8
+- Effect vs weight=0 baseline (46.7% aggregate DR for HvB+EvD+HvE at 200ms/35-turn):
+  - HvB DR: 20% → 10% (−10pp)
+  - EvD DR: 70% → 60% (−10pp)
+  - HvE DR: 50% → 40% (−10pp)
+  - Aggregate DR: 46.7% → 36.7% (−10pp)
+- All three matchups improved — the term is broad in effect, not HvB-specific
+- Live AI parity: `src/engine/strategicAI.js` updated by Brock in commit `9fe3b16`
 
 ### Champion Abilities Never Fire — FIXED (2026-04-11, commit a632997)
 - Fixed: `champDef?.abilities?.attuned?.type === 'activated'` and cost from `.cost.amount`

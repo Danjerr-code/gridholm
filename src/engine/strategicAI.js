@@ -427,6 +427,7 @@ export const WEIGHTS = {
   tileDenial:                6,
   projectedChampionDamage:  20,
   boardCentrality:           4,
+  championThroneProximity:   8,
   turnAggressionScale:    0.08,
 };
 
@@ -643,6 +644,10 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
       sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
      Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
 
+  // championThroneProximity: direct bonus for evaluating player's champion near Throne.
+  const champDistToThrone = manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]);
+  const championThroneProximity = Math.max(0, 4 - champDistToThrone);
+
   // Mystic override: throneControlValue weight raised to 30 (only profile change data justified).
   const faction = gameState.champions[ap]?.attribute ?? 'light';
   const effectiveThroneWeight = (faction === 'mystic') ? 30
@@ -677,7 +682,8 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     throneControlValue       * effectiveThroneWeight            +
     tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
     tileDenialCount          * (weights.tileDenial ?? 6)        +
-    boardCentrality          * (weights.boardCentrality ?? 4)
+    boardCentrality          * (weights.boardCentrality ?? 4)   +
+    championThroneProximity  * (weights.championThroneProximity ?? 8)
   );
 }
 
@@ -1341,6 +1347,37 @@ function describeAction(action, state) {
   }
 }
 
+// ── Multi-action lethal detection ─────────────────────────────────────────────
+// DFS through action sequences up to depth 3, filtered to damage-path actions.
+// Returns the first action of a lethal sequence, or null.
+// Simulation handles all lethal-prevention effects (Undying Pact, Immortal Bastion)
+// without needing explicit checks.
+function findMultiActionLethal(gameState) {
+  const ap = gameState.activePlayer;
+  const enemyIdx = 1 - ap;
+  const start = performance.now();
+
+  function search(state, depth) {
+    if (depth >= 3) return null;
+    if (performance.now() - start > 4) return null;
+    const ec = state.champions[enemyIdx];
+    if (!ec) return null;
+    for (const action of getLegalActions(state)) {
+      if (action.type === 'endTurn' || action.type === 'summon' || action.type === 'unitAction') continue;
+      if (action.type === 'move' && (action.targetTile[0] !== ec.row || action.targetTile[1] !== ec.col)) continue;
+      if (action.type === 'championMove' && (action.row !== ec.row || action.col !== ec.col)) continue;
+      const ns = applyAction(state, action);
+      if (!ns) continue;
+      if (ns.winner) return action;
+      const sub = search(ns, depth + 1);
+      if (sub !== null) return action;
+    }
+    return null;
+  }
+
+  return search(gameState, 0);
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -1372,58 +1409,13 @@ export function chooseActionStrategic(gameState, commandsUsed) {
     aiLog(`   Legal actions: ${getLegalActions(gameState).length}`);
   }
 
-  // ── Pre-check: lethal detection ─────────────────────────────────────────────
-  // If any legal action wins the game immediately, take it without running minimax.
-  const enemyIdx = 1 - ap;
-  const enemyChamp = gameState.champions[enemyIdx];
-  const preActions = getLegalActions(gameState);
-
-  for (const action of preActions) {
-    // Unit move onto the enemy champion's tile: lethal if unit ATK >= champion HP.
-    if (action.type === 'move') {
-      const unit = gameState.units.find(u => u.uid === action.unitId);
-      if (
-        unit &&
-        action.targetTile[0] === enemyChamp.row &&
-        action.targetTile[1] === enemyChamp.col &&
-        unit.atk >= enemyChamp.hp
-      ) {
-        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    // Champion move onto the enemy champion's tile: lethal if champion ATK >= enemy HP.
-    if (action.type === 'championMove') {
-      const myChamp = gameState.champions[ap];
-      if (
-        action.row === enemyChamp.row &&
-        action.col === enemyChamp.col &&
-        (myChamp.atk ?? 0) >= enemyChamp.hp
-      ) {
-        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    // Spell lethal: apply the cast and check if it results in a win.
-    if (action.type === 'cast') {
-      const newState = applyAction(gameState, action);
-      if (newState.winner) {
-        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
-    // Champion ability lethal: ability deals direct damage and enemy champion HP equals that damage.
-    if (action.type === 'championAbility') {
-      const newState = applyAction(gameState, action);
-      if (newState.winner) {
-        aiLog(`   → LETHAL: ${describeAction(action, gameState)}`);
-        console.log('LETHAL FOUND: ' + action.type + ' ' + (action.unitId || action.cardId));
-        return action;
-      }
-    }
+  // ── Pre-check: multi-action lethal detection ────────────────────────────────
+  // Finds and returns the first action of any lethal sequence (single or multi-action).
+  const lethalAction = findMultiActionLethal(gameState);
+  if (lethalAction) {
+    aiLog(`   → LETHAL: ${describeAction(lethalAction, gameState)}`);
+    console.log('LETHAL FOUND: ' + lethalAction.type + ' ' + (lethalAction.unitId || lethalAction.cardId));
+    return lethalAction;
   }
 
   // Fresh TT, killers, and history per decision. Shared across ID iterations.

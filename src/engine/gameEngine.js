@@ -3501,22 +3501,12 @@ export function resolveRelicPlace(state, row, col) {
 const TERRAIN_RESTRICTED = new Set(['2,2', '0,0', '4,4']);
 
 // Returns all valid tiles for casting a terrain card.
-// Most terrain cards allow placement within Manhattan distance 2 of the casting player's champion.
-// Enchanted Ground and Cursed Ground are restricted to Manhattan distance 1 (adjacent tiles only).
-// Excludes champion start tiles (0,0) and (4,4) and the Throne tile (2,2).
-export function getTerrainCastTiles(state, card = null) {
-  const resolvedCard = card ?? state.pendingTerrainCast?.card;
-  const maxDist = (resolvedCard?.id === 'enchanted_ground' || resolvedCard?.id === 'cursed_ground') ? 1 : 2;
+// Terrain cards follow the same placement rule as unit summoning: open cardinal neighbors
+// of the champion only. Excludes champion start tiles (0,0) and (4,4) and the Throne (2,2).
+export function getTerrainCastTiles(state) {
   const champ = state.champions[state.activePlayer];
-  const tiles = [];
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
-      if (TERRAIN_RESTRICTED.has(`${r},${c}`)) continue;
-      if (manhattan([champ.row, champ.col], [r, c]) > maxDist) continue;
-      tiles.push([r, c]);
-    }
-  }
-  return tiles;
+  return cardinalNeighbors(champ.row, champ.col)
+    .filter(([r, c]) => !TERRAIN_RESTRICTED.has(`${r},${c}`) && !isTileOccupied(state, r, c));
 }
 
 // Returns all tiles affected by casting a terrain card at (targetRow, targetCol)
