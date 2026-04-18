@@ -671,16 +671,3 @@ button, input, .card-name, .card-stats, .card-rules,
   transition: filter 80ms ease;
 }
 
-/* Specular highlight arc — simulates overhead light source on the ring */
-.unit-ring::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 10%;
-  width: 80%;
-  height: 35%;
-  border-radius: 50%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.18), transparent);
-  pointer-events: none;
-  z-index: 3;
-}

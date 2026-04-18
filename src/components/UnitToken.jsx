@@ -209,8 +209,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
-  const dropShadow = '0 6px 14px rgba(0,0,0,0.7)';
-  const metallicInset = 'inset 3px 5px 6px rgba(255,255,255,0.35), inset -3px -5px 6px rgba(0,0,0,0.8)';
+  const dropShadow = '0 8px 16px rgba(0,0,0,0.8)';
+  const metallicInset = 'inset 2px 3px 5px rgba(255,255,255,0.2), inset -2px -3px 5px rgba(0,0,0,0.75)';
 
   // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
   // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
@@ -466,7 +466,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         background: isRelic ? '#1a1a2e' : '#1e2d45',
         border: isRelic
           ? `2px solid ${factionColors.border}bb`
-          : `3px solid ${factionColors.border}bb`,
+          : `5px solid ${factionColors.border}bb`,
         borderRadius: isRelic ? '4px' : undefined,
         ...(!isRelic && showActionGlow ? {
           '--team-ring': ownerRingColor.ring,
