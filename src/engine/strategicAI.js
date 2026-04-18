@@ -427,6 +427,7 @@ export const WEIGHTS = {
   tileDenial:                6,
   projectedChampionDamage:  20,
   boardCentrality:           4,
+  championThroneProximity:   8,
   turnAggressionScale:    0.08,
 };
 
@@ -643,6 +644,10 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
       sum + Math.max(0, 4 - manhattan([u.row, u.col], [THRONE_ROW, THRONE_COL])), 0) +
      Math.max(0, 4 - manhattan([oppChamp.row, oppChamp.col], [THRONE_ROW, THRONE_COL])));
 
+  // championThroneProximity: direct bonus for evaluating player's champion near Throne.
+  const champDistToThrone = manhattan([myChamp.row, myChamp.col], [THRONE_ROW, THRONE_COL]);
+  const championThroneProximity = Math.max(0, 4 - champDistToThrone);
+
   // Mystic override: throneControlValue weight raised to 30 (only profile change data justified).
   const faction = gameState.champions[ap]?.attribute ?? 'light';
   const effectiveThroneWeight = (faction === 'mystic') ? 30
@@ -677,7 +682,8 @@ function evaluateBoard(gameState, playerId, weights = WEIGHTS) {
     throneControlValue       * effectiveThroneWeight            +
     tradeEfficiencyValue     * (weights.tradeEfficiency ?? 5)   +
     tileDenialCount          * (weights.tileDenial ?? 6)        +
-    boardCentrality          * (weights.boardCentrality ?? 4)
+    boardCentrality          * (weights.boardCentrality ?? 4)   +
+    championThroneProximity  * (weights.championThroneProximity ?? 8)
   );
 }
 
