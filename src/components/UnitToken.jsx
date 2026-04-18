@@ -209,7 +209,8 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   const packBonus = state ? getPackBonus(state, unit) : 0;
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
-  const dropShadow = '0 4px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4)';
+  const dropShadow = '0 6px 14px rgba(0,0,0,0.7)';
+  const metallicInset = 'inset 2px 3px 4px rgba(255,255,255,0.25), inset -2px -3px 4px rgba(0,0,0,0.6)';
 
   // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
   // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
@@ -465,15 +466,15 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         background: isRelic ? '#1a1a2e' : '#1e2d45',
         border: isRelic
           ? `2px solid ${factionColors.border}bb`
-          : `1px solid ${factionColors.border}4d`,
+          : `3px solid ${factionColors.border}bb`,
         borderRadius: isRelic ? '4px' : undefined,
         ...(!isRelic && showActionGlow ? {
           '--team-ring': ownerRingColor.ring,
           '--team-glow': ownerRingColor.glow,
         } : (!isRelic ? {
-          boxShadow: `inset 0 3px 6px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.4), ${teamRingShadow}, ${dropShadow}`,
+          boxShadow: `${metallicInset}, ${teamRingShadow}, ${dropShadow}`,
         } : {
-          boxShadow: `inset 0 3px 6px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.4), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
+          boxShadow: `${metallicInset}, 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
         })),
         overflow: 'hidden',
         ...ringStyle,
@@ -487,26 +488,32 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         ? `${unit.name} [Relic] | HP:${effectiveHp}/${effectiveMaxHp} — ${rulesTitle(unit.rules)}`
         : `${unit.name} | ATK:${effectiveAtk} HP:${effectiveHp}/${effectiveMaxHp} SPD:${effectiveSpd}${unit.hidden ? ' [Hidden]' : ''}`}
     >
-      {/* Card art fills token */}
+      {/* Card art fills token — container provides recessed cavity vignette */}
       {imageUrl && (
-        <img
-          src={imageUrl}
-          alt={unit.name}
-          draggable={false}
-          onError={(e) => { e.target.style.display = 'none'; }}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '50%',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            opacity: isOwnHidden ? 0.5 : 1,
-            WebkitTouchCallout: 'none',
-            userSelect: 'none',
-          }}
-        />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          boxShadow: 'inset 0 0 14px rgba(0,0,0,0.65)',
+          zIndex: 0,
+        }}>
+          <img
+            src={imageUrl}
+            alt={unit.name}
+            draggable={false}
+            onError={(e) => { e.target.style.display = 'none'; }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              opacity: isOwnHidden ? 0.5 : 1,
+              WebkitTouchCallout: 'none',
+              userSelect: 'none',
+            }}
+          />
+        </div>
       )}
 
       {/* Fallback letter when no art */}
@@ -661,6 +668,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         transform: 'translateX(-50%)',
         background: 'rgba(20,20,30,0.85)',
         border: '1px solid rgba(201,168,76,0.3)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.8)',
         color: '#fff',
         fontSize: '10px',
         fontFamily: 'var(--font-sans)',
