@@ -429,7 +429,7 @@ export function applyActionMutate(state, action) {
     }
 
     case 'endTurn':
-      return endTurn(state);
+      return endTurn(state).state;
 
     default:
       throw new Error(`Unknown action type: ${action.type}`);
@@ -535,7 +535,7 @@ export function applyAction(state, action) {
     }
 
     case 'endTurn': {
-      return endTurn(state);
+      return endTurn(state).state;
     }
 
     default:
