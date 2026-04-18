@@ -210,7 +210,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
 
   const teamRingShadow = `0 0 0 2px ${ownerRingColor.ring}, 0 0 10px ${ownerRingColor.glow}`;
   const dropShadow = '0 6px 14px rgba(0,0,0,0.7)';
-  const metallicInset = 'inset 2px 3px 4px rgba(255,255,255,0.25), inset -2px -3px 4px rgba(0,0,0,0.6)';
+  const metallicInset = 'inset 3px 5px 6px rgba(255,255,255,0.35), inset -3px -5px 6px rgba(0,0,0,0.8)';
 
   // Action glow: friendly, not sick, not stunned, not moved, commands remaining, local player's turn
   // Only glow if unit has SPD > 0 (can move/fight) or has a usable Action ability.
@@ -459,7 +459,7 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
   return (
     <div className={animWrapClass} style={animStyle}>
     <div
-      className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative unit-token-ring${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
+      className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative unit-token-ring unit-ring${!isRelic ? ' rounded-full' : ''}${!isRelic && showActionGlow ? ' unit-action-glow' : ''}`}
       draggable={false}
       onDragStart={e => e.preventDefault()}
       style={{
@@ -476,7 +476,6 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         } : {
           boxShadow: `${metallicInset}, 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
         })),
-        overflow: 'hidden',
         ...ringStyle,
       }}
       onPointerDown={handlePointerDown}
