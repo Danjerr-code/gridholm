@@ -171,10 +171,8 @@ export function handleGraveSelect(state, cardUid) {
 
 /**
  * End the active player's action phase and advance the turn.
- * The caller should check newState.pendingHandSelect — if set, a Clockwork
- * Manimus (or similar) discard is required before the AI can take its turn.
  * @param {object} state
- * @returns {object} new game state
+ * @returns {{ state: object, turnSnapshot: object|null }}
  */
 export function handleEndTurn(state) {
   return endActionAndTurn(state);
@@ -199,7 +197,7 @@ export function handleArcherShoot(state, archerUid, targetUid) {
  * Discard a card from the active player's hand.
  * @param {object} state
  * @param {string} cardUid
- * @returns {object} new game state
+ * @returns {{ state: object, turnSnapshot: object|null }}
  */
 export function handleDiscardCard(state, cardUid) {
   return discardCard(state, cardUid);

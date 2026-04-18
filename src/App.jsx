@@ -33,6 +33,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const gameMode = adventureContext ? 'adventure' : isDraft ? 'draft' : 'quickplay';
   const {
     state,
+    history,
     selectedCard,
     selectedUnit,
     selectMode,
@@ -66,20 +67,6 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
   const [contractModalMinimized, setContractModalMinimized] = useState(false);
   const [challengeToasts, setChallengeToasts] = useState([]);
   const [showMatchReview, setShowMatchReview] = useState(false);
-
-  // DIAGNOSTIC: do not remove until Danjerr confirms Review Match button appears
-  useEffect(() => {
-    if (!state.winner) return;
-    const hist = state.stateHistory;
-    const buttonShouldRender = !!(hist && hist.length > 3);
-    console.log('[ReviewMatch Diagnostic]', {
-      stateHistoryExists: !!hist,
-      stateHistoryLength: hist?.length ?? 'N/A',
-      buttonShouldRender,
-      winner: state.winner,
-      gameMode,
-    });
-  }, [state.winner]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset minimize state whenever a new contract selection appears
   useEffect(() => {
@@ -300,10 +287,10 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
     && isP1Turn;
 
   // Match review screen — shown over everything when active
-  if (showMatchReview && state.stateHistory && state.stateHistory.length > 3) {
+  if (showMatchReview && history.length > 3) {
     return (
       <MatchReview
-        stateHistory={state.stateHistory}
+        stateHistory={history}
         onBack={() => setShowMatchReview(false)}
       />
     );
@@ -347,7 +334,7 @@ export default function App({ onBackToLobby, onPlayAgain, onGameEnd, deckId = 'h
           >
             {adventureContext ? 'Continue' : 'Play Again'}
           </button>
-          {state.stateHistory && state.stateHistory.length > 3 && (
+          {history.length > 3 && (
             <button
               style={{
                 background: 'transparent',

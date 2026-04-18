@@ -384,7 +384,7 @@ export function applyAction(state, action) {
     }
 
     case 'endTurn': {
-      let s = endTurn(state);
+      let { state: s } = endTurn(state);
       // Handle Clockwork Manimus discardOrDie prompt: discard the lowest-cost card in hand
       if (s.pendingHandSelect?.reason === 'discardOrDie') {
         const p = s.players[s.activePlayer];

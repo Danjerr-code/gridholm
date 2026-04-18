@@ -266,22 +266,11 @@ function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 function getPlayer(state) { return state.players[state.activePlayer]; }
 
 
-// Deep-clone state.
-// stateHistory is shallow-attached rather than deep-cloned: entries are immutable
-// snapshots so a reference copy is safe and cheap. This ensures that any code path
-// which clones state and then sets state.winner still has stateHistory available for
-// the match-review button check. Callers that extend stateHistory (endTurn,
-// completeTurnAdvance) always replace it with a new array, so the shallow reference
-// is never mutated in place.
-// structuredClone is used instead of JSON.parse(JSON.stringify()) to handle circular
-// references in unit objects (e.g. Vexis shadow copies, modifier references) without
-// throwing. It is natively supported in all modern browsers (Chrome 98+, Firefox 94+,
-// Safari 15.4+) and Node.js 17+.
+// Deep-clone state via structuredClone to handle circular references in unit objects
+// (e.g. Vexis shadow copies, modifier references) without throwing.
+// Natively supported in all modern browsers (Chrome 98+, Firefox 94+, Safari 15.4+) and Node.js 17+.
 export function cloneState(state) {
-  const { stateHistory: _h, ...rest } = state;
-  const clone = structuredClone(rest);
-  if (_h !== undefined) clone.stateHistory = _h;
-  return clone;
+  return structuredClone(state);
 }
 
 // ── HP restore ─────────────────────────────────────────────────────────────
@@ -4475,36 +4464,25 @@ export function archerShoot(state, archerUid, targetUid) {
 // ── end phase ──────────────────────────────────────────────────────────────
 
 export function endActionAndTurn(state) {
-  const savedHistory = state.stateHistory;
-  const afterActionPhase = endActionPhase(state);
-  if (savedHistory !== undefined) {
-    afterActionPhase.stateHistory = savedHistory;
-  }
-  return endTurn(afterActionPhase);
+  return endTurn(endActionPhase(state));
 }
 
+// Returns { state, turnSnapshot } where turnSnapshot is non-null when a turn completed.
+// turnSnapshot is null when the turn is paused (pendingHandSelect or pendingDiscard).
 export function endTurn(state) {
-  // PRESERVE: do not clear on game over. Required for future match review feature.
-  const prevHistory = state.stateHistory || [];
-
-  const s = cloneState(state); // s.stateHistory = prevHistory (shallow ref from cloneState)
+  const s = cloneState(state);
   const p = s.players[s.activePlayer];
 
   // END TURN TRIGGERS
   fireEndTurnTriggers(s, s.activePlayer);
   if (s.winner) {
-    // Game ended mid-turn — preserve history but don't add a new snapshot yet;
-    // completeTurnAdvance won't run, so capture the final state here.
-    const snapshot = cloneState(s);
-    // PRESERVE: do not clear on game over. Required for future match review feature.
-    s.stateHistory = [...prevHistory, snapshot];
-    return s;
+    // Game ended mid-turn — snapshot this final state.
+    return { state: s, turnSnapshot: cloneState(s) };
   }
   // Clockwork Manimus (or any discardOrDie trigger) may set pendingHandSelect.
-  // If so, pause turn advance and wait for the player to choose a card.
+  // Pause turn advance and wait for the player to choose a card.
   if (s.pendingHandSelect) {
-    s.stateHistory = prevHistory; // hold history until turn fully advances
-    return s;
+    return { state: s, turnSnapshot: null };
   }
 
   // Hand limit: 6
@@ -4518,16 +4496,16 @@ export function endTurn(state) {
       }
     } else {
       s.pendingDiscard = true;
-      s.stateHistory = prevHistory; // hold history until discard resolves
       addLog(s, `${p.name} has too many cards. Click a card to discard.`);
-      return s;
+      return { state: s, turnSnapshot: null };
     }
   }
 
-  return completeTurnAdvance(s, prevHistory);
+  return completeTurnAdvance(s);
 }
 
-export function completeTurnAdvance(state, prevHistory = null) {
+// Returns { state, turnSnapshot }.
+export function completeTurnAdvance(state) {
   const s = state;
   const champ = s.champions[s.activePlayer];
 
@@ -4624,22 +4602,15 @@ export function completeTurnAdvance(state, prevHistory = null) {
   addLog(s, `--- Turn ${s.turn}: ${s.players[nextPlayer].name}'s turn ---`);
 
   const advanced = autoAdvancePhase(s);
-
-  // Append a snapshot of the completed turn to stateHistory.
-  // PRESERVE: do not clear on game over. Required for future match review feature.
-  const history = prevHistory ?? advanced.stateHistory ?? [];
-  const snapshot = cloneState(advanced); // snapshot carries stateHistory ref but it is never read recursively
-  advanced.stateHistory = [...history, snapshot];
-
-  return advanced;
+  return { state: advanced, turnSnapshot: cloneState(advanced) };
 }
 
+// Returns { state, turnSnapshot } where turnSnapshot is null if still discarding.
 export function discardCard(state, cardUid) {
-  const prevHistory = state.stateHistory || []; // carry history before clone strips it
   const s = cloneState(state);
   const p = s.players[s.activePlayer];
   const cardIdx = p.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) return s;
+  if (cardIdx === -1) return { state: s, turnSnapshot: null };
 
   const [discarded] = p.hand.splice(cardIdx, 1);
   p.discard.push(discarded);
@@ -4649,11 +4620,10 @@ export function discardCard(state, cardUid) {
   checkConditionalStatDeaths(s);
 
   if (p.hand.length <= 6) {
-    return completeTurnAdvance(s, prevHistory);
+    return completeTurnAdvance(s);
   }
 
-  s.stateHistory = prevHistory; // still discarding — hold history
-  return s;
+  return { state: s, turnSnapshot: null };
 }
 
 export function checkWinner(state) {

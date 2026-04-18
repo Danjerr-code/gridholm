@@ -17,8 +17,6 @@ export function sanitizeGameState(state) {
   s.champions = Array.isArray(s.champions) ? s.champions : [];
   s.activeModifiers = Array.isArray(s.activeModifiers) ? s.activeModifiers : [];
   s.graveyard = Array.isArray(s.graveyard) ? s.graveyard : [];
-  s.stateHistory = Array.isArray(s.stateHistory) ? s.stateHistory : [];
-
   // Player sub-arrays
   if (s.players.length > 0) {
     s.players = s.players.map(p => {

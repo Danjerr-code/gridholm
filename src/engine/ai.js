@@ -681,8 +681,8 @@ export function runAITurn(state) {
   return runHeuristicTurn(state);
 }
 
-// Returns an array of intermediate states, one per action step.
-// Decision logic is identical to runAITurn — this only adds step recording.
+// Returns Array<{ state, turnSnapshot }> — one entry per action step.
+// turnSnapshot is non-null only on the final step (the completed turn).
 // Synchronous so all AI decisions are computed in Phase 1 before any visual replay begins.
 export function runAITurnSteps(state) {
   if (_aiMode === 'strategic') {
@@ -713,8 +713,6 @@ function isBossStasisActive(state) {
 }
 
 function runHeuristicTurn(state) {
-  // cloneState strips stateHistory; save it so endTurn can accumulate properly.
-  const savedHistory = state.stateHistory;
   let s = cloneState(state);
 
   // Royal Stasis: skip boss's first 3 turns entirely
@@ -724,9 +722,8 @@ function runHeuristicTurn(state) {
       ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
       : 'Royal Stasis lifts. The Enthroned awakens.';
     s.log = [...s.log, logMsg];
-    const forEndTurn = endActionPhase(s);
-    forEndTurn.stateHistory = savedHistory;
-    return aiResolveEndTurn(endTurn(forEndTurn));
+    const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(s));
+    return { state: aiResolveEndTurn(afterEndTurn), turnSnapshot };
   }
 
   // Diagnostic: log turn context when debug mode is active
@@ -744,9 +741,8 @@ function runHeuristicTurn(state) {
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
     if (getAIDebug()) console.log('[HeuristicAI] → LETHAL: moving unit onto enemy champion');
-    const forEndTurn = endActionPhase(lethalState);
-    forEndTurn.stateHistory = savedHistory;
-    return aiResolveEndTurn(endTurn(forEndTurn));
+    const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(lethalState));
+    return { state: aiResolveEndTurn(afterEndTurn), turnSnapshot };
   }
 
   const before = { champAbil: s.champions[AI_PLAYER].moved, unitCount: s.units.filter(u => u.owner === AI_PLAYER).length };
@@ -764,17 +760,14 @@ function runHeuristicTurn(state) {
   s = aiPlayNonCombatCards(s);
   s = aiUnitMove(s);
 
-  s = endActionPhase(s);
-  s.stateHistory = savedHistory;
-  s = aiResolveEndTurn(endTurn(s));
-  return s;
+  const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(s));
+  return { state: aiResolveEndTurn(afterEndTurn), turnSnapshot };
 }
 
+// Returns Array<{ state, turnSnapshot }> — all intermediate steps have turnSnapshot: null;
+// the final step carries the turnSnapshot from endTurn.
 function runHeuristicTurnSteps(state) {
   const steps = [];
-  // cloneState strips stateHistory; endTurn needs it to accumulate turn snapshots.
-  // Save it here so we can restore it just before endTurn reads it.
-  const savedHistory = state.stateHistory;
   let s = cloneState(state);
 
   // Royal Stasis: skip boss's first 3 turns entirely
@@ -784,44 +777,36 @@ function runHeuristicTurnSteps(state) {
       ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
       : 'Royal Stasis lifts. The Enthroned awakens.';
     s.log = [...s.log, logMsg];
-    steps.push(s);
-    const forEndTurn = endActionPhase(s);
-    forEndTurn.stateHistory = savedHistory;
-    steps.push(aiResolveEndTurn(endTurn(forEndTurn)));
+    steps.push({ state: s, turnSnapshot: null });
+    const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(s));
+    steps.push({ state: aiResolveEndTurn(afterEndTurn), turnSnapshot });
     return steps;
   }
 
   // Auto-resolve Nezzar contract if pending at start of AI turn
   s = aiResolveContract(s);
-  if (s !== cloneState(state)) steps.push(s);
+  if (s !== cloneState(state)) steps.push({ state: s, turnSnapshot: null });
 
   // Pre-check lethal: if a unit can kill the enemy champion, do it first.
   const lethalState = aiLethalCheck(s);
   if (lethalState !== s) {
-    steps.push(lethalState);
-    // endActionPhase also clones; restore stateHistory on its output before endTurn reads it.
-    const forEndTurn = endActionPhase(lethalState);
-    forEndTurn.stateHistory = savedHistory;
-    steps.push(aiResolveEndTurn(endTurn(forEndTurn)));
+    steps.push({ state: lethalState, turnSnapshot: null });
+    const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(lethalState));
+    steps.push({ state: aiResolveEndTurn(afterEndTurn), turnSnapshot });
     return steps;
   }
 
-  s = aiChampionAbility(s); steps.push(s);
-  s = aiChampionMove(s); steps.push(s);
-  s = aiSummonCast(s); steps.push(s);
-  s = aiPlayNonCombatCards(s); steps.push(s);
-  s = aiUnitMove(s); steps.push(s);
-  // endActionPhase clones; restore stateHistory on its output before endTurn reads it.
-  s = endActionPhase(s);
-  s.stateHistory = savedHistory;
-  s = aiResolveEndTurn(endTurn(s));
-  steps.push(s);
+  s = aiChampionAbility(s); steps.push({ state: s, turnSnapshot: null });
+  s = aiChampionMove(s); steps.push({ state: s, turnSnapshot: null });
+  s = aiSummonCast(s); steps.push({ state: s, turnSnapshot: null });
+  s = aiPlayNonCombatCards(s); steps.push({ state: s, turnSnapshot: null });
+  s = aiUnitMove(s); steps.push({ state: s, turnSnapshot: null });
+  const { state: afterEndTurn, turnSnapshot } = endTurn(endActionPhase(s));
+  steps.push({ state: aiResolveEndTurn(afterEndTurn), turnSnapshot });
   return steps;
 }
 
 function runStrategicTurn(state) {
-  // cloneState strips stateHistory; save it so endTurn can accumulate properly.
-  const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
   const MAX_ACTIONS = 150; // safety cap
@@ -833,9 +818,7 @@ function runStrategicTurn(state) {
       ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
       : 'Royal Stasis lifts. The Enthroned awakens.';
     s.log = [...s.log, logMsg];
-    const forEndTurn = endActionPhase(s);
-    forEndTurn.stateHistory = savedHistory;
-    return endTurn(forEndTurn);
+    return endTurn(endActionPhase(s));
   }
 
   while (!s.winner && actionCount < MAX_ACTIONS) {
@@ -847,20 +830,15 @@ function runStrategicTurn(state) {
     if (action.type === 'endTurn') break;
   }
 
-  // Fix up stateHistory on the result (same logic as runStrategicTurnSteps).
-  if (s.stateHistory?.length > 0 && savedHistory?.length > 0) {
-    s.stateHistory = [...savedHistory, ...s.stateHistory];
-  } else if (!s.stateHistory && savedHistory) {
-    s.stateHistory = savedHistory;
-  }
-
-  return s;
+  // applyActionStrategic handles endTurn internally and returns a plain state.
+  // The final state after endTurn is the turn snapshot.
+  return { state: s, turnSnapshot: cloneState(s) };
 }
 
+// Returns Array<{ state, turnSnapshot }> — intermediate steps have turnSnapshot: null;
+// the final step (after endTurn) carries the turnSnapshot.
 function runStrategicTurnSteps(state) {
   const steps = [];
-  // cloneState strips stateHistory; save it so we can reattach it after the turn.
-  const savedHistory = state.stateHistory;
   let s = cloneState(state);
   let actionCount = 0;
   const MAX_ACTIONS = 150;
@@ -872,35 +850,31 @@ function runStrategicTurnSteps(state) {
       ? `Royal Stasis: ${stasisTurnsLeft} turn(s) remaining. Boss pieces cannot act.`
       : 'Royal Stasis lifts. The Enthroned awakens.';
     s.log = [...s.log, logMsg];
-    steps.push(s);
-    const forEndTurn = endActionPhase(s);
-    forEndTurn.stateHistory = savedHistory;
-    const finalState = endTurn(forEndTurn);
-    steps.push(finalState);
+    steps.push({ state: s, turnSnapshot: null });
+    const { state: finalState, turnSnapshot } = endTurn(endActionPhase(s));
+    steps.push({ state: finalState, turnSnapshot });
     return steps;
   }
 
+  let lastActionWasEndTurn = false;
   while (!s.winner && actionCount < MAX_ACTIONS) {
     const commandsUsed = s.players[s.activePlayer]?.commandsUsed ?? 0;
     const aiDepth = s.adventureAIDepth ?? 2;
     const action = chooseActionStrategic(s, commandsUsed, aiDepth);
     s = applyActionStrategic(s, action);
-    steps.push(s);
     actionCount++;
-    if (action.type === 'endTurn') break;
+    if (action.type === 'endTurn') {
+      lastActionWasEndTurn = true;
+      break;
+    }
+    steps.push({ state: s, turnSnapshot: null });
   }
 
-  // Fix up stateHistory on the final step. cloneState stripped the incoming history,
-  // so endTurn built stateHistory from [] instead of savedHistory. Prepend it now.
-  if (steps.length > 0) {
-    const last = steps[steps.length - 1];
-    if (last.stateHistory?.length > 0 && savedHistory?.length > 0) {
-      // endTurn ran and appended a snapshot; prepend the history from prior turns.
-      last.stateHistory = [...savedHistory, ...last.stateHistory];
-    } else if (!last.stateHistory && savedHistory) {
-      // Game ended mid-action before endTurn ran; carry forward the prior history.
-      last.stateHistory = savedHistory;
-    }
+  // The last state (after endTurn) is the turn snapshot.
+  if (lastActionWasEndTurn || s.winner) {
+    steps.push({ state: s, turnSnapshot: cloneState(s) });
+  } else {
+    steps.push({ state: s, turnSnapshot: null });
   }
 
   return steps;

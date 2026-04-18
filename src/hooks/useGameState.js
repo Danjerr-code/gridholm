@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useStateHistory } from './useStateHistory.js';
 import { supabase } from '../supabase.js';
 import {
   createInitialState,
@@ -95,6 +96,8 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
     return autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId));
   });
 
+  const { history, appendSnapshot, clearHistory } = useStateHistory();
+
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   // Mode: null | 'summon' | 'spell' | 'unit_move' | 'archer_target' | 'hand_select' | 'fleshtithe_sacrifice' | 'action_confirm' | 'champion_ability' | 'approach_select'
@@ -141,14 +144,16 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
         return;
       }
       // Compute all AI decisions synchronously — no yielding during computation.
-      const steps = runAITurnSteps(currentState);
+      const stepResults = runAITurnSteps(currentState);
       // AI has decided — clear thinking indicator before starting visual replay.
       setAiThinking(false);
       // Phase 2: replay each step at a fixed 800ms cadence so the turn duration is
       // predictable (~800ms × number of actions).
-      for (let i = 0; i < steps.length; i++) {
-        setState(steps[i]);
-        if (i < steps.length - 1) {
+      for (let i = 0; i < stepResults.length; i++) {
+        const { state: stepState, turnSnapshot } = stepResults[i];
+        setState(stepState);
+        if (turnSnapshot) appendSnapshot(turnSnapshot);
+        if (i < stepResults.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
@@ -210,8 +215,6 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
       ...(player.banished || []),
     ].map(c => c.id);
 
-    const { stateHistory, ...finalState } = state;
-
     supabase.from('match_replays').insert({
       game_mode: gameMode,
       p1_faction: p1.deckId ?? null,
@@ -220,8 +223,8 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
       p2_deck: getCardIds(p2),
       winner: winnerValue,
       total_turns: state.turn ?? 0,
-      state_history: stateHistory ?? [],
-      final_state: finalState,
+      state_history: history,
+      final_state: state,
     }).then(({ error }) => {
       if (error) console.warn('[Replay] Insert failed:', error.message);
     });
@@ -486,11 +489,14 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
   }, [clearSelection]);
 
   const handleEndAction = useCallback(() => {
+    let turnSnapshot = null;
     setState(prev => {
-      const next = handleEndTurn(prev);
+      const { state: next, turnSnapshot: snap } = handleEndTurn(prev);
+      turnSnapshot = snap;
       latestStateRef.current = next;
       return next;
     });
+    if (turnSnapshot) appendSnapshot(turnSnapshot);
     clearSelection();
     if (latestStateRef.current?.pendingHandSelect) {
       // Clockwork Manimus (or similar) paused turn advance waiting for discard.
@@ -499,7 +505,7 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
     } else if (state.activePlayer !== AI_PLAYER) {
       scheduleAITurn();
     }
-  }, [state.activePlayer, clearSelection, scheduleAITurn]);
+  }, [state.activePlayer, clearSelection, scheduleAITurn, appendSnapshot]);
 
   const handleSelectChampion = useCallback(() => {
     setSelectedUnit(null);
@@ -623,13 +629,16 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
   }, [selectedUnit, clearSelection]);
 
   const handleDiscardCard = useCallback((cardUid) => {
+    let turnSnapshot = null;
     setState(prev => {
-      const next = execDiscardCard(prev, cardUid);
+      const { state: next, turnSnapshot: snap } = execDiscardCard(prev, cardUid);
+      turnSnapshot = snap;
       latestStateRef.current = next;
       return next;
     });
+    if (turnSnapshot) appendSnapshot(turnSnapshot);
     scheduleAITurn();
-  }, [scheduleAITurn]);
+  }, [scheduleAITurn, appendSnapshot]);
 
   const handleRevealUnit = useCallback((unitUid) => {
     setState(prev => execRevealUnit(prev, unitUid));
@@ -746,10 +755,11 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
   }, [clearSelection]);
 
   const handleNewGame = useCallback(() => {
+    clearHistory();
     const aiDeckId = pickRandomAiDeck();
     applyAndMaybeAI(autoAdvancePhase(createStateWithAiLog(deckId, aiDeckId)));
     clearSelection();
-  }, [clearSelection, deckId, applyAndMaybeAI]);
+  }, [clearSelection, deckId, applyAndMaybeAI, clearHistory]);
 
   // Submit the local player's mulligan choice. Immediately resolves AI mulligan
   // so both players are submitted simultaneously and the game transitions to play.
@@ -836,6 +846,7 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
 
   return {
     state,
+    history,
     selectedCard,
     selectedUnit,
     selectMode,

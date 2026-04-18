@@ -265,7 +265,7 @@ export function useMultiplayerGame(gameId) {
       p2_deck: p2 ? getCardIds(p2) : [],
       winner: winnerValue,
       total_turns: gs.turn ?? 0,
-      state_history: null, // stateHistory is stripped during multiplayer sync
+      state_history: null,
       final_state: gs,
     }).then(({ error }) => {
       if (error) console.warn('[Replay] Multiplayer insert failed:', error.message);
@@ -499,11 +499,10 @@ export function useMultiplayerGame(gameId) {
       }
     }
 
-    // Strip stateHistory and log before syncing to Supabase.
-    // stateHistory is in-memory only and grows with every turn.
+    // Strip log before syncing to Supabase.
     // log is maintained locally on each client to avoid bloating the JSONB column;
     // the realtime handler carries it forward for the passive player.
-    const { stateHistory: _h, log, ...stateForSync } = newGameState;
+    const { log, ...stateForSync } = newGameState;
     console.log('[Multiplayer] sync payload:', JSON.stringify(stateForSync).length, 'bytes | log entries:', (log ?? []).length);
 
     const { data: updated } = await supabase
