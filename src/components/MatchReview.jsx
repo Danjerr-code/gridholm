@@ -11,6 +11,11 @@ import { findInflectionPoints } from '../engine/matchReview.js';
  *   stateHistory  {Array}    — array of game state snapshots (one per turn end)
  *   onBack        {Function} — called when player clicks "Back"
  */
+
+const LEFT_COL_W = 220;
+const RIGHT_COL_W = 192;
+const COL_GAP = 8;
+
 export default function MatchReview({ stateHistory, onBack }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inspectedItem, setInspectedItem] = useState(null);
@@ -53,6 +58,10 @@ export default function MatchReview({ stateHistory, onBack }) {
     p => p.stateIndex === currentIndex
   );
 
+  const hasHands =
+    (currentState?.players?.[0]?.hand?.length > 0 ||
+      currentState?.players?.[1]?.hand?.length > 0);
+
   return (
     <div
       style={{
@@ -64,14 +73,14 @@ export default function MatchReview({ stateHistory, onBack }) {
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
+      {/* Header — compact single row */}
       <div
         style={{
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 12px',
+          gap: '10px',
+          padding: '7px 12px',
           borderBottom: '1px solid #1e1e2e',
         }}
       >
@@ -81,13 +90,14 @@ export default function MatchReview({ stateHistory, onBack }) {
             background: 'transparent',
             color: '#9ca3af',
             fontFamily: "'Cinzel', serif",
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 600,
             border: '1px solid #2a2a3a',
             borderRadius: '4px',
-            padding: '6px 14px',
+            padding: '4px 12px',
             cursor: 'pointer',
             letterSpacing: '0.05em',
+            flexShrink: 0,
           }}
         >
           ← Back
@@ -95,55 +105,33 @@ export default function MatchReview({ stateHistory, onBack }) {
         <h2
           style={{
             fontFamily: "'Cinzel', serif",
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: 700,
             color: '#C9A84C',
             margin: 0,
             letterSpacing: '0.06em',
+            flex: 1,
+            textAlign: 'center',
           }}
         >
           Match Review
         </h2>
-        <div style={{ width: '80px' }} />
+        {/* Balancing spacer same width as back button area */}
+        <div style={{ width: '80px', flexShrink: 0 }} />
       </div>
 
-      {/* Three-column body */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: '8px', padding: '8px' }}>
-
-        {/* Left column: card detail panel (220px) */}
-        <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          <div
-            style={{
-              background: '#0f0f1e',
-              border: '1px solid #252538',
-              borderRadius: '6px',
-              padding: '8px',
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            className="no-scrollbar"
-          >
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '6px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>
-              Card Detail
-            </div>
-            {inspectedItem ? (
-              <CardDetailContent inspectedItem={inspectedItem} gameState={currentState} />
-            ) : (
-              <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
-                Click a unit or card to inspect
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Center column: nav + board + hands */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="no-scrollbar">
-
-          {/* Turn navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', justifyContent: 'center', flexShrink: 0 }}>
+      {/* Nav strip — positioned above the board (center column width only) */}
+      <div
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          gap: COL_GAP,
+          padding: `8px 8px 0`,
+        }}
+      >
+        <div style={{ width: LEFT_COL_W, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
             <button
               onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
               disabled={currentIndex === 0}
@@ -159,62 +147,61 @@ export default function MatchReview({ stateHistory, onBack }) {
               style={navBtnStyle(currentIndex === totalTurns - 1)}
             >▶</button>
           </div>
-
-          {/* Slider */}
           <input
             type="range"
             min={0}
             max={totalTurns - 1}
             value={currentIndex}
             onChange={e => setCurrentIndex(Number(e.target.value))}
-            style={{ width: '100%', marginBottom: '10px', accentColor: '#C9A84C', flexShrink: 0 }}
+            style={{ width: '100%', accentColor: '#C9A84C' }}
           />
+        </div>
+        <div style={{ width: RIGHT_COL_W, flexShrink: 0 }} />
+      </div>
 
-          {/* Board */}
-          <div style={{ width: '100%', marginBottom: '10px', flexShrink: 0 }}>
-            <MatchReviewBoard
-              gameState={currentState}
-              onUnitClick={handleUnitClick}
-              onChampionClick={handleChampionClick}
-            />
-          </div>
+      {/* Three-column body — columns aligned at board top */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: COL_GAP, padding: '8px 8px 0' }}>
 
-          {/* Hands */}
-          {(currentState?.players?.[0]?.hand?.length > 0 || currentState?.players?.[1]?.hand?.length > 0) && (
-            <div style={{ flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  Hands
-                </div>
-                <button
-                  onClick={() => setShowOpponentHand(v => !v)}
-                  style={{ background: 'transparent', border: '1px solid #252538', borderRadius: '4px',
-                    color: '#6b7280', fontFamily: 'var(--font-sans)', fontSize: '10px',
-                    padding: '2px 8px', cursor: 'pointer' }}
-                >
-                  {showOpponentHand ? 'Hide P2' : 'Show P2'}
-                </button>
-              </div>
-              <ReviewHandStrip
-                hand={currentState?.players?.[0]?.hand ?? []}
-                label="P1"
-                labelColor="#3b82f6"
-                onCardClick={(card) => setInspectedItem({ type: 'card', card })}
-              />
-              {showOpponentHand && (
-                <ReviewHandStrip
-                  hand={currentState?.players?.[1]?.hand ?? []}
-                  label="P2"
-                  labelColor="#ef4444"
-                  onCardClick={(card) => setInspectedItem({ type: 'card', card })}
-                />
-              )}
+        {/* Left column: card detail (220px) */}
+        <div style={{ width: LEFT_COL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div
+            style={{
+              background: '#0f0f1e',
+              border: '1px solid #252538',
+              borderRadius: '6px',
+              padding: '10px',
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            className="no-scrollbar"
+          >
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', color: '#C9A84C', marginBottom: '8px', fontVariant: 'small-caps', letterSpacing: '0.05em' }}>
+              Card Detail
             </div>
-          )}
+            {inspectedItem ? (
+              <CardDetailContent inspectedItem={inspectedItem} gameState={currentState} />
+            ) : (
+              <div style={{ fontFamily: "'Crimson Text', serif", fontStyle: 'italic', fontSize: '11px', color: '#2a2a3a', lineHeight: 1.5 }}>
+                Click a unit or card to inspect
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center column: board only */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <MatchReviewBoard
+            gameState={currentState}
+            onUnitClick={handleUnitClick}
+            onChampionClick={handleChampionClick}
+          />
         </div>
 
         {/* Right column: actions + key moments (192px) */}
-        <div style={{ width: 192, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
+        <div style={{ width: RIGHT_COL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
 
           {/* Actions this turn */}
           <div
@@ -222,7 +209,7 @@ export default function MatchReview({ stateHistory, onBack }) {
               background: '#0f0f1e',
               border: '1px solid #252538',
               borderRadius: '6px',
-              padding: '8px',
+              padding: '10px',
               flexShrink: 0,
               maxHeight: '200px',
               overflowY: 'auto',
@@ -253,7 +240,7 @@ export default function MatchReview({ stateHistory, onBack }) {
               background: '#0f0f1e',
               border: '1px solid #252538',
               borderRadius: '6px',
-              padding: '8px',
+              padding: '10px',
               flex: 1,
               minHeight: 0,
               overflowY: 'auto',
@@ -309,6 +296,39 @@ export default function MatchReview({ stateHistory, onBack }) {
         </div>
 
       </div>
+
+      {/* Full-width hands strip */}
+      {hasHands && (
+        <div style={{ flexShrink: 0, padding: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Hands
+            </div>
+            <button
+              onClick={() => setShowOpponentHand(v => !v)}
+              style={{ background: 'transparent', border: '1px solid #252538', borderRadius: '4px',
+                color: '#6b7280', fontFamily: 'var(--font-sans)', fontSize: '10px',
+                padding: '2px 8px', cursor: 'pointer' }}
+            >
+              {showOpponentHand ? 'Hide P2' : 'Show P2'}
+            </button>
+          </div>
+          <ReviewHandStrip
+            hand={currentState?.players?.[0]?.hand ?? []}
+            label="P1"
+            labelColor="#3b82f6"
+            onCardClick={(card) => setInspectedItem({ type: 'card', card })}
+          />
+          {showOpponentHand && (
+            <ReviewHandStrip
+              hand={currentState?.players?.[1]?.hand ?? []}
+              label="P2"
+              labelColor="#ef4444"
+              onCardClick={(card) => setInspectedItem({ type: 'card', card })}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -325,7 +345,7 @@ function ReviewHandStrip({ hand, label, labelColor, onCardClick }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '8px' }}>
       <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 700, color: labelColor, minWidth: '20px', paddingTop: '4px' }}>{label}</span>
-      <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }} className="no-scrollbar">
+      <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px', flex: 1 }} className="no-scrollbar">
         {hand.map((card, i) => {
           const imageUrl = card.image ? getCardImageUrl(card.image) : null;
           const isSpell = card.type === 'spell';
