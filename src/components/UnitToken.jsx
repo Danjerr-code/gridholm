@@ -471,9 +471,9 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
           '--team-ring': ownerRingColor.ring,
           '--team-glow': ownerRingColor.glow,
         } : (!isRelic ? {
-          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), ${teamRingShadow}, ${dropShadow}`,
+          boxShadow: `inset 0 3px 6px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.4), ${teamRingShadow}, ${dropShadow}`,
         } : {
-          boxShadow: `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
+          boxShadow: `inset 0 3px 6px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.4), 0 0 0 2px ${ownerRingColor.ring}99, 0 0 8px ${ownerRingColor.glow}88, ${dropShadow}`,
         })),
         overflow: 'hidden',
         ...ringStyle,
@@ -677,15 +677,6 @@ export default function UnitToken({ unit, state, isSelected, isSpellTarget, isAr
         {unit.shield > 0 && <span style={{ color: '#67e8f9', fontSize: '8px' }}>🛡</span>}
         {isRelic ? `♥${effectiveHp}` : `${effectiveAtk}/${effectiveHp}`}
       </div>
-      {/* Cylindrical depth gradient overlay — lighter top, darker bottom */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.2) 100%)',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        zIndex: 1,
-      }} />
       {/* Damage flash overlay */}
       {showFlash && <div className="unit-damage-flash-overlay" />}
       {/* Buff shimmer overlay */}
