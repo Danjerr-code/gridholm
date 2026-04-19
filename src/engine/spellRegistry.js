@@ -97,12 +97,14 @@ export const SPELL_REGISTRY = {
   },
 
   crusade: (state, caster) => {
+    const champ = state.champions[caster];
+    champ.turnAtkBonus = (champ.turnAtkBonus || 0) + 2;
     state.units.forEach(u => {
       if (u.owner === caster) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
       }
     });
-    addLog(state, `${state.players[caster].name} casts Crusade. All friendly units gain +2 ATK this turn.`);
+    addLog(state, `${state.players[caster].name} casts Crusade. Champion and all friendly units gain +2 ATK this turn.`);
     return state;
   },
 
@@ -301,11 +303,9 @@ export const SPELL_REGISTRY = {
 
   verdantsurge: (state, caster) => {
     const champ = state.champions[caster];
-    // Apply to champion
-    champ.turnAtkBonus = (champ.turnAtkBonus || 0) + 2;
-    champ.hp = Math.min(champ.maxHp + 2, champ.hp + 2);
-    champ.verdantSurgeBonus = (champ.verdantSurgeBonus || 0) + 2;
-    // Apply to friendly units within 2 tiles of champion
+    // Skip champion's action this turn
+    champ.moved = true;
+    // Apply to friendly units within 2 tiles of champion (champion excluded)
     state.units.forEach(u => {
       if (u.owner === caster && manhattan([champ.row, champ.col], [u.row, u.col]) <= 2) {
         u.turnAtkBonus = (u.turnAtkBonus || 0) + 2;
@@ -313,7 +313,7 @@ export const SPELL_REGISTRY = {
         u.verdantSurgeBonus = (u.verdantSurgeBonus || 0) + 2;
       }
     });
-    addLog(state, `${state.players[caster].name} casts Verdant Surge. Nearby friendly units gain +2 ATK and +2 HP this turn.`);
+    addLog(state, `${state.players[caster].name} casts Verdant Surge. Champion's action skipped. Nearby friendly units gain +2 ATK and +2 HP this turn.`);
     return state;
   },
 
