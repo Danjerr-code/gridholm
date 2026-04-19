@@ -715,7 +715,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
         }
       }
       setRangeIndicatorTiles([...tileSet].map(k => k.split(',').map(Number)));
-    } else if (card.id === 'verdantsurge' || card.id === 'pestilence') {
+    } else if (
+      card.id === 'verdantsurge' || card.id === 'pestilence' ||
+      card.id === 'smite' || card.id === 'martiallaw' ||
+      card.id === 'spiritbolt' || card.id === 'fortify_the_crown'
+    ) {
       const tiles = [];
       for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 5; c++) {
@@ -754,15 +758,28 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, []);
 
   const handleHoverUnit = useCallback((unit) => {
-    if (!gameState || unit.id !== 'wardlightcolossus') return;
-    const range = 2;
-    const tiles = [];
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
-        if (manhattan([unit.row, unit.col], [r, c]) <= range) tiles.push([r, c]);
+    if (!gameState) return;
+    const UNIT_RANGE_2 = new Set(['wardlightcolossus', 'standardbearer', 'korraksecondang', 'smokebomb']);
+    if (UNIT_RANGE_2.has(unit.id)) {
+      const tiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (manhattan([unit.row, unit.col], [r, c]) <= 2) tiles.push([r, c]);
+        }
       }
+      setRangeIndicatorTiles(tiles);
+    } else if (unit.id === 'siegeclawwarchief') {
+      // Zone buff anchored to enemy champion
+      const enemyChamp = gameState.champions.find(c => c.owner !== unit.owner);
+      if (!enemyChamp) return;
+      const tiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (manhattan([enemyChamp.row, enemyChamp.col], [r, c]) <= 2) tiles.push([r, c]);
+        }
+      }
+      setRangeIndicatorTiles(tiles);
     }
-    setRangeIndicatorTiles(tiles);
   }, [gameState]);
 
   const handleUnhoverUnit = useCallback(() => {
