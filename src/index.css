@@ -671,3 +671,19 @@ button, input, .card-name, .card-stats, .card-rules,
   transition: filter 80ms ease;
 }
 
+/* ── Range indicator overlay ──────────────────────────────────── */
+
+@keyframes range-glow-pulse {
+  0%, 100% { opacity: 0.7; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.4); }
+  50%       { opacity: 1;   box-shadow: inset 0 0 0 2px rgba(255,255,255,1),   0 0 14px rgba(255,255,255,0.65); }
+}
+
+.tile-range-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 3;
+  animation: range-glow-pulse 1.6s ease-in-out infinite;
+}
+

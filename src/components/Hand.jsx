@@ -118,7 +118,7 @@ function buildDisplayList(hand, exitingCards) {
   return result;
 }
 
-export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss, onCardDragStart, onCardDragMove, onCardDragEnd }) {
+export default function Hand({ player, resources, isActive, canPlay, gameState, playerIndex, pendingDiscard, pendingHandSelect, selectedCard, onPlayCard, onDiscardCard, onHandSelect, onInspectCard, isMobile, onMobileTap, onLongPressCard, onLongPressDismiss, onCardDragStart, onCardDragMove, onCardDragEnd, onHoverCard, onUnhoverCard }) {
   // ── Animation state ────────────────────────────────────────────────────
   const [animInUids, setAnimInUids] = useState(new Set());
   const [exitingCards, setExitingCards] = useState([]); // {uid, card, animType, originalIndex}
@@ -256,6 +256,8 @@ export default function Hand({ player, resources, isActive, canPlay, gameState, 
               style={{ scrollSnapAlign: 'start', flexShrink: 0 }}
               draggable={false}
               onDragStart={e => e.preventDefault()}
+              onMouseEnter={!isMobile && onHoverCard ? () => onHoverCard(card) : undefined}
+              onMouseLeave={!isMobile && onUnhoverCard ? onUnhoverCard : undefined}
             >
               <Card
                 card={card}
