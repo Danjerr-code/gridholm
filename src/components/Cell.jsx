@@ -34,6 +34,7 @@ export default function Cell({
   isDirectionTarget = false,
   directionArrow = null,
   isChampionSaplingTile = false,
+  isRangeIndicator = false,
   isSpellTargetGlow,
   terrain,
   terrainAnimActive = false,
@@ -56,6 +57,10 @@ export default function Cell({
   onUnitDragStart,
   onUnitDragMove,
   onUnitDragEnd,
+  onChampionMouseEnter,
+  onChampionMouseLeave,
+  onUnitMouseEnter,
+  onUnitMouseLeave,
 }) {
   const terrainTint = terrain ? TERRAIN_TINTS[terrain.id] : null;
 
@@ -273,6 +278,11 @@ export default function Cell({
         </div>
       )}
 
+      {/* Range indicator overlay — glowing white outline on hover */}
+      {isRangeIndicator && (
+        <div className="tile-range-indicator" />
+      )}
+
       {/* Champion */}
       {champion && (
         <div
@@ -298,6 +308,8 @@ export default function Cell({
             }
             onChampionClick && onChampionClick();
           }}
+          onMouseEnter={onChampionMouseEnter}
+          onMouseLeave={onChampionMouseLeave}
           title={`${champion.owner === 0 ? 'P1' : 'P2'} Champion — HP: ${champion.hp}/${champion.maxHp}`}
         >
           {/* Red flash overlay on damage */}
@@ -429,7 +441,7 @@ export default function Cell({
 
       {/* Unit */}
       {unit && !champion && (
-        <div className="absolute inset-0.5">
+        <div className="absolute inset-0.5" onMouseEnter={onUnitMouseEnter} onMouseLeave={onUnitMouseLeave}>
           <UnitToken
             unit={unit}
             state={state}

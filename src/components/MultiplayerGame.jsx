@@ -175,6 +175,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   const highlightTimerRef = useRef(null);
   const [opponentMoveTiles, setOpponentMoveTiles] = useState(new Set());
   const [spellGlowTile, setSpellGlowTile] = useState(null); // {row, col}
+  const [rangeIndicatorTiles, setRangeIndicatorTiles] = useState([]);
   // Grave viewer: null = closed, 0 = player 0's grave, 1 = player 1's grave
   const [graveViewerPlayer, setGraveViewerPlayer] = useState(null);
   const spellGlowTimerRef = useRef(null);
@@ -693,6 +694,96 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleInspectCard = useCallback((card) => {
     setInspectedItem({ type: 'card', card });
+  }, []);
+
+  const handleHoverCard = useCallback((card) => {
+    if (!gameState) return;
+    const state = gameState;
+    const myChamp = state.champions[myPlayerIndex];
+    if (!myChamp) return;
+
+    if (card.type === 'terrain' && card.terrainRadius != null) {
+      const placementTiles = getTerrainCastTiles(state);
+      const tileSet = new Set();
+      for (const [pr, pc] of placementTiles) {
+        for (let r = 0; r < 5; r++) {
+          for (let c = 0; c < 5; c++) {
+            if (manhattan([pr, pc], [r, c]) <= card.terrainRadius) {
+              tileSet.add(`${r},${c}`);
+            }
+          }
+        }
+      }
+      setRangeIndicatorTiles([...tileSet].map(k => k.split(',').map(Number)));
+    } else if (
+      card.id === 'verdantsurge' || card.id === 'pestilence' ||
+      card.id === 'smite' || card.id === 'martiallaw' ||
+      card.id === 'spiritbolt' || card.id === 'fortify_the_crown'
+    ) {
+      const tiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (manhattan([myChamp.row, myChamp.col], [r, c]) <= 2) tiles.push([r, c]);
+        }
+      }
+      setRangeIndicatorTiles(tiles);
+    } else {
+      setRangeIndicatorTiles([]);
+    }
+  }, [gameState, myPlayerIndex]);
+
+  const handleUnhoverCard = useCallback(() => {
+    setRangeIndicatorTiles([]);
+  }, []);
+
+  const handleHoverChampion = useCallback((champion) => {
+    if (!gameState || champion.owner !== myPlayerIndex) return;
+    const player = gameState.players[champion.owner];
+    if (!player) return;
+    const tier = player.resonance?.tier ?? 'none';
+    if (tier !== 'ascended') return;
+    const champDef = getChampionDef(player);
+    if (champDef?.abilities?.ascended?.id !== 'fortitude') return;
+    const tiles = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (manhattan([champion.row, champion.col], [r, c]) <= 2) tiles.push([r, c]);
+      }
+    }
+    setRangeIndicatorTiles(tiles);
+  }, [gameState, myPlayerIndex]);
+
+  const handleUnhoverChampion = useCallback(() => {
+    setRangeIndicatorTiles([]);
+  }, []);
+
+  const handleHoverUnit = useCallback((unit) => {
+    if (!gameState) return;
+    const UNIT_RANGE_2 = new Set(['wardlightcolossus', 'standardbearer', 'korraksecondang', 'smokebomb']);
+    if (UNIT_RANGE_2.has(unit.id)) {
+      const tiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (manhattan([unit.row, unit.col], [r, c]) <= 2) tiles.push([r, c]);
+        }
+      }
+      setRangeIndicatorTiles(tiles);
+    } else if (unit.id === 'siegeclawwarchief') {
+      // Zone buff anchored to enemy champion
+      const enemyChamp = gameState.champions.find(c => c.owner !== unit.owner);
+      if (!enemyChamp) return;
+      const tiles = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (manhattan([enemyChamp.row, enemyChamp.col], [r, c]) <= 2) tiles.push([r, c]);
+        }
+      }
+      setRangeIndicatorTiles(tiles);
+    }
+  }, [gameState]);
+
+  const handleUnhoverUnit = useCallback(() => {
+    setRangeIndicatorTiles([]);
   }, []);
 
   const handleLogCardNameClick = useCallback((card) => {
@@ -1453,6 +1544,11 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             veilseerTargetUids={isActiveTurn ? veilseerTargetUids : []}
             opponentMoveTiles={opponentMoveTiles}
             spellGlowTile={spellGlowTile}
+            rangeIndicatorTiles={rangeIndicatorTiles}
+            onHoverChampion={handleHoverChampion}
+            onUnhoverChampion={handleUnhoverChampion}
+            onHoverUnit={handleHoverUnit}
+            onUnhoverUnit={handleUnhoverUnit}
             handlers={handlers}
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}
@@ -1890,6 +1986,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
                 }
               }}
               onInspectCard={handleInspectCard}
+              onHoverCard={handleHoverCard}
+              onUnhoverCard={handleUnhoverCard}
             />
           </div>
         </div>

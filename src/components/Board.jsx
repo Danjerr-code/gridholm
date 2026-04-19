@@ -45,6 +45,11 @@ export default function Board({
   veilseerTargetUids = [],
   opponentMoveTiles = new Set(),
   spellGlowTile = null,
+  rangeIndicatorTiles = [],
+  onHoverChampion,
+  onUnhoverChampion,
+  onHoverUnit,
+  onUnhoverUnit,
   handlers,
   onInspectUnit,
   onClearInspect,
@@ -75,6 +80,7 @@ export default function Board({
   const relicPlaceSet = new Set(relicPlaceTiles.map(([r, c]) => `${r},${c}`));
   const directionTargetSet = new Set(directionTargetTiles.map(([r, c]) => `${r},${c}`));
   const saplingTileSet = new Set(championSaplingTiles.map(([r, c]) => `${r},${c}`));
+  const rangeIndicatorSet = new Set(rangeIndicatorTiles.map(([r, c]) => `${r},${c}`));
 
   const boardRef = useRef(null);
   const [dragTargetKey, setDragTargetKey] = useState(null);
@@ -672,6 +678,7 @@ export default function Board({
                 isDirectionTarget={directionTargetSet.has(key)}
                 directionArrow={directionArrow}
                 isChampionSaplingTile={saplingTileSet.has(key)}
+                isRangeIndicator={rangeIndicatorSet.has(key)}
                 terrain={terrain}
                 terrainAnimActive={!!terrainAnimStates[key]}
                 isThroneShockwave={row === 2 && col === 2 && throneAnimActive}
@@ -698,6 +705,10 @@ export default function Board({
                 onUnitDragStart={handleUnitDragStart}
                 onUnitDragMove={handleUnitDragMove}
                 onUnitDragEnd={handleUnitDragEnd}
+                onChampionMouseEnter={champion && onHoverChampion ? () => onHoverChampion(champion) : undefined}
+                onChampionMouseLeave={champion && onUnhoverChampion ? onUnhoverChampion : undefined}
+                onUnitMouseEnter={unit && onHoverUnit ? () => onHoverUnit(unit) : undefined}
+                onUnitMouseLeave={unit && onUnhoverUnit ? onUnhoverUnit : undefined}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => champion && handleChampionClick(champion, row, col)}
