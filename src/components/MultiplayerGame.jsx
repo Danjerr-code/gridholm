@@ -702,20 +702,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
     const myChamp = state.champions[myPlayerIndex];
     if (!myChamp) return;
 
-    if (card.type === 'terrain' && card.terrainRadius != null) {
-      const placementTiles = getTerrainCastTiles(state);
-      const tileSet = new Set();
-      for (const [pr, pc] of placementTiles) {
-        for (let r = 0; r < 5; r++) {
-          for (let c = 0; c < 5; c++) {
-            if (manhattan([pr, pc], [r, c]) <= card.terrainRadius) {
-              tileSet.add(`${r},${c}`);
-            }
-          }
-        }
-      }
-      setRangeIndicatorTiles([...tileSet].map(k => k.split(',').map(Number)));
-    } else if (
+    if (
       card.id === 'verdantsurge' || card.id === 'pestilence' ||
       card.id === 'smite' || card.id === 'martiallaw' ||
       card.id === 'spiritbolt' || card.id === 'fortify_the_crown'
@@ -783,6 +770,23 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
   }, [gameState]);
 
   const handleUnhoverUnit = useCallback(() => {
+    setRangeIndicatorTiles([]);
+  }, []);
+
+  const handleHoverTerrainTile = useCallback((row, col) => {
+    if (!gameState || !gameState.pendingTerrainCast) return;
+    const card = gameState.pendingTerrainCast.card;
+    const radius = card.terrainRadius ?? 0;
+    const tiles = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (manhattan([row, col], [r, c]) <= radius) tiles.push([r, c]);
+      }
+    }
+    setRangeIndicatorTiles(tiles);
+  }, [gameState]);
+
+  const handleUnhoverTerrainTile = useCallback(() => {
     setRangeIndicatorTiles([]);
   }, []);
 
@@ -1549,6 +1553,8 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
             onUnhoverChampion={handleUnhoverChampion}
             onHoverUnit={handleHoverUnit}
             onUnhoverUnit={handleUnhoverUnit}
+            onHoverTerrainTile={handleHoverTerrainTile}
+            onUnhoverTerrainTile={handleUnhoverTerrainTile}
             handlers={handlers}
             onInspectUnit={handleInspectUnit}
             onClearInspect={handleClearInspect}

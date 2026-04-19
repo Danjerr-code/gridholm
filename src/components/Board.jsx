@@ -50,6 +50,8 @@ export default function Board({
   onUnhoverChampion,
   onHoverUnit,
   onUnhoverUnit,
+  onHoverTerrainTile,
+  onUnhoverTerrainTile,
   handlers,
   onInspectUnit,
   onClearInspect,
@@ -709,6 +711,8 @@ export default function Board({
                 onChampionMouseLeave={champion && onUnhoverChampion ? onUnhoverChampion : undefined}
                 onUnitMouseEnter={unit && onHoverUnit ? () => onHoverUnit(unit) : undefined}
                 onUnitMouseLeave={unit && onUnhoverUnit ? onUnhoverUnit : undefined}
+                onTileMouseEnter={(terrainTargetSet.has(key) || relicPlaceSet.has(key)) && onHoverTerrainTile ? () => onHoverTerrainTile(row, col) : undefined}
+                onTileMouseLeave={(terrainTargetSet.has(key) || relicPlaceSet.has(key)) && onUnhoverTerrainTile ? onUnhoverTerrainTile : undefined}
                 onClick={() => handleCellClick(row, col)}
                 onUnitClick={() => handleUnitClick(unit)}
                 onChampionClick={() => champion && handleChampionClick(champion, row, col)}

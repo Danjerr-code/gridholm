@@ -61,6 +61,8 @@ export default function Cell({
   onChampionMouseLeave,
   onUnitMouseEnter,
   onUnitMouseLeave,
+  onTileMouseEnter,
+  onTileMouseLeave,
 }) {
   const terrainTint = terrain ? TERRAIN_TINTS[terrain.id] : null;
 
@@ -217,6 +219,8 @@ export default function Cell({
       title={isCenter ? (isMobile ? 'Throne — long press to inspect' : 'Throne — click to inspect') : undefined}
       {...tilePointerHandlers}
       onClick={handleTileClick}
+      onMouseEnter={onTileMouseEnter}
+      onMouseLeave={onTileMouseLeave}
     >
       {/* Terrain tint overlay — must render behind unit tokens */}
       {terrainTint && (
