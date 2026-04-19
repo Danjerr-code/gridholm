@@ -641,7 +641,14 @@ export function useGameState({ deckId = 'human', gameMode = 'quickplay', overrid
   }, [scheduleAITurn, appendSnapshot]);
 
   const handleRevealUnit = useCallback((unitUid) => {
-    setState(prev => execRevealUnit(prev, unitUid));
+    setState(prev => {
+      const s = execRevealUnit(prev, unitUid);
+      if (s.pendingSpell) {
+        setSelectedCard(s.pendingSpell.cardUid ?? null);
+        setSelectMode('spell');
+      }
+      return s;
+    });
     clearSelection();
   }, [clearSelection]);
 

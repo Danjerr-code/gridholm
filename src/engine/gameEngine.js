@@ -1691,11 +1691,13 @@ function revealUnit(state, unit, excludeUnit = null, revealTile = null) {
     // On reveal by combat: swap ATK and HP of the unit that moved into this tile (excludeUnit).
     // On voluntary reveal (owner spends a command): prompt for target via pendingSpell.
     if (excludeUnit) {
-      const liveRevealer = state.units.find(u => u.uid === excludeUnit.uid);
+      let liveRevealer = state.units.find(u => u.uid === excludeUnit.uid);
+      if (!liveRevealer) {
+        liveRevealer = state.champions.find(c => c.uid === excludeUnit.uid);
+      }
       if (liveRevealer) {
         const oldAtk = liveRevealer.atk;
         const oldHp = liveRevealer.hp;
-        const oldMaxHp = liveRevealer.maxHp;
         liveRevealer.atk = oldHp;
         liveRevealer.hp = oldAtk;
         liveRevealer.maxHp = Math.max(oldAtk, liveRevealer.maxHp);
