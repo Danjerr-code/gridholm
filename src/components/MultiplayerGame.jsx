@@ -508,7 +508,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleEndAction = useCallback(async () => {
     if (!gameState) return;
-    await dispatch(handleEndTurn(gameState));
+    await dispatch(handleEndTurn(gameState).state);
   }, [gameState, dispatch]);
 
   const handleSelectChampion = useCallback(() => {
@@ -565,7 +565,7 @@ export default function MultiplayerGame({ gameId, onBackToLobby }) {
 
   const handleDiscardCard = useCallback(async (cardUid) => {
     if (!gameState) return;
-    await dispatch(execDiscardCard(gameState, cardUid));
+    await dispatch(execDiscardCard(gameState, cardUid).state);
   }, [gameState, dispatch]);
 
   const handleRevealUnit = useCallback(async (unitUid) => {
