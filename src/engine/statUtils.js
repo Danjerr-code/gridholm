@@ -76,11 +76,12 @@ export function getPackBonus(state, unit) {
   ).length;
 }
 
-// Returns true if the whileOccupied terrain effect applies to the given unit.
-function terrainEffectApplies(wo, unit) {
-  if (wo.attributeOnly && unit.attribute !== wo.attributeOnly) return false;
-  if (wo.combatOnly && (unit.isRelic || unit.isOmen)) return false;
-  return true;
+// Returns 'buff', 'debuff', or 'none' for the terrain effect on the given unit.
+function getTerrainEffectType(wo, unit) {
+  if (wo.combatOnly && (unit.isRelic || unit.isOmen)) return 'none';
+  if (wo.attributeOnly && unit.attribute === wo.attributeOnly) return 'buff';
+  if (wo.opposingAttribute && unit.attribute === wo.opposingAttribute) return 'debuff';
+  return 'none';
 }
 
 // Returns the terrain whileOccupied ATK modifier for a unit at its current tile.
@@ -89,27 +90,37 @@ function getTerrainAtkModifier(state, unit) {
   const terrain = state.terrainGrid[unit.row]?.[unit.col];
   if (!terrain?.whileOccupied) return 0;
   const wo = terrain.whileOccupied;
-  if (!terrainEffectApplies(wo, unit)) return 0;
-  if (wo.atkBuff != null) return wo.atkBuff;
-  if (wo.atkDebuff != null) return -wo.atkDebuff;
+  const effect = getTerrainEffectType(wo, unit);
+  if (effect === 'buff') {
+    if (wo.atkBuff != null) return wo.atkBuff;
+    if (wo.atkDebuff != null) return -wo.atkDebuff;
+    return 0;
+  }
+  if (effect === 'debuff') return wo.atkBuff != null ? -wo.atkBuff : 0;
   return 0;
 }
 
-// Returns the terrain whileOccupied HP bonus for a unit at its current tile.
+// Returns the terrain whileOccupied HP modifier for a unit at its current tile.
+// Debuff HP modifier is capped so effective HP cannot drop below 1 from terrain alone.
 export function getTerrainHpModifier(state, unit) {
   if (!state.terrainGrid) return 0;
   const terrain = state.terrainGrid[unit.row]?.[unit.col];
   if (!terrain?.whileOccupied) return 0;
   const wo = terrain.whileOccupied;
-  if (!terrainEffectApplies(wo, unit)) return 0;
-  if (wo.hpBuff != null) {
-    if (wo.friendlyOnly) {
-      // friendlyOnly — only applies to units that aren't enemies (no per-faction check; friendly = same owner as terrain caster)
-      // We apply to any non-hidden unit on the tile (friendly buff to all)
-      if (unit.hidden) return 0;
+  const effect = getTerrainEffectType(wo, unit);
+  if (effect === 'buff') {
+    if (wo.hpBuff != null) {
+      if (wo.friendlyOnly) {
+        if (unit.hidden) return 0;
+        return wo.hpBuff;
+      }
       return wo.hpBuff;
     }
-    return wo.hpBuff;
+    return 0;
+  }
+  if (effect === 'debuff' && wo.hpBuff != null) {
+    // Terrain debuff cannot reduce HP below 1; unit cannot die from terrain alone.
+    return -Math.min(wo.hpBuff, unit.hp - 1);
   }
   return 0;
 }
