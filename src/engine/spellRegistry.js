@@ -753,6 +753,7 @@ export const SPELL_REGISTRY = {
 
   pestilence: (state, caster) => {
     const champ = state.champions[caster];
+    champ.moved = true;
     const affected = state.units.filter(u =>
       u.owner !== caster &&
       !u.isRelic &&
@@ -810,10 +811,8 @@ export const SPELL_REGISTRY = {
     return state;
   },
 
-  // Mind Seize: skip champion's action, gain control of an adjacent enemy combat unit.
+  // Mind Seize: gain control of an adjacent enemy combat unit.
   mindseize: (state, caster, targets) => {
-    const champ = state.champions[caster];
-    champ.moved = true;
     const target = targets[0];
     if (!target) return state;
     const liveTarget = state.units.find(u => u.uid === target.uid);
